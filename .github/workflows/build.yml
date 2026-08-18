@@ -100,10 +100,13 @@ jobs:
 
   build-windows:
     name: Build Windows Desktop App
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: build-core
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -112,8 +115,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Enable Windows Desktop
-        run: flutter config --enable-windows-desktop
+      - name: Configure Visual Studio Generator
+        shell: pwsh
+        run: |
+          echo "CMAKE_GENERATOR=Visual Studio 17 2022" >> $env:GITHUB_ENV
+          flutter config --enable-windows-desktop
 
       - name: Initialize Windows Platform
         working-directory: ./app
