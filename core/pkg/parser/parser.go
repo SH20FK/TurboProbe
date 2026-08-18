@@ -8,10 +8,11 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
-// ParseInput takes raw string input (single key, multiline, base64 blob, or subscription URL)
+// ParseInput takes raw string input (single key, multiline keys, multiple subscription URLs, or Base64)
 // and returns a deduplicated list of NodeConfigs.
 func ParseInput(ctx context.Context, input string) ([]*NodeConfig, error) {
 	input = strings.TrimSpace(input)
@@ -19,61 +20,60 @@ func ParseInput(ctx context.Context, input string) ([]*NodeConfig, error) {
 		return nil, fmt.Errorf("empty input provided")
 	}
 
-	// 1. If input is a subscription URL, fetch it
-	if strings.HasPrefix(input, "http://") || strings.HasPrefix(input, "https://") {
-		// If single line URL
-		if !strings.Contains(input, "\n") {
-			content, err := fetchSubscription(ctx, input)
-			if err != nil {
-				return nil, fmt.Errorf("failed to fetch subscription: %w", err)
-			}
-			input = content
-		}
-	}
+	rawLines := extractLines(input)
+	var urlList []string
+	var directLines []string
 
-	// 2. Try Base64 decoding if the whole text or lines look like base64
-	lines := extractLines(input)
-	var allURIs []string
-
-	for _, line := range lines {
+	for _, line := range rawLines {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "//") || strings.HasPrefix(line, "#") {
 			continue
 		}
-
-		if isSupportedScheme(line) {
-			allURIs = append(allURIs, line)
-			continue
-		}
-
-		// Try decoding as base64 block
-		decoded, err := tryDecodeBase64(line)
-		if err == nil && len(decoded) > 0 {
-			subLines := extractLines(string(decoded))
-			for _, subLine := range subLines {
-				subLine = strings.TrimSpace(subLine)
-				if isSupportedScheme(subLine) {
-					allURIs = append(allURIs, subLine)
-				}
-			}
+		if strings.HasPrefix(line, "http://") || strings.HasPrefix(line, "https://") {
+			urlList = append(urlList, line)
+		} else {
+			directLines = append(directLines, line)
 		}
 	}
 
-	// If no valid URIs found directly, try decoding the whole raw input as one big base64 block
+	var allURIs []string
+	var mu sync.Mutex
+
+	// 1. Concurrently fetch all subscription URLs if present
+	if len(urlList) > 0 {
+		var wg sync.WaitGroup
+		for _, u := range urlList {
+			wg.Add(1)
+			go func(subURL string) {
+				defer wg.Done()
+				fetchCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+				defer cancel()
+
+				content, err := fetchSubscription(fetchCtx, subURL)
+				if err == nil && content != "" {
+					extracted := parseTextBlobToURIs(content)
+					mu.Lock()
+					allURIs = append(allURIs, extracted...)
+					mu.Unlock()
+				}
+			}(u)
+		}
+		wg.Wait()
+	}
+
+	// 2. Parse direct text lines
+	if len(directLines) > 0 {
+		combinedDirect := strings.Join(directLines, "\n")
+		extracted := parseTextBlobToURIs(combinedDirect)
+		allURIs = append(allURIs, extracted...)
+	}
+
+	// 3. Fallback: If still empty, try decoding entire raw input as one big base64 block
 	if len(allURIs) == 0 {
-		decoded, err := tryDecodeBase64(input)
-		if err == nil {
-			subLines := extractLines(string(decoded))
-			for _, subLine := range subLines {
-				subLine = strings.TrimSpace(subLine)
-				if isSupportedScheme(subLine) {
-					allURIs = append(allURIs, subLine)
-				}
-			}
-		}
+		allURIs = parseTextBlobToURIs(input)
 	}
 
-	// 3. Parse individual URIs and deduplicate
+	// 4. Parse individual URIs and deduplicate
 	var nodes []*NodeConfig
 	seenFingerprints := make(map[string]bool)
 
@@ -92,7 +92,56 @@ func ParseInput(ctx context.Context, input string) ([]*NodeConfig, error) {
 		nodes = append(nodes, node)
 	}
 
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("no valid VPN keys or subscription links found in input")
+	}
+
 	return nodes, nil
+}
+
+func parseTextBlobToURIs(text string) []string {
+	var uris []string
+	lines := extractLines(text)
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "//") || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		if isSupportedScheme(line) {
+			uris = append(uris, line)
+			continue
+		}
+
+		// Try decoding as base64 block
+		decoded, err := tryDecodeBase64(line)
+		if err == nil && len(decoded) > 0 {
+			subLines := extractLines(string(decoded))
+			for _, subLine := range subLines {
+				subLine = strings.TrimSpace(subLine)
+				if isSupportedScheme(subLine) {
+					uris = append(uris, subLine)
+				}
+			}
+		}
+	}
+
+	// If no URIs found line by line, try entire blob base64
+	if len(uris) == 0 {
+		decoded, err := tryDecodeBase64(text)
+		if err == nil {
+			subLines := extractLines(string(decoded))
+			for _, subLine := range subLines {
+				subLine = strings.TrimSpace(subLine)
+				if isSupportedScheme(subLine) {
+					uris = append(uris, subLine)
+				}
+			}
+		}
+	}
+
+	return uris
 }
 
 // ParseURI routes a URI string to its specific protocol parser
@@ -172,7 +221,7 @@ func fetchSubscription(ctx context.Context, subURL string) (string, error) {
 	req.Header.Set("User-Agent", "v2rayN/6.39 TurboProbe/1.0 ClashMeta")
 
 	client := &http.Client{
-		Timeout: 15 * time.Second,
+		Timeout: 12 * time.Second,
 	}
 
 	resp, err := client.Do(req)

@@ -1,66 +1,103 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color background = Color(0xFF0F111A);
-  static const Color surface = Color(0xFF181B26);
-  static const Color surfaceLight = Color(0xFF232736);
-  static const Color primary = Color(0xFF6366F1); // Indigo / Purple
-  static const Color primaryAccent = Color(0xFF818CF8);
-  static const Color success = Color(0xFF10B981); // Emerald
-  static const Color warning = Color(0xFFF59E0B); // Amber
-  static const Color error = Color(0xFFEF4444); // Coral Red
-  static const Color textPrimary = Color(0xFFF9FAFB);
-  static const Color textSecondary = Color(0xFF9CA3AF);
-  static const Color border = Color(0xFF2D3348);
+  static const Color primary = Color(0xFF818CF8); // MD3 Indigo Primary
+  static const Color onPrimary = Color(0xFF0F111A);
+  static const Color primaryContainer = Color(0xFF3730A3);
+  static const Color onPrimaryContainer = Color(0xFFE0E7FF);
+
+  static const Color secondary = Color(0xFF38BDF8); // Cyan Accent
+  static const Color surface = Color(0xFF11131E);
+  static const Color surfaceContainerLow = Color(0xFF171A28);
+  static const Color surfaceContainer = Color(0xFF1E2235);
+  static const Color surfaceContainerHigh = Color(0xFF272D45);
+  static const Color outline = Color(0xFF3B4363);
+  static const Color outlineVariant = Color(0xFF262C42);
+
+  static const Color success = Color(0xFF34D399); // Emerald
+  static const Color warning = Color(0xFFFBBF24); // Amber
+  static const Color error = Color(0xFFF87171); // Coral Red
+  static const Color textPrimary = Color(0xFFF8FAFC);
+  static const Color textSecondary = Color(0xFF94A3B8);
 
   static ThemeData get darkTheme {
     return ThemeData(
+      useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: background,
-      primaryColor: primary,
+      scaffoldBackgroundColor: surface,
       colorScheme: const ColorScheme.dark(
         primary: primary,
-        secondary: primaryAccent,
+        onPrimary: onPrimary,
+        primaryContainer: primaryContainer,
+        onPrimaryContainer: onPrimaryContainer,
+        secondary: secondary,
         surface: surface,
+        surfaceContainer: surfaceContainer,
+        surfaceContainerHigh: surfaceContainerHigh,
+        surfaceContainerLow: surfaceContainerLow,
+        outline: outline,
+        outlineVariant: outlineVariant,
         error: error,
       ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+      ),
       cardTheme: CardTheme(
-        color: surface,
+        color: surfaceContainerLow,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: border, width: 1),
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: outlineVariant, width: 1),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surface,
-        hintStyle: const TextStyle(color: textSecondary, fontSize: 14),
+        fillColor: surfaceContainerLow,
+        hintStyle: const TextStyle(color: textSecondary, fontSize: 13),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: border),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: border),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: primary, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: Colors.white,
+          foregroundColor: onPrimary,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: surfaceContainerLow,
+        selectedColor: primaryContainer,
+        disabledColor: surface,
+        side: const BorderSide(color: outlineVariant),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        labelStyle: const TextStyle(fontSize: 12, color: textPrimary),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: surfaceContainerLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+      ),
+      dialogTheme: DialogTheme(
+        backgroundColor: surfaceContainerLow,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
     );
   }

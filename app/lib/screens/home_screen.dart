@@ -51,83 +51,70 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppTheme.background,
-        elevation: 0,
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
+                color: AppTheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.bolt_rounded, color: AppTheme.primaryAccent, size: 20),
+              child: const Icon(Icons.bolt_rounded, color: AppTheme.primary, size: 22),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'TurboProbe VPN',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceLight,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text('v1.0', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TurboProbe VPN',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                ),
+                Text(
+                  'Бенчмарк и фильтр ключей',
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                ),
+              ],
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.tune_rounded, color: AppTheme.textPrimary),
-            tooltip: 'Settings',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => SettingsDialog(initialConfig: provider.config),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.file_upload_outlined, color: AppTheme.textPrimary),
-            tooltip: 'Export Keys',
-            onPressed: provider.nodes.isEmpty
-                ? null
-                : () {
-                    showModalBottomSheet(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      isScrollControlled: true,
-                      builder: (context) => ExportSheet(provider: provider),
-                    );
-                  },
+          IconButton.filledTonal(
+            icon: const Icon(Icons.tune_rounded, size: 20),
+            tooltip: 'Настройки',
+            onPressed: () => SettingsDialog.show(context, provider.config),
           ),
           const SizedBox(width: 8),
+          IconButton.filledTonal(
+            icon: const Icon(Icons.file_download_rounded, size: 20),
+            tooltip: 'Экспорт лучших ключей',
+            onPressed: provider.nodes.isEmpty
+                ? null
+                : () => ExportSheet.show(context, provider),
+          ),
+          const SizedBox(width: 12),
         ],
       ),
       body: Column(
         children: [
-          // Input Section (Collapsible)
+          // Input Section (Collapsible & Multi-URL)
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppTheme.border),
+              color: AppTheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.outlineVariant),
             ),
             child: Column(
               children: [
                 if (_isInputExpanded) ...[
                   Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: TextField(
                       controller: _inputController,
-                      maxLines: 3,
+                      maxLines: 4,
                       style: const TextStyle(fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: 'Paste subscription URL or raw keys (vless://, vmess://, ss://, trojan://, hy2://, tuic://, Base64)...',
+                        hintText: 'Вставьте одну или несколько ссылок на подписки (каждую с новой строки) либо сырые ключи (vless://, vmess://, ss://, hy2://, tuic://, Base64)...',
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -135,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         contentPadding: EdgeInsets.zero,
                         suffixIcon: _inputController.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
+                                icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.textSecondary),
                                 onPressed: () {
                                   _inputController.clear();
                                   setState(() {});
@@ -146,59 +133,50 @@ class _HomeScreenState extends State<HomeScreen> {
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
-                  const Divider(height: 1, color: AppTheme.border),
+                  const Divider(height: 1, color: AppTheme.outlineVariant),
                 ],
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
                     children: [
                       // Paste Button
-                      OutlinedButton.icon(
+                      FilledButton.tonalIcon(
                         icon: const Icon(Icons.paste_rounded, size: 16),
-                        label: const Text('Paste', style: TextStyle(fontSize: 12)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.textPrimary,
-                          side: const BorderSide(color: AppTheme.border),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        label: const Text('Вставить'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: _pasteFromClipboard,
                       ),
                       const SizedBox(width: 8),
-                      // Parse Button if not parsed
+                      // Parse Button if not loaded
                       if (_inputController.text.isNotEmpty && provider.nodes.isEmpty)
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.search_rounded, size: 16),
-                          label: const Text('Parse Keys', style: TextStyle(fontSize: 12)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.surfaceLight,
-                            foregroundColor: AppTheme.textPrimary,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        FilledButton.tonal(
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           onPressed: _parseKeys,
+                          child: const Text('Загрузить'),
                         ),
                       const Spacer(),
-                      // Start / Stop Turbo-Probe Button
+                      // Start / Stop Button
                       if (provider.isTesting)
-                        ElevatedButton.icon(
+                        FilledButton.icon(
                           icon: const Icon(Icons.stop_rounded, size: 18),
-                          label: const Text('Stop Test'),
-                          style: ElevatedButton.styleFrom(
+                          label: const Text('Стоп'),
+                          style: FilledButton.styleFrom(
                             backgroundColor: AppTheme.error,
                             foregroundColor: Colors.white,
                           ),
                           onPressed: provider.stopBenchmark,
                         )
                       else
-                        ElevatedButton.icon(
+                        FilledButton.icon(
                           icon: const Icon(Icons.bolt_rounded, size: 18),
                           label: Text(
-                            provider.nodes.isEmpty ? 'Load & Test' : 'Test ${provider.nodes.length} Keys',
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            foregroundColor: Colors.white,
+                            provider.nodes.isEmpty ? 'Запустить тест' : 'Проверить (${provider.nodes.length})',
                           ),
                           onPressed: () async {
                             if (provider.nodes.isEmpty && _inputController.text.isNotEmpty) {
@@ -210,11 +188,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             }
                           },
                         ),
+                      const SizedBox(width: 4),
                       IconButton(
                         icon: Icon(
-                          _isInputExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                          _isInputExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
                           color: AppTheme.textSecondary,
-                          size: 20,
+                          size: 22,
                         ),
                         onPressed: () => setState(() => _isInputExpanded = !_isInputExpanded),
                       ),
@@ -231,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Stats Bar
           if (provider.nodes.isNotEmpty) StatsHeader(provider: provider),
 
-          // Filters & Search Bar
+          // Filters Bar
           if (provider.nodes.isNotEmpty) FilterBar(provider: provider),
 
           // Main Nodes List
@@ -241,9 +220,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircularProgressIndicator(color: AppTheme.primary),
-                        SizedBox(height: 12),
-                        Text('Parsing subscription keys...', style: TextStyle(color: AppTheme.textSecondary)),
+                        CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 3),
+                        SizedBox(height: 16),
+                        Text(
+                          'Загрузка и парсинг подписок...',
+                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                        ),
                       ],
                     ),
                   )
@@ -253,30 +235,30 @@ class _HomeScreenState extends State<HomeScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(20),
+                              padding: const EdgeInsets.all(22),
                               decoration: BoxDecoration(
-                                color: AppTheme.surface,
+                                color: AppTheme.surfaceContainerLow,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: AppTheme.border),
+                                border: Border.all(color: AppTheme.outlineVariant),
                               ),
                               child: const Icon(
                                 Icons.vpn_key_rounded,
-                                size: 48,
-                                color: AppTheme.primaryAccent,
+                                size: 44,
+                                color: AppTheme.primary,
                               ),
                             ),
                             const SizedBox(height: 16),
                             const Text(
-                              'No VPN Keys Loaded',
+                              'Ключи еще не загружены',
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 17,
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              'Paste subscription links or configs above\nto test and filter working keys.',
+                              'Вставьте одну или несколько ссылок на подписки\nдля быстрого локального бенчмарка.',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                             ),
@@ -286,7 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     : nodes.isEmpty
                         ? const Center(
                             child: Text(
-                              'No nodes match your filter criteria',
+                              'Нет ключей, подходящих под критерии поиска',
                               style: TextStyle(color: AppTheme.textSecondary),
                             ),
                           )
@@ -300,6 +282,17 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+      // Floating Export Bar when completed
+      floatingActionButton: (provider.aliveCount > 0 && !provider.isTesting)
+          ? FloatingActionButton.extended(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: AppTheme.onPrimary,
+              elevation: 4,
+              icon: const Icon(Icons.file_download_rounded),
+              label: Text('Скачать ТОП-${provider.aliveCount > 10 ? 10 : provider.aliveCount} лучших'),
+              onPressed: () => ExportSheet.show(context, provider),
+            )
+          : null,
     );
   }
 }

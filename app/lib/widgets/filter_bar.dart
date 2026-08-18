@@ -9,124 +9,109 @@ class FilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final protocols = provider.availableProtocols;
+    final countries = provider.availableCountries;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search Field
-          TextField(
-            onChanged: provider.setSearchQuery,
-            decoration: InputDecoration(
-              hintText: 'Search by name, IP or country...',
-              prefixIcon: const Icon(Icons.search, size: 20, color: AppTheme.textSecondary),
-              suffixIcon: provider.searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18, color: AppTheme.textSecondary),
-                      onPressed: () => provider.setSearchQuery(''),
-                    )
-                  : null,
-            ),
-          ),
-          const SizedBox(height: 10),
-          // Filter & Sort Row
+          // Search & Sort Row
           Row(
             children: [
-              // Protocol Dropdown
               Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.border),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: provider.selectedProtocol,
-                      isExpanded: true,
-                      dropdownColor: AppTheme.surface,
-                      items: provider.availableProtocols.map((proto) {
-                        return DropdownMenuItem(
-                          value: proto,
-                          child: Text(
-                            proto == 'ALL' ? 'Protocol: All' : proto,
-                            style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) provider.setProtocolFilter(val);
-                      },
-                    ),
+                child: TextField(
+                  onChanged: provider.setSearchQuery,
+                  style: const TextStyle(fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Поиск по имени, IP или стране...',
+                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppTheme.primary),
+                    suffixIcon: provider.searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 16, color: AppTheme.textSecondary),
+                            onPressed: () => provider.setSearchQuery(''),
+                          )
+                        : null,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              // Country Dropdown
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.border),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: provider.selectedCountry,
-                      isExpanded: true,
-                      dropdownColor: AppTheme.surface,
-                      items: provider.availableCountries.map((country) {
-                        return DropdownMenuItem(
-                          value: country,
-                          child: Text(
-                            country == 'ALL' ? 'Country: All' : country,
-                            style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) provider.setCountryFilter(val);
-                      },
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Sort Menu Button
+              // Sort Menu
               PopupMenuButton<SortOption>(
                 icon: Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.border),
+                    color: AppTheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.outlineVariant),
                   ),
-                  child: const Icon(Icons.sort_rounded, size: 20, color: AppTheme.textPrimary),
+                  child: const Icon(Icons.sort_rounded, size: 20, color: AppTheme.primary),
                 ),
-                color: AppTheme.surface,
+                color: AppTheme.surfaceContainer,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 onSelected: provider.setSortOption,
                 itemBuilder: (context) => [
                   const PopupMenuItem(
                     value: SortOption.pingAsc,
-                    child: Text('Sort by Ping (Lowest first)'),
+                    child: Text('⚡ По пингу (быстрые первые)'),
                   ),
                   const PopupMenuItem(
                     value: SortOption.scoreDesc,
-                    child: Text('Sort by Quality Score'),
+                    child: Text('🏆 По очкам качества (Score)'),
                   ),
                   const PopupMenuItem(
                     value: SortOption.country,
-                    child: Text('Sort by Country'),
+                    child: Text('🌐 По стране'),
                   ),
                   const PopupMenuItem(
                     value: SortOption.protocol,
-                    child: Text('Sort by Protocol'),
+                    child: Text('🔒 По протоколу'),
                   ),
                 ],
               ),
             ],
           ),
+          const SizedBox(height: 8),
+
+          // Protocol Filter Chips
+          if (protocols.length > 2)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: protocols.map((proto) {
+                  final isSelected = provider.selectedProtocol == proto;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(proto == 'ALL' ? 'Все протоколы' : proto),
+                      selected: isSelected,
+                      onSelected: (_) => provider.setProtocolFilter(proto),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+          if (countries.length > 2) ...[
+            const SizedBox(height: 6),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: countries.map((c) {
+                  final isSelected = provider.selectedCountry == c;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(c == 'ALL' ? '🌐 Все страны' : c),
+                      selected: isSelected,
+                      onSelected: (_) => provider.setCountryFilter(c),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
         ],
       ),
     );

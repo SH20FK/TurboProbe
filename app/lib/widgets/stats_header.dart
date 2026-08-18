@@ -10,36 +10,16 @@ class StatsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          _buildStatCard(
-            'Total',
-            '${provider.totalCount}',
-            AppTheme.textPrimary,
-            Icons.dns_rounded,
-          ),
+          _buildStatCard('Всего', '${provider.totalCount}', AppTheme.textPrimary, Icons.dns_rounded),
           const SizedBox(width: 8),
-          _buildStatCard(
-            'Alive',
-            '${provider.aliveCount}',
-            AppTheme.success,
-            Icons.check_circle_outline_rounded,
-          ),
+          _buildStatCard('Живых', '${provider.aliveCount}', AppTheme.success, Icons.check_circle_rounded),
           const SizedBox(width: 8),
-          _buildStatCard(
-            'Dead',
-            '${provider.deadCount}',
-            AppTheme.error,
-            Icons.highlight_off_rounded,
-          ),
+          _buildStatCard('Мертвых', '${provider.deadCount}', AppTheme.error, Icons.cancel_rounded),
           const SizedBox(width: 8),
-          _buildStatCard(
-            'Avg Ping',
-            provider.averagePing > 0 ? '${provider.averagePing}ms' : '--',
-            AppTheme.primaryAccent,
-            Icons.speed_rounded,
-          ),
+          _buildStatCard('Ср. пинг', provider.averagePing > 0 ? '${provider.averagePing}мс' : '--', AppTheme.primary, Icons.speed_rounded),
         ],
       ),
     );
@@ -48,37 +28,29 @@ class StatsHeader extends StatelessWidget {
   Widget _buildStatCard(String label, String value, Color color, IconData icon) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppTheme.border),
+          color: AppTheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.outlineVariant),
         ),
         child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 14, color: color.withOpacity(0.8)),
+                Icon(icon, size: 13, color: color),
                 const SizedBox(width: 4),
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color),
             ),
           ],
         ),

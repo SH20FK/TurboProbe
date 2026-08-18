@@ -13,7 +13,7 @@ class NodeCard extends StatelessWidget {
     final pingColor = AppTheme.getPingColor(node.pingMs);
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
@@ -21,12 +21,12 @@ class NodeCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Flag & Country
+                // Flag
                 Text(
                   node.flagEmoji ?? '🌐',
-                  style: const TextStyle(fontSize: 22),
+                  style: const TextStyle(fontSize: 24),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -34,43 +34,46 @@ class NodeCard extends StatelessWidget {
                       Text(
                         node.name,
                         style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                           color: AppTheme.textPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
-                        '${node.server}:${node.port} • ${node.countryName ?? node.countryCode ?? 'Unknown'}',
+                        '${node.server}:${node.port} • ${node.countryName ?? node.countryCode ?? 'Unknown'}${node.isp != null ? ' (${node.isp})' : ''}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppTheme.textSecondary,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                // Copy Button
+                // Copy Raw URI
                 IconButton(
                   icon: const Icon(Icons.copy_rounded, size: 18, color: AppTheme.textSecondary),
-                  tooltip: 'Copy Raw URI',
+                  tooltip: 'Копировать ключ',
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: node.rawUri));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Key copied to clipboard!'),
-                        duration: Duration(seconds: 1),
+                      SnackBar(
+                        content: const Text('Ключ скопирован в буфер!'),
+                        duration: const Duration(seconds: 1),
                         behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     );
                   },
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            const Divider(height: 1, color: AppTheme.border),
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: AppTheme.outlineVariant),
             const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -79,9 +82,9 @@ class NodeCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceLight,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppTheme.border),
+                    color: AppTheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.outlineVariant),
                   ),
                   child: Text(
                     node.protocol.toUpperCase() +
@@ -89,20 +92,20 @@ class NodeCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryAccent,
+                      color: AppTheme.primary,
                     ),
                   ),
                 ),
-                // Status / Ping / Metrics
+                // Ping & Metrics
                 if (node.isAlive)
                   Row(
                     children: [
                       if (node.jitterMs > 0)
                         Padding(
-                          padding: const EdgeInsets.only(right: 12),
+                          padding: const EdgeInsets.only(right: 10),
                           child: Text(
-                            '±${node.jitterMs}ms jitter',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                            '±${node.jitterMs}ms',
+                            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                           ),
                         ),
                       Container(
@@ -116,8 +119,8 @@ class NodeCard extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 7,
-                              height: 7,
+                              width: 6,
+                              height: 6,
                               decoration: BoxDecoration(
                                 color: pingColor,
                                 shape: BoxShape.circle,
@@ -129,7 +132,7 @@ class NodeCard extends StatelessWidget {
                               style: TextStyle(
                                 color: pingColor,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -139,9 +142,9 @@ class NodeCard extends StatelessWidget {
                   )
                 else
                   Text(
-                    node.errorMsg != null ? 'Unreachable' : 'Not tested',
+                    node.errorMsg != null ? 'Недоступен' : 'Ожидает проверки',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w500,
                       color: node.errorMsg != null ? AppTheme.error : AppTheme.textSecondary,
                     ),

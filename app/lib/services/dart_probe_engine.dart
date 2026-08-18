@@ -17,45 +17,49 @@ class DartProbeEngine {
     input = input.trim();
     if (input.isEmpty) return [];
 
-    // If subscription URL, fetch it
-    if ((input.startsWith('http://') || input.startsWith('https://')) && !input.contains('\n')) {
-      try {
-        final res = await http.get(
-          Uri.parse(input),
-          headers: {'User-Agent': 'v2rayN/6.39 TurboProbe/1.0 ClashMeta'},
-        ).timeout(const Duration(seconds: 12));
-        if (res.statusCode == 200) {
-          input = res.body.trim();
-        }
-      } catch (_) {}
-    }
+    final rawLines = _extractLines(input);
+    final List<String> urlList = [];
+    final List<String> directLines = [];
 
-    final lines = _extractLines(input);
-    final List<String> allUris = [];
-
-    for (final line in lines) {
-      if (_isSupportedUri(line)) {
-        allUris.add(line);
+    for (final line in rawLines) {
+      if (line.startsWith('http://') || line.startsWith('https://')) {
+        urlList.add(line);
       } else {
-        // Try Base64
-        try {
-          final decoded = utf8.decode(base64.decode(base64.normalize(line)));
-          final subLines = _extractLines(decoded);
-          for (final sub in subLines) {
-            if (_isSupportedUri(sub)) allUris.add(sub);
-          }
-        } catch (_) {}
+        directLines.add(line);
       }
     }
 
+    final List<String> allUris = [];
+
+    // Fetch all subscription URLs concurrently
+    if (urlList.isNotEmpty) {
+      final futures = urlList.map((url) async {
+        try {
+          final res = await http.get(
+            Uri.parse(url),
+            headers: {'User-Agent': 'v2rayN/6.39 TurboProbe/1.0 ClashMeta'},
+          ).timeout(const Duration(seconds: 12));
+          if (res.statusCode == 200) {
+            return _extractURIsFromBlob(res.body.trim());
+          }
+        } catch (_) {}
+        return <String>[];
+      });
+
+      final results = await Future.wait(futures);
+      for (final list in results) {
+        allUris.addAll(list);
+      }
+    }
+
+    // Process direct text lines
+    if (directLines.isNotEmpty) {
+      allUris.addAll(_extractURIsFromBlob(directLines.join('\n')));
+    }
+
+    // Fallback on full text
     if (allUris.isEmpty) {
-      try {
-        final decoded = utf8.decode(base64.decode(base64.normalize(input)));
-        final subLines = _extractLines(decoded);
-        for (final sub in subLines) {
-          if (_isSupportedUri(sub)) allUris.add(sub);
-        }
-      } catch (_) {}
+      allUris.addAll(_extractURIsFromBlob(input));
     }
 
     final List<NodeModel> nodes = [];
@@ -73,6 +77,37 @@ class DartProbeEngine {
     }
 
     return nodes;
+  }
+
+  static List<String> _extractURIsFromBlob(String text) {
+    final List<String> uris = [];
+    final lines = _extractLines(text);
+
+    for (final line in lines) {
+      if (_isSupportedUri(line)) {
+        uris.add(line);
+      } else {
+        try {
+          final decoded = utf8.decode(base64.decode(base64.normalize(line)));
+          final subLines = _extractLines(decoded);
+          for (final sub in subLines) {
+            if (_isSupportedUri(sub)) uris.add(sub);
+          }
+        } catch (_) {}
+      }
+    }
+
+    if (uris.isEmpty) {
+      try {
+        final decoded = utf8.decode(base64.decode(base64.normalize(text)));
+        final subLines = _extractLines(decoded);
+        for (final sub in subLines) {
+          if (_isSupportedUri(sub)) uris.add(sub);
+        }
+      } catch (_) {}
+    }
+
+    return uris;
   }
 
   static bool _isSupportedUri(String s) {
