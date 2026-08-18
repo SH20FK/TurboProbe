@@ -80,6 +80,10 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Initialize Android Platform
+        working-directory: ./app
+        run: flutter create --platforms=android --org com.turboprobe .
+
       - name: Get Flutter Packages
         working-directory: ./app
         run: flutter pub get
@@ -110,6 +114,10 @@ jobs:
 
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
+
+      - name: Initialize Windows Platform
+        working-directory: ./app
+        run: flutter create --platforms=windows --org com.turboprobe .
 
       - name: Get Flutter Packages
         working-directory: ./app
@@ -157,6 +165,10 @@ jobs:
 
       - name: Enable Linux Desktop
         run: flutter config --enable-linux-desktop
+
+      - name: Initialize Linux Platform
+        working-directory: ./app
+        run: flutter create --platforms=linux --org com.turboprobe .
 
       - name: Get Flutter Packages
         working-directory: ./app
