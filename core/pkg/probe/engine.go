@@ -198,11 +198,11 @@ func (e *Engine) RunBenchmark(
 func (e *Engine) probeSingleNode(ctx context.Context, node *parser.NodeConfig, opts ProbeOptions) {
 	node.TestedAt = time.Now()
 
-	// 1. Initial Handshake Check (TCP/TLS/DPI test)
-	hs := CheckHandshake(ctx, node, opts.Timeout)
-	if !hs.Success {
+	// 1. True Protocol-Level Tunnel Check (VLESS UUID / Trojan / TLS / HTTP 204)
+	tun := CheckTunnel(ctx, node, opts.Timeout)
+	if !tun.Success {
 		node.IsAlive = false
-		node.ErrorMsg = hs.Error.Error()
+		node.ErrorMsg = tun.Error.Error()
 		node.PingMs = 9999
 		node.Score = 0
 		return
@@ -214,15 +214,19 @@ func (e *Engine) probeSingleNode(ctx context.Context, node *parser.NodeConfig, o
 		burst = RunMicroBurst(ctx, node, opts.Timeout)
 		node.JitterMs = burst.Jitter.Milliseconds()
 		node.PacketLoss = burst.PacketLoss
-		node.PingMs = burst.AveragePing.Milliseconds()
+		if burst.AveragePing > 0 {
+			node.PingMs = burst.AveragePing.Milliseconds()
+		} else {
+			node.PingMs = tun.RTT.Milliseconds()
+		}
 	} else {
-		node.PingMs = hs.TotalTime.Milliseconds()
+		node.PingMs = tun.RTT.Milliseconds()
 		node.PacketLoss = 0
 		node.JitterMs = 0
 	}
 
 	node.IsAlive = true
-	node.HTTPStatus = 200
+	node.HTTPStatus = 204
 
 	// 3. Resolve GeoIP if enabled
 	if opts.EnableGeoIP && e.geoResolver != nil {

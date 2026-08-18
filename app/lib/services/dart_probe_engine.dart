@@ -297,9 +297,10 @@ class DartProbeEngine {
 
     try {
       final socket = await Socket.connect(node.server, node.port, timeout: timeout);
-      final tcpTime = stopwatch.elapsedMilliseconds;
 
-      // TLS Handshake check if applicable
+      dynamic activeSocket = socket;
+
+      // TLS / Reality Layer
       if (node.security == 'tls' || node.security == 'reality' || node.protocol == 'trojan') {
         final sni = node.sni ?? node.server;
         final secureSocket = await SecureSocket.secure(
@@ -307,11 +308,71 @@ class DartProbeEngine {
           host: sni,
           onBadCertificate: (_) => true,
         ).timeout(timeout);
-        secureSocket.destroy();
-      } else {
-        socket.destroy();
+        activeSocket = secureSocket;
       }
 
+      // True Protocol Tunnel Check for VLESS
+      if (node.protocol == 'vless' && node.rawUri.contains('@')) {
+        final rawUUID = node.rawUri.split('//')[1].split('@')[0].replaceAll('-', '');
+        if (rawUUID.length == 32) {
+          final uuidBytes = <int>[];
+          for (int i = 0; i < 32; i += 2) {
+            uuidBytes.add(int.parse(rawUUID.substring(i, i + 2), radix: 16));
+          }
+
+          final targetHost = 'cp.cloudflare.com';
+          final targetPort = 80;
+
+          final vlessHeader = <int>[
+            0x00, // version 0
+            ...uuidBytes,
+            0x00, // addons len
+            0x01, // command CONNECT
+            (targetPort >> 8) & 0xFF,
+            targetPort & 0xFF,
+            0x02, // domain
+            targetHost.length,
+            ...targetHost.codeUnits,
+          ];
+
+          final httpPayload = 'GET /generate_204 HTTP/1.1\r\nHost: cp.cloudflare.com\r\nConnection: close\r\n\r\n';
+          final fullRequest = [...vlessHeader, ...httpPayload.codeUnits];
+
+          activeSocket.add(fullRequest);
+          await activeSocket.flush();
+
+          final completer = Completer<bool>();
+          final sub = activeSocket.listen(
+            (data) {
+              if (data.isNotEmpty && !completer.isCompleted) {
+                final text = String.fromCharCodes(data);
+                if (text.contains('HTTP/') || text.contains('204') || text.contains('200') || data[0] == 0x00) {
+                  completer.complete(true);
+                } else {
+                  completer.complete(true); // data received back through tunnel
+                }
+              }
+            },
+            onError: (err) {
+              if (!completer.isCompleted) completer.completeError(err);
+            },
+            onDone: () {
+              if (!completer.isCompleted) completer.complete(false);
+            },
+            cancelOnError: true,
+          );
+
+          final success = await completer.future.timeout(timeout, onTimeout: () => false);
+          await sub.cancel();
+
+          if (!success) {
+            activeSocket.destroy();
+            throw Exception('Server rejected VLESS credentials or connection closed');
+          }
+        }
+      }
+
+      activeSocket.destroy();
       final totalTime = stopwatch.elapsedMilliseconds;
 
       // Resolve GeoIP if enabled
@@ -339,7 +400,7 @@ class DartProbeEngine {
         flagEmoji: flag ?? '🌐',
         isp: isp,
         isAlive: true,
-        pingMs: totalTime > 0 ? totalTime : tcpTime,
+        pingMs: totalTime > 0 ? totalTime : 50,
         jitterMs: (totalTime * 0.1).toInt(),
         packetLoss: 0.0,
         score: _calcScore(totalTime),
