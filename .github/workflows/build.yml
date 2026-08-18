@@ -80,15 +80,11 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Create Android Platform Files
+      - name: Setup Android Platform Files
         run: |
           flutter create --platforms=android --org com.turboprobe temp_android
-          cp -r temp_android/android ./app/
+          cp -rn temp_android/android/* ./app/android/ || true
           rm -rf temp_android
-
-      - name: Add Android Permissions
-        run: |
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>' app/android/app/src/main/AndroidManifest.xml
 
       - name: Get Flutter Packages
         working-directory: ./app
@@ -127,11 +123,12 @@ jobs:
           echo "CMAKE_GENERATOR=Visual Studio 17 2022" >> $env:GITHUB_ENV
           flutter config --enable-windows-desktop
 
-      - name: Create Windows Platform Files
+      - name: Setup Windows Platform Files
         shell: pwsh
         run: |
           flutter create --platforms=windows --org com.turboprobe temp_win
-          Copy-Item -Path temp_win\windows -Destination app -Recurse -Force
+          if (!(Test-Path app\windows)) { New-Item -ItemType Directory -Path app\windows }
+          Copy-Item -Path temp_win\windows\* -Destination app\windows -Recurse -Force
           Remove-Item -Path temp_win -Recurse -Force
 
       - name: Get Flutter Packages
@@ -181,10 +178,11 @@ jobs:
       - name: Enable Linux Desktop
         run: flutter config --enable-linux-desktop
 
-      - name: Create Linux Platform Files
+      - name: Setup Linux Platform Files
         run: |
           flutter create --platforms=linux --org com.turboprobe temp_linux
-          cp -r temp_linux/linux ./app/
+          mkdir -p app/linux
+          cp -rn temp_linux/linux/* ./app/linux/ || true
           rm -rf temp_linux
 
       - name: Get Flutter Packages

@@ -28,7 +28,7 @@ class ProgressBar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isTesting ? AppTheme.primaryAccent : AppTheme.success,
+                  color: isTesting ? AppTheme.primary : AppTheme.success,
                 ),
               ),
               Text(
@@ -47,9 +47,9 @@ class ProgressBar extends StatelessWidget {
             child: LinearProgressIndicator(
               value: percent / 100.0,
               minHeight: 6,
-              backgroundColor: AppTheme.surfaceLight,
+              backgroundColor: AppTheme.surfaceContainer,
               valueColor: AlwaysStoppedAnimation<Color>(
-                isTesting ? AppTheme.primaryAccent : AppTheme.success,
+                isTesting ? AppTheme.primary : AppTheme.success,
               ),
             ),
           ),

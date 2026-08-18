@@ -7,7 +7,9 @@ class AppTheme {
   static const Color onPrimaryContainer = Color(0xFFE0E7FF);
 
   static const Color secondary = Color(0xFF38BDF8); // Cyan Accent
+  static const Color primaryAccent = secondary; // Compatibility alias
   static const Color surface = Color(0xFF11131E);
+  static const Color surfaceLight = Color(0xFF1E2235); // Compatibility alias
   static const Color surfaceContainerLow = Color(0xFF171A28);
   static const Color surfaceContainer = Color(0xFF1E2235);
   static const Color surfaceContainerHigh = Color(0xFF272D45);
@@ -32,9 +34,6 @@ class AppTheme {
         onPrimaryContainer: onPrimaryContainer,
         secondary: secondary,
         surface: surface,
-        surfaceContainer: surfaceContainer,
-        surfaceContainerHigh: surfaceContainerHigh,
-        surfaceContainerLow: surfaceContainerLow,
         outline: outline,
         outlineVariant: outlineVariant,
         error: error,
@@ -102,8 +101,8 @@ class AppTheme {
     );
   }
 
-  static Color getPingColor(int64Ping) {
-    final ping = int64Ping.toInt();
+  static Color getPingColor(num pingNum) {
+    final ping = pingNum.toInt();
     if (ping <= 0 || ping >= 9999) return error;
     if (ping < 100) return success;
     if (ping < 250) return warning;
