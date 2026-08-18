@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/node_model.dart';
 import '../models/test_config_model.dart';
@@ -10,6 +12,7 @@ enum SortOption { pingAsc, scoreDesc, protocol, country }
 class ProbeProvider extends ChangeNotifier {
   final CoreApiService api = CoreApiService();
   StreamSubscription? _wsSubscription;
+  HttpServer? _localHttpServer;
 
   List<NodeModel> _nodes = [];
   bool _isTesting = false;
@@ -41,6 +44,35 @@ class ProbeProvider extends ChangeNotifier {
 
   ProbeProvider() {
     _initWebSocket();
+    _startLocalHttpServer();
+  }
+
+  Future<void> _startLocalHttpServer() async {
+    try {
+      _localHttpServer = await HttpServer.bind(InternetAddress.loopbackIPv4, 8999);
+      _localHttpServer!.listen((HttpRequest request) {
+        if (request.uri.path == '/sub') {
+          final q = request.uri.queryParameters;
+          int limit = int.tryParse(q['top'] ?? '') ?? 0;
+          final alive = _nodes.where((n) => n.isAlive).toList();
+          final toTake = (limit > 0 && limit < alive.length) ? limit : alive.length;
+          final rawUris = alive.take(toTake).map((n) => n.rawUri).join('\n');
+          final base64Content = base64.encode(utf8.encode(rawUris));
+
+          request.response
+            ..headers.contentType = ContentType.text
+            ..headers.set('Access-Control-Allow-Origin', '*')
+            ..headers.set('Subscription-Userinfo', 'upload=0; download=0; total=107374182400; expire=0')
+            ..write(q['format'] == 'raw' ? rawUris : base64Content)
+            ..close();
+        } else {
+          request.response
+            ..statusCode = HttpStatus.ok
+            ..write('TurboProbe Live Server OK')
+            ..close();
+        }
+      });
+    } catch (_) {}
   }
 
   List<NodeModel> get nodes => _nodes;
@@ -323,6 +355,7 @@ class ProbeProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _localHttpServer?.close(force: true);
     _throttleTimer?.cancel();
     _wsSubscription?.cancel();
     api.dispose();
