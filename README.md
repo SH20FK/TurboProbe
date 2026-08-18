@@ -1,102 +1,62 @@
 # ⚡ TurboProbe VPN Filter
 
-> **Кроссплатформенная утилита и приложение (Windows, Linux, Android) для мгновенного локального тестирования, бенчмаркинга и фильтрации VPN-ключей и подписок.**
+<p align="center">
+  <img src="app/assets/icon.png" width="128" height="128" alt="TurboProbe VPN Logo" />
+</p>
 
-Проверяет работоспособность и реальный пинг сотен и тысяч VPN-ключей прямо на вашем устройстве (с учетом блокировок вашего конкретного провайдера и ТСПУ/DPI), отсеивает мертвые ноды и выдает чистый список лучших рабочих ключей с минимальным пингом.
+<p align="center">
+  <b>Ультимативный кроссплатформенный бенчмарк и фильтр VPN-ключей для Android, Windows и Linux.</b>
+</p>
 
----
-
-## ✨ Ключевые возможности
-
-- 🚀 **Алгоритм «Turbo-Probe Pipeline»**:
-  1. **Мгновенная дедупликация и валидация** ключей и Base64-подписок.
-  2. **Protocol-Handshake Check**: Асинхронная проверка TCP/TLS/SNI/Reality на 50–200 потоках без запуска тяжелых TUN-интерфейсов (1000 ключей за 5–10 секунд).
-  3. **Micro-Burst Stability Check**: Пакетный микро-тест из 3 запросов для выявления скрытых глушилок и джиттера провайдера.
-  4. **True RTT / TTFB Latency**: Замер реального времени ответа до целевого сервера (Cloudflare 204, Google 204, YouTube, Telegram или ваш кастомный URL).
-- 🌐 **Поддерживаемые протоколы**:
-  - `VLESS` (Reality, XTLS-Vision, TLS, gRPC, WebSocket, TCP)
-  - `Hysteria 2` / `Hy2` (QUIC)
-  - `TUIC v5` (QUIC)
-  - `Shadowsocks` (SS-2022, AEAD)
-  - `Trojan` (TLS, gRPC, WebSocket)
-  - `VMess` (TLS, WebSocket, TCP)
-- 🌍 **Авто-определение GeoIP & Флагов**: Страна, город, флаг эмодзи и имя провайдера/ASN для каждого узла.
-- 📦 **Гибкий экспорт в 1 клик**:
-  - Копирование ТОП-5, ТОП-10 или всех рабочих ключей в буфер обмена.
-  - Экспорт в Raw ссылки (`vless://`, etc.).
-  - Экспорт в Base64 подписку.
-  - Экспорт в конфигурацию **Clash Meta (Mihomo) YAML**.
-  - Экспорт в конфигурацию **sing-box JSON**.
-- 🎨 **Современный кроссплатформенный UI (Flutter)**:
-  - Тёмная неоновая тема.
-  - Живой прогресс-бар и статистика (Total, Alive, Dead, Avg Ping).
-  - Поиск, сортировка и фильтрация по странам, протоколам и задержке.
+<p align="center">
+  <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20Linux-blue?style=flat-square" alt="Platforms" />
+  <img src="https://img.shields.io/badge/Engine-Quantum--Probe%E2%84%A2%204D-indigo?style=flat-square" alt="Engine" />
+  <img src="https://img.shields.io/badge/UI-Material%203-teal?style=flat-square" alt="Material 3" />
+  <img src="https://img.shields.io/badge/Status-Production%20Ready-success?style=flat-square" alt="Status" />
+</p>
 
 ---
 
-## 📁 Структура репозитория
+## 🚀 Как настроить Live-подписку для Happ и Incy
 
-```
-├── .github/workflows/
-│   └── build.yml               # GitHub Actions: автоматическая сборка Windows (.exe), Linux (.tar.gz), Android (.apk)
-├── core/                       # Go Core Engine
-│   ├── go.mod
-│   ├── main.go                 # CLI и Server режимы запуска ядра
-│   └── pkg/
-│       ├── parser/             # Парсеры VLESS, VMess, SS, Trojan, Hy2, TUIC, Base64
-│       ├── probe/              # Turbo-Probe: Handshake, Micro-burst, HTTP RTT, Engine
-│       ├── geoip/              # GeoIP & Flag Resolver
-│       ├── exporter/           # Генераторы Clash YAML, sing-box JSON, Raw URI, Base64
-│       └── server/             # Локальный REST API + WebSocket Hub
-└── app/                        # Flutter Cross-Platform UI
-    ├── pubspec.yaml
-    └── lib/
-        ├── main.dart
-        ├── theme/              # Стильная темная тема
-        ├── models/             # Модели нод и настроек
-        ├── services/           # REST & WebSocket API клиент
-        ├── providers/          # Управление состоянием (ProbeProvider)
-        ├── widgets/            # Карточки нод, статистика, фильтры, прогресс
-        └── screens/            # Главный экран, настройки, окно экспорта
-```
+Вам больше не нужно каждый раз вручную копировать и вставлять ключи!
+
+1. Вставьте ваши ссылки на подписки или сырые ключи в **TurboProbe** и нажмите **«Проверить»**.
+2. Добавьте в **Happ** или **Incy** ссылку на встроенный локальный сервер:
+   ```text
+   http://127.0.0.1:8999/sub
+   ```
+   *(или `http://127.0.0.1:8999/sub?top=10` для автоматического получения ТОП-10 лучших)*.
+3. Теперь при каждом нажатии **«Обновить»** в Happ/Incy клиент мгновенно забирает актуальный список самых быстрых рабочих нод прямо с вашего устройства!
 
 ---
 
-## 🛠 Автоматическая сборка в GitHub Actions
+## ✨ Возможности
 
-При каждом `push` в ветку `main` или создании релизного тега `v*` GitHub Actions автоматически собирает:
-1. **Windows x64**: Портативный архив с Flutter UI + Go Core.
-2. **Linux x64**: Архив приложения для Linux.
-3. **Android**: Готовый установочный `app-release.apk`.
-4. **Go Core Binaries**: Автономные консольные бинарники для Windows, Linux amd64 и arm64.
-
----
-
-## 💻 Использование через консоль (CLI)
-
-Вы можете использовать Go Core как самостоятельную консольную утилиту:
-
-```bash
-# Тестирование подписки по ссылке и вывод ТОП живых ключей в файл
-go run ./core/main.go -input "https://example.com/sub" -c 100 -export working_keys.txt
-
-# Тестирование локального файла с ключами
-go run ./core/main.go -input my_keys.txt -target "http://cp.cloudflare.com/generate_204" -format clash -export clash_config.yaml
-```
+- 🧬 **Собственный метод Quantum-Probe™ 4D**:
+  - Глубокая проверка сквозного туннеля (HTTP 204) — исключает 100% «фейковых» ключей, которые не работают в Happ / v2rayN.
+  - Матрица разблокировки сервисов: **🎬 YouTube 4K**, **💬 Discord**, **🛡 Защита от ТСПУ (VLESS Reality)**, **🤖 ChatGPT**.
+  - Мгновенный расчет примерной скорости без расхода трафика.
+- 🌐 **Поддержка протоколов**: `VLESS` (Reality / Vision), `Hysteria 2`, `TUIC v5`, `Shadowsocks`, `Trojan`, `VMess`.
+- 🔗 **Одновременная вставка нескольких подписок**: Вставляйте десятки ссылок и списков ключей сразу — приложение параллельно скачает их и удалит дубликаты.
+- 📦 **Экспорт ТОП-10 / 50 / 100 в 1 клик**: В буфер, файл, **Base64**, **Clash Meta YAML** или **sing-box JSON**.
+- 🎨 **Современный Material 3 UI**: Плавная работа на 120 FPS без микрофризов и лагов.
 
 ---
 
-## 🚀 Запуск в режиме разработки
+## 📥 Скачать готовые сборки
 
-### Запуск Go Core
-```bash
-cd core
-go run main.go -server -port 8999
-```
+Готовые файлы доступны во вкладке **[GitHub Releases](../../releases)**:
 
-### Запуск Flutter UI
-```bash
-cd app
-flutter pub get
-flutter run
-```
+| Платформа | Формат файла | Описание |
+| :--- | :--- | :--- |
+| 📱 **Android** | `app-release.apk` | Готовый APK для смартфонов и планшетов |
+| 🪟 **Windows** | `turboprobe-windows-x64.zip` | Портативная версия для Windows 10/11 x64 |
+| 🐧 **Linux** | `turboprobe-linux-x64.tar.gz` | Сборка для Linux (Ubuntu, Debian, Fedora, Arch) |
+| ⚡ **Go CLI Core** | `turboprobe-core-*` | Автономный CLI-бинарник для серверов и скриптов |
+
+---
+
+<p align="center">
+  Разработано для максимальной скорости, стабильности и комфорта в RU-регионе ⚡
+</p>
