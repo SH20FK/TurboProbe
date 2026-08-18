@@ -180,17 +180,7 @@ class ProbeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      List<NodeModel> parsed = [];
-      try {
-        final isBackendAlive = await api.checkHealth();
-        if (isBackendAlive) {
-          parsed = await api.parseInput(text);
-        } else {
-          parsed = await DartProbeEngine.parseInput(text);
-        }
-      } catch (_) {
-        parsed = await DartProbeEngine.parseInput(text);
-      }
+      final parsed = await DartProbeEngine.parseInput(text);
 
       if (parsed.isEmpty) {
         _errorMessage = 'Не удалось распознать ключи. Проверьте правильность ссылок или формата.';
@@ -222,21 +212,11 @@ class ProbeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      bool usedBackend = false;
-      try {
-        final isBackendAlive = await api.checkHealth();
-        if (isBackendAlive) {
-          await api.startTest(config);
-          usedBackend = true;
-        }
-      } catch (_) {}
-
-      if (!usedBackend) {
-        _dartEngine = DartProbeEngine();
-        _dartEngine!.runBenchmark(
-          nodes: _nodes,
-          config: config,
-          onProgress: (data) {
+      _dartEngine = DartProbeEngine();
+      _dartEngine!.runBenchmark(
+        nodes: _nodes,
+        config: config,
+        onProgress: (data) {
             _totalCount = (data['total_count'] as num?)?.toInt() ?? _totalCount;
             _testedCount = (data['tested_count'] as num?)?.toInt() ?? _testedCount;
             _aliveCount = (data['alive_count'] as num?)?.toInt() ?? _aliveCount;

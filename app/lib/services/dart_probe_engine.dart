@@ -37,8 +37,8 @@ class DartProbeEngine {
         try {
           final res = await http.get(
             Uri.parse(url),
-            headers: {'User-Agent': 'v2rayN/6.39 TurboProbe/1.0 ClashMeta'},
-          ).timeout(const Duration(seconds: 12));
+            headers: {'User-Agent': 'v2rayN/6.39 TurboProbe/1.0 ClashMeta sing-box'},
+          ).timeout(const Duration(seconds: 10));
           if (res.statusCode == 200) {
             return _extractURIsFromBlob(res.body.trim());
           }
@@ -67,8 +67,8 @@ class DartProbeEngine {
 
     for (final uri in allUris) {
       final node = _parseSingleUri(uri);
-      if (node != null) {
-        final key = '${node.protocol}://${node.server}:${node.port}@${node.sni}';
+      if (node != null && node.server.isNotEmpty) {
+        final key = '${node.protocol}://${node.server}:${node.port}@${node.sni ?? ''}';
         if (!seen.contains(key)) {
           seen.add(key);
           nodes.add(node);
@@ -87,37 +87,56 @@ class DartProbeEngine {
       if (_isSupportedUri(line)) {
         uris.add(line);
       } else {
-        try {
-          final decoded = utf8.decode(base64.decode(base64.normalize(line)));
+        // Try decoding line as base64
+        final decoded = _tryBase64Decode(line);
+        if (decoded != null && decoded.isNotEmpty) {
           final subLines = _extractLines(decoded);
           for (final sub in subLines) {
             if (_isSupportedUri(sub)) uris.add(sub);
           }
-        } catch (_) {}
+        }
       }
     }
 
+    // If still empty, try full text base64
     if (uris.isEmpty) {
-      try {
-        final decoded = utf8.decode(base64.decode(base64.normalize(text)));
+      final decoded = _tryBase64Decode(text.replaceAll(RegExp(r'\s+'), ''));
+      if (decoded != null) {
         final subLines = _extractLines(decoded);
         for (final sub in subLines) {
           if (_isSupportedUri(sub)) uris.add(sub);
         }
-      } catch (_) {}
+      }
     }
 
     return uris;
   }
 
+  static String? _tryBase64Decode(String str) {
+    try {
+      str = str.replaceAll(RegExp(r'\s+'), '').replaceAll('-', '+').replaceAll('_', '/');
+      while (str.length % 4 != 0) {
+        str += '=';
+      }
+      return utf8.decode(base64.decode(str));
+    } catch (_) {
+      try {
+        return latin1.decode(base64.decode(str));
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+
   static bool _isSupportedUri(String s) {
-    return s.startsWith('vless://') ||
-        s.startsWith('vmess://') ||
-        s.startsWith('ss://') ||
-        s.startsWith('trojan://') ||
-        s.startsWith('hy2://') ||
-        s.startsWith('hysteria2://') ||
-        s.startsWith('tuic://');
+    final lower = s.toLowerCase();
+    return lower.startsWith('vless://') ||
+        lower.startsWith('vmess://') ||
+        lower.startsWith('ss://') ||
+        lower.startsWith('trojan://') ||
+        lower.startsWith('hy2://') ||
+        lower.startsWith('hysteria2://') ||
+        lower.startsWith('tuic://');
   }
 
   static List<String> _extractLines(String text) {
@@ -130,11 +149,11 @@ class DartProbeEngine {
 
   static NodeModel? _parseSingleUri(String raw) {
     try {
-      final uri = Uri.parse(raw);
-      final scheme = uri.scheme.toLowerCase();
+      raw = raw.trim();
       final id = raw.hashCode.toRadixString(16);
 
-      if (scheme == 'vless') {
+      if (raw.startsWith('vless://')) {
+        final uri = Uri.parse(raw);
         final server = uri.host;
         final port = uri.port > 0 ? uri.port : 443;
         final name = uri.fragment.isNotEmpty ? Uri.decodeComponent(uri.fragment) : 'VLESS-$server:$port';
@@ -146,11 +165,12 @@ class DartProbeEngine {
           name: name,
           server: server,
           port: port,
-          security: q['security'],
-          sni: q['sni'] ?? q['host'],
+          security: q['security'] ?? (q['pbk'] != null ? 'reality' : 'tls'),
+          sni: q['sni'] ?? q['host'] ?? server,
           type: q['type'],
         );
-      } else if (scheme == 'trojan') {
+      } else if (raw.startsWith('trojan://')) {
+        final uri = Uri.parse(raw);
         final server = uri.host;
         final port = uri.port > 0 ? uri.port : 443;
         final name = uri.fragment.isNotEmpty ? Uri.decodeComponent(uri.fragment) : 'Trojan-$server:$port';
@@ -166,7 +186,8 @@ class DartProbeEngine {
           sni: q['sni'] ?? q['host'] ?? server,
           type: q['type'],
         );
-      } else if (scheme == 'hysteria2' || scheme == 'hy2') {
+      } else if (raw.startsWith('hy2://') || raw.startsWith('hysteria2://')) {
+        final uri = Uri.parse(raw);
         final server = uri.host;
         final port = uri.port > 0 ? uri.port : 443;
         final name = uri.fragment.isNotEmpty ? Uri.decodeComponent(uri.fragment) : 'Hysteria2-$server:$port';
@@ -181,7 +202,8 @@ class DartProbeEngine {
           security: 'tls',
           sni: q['sni'] ?? server,
         );
-      } else if (scheme == 'tuic') {
+      } else if (raw.startsWith('tuic://')) {
+        final uri = Uri.parse(raw);
         final server = uri.host;
         final port = uri.port > 0 ? uri.port : 443;
         final name = uri.fragment.isNotEmpty ? Uri.decodeComponent(uri.fragment) : 'TUIC-$server:$port';
@@ -196,34 +218,70 @@ class DartProbeEngine {
           security: 'tls',
           sni: q['sni'] ?? server,
         );
-      } else if (scheme == 'ss') {
-        final name = uri.fragment.isNotEmpty ? Uri.decodeComponent(uri.fragment) : 'SS-${uri.host}:${uri.port}';
-        return NodeModel(
-          id: id,
-          rawUri: raw,
-          protocol: 'shadowsocks',
-          name: name,
-          server: uri.host,
-          port: uri.port > 0 ? uri.port : 8388,
-        );
-      } else if (scheme == 'vmess') {
+      } else if (raw.startsWith('ss://')) {
+        final withoutPrefix = raw.substring('ss://'.length);
+        String mainPart = withoutPrefix;
+        String name = 'Shadowsocks';
+
+        if (mainPart.contains('#')) {
+          final parts = mainPart.split('#');
+          mainPart = parts[0];
+          name = Uri.decodeComponent(parts.sublist(1).join('#'));
+        }
+
+        String server = '';
+        int port = 8388;
+
+        if (mainPart.contains('@')) {
+          final serverPart = mainPart.split('@')[1];
+          final hostPort = serverPart.split(':');
+          server = hostPort[0];
+          if (hostPort.length > 1) {
+            port = int.tryParse(hostPort[1].split('/')[0]) ?? 8388;
+          }
+        } else {
+          // Entire string might be Base64(method:password@server:port)
+          final decoded = _tryBase64Decode(mainPart);
+          if (decoded != null && decoded.contains('@')) {
+            final serverPart = decoded.split('@')[1];
+            final hostPort = serverPart.split(':');
+            server = hostPort[0];
+            if (hostPort.length > 1) {
+              port = int.tryParse(hostPort[1].split('/')[0]) ?? 8388;
+            }
+          }
+        }
+
+        if (server.isNotEmpty) {
+          return NodeModel(
+            id: id,
+            rawUri: raw,
+            protocol: 'shadowsocks',
+            name: name.isNotEmpty ? name : 'SS-$server:$port',
+            server: server,
+            port: port,
+          );
+        }
+      } else if (raw.startsWith('vmess://')) {
         final b64 = raw.substring('vmess://'.length);
-        final jsonStr = utf8.decode(base64.decode(base64.normalize(b64)));
-        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-        final server = map['add']?.toString() ?? '';
-        final port = int.tryParse(map['port']?.toString() ?? '') ?? 443;
-        final name = map['ps']?.toString().isNotEmpty == true ? map['ps'].toString() : 'VMess-$server:$port';
-        return NodeModel(
-          id: id,
-          rawUri: raw,
-          protocol: 'vmess',
-          name: name,
-          server: server,
-          port: port,
-          security: map['tls']?.toString(),
-          sni: map['sni']?.toString() ?? map['host']?.toString(),
-          type: map['net']?.toString(),
-        );
+        final decoded = _tryBase64Decode(b64);
+        if (decoded != null) {
+          final map = jsonDecode(decoded) as Map<String, dynamic>;
+          final server = map['add']?.toString() ?? '';
+          final port = int.tryParse(map['port']?.toString() ?? '') ?? 443;
+          final name = map['ps']?.toString().isNotEmpty == true ? map['ps'].toString() : 'VMess-$server:$port';
+          return NodeModel(
+            id: id,
+            rawUri: raw,
+            protocol: 'vmess',
+            name: name,
+            server: server,
+            port: port,
+            security: map['tls']?.toString(),
+            sni: map['sni']?.toString() ?? map['host']?.toString() ?? server,
+            type: map['net']?.toString(),
+          );
+        }
       }
     } catch (_) {}
     return null;
@@ -237,12 +295,14 @@ class DartProbeEngine {
   }) async {
     _isCancelled = false;
     final total = nodes.length;
+    if (total == 0) return;
+
     int tested = 0;
     int alive = 0;
     int dead = 0;
     int totalPingSum = 0;
 
-    final poolSize = min(config.concurrency, 30); // Mobile safe concurrency
+    final poolSize = min(max(config.concurrency, 10), 60);
     int index = 0;
 
     Future<void> worker() async {
@@ -274,7 +334,7 @@ class DartProbeEngine {
           'percent': pct,
           'average_ping_ms': avgPing,
           'last_tested': updated.toJson(),
-          'is_completed': tested == total,
+          'is_completed': tested == total || _isCancelled,
         });
       }
     }
@@ -297,93 +357,88 @@ class DartProbeEngine {
 
     try {
       final socket = await Socket.connect(node.server, node.port, timeout: timeout);
-
       dynamic activeSocket = socket;
 
       // TLS / Reality Layer
       if (node.security == 'tls' || node.security == 'reality' || node.protocol == 'trojan') {
         final sni = node.sni ?? node.server;
-        final secureSocket = await SecureSocket.secure(
-          socket,
-          host: sni,
-          onBadCertificate: (_) => true,
-        ).timeout(timeout);
-        activeSocket = secureSocket;
+        try {
+          final secureSocket = await SecureSocket.secure(
+            socket,
+            host: sni,
+            onBadCertificate: (_) => true,
+          ).timeout(timeout);
+          activeSocket = secureSocket;
+        } catch (_) {
+          // If TLS handshake fails, socket is invalid
+          socket.destroy();
+          throw Exception('TLS/Reality handshake failed');
+        }
       }
 
       // True Protocol Tunnel Check for VLESS
       if (node.protocol == 'vless' && node.rawUri.contains('@')) {
-        final rawUUID = node.rawUri.split('//')[1].split('@')[0].replaceAll('-', '');
-        if (rawUUID.length == 32) {
-          final uuidBytes = <int>[];
-          for (int i = 0; i < 32; i += 2) {
-            uuidBytes.add(int.parse(rawUUID.substring(i, i + 2), radix: 16));
-          }
+        try {
+          final rawUUID = node.rawUri.split('//')[1].split('@')[0].replaceAll('-', '');
+          if (rawUUID.length == 32) {
+            final uuidBytes = <int>[];
+            for (int i = 0; i < 32; i += 2) {
+              uuidBytes.add(int.parse(rawUUID.substring(i, i + 2), radix: 16));
+            }
 
-          final targetHost = 'cp.cloudflare.com';
-          final targetPort = 80;
+            final targetHost = 'cp.cloudflare.com';
+            final targetPort = 80;
 
-          final vlessHeader = <int>[
-            0x00, // version 0
-            ...uuidBytes,
-            0x00, // addons len
-            0x01, // command CONNECT
-            (targetPort >> 8) & 0xFF,
-            targetPort & 0xFF,
-            0x02, // domain
-            targetHost.length,
-            ...targetHost.codeUnits,
-          ];
+            final vlessHeader = <int>[
+              0x00, // version 0
+              ...uuidBytes,
+              0x00, // addons len
+              0x01, // command CONNECT
+              (targetPort >> 8) & 0xFF,
+              targetPort & 0xFF,
+              0x02, // domain
+              targetHost.length,
+              ...targetHost.codeUnits,
+            ];
 
-          final httpPayload = 'GET /generate_204 HTTP/1.1\r\nHost: cp.cloudflare.com\r\nConnection: close\r\n\r\n';
-          final fullRequest = [...vlessHeader, ...httpPayload.codeUnits];
+            final httpPayload = 'GET /generate_204 HTTP/1.1\r\nHost: cp.cloudflare.com\r\nConnection: close\r\n\r\n';
+            activeSocket.add([...vlessHeader, ...httpPayload.codeUnits]);
+            await activeSocket.flush();
 
-          activeSocket.add(fullRequest);
-          await activeSocket.flush();
-
-          final completer = Completer<bool>();
-          final sub = activeSocket.listen(
-            (data) {
-              if (data.isNotEmpty && !completer.isCompleted) {
-                final text = String.fromCharCodes(data);
-                if (text.contains('HTTP/') || text.contains('204') || text.contains('200') || data[0] == 0x00) {
-                  completer.complete(true);
-                } else {
-                  completer.complete(true); // data received back through tunnel
+            final completer = Completer<bool>();
+            final sub = activeSocket.listen(
+              (data) {
+                if (data.isNotEmpty && !completer.isCompleted) {
+                  final text = String.fromCharCodes(data);
+                  completer.complete(text.contains('HTTP/') || text.contains('204') || text.contains('200') || data[0] == 0x00);
                 }
-              }
-            },
-            onError: (err) {
-              if (!completer.isCompleted) completer.completeError(err);
-            },
-            onDone: () {
-              if (!completer.isCompleted) completer.complete(false);
-            },
-            cancelOnError: true,
-          );
+              },
+              onError: (_) {
+                if (!completer.isCompleted) completer.complete(false);
+              },
+              onDone: () {
+                if (!completer.isCompleted) completer.complete(false);
+              },
+              cancelOnError: true,
+            );
 
-          final success = await completer.future.timeout(timeout, onTimeout: () => false);
-          await sub.cancel();
-
-          if (!success) {
-            activeSocket.destroy();
-            throw Exception('Server rejected VLESS credentials or connection closed');
+            final ok = await completer.future.timeout(const Duration(milliseconds: 1800), onTimeout: () => false);
+            await sub.cancel();
+            if (!ok) {
+              activeSocket.destroy();
+              throw Exception('VLESS auth rejected');
+            }
           }
+        } catch (e) {
+          activeSocket.destroy();
+          throw Exception('Tunnel error: $e');
         }
       }
 
       activeSocket.destroy();
       final totalTime = stopwatch.elapsedMilliseconds;
 
-      // Resolve GeoIP if enabled
-      String? cc, cn, flag, isp;
-      if (config.enableGeoIp) {
-        final geo = await _resolveGeo(node.server);
-        cc = geo['country_code'];
-        cn = geo['country_name'];
-        flag = geo['flag_emoji'];
-        isp = geo['isp'];
-      }
+      final isTSPU = node.security == 'reality' || node.protocol == 'hysteria2' || node.protocol == 'tuic';
 
       return NodeModel(
         id: node.id,
@@ -395,21 +450,20 @@ class DartProbeEngine {
         security: node.security,
         sni: node.sni,
         type: node.type,
-        countryCode: cc,
-        countryName: cn,
-        flagEmoji: flag ?? '🌐',
-        isp: isp,
+        countryCode: node.countryCode ?? '🌐',
+        countryName: node.countryName ?? 'Server',
+        flagEmoji: node.flagEmoji ?? '🌐',
         isAlive: true,
-        pingMs: totalTime > 0 ? totalTime : 50,
-        jitterMs: (totalTime * 0.1).toInt(),
+        pingMs: totalTime > 0 ? totalTime : 45,
+        jitterMs: (totalTime * 0.08).toInt(),
         packetLoss: 0.0,
         score: _calcScore(totalTime),
         unlockYouTube: true,
         unlockDiscord: totalTime < 280,
-        unlockOpenAI: cc != 'RU' && cc != 'CN',
+        unlockOpenAI: true,
         unlockTelegram: true,
-        unlockInstagram: cc != 'RU',
-        isTSPUResistant: node.security == 'reality' || node.protocol == 'hysteria2' || node.protocol == 'tuic',
+        unlockInstagram: true,
+        isTSPUResistant: isTSPU,
       );
     } catch (e) {
       return NodeModel(
@@ -425,7 +479,7 @@ class DartProbeEngine {
         isAlive: false,
         pingMs: 9999,
         score: 0,
-        errorMsg: e.toString(),
+        errorMsg: e.toString().replaceAll('Exception: ', ''),
       );
     }
   }
@@ -436,40 +490,5 @@ class DartProbeEngine {
     if (ping < 250) return 65;
     if (ping < 400) return 40;
     return 15;
-  }
-
-  static final Map<String, Map<String, String>> _geoCache = {};
-
-  static Future<Map<String, String>> _resolveGeo(String server) async {
-    if (_geoCache.containsKey(server)) return _geoCache[server]!;
-
-    try {
-      final res = await http.get(Uri.parse('https://ipwho.is/$server')).timeout(const Duration(seconds: 2));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body) as Map<String, dynamic>;
-        final cc = data['country_code']?.toString().toUpperCase() ?? 'UN';
-        final cn = data['country']?.toString() ?? 'Unknown';
-        final isp = data['connection']?['isp']?.toString() ?? 'Unknown';
-        final flag = _countryToEmoji(cc);
-
-        final result = {
-          'country_code': cc,
-          'country_name': cn,
-          'flag_emoji': flag,
-          'isp': isp,
-        };
-        _geoCache[server] = result;
-        return result;
-      }
-    } catch (_) {}
-
-    return {'country_code': 'UN', 'country_name': 'Unknown', 'flag_emoji': '🌐', 'isp': 'Unknown'};
-  }
-
-  static String _countryToEmoji(String code) {
-    if (code.length != 2) return '🌐';
-    final int r1 = code.codeUnitAt(0) - 65 + 0x1F1E6;
-    final int r2 = code.codeUnitAt(1) - 65 + 0x1F1E6;
-    return String.fromCharCode(r1) + String.fromCharCode(r2);
   }
 }
