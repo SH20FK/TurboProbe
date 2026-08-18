@@ -80,14 +80,15 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Initialize Android Platform
-        working-directory: ./app
+      - name: Create Android Platform Files
         run: |
-          mkdir -p ../temp_lib
-          cp -r lib/* ../temp_lib/
-          flutter create --platforms=android --org com.turboprobe --overwrite .
-          rm -rf lib/*
-          cp -r ../temp_lib/* lib/
+          flutter create --platforms=android --org com.turboprobe temp_android
+          cp -r temp_android/android ./app/
+          rm -rf temp_android
+
+      - name: Add Android Permissions
+        run: |
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>' app/android/app/src/main/AndroidManifest.xml
 
       - name: Get Flutter Packages
         working-directory: ./app
@@ -126,14 +127,12 @@ jobs:
           echo "CMAKE_GENERATOR=Visual Studio 17 2022" >> $env:GITHUB_ENV
           flutter config --enable-windows-desktop
 
-      - name: Initialize Windows Platform
+      - name: Create Windows Platform Files
         shell: pwsh
-        working-directory: ./app
         run: |
-          New-Item -ItemType Directory -Force -Path ..\temp_lib
-          Copy-Item -Path lib\* -Destination ..\temp_lib -Recurse -Force
-          flutter create --platforms=windows --org com.turboprobe --overwrite .
-          Copy-Item -Path ..\temp_lib\* -Destination lib -Recurse -Force
+          flutter create --platforms=windows --org com.turboprobe temp_win
+          Copy-Item -Path temp_win\windows -Destination app -Recurse -Force
+          Remove-Item -Path temp_win -Recurse -Force
 
       - name: Get Flutter Packages
         working-directory: ./app
@@ -182,14 +181,11 @@ jobs:
       - name: Enable Linux Desktop
         run: flutter config --enable-linux-desktop
 
-      - name: Initialize Linux Platform
-        working-directory: ./app
+      - name: Create Linux Platform Files
         run: |
-          mkdir -p ../temp_lib
-          cp -r lib/* ../temp_lib/
-          flutter create --platforms=linux --org com.turboprobe --overwrite .
-          rm -rf lib/*
-          cp -r ../temp_lib/* lib/
+          flutter create --platforms=linux --org com.turboprobe temp_linux
+          cp -r temp_linux/linux ./app/
+          rm -rf temp_linux
 
       - name: Get Flutter Packages
         working-directory: ./app
