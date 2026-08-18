@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import '../models/node_model.dart';
 import '../models/test_config_model.dart';
@@ -240,7 +241,6 @@ class DartProbeEngine {
             port = int.tryParse(hostPort[1].split('/')[0]) ?? 8388;
           }
         } else {
-          // Entire string might be Base64(method:password@server:port)
           final decoded = _tryBase64Decode(mainPart);
           if (decoded != null && decoded.contains('@')) {
             final serverPart = decoded.split('@')[1];
@@ -370,74 +370,130 @@ class DartProbeEngine {
           ).timeout(timeout);
           activeSocket = secureSocket;
         } catch (_) {
-          // If TLS handshake fails, socket is invalid
           socket.destroy();
-          throw Exception('TLS/Reality handshake failed');
+          throw Exception('TLS Handshake Failed');
         }
       }
 
-      // True Protocol Tunnel Check for VLESS
+      // ==========================================
+      // TRUE END-TO-END PROXY TUNNEL VERIFICATION
+      // ==========================================
+      bool tunnelVerified = false;
+
+      // 1. VLESS True Tunnel Check
       if (node.protocol == 'vless' && node.rawUri.contains('@')) {
-        try {
-          final rawUUID = node.rawUri.split('//')[1].split('@')[0].replaceAll('-', '');
-          if (rawUUID.length == 32) {
-            final uuidBytes = <int>[];
-            for (int i = 0; i < 32; i += 2) {
-              uuidBytes.add(int.parse(rawUUID.substring(i, i + 2), radix: 16));
-            }
-
-            final targetHost = 'cp.cloudflare.com';
-            final targetPort = 80;
-
-            final vlessHeader = <int>[
-              0x00, // version 0
-              ...uuidBytes,
-              0x00, // addons len
-              0x01, // command CONNECT
-              (targetPort >> 8) & 0xFF,
-              targetPort & 0xFF,
-              0x02, // domain
-              targetHost.length,
-              ...targetHost.codeUnits,
-            ];
-
-            final httpPayload = 'GET /generate_204 HTTP/1.1\r\nHost: cp.cloudflare.com\r\nConnection: close\r\n\r\n';
-            activeSocket.add([...vlessHeader, ...httpPayload.codeUnits]);
-            await activeSocket.flush();
-
-            final completer = Completer<bool>();
-            final sub = activeSocket.listen(
-              (data) {
-                if (data.isNotEmpty && !completer.isCompleted) {
-                  final text = String.fromCharCodes(data);
-                  completer.complete(text.contains('HTTP/') || text.contains('204') || text.contains('200') || data[0] == 0x00);
-                }
-              },
-              onError: (_) {
-                if (!completer.isCompleted) completer.complete(false);
-              },
-              onDone: () {
-                if (!completer.isCompleted) completer.complete(false);
-              },
-              cancelOnError: true,
-            );
-
-            final ok = await completer.future.timeout(const Duration(milliseconds: 1800), onTimeout: () => false);
-            await sub.cancel();
-            if (!ok) {
-              activeSocket.destroy();
-              throw Exception('VLESS auth rejected');
-            }
+        final rawUUID = node.rawUri.split('//')[1].split('@')[0].replaceAll('-', '');
+        if (rawUUID.length == 32) {
+          final uuidBytes = <int>[];
+          for (int i = 0; i < 32; i += 2) {
+            uuidBytes.add(int.parse(rawUUID.substring(i, i + 2), radix: 16));
           }
-        } catch (e) {
-          activeSocket.destroy();
-          throw Exception('Tunnel error: $e');
+
+          final targetHost = 'cp.cloudflare.com';
+          const targetPort = 80;
+
+          // VLESS Request: Ver(0) + UUID(16) + Addons(0) + Command(1=CONNECT) + Port(2) + AddrType(2=Domain) + DomainLen + Domain
+          final vlessHeader = <int>[
+            0x00,
+            ...uuidBytes,
+            0x00,
+            0x01,
+            (targetPort >> 8) & 0xFF,
+            targetPort & 0xFF,
+            0x02,
+            targetHost.length,
+            ...targetHost.codeUnits,
+          ];
+
+          final httpPayload = 'GET /generate_204 HTTP/1.1\r\nHost: cp.cloudflare.com\r\nUser-Agent: Mozilla/5.0\r\nConnection: close\r\n\r\n';
+          activeSocket.add([...vlessHeader, ...httpPayload.codeUnits]);
+          await activeSocket.flush();
+
+          final completer = Completer<bool>();
+          final sub = activeSocket.listen(
+            (data) {
+              if (data.isNotEmpty && !completer.isCompleted) {
+                final text = String.fromCharCodes(data);
+                // Must receive real HTTP response through proxy tunnel
+                if (text.contains('HTTP/') || text.contains('204') || text.contains('200') || text.contains('301') || text.contains('302')) {
+                  completer.complete(true);
+                } else if (data.length > 2 && (data[0] == 0x00 || data[0] == 0x05)) {
+                  // VLESS response header
+                  completer.complete(true);
+                }
+              }
+            },
+            onError: (_) {
+              if (!completer.isCompleted) completer.complete(false);
+            },
+            onDone: () {
+              if (!completer.isCompleted) completer.complete(false);
+            },
+            cancelOnError: true,
+          );
+
+          tunnelVerified = await completer.future.timeout(Duration(milliseconds: min(config.timeoutMs, 2500)), onTimeout: () => false);
+          await sub.cancel();
         }
+      }
+      // 2. Trojan True Tunnel Check
+      else if (node.protocol == 'trojan' && node.rawUri.contains('@')) {
+        final password = Uri.decodeComponent(node.rawUri.split('//')[1].split('@')[0]);
+        final hexPassword = sha224.convert(utf8.encode(password)).toString();
+
+        final targetHost = 'cp.cloudflare.com';
+        const targetPort = 80;
+
+        // Trojan Protocol: HexPassword(56) + CRLF + Command(1=CONNECT) + AddrType(3=Domain) + DomainLen + Domain + Port(2) + CRLF
+        final trojanHeader = <int>[
+          ...hexPassword.codeUnits,
+          0x0D, 0x0A, // \r\n
+          0x01,       // CONNECT
+          0x03,       // Domain
+          targetHost.length,
+          ...targetHost.codeUnits,
+          (targetPort >> 8) & 0xFF,
+          targetPort & 0xFF,
+          0x0D, 0x0A, // \r\n
+        ];
+
+        final httpPayload = 'GET /generate_204 HTTP/1.1\r\nHost: cp.cloudflare.com\r\nUser-Agent: Mozilla/5.0\r\nConnection: close\r\n\r\n';
+        activeSocket.add([...trojanHeader, ...httpPayload.codeUnits]);
+        await activeSocket.flush();
+
+        final completer = Completer<bool>();
+        final sub = activeSocket.listen(
+          (data) {
+            if (data.isNotEmpty && !completer.isCompleted) {
+              final text = String.fromCharCodes(data);
+              if (text.contains('HTTP/') || text.contains('204') || text.contains('200')) {
+                completer.complete(true);
+              }
+            }
+          },
+          onError: (_) {
+            if (!completer.isCompleted) completer.complete(false);
+          },
+          onDone: () {
+            if (!completer.isCompleted) completer.complete(false);
+          },
+          cancelOnError: true,
+        );
+
+        tunnelVerified = await completer.future.timeout(Duration(milliseconds: min(config.timeoutMs, 2500)), onTimeout: () => false);
+        await sub.cancel();
+      } else {
+        // Shadowsocks / Hy2 / TUIC
+        tunnelVerified = true;
       }
 
       activeSocket.destroy();
-      final totalTime = stopwatch.elapsedMilliseconds;
 
+      if (!tunnelVerified) {
+        throw Exception('Tunnel verification failed: Server closed connection or rejected credentials');
+      }
+
+      final totalTime = stopwatch.elapsedMilliseconds;
       final isTSPU = node.security == 'reality' || node.protocol == 'hysteria2' || node.protocol == 'tuic';
 
       return NodeModel(

@@ -102,7 +102,7 @@ class _ExportSheetState extends State<ExportSheet> {
         'tag': n.name,
         'server': n.server,
         'server_port': n.port,
-      }).toList(),
+      }).toList()
     });
   }
 
@@ -111,69 +111,53 @@ class _ExportSheetState extends State<ExportSheet> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppTheme.success,
+        duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final countries = widget.provider.availableCountries;
-    final liveSubUrl = 'http://127.0.0.1:8999/sub';
 
     return Container(
       decoration: const BoxDecoration(
         color: AppTheme.surfaceContainerLow,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 16,
-        bottom: 24 + bottomInset,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Drag Handle
+            // Center drag handle
             Center(
               child: Container(
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppTheme.outline,
+                  color: AppTheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
+
+            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(Icons.file_download_rounded, color: AppTheme.primary, size: 24),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Экспорт и интеграции',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '$_matchedCount нод',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.onPrimaryContainer),
-                      ),
+                    Icon(Icons.file_download_rounded, color: AppTheme.primary, size: 22),
+                    SizedBox(width: 8),
+                    Text(
+                      'Экспорт лучших ключей',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                     ),
                   ],
                 ),
@@ -183,71 +167,11 @@ class _ExportSheetState extends State<ExportSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-
-            // Live Subscription Server Banner
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryContainer.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.sensors_rounded, color: AppTheme.primary, size: 18),
-                      SizedBox(width: 8),
-                      Text(
-                        '🔥 Live-подписка для Happ, Incy и Hiddify',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Добавьте этот URL в Happ или Incy 1 раз — клиенты будут всегда автоматически получать актуальный список лучших живых ключей!',
-                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppTheme.outlineVariant),
-                          ),
-                          child: Text(
-                            liveSubUrl,
-                            style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: AppTheme.primary),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton.tonalIcon(
-                        icon: const Icon(Icons.copy_rounded, size: 16),
-                        label: const Text('Копировать Live-URL'),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: () => _copyToClipboard(liveSubUrl, 'Live-ссылка подписки скопирована!'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // 1-Click Client Launch Buttons
             const Text(
-              '1-Клик импорт в VPN клиенты',
+              '⚡ Быстрый экспорт в VPN клиенты',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 8),
@@ -256,16 +180,16 @@ class _ExportSheetState extends State<ExportSheet> {
               runSpacing: 8,
               children: [
                 FilledButton.tonalIcon(
-                  icon: const Icon(Icons.flash_on_rounded, size: 16, color: AppTheme.primary),
-                  label: const Text('В Happ'),
+                  icon: const Icon(Icons.vpn_key_rounded, size: 16, color: Color(0xFF3DAE2B)),
+                  label: Text('В Happ (ТОП ${_limit > 0 ? _limit : 50})'),
                   onPressed: () {
                     final raw = widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 50).map((e) => e.rawUri).join('\n');
                     _copyToClipboard(raw, 'Ключи скопированы для Happ!');
                   },
                 ),
                 FilledButton.tonalIcon(
-                  icon: const Icon(Icons.bolt_rounded, size: 16, color: AppTheme.secondary),
-                  label: const Text('В Incy'),
+                  icon: const Icon(Icons.vpn_key_rounded, size: 16, color: AppTheme.primary),
+                  label: Text('В Incy (ТОП ${_limit > 0 ? _limit : 50})'),
                   onPressed: () {
                     final raw = widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 50).map((e) => e.rawUri).join('\n');
                     _copyToClipboard(raw, 'Ключи скопированы для Incy!');
@@ -289,7 +213,7 @@ class _ExportSheetState extends State<ExportSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
 
             // Top Limit Presets: 10 / 50 / 100 / All
             const Text(
@@ -299,6 +223,7 @@ class _ExportSheetState extends State<ExportSheet> {
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
+              runSpacing: 8,
               children: [
                 _buildLimitChip('ТОП 10 лучших', 10),
                 _buildLimitChip('ТОП 50 лучших', 50),
@@ -317,6 +242,7 @@ class _ExportSheetState extends State<ExportSheet> {
               const SizedBox(height: 8),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
                 child: Row(
                   children: countries.map((c) {
                     final isSelected = _selectedCountry == c;
@@ -339,46 +265,9 @@ class _ExportSheetState extends State<ExportSheet> {
               const SizedBox(height: 16),
             ],
 
-            // Ping Limit Slider
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _filterByMaxPing,
-                      activeColor: AppTheme.primary,
-                      onChanged: (val) {
-                        setState(() => _filterByMaxPing = val ?? false);
-                        _generateExport();
-                      },
-                    ),
-                    const Text('Ограничить пинг не выше:', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
-                  ],
-                ),
-                if (_filterByMaxPing)
-                  Text(
-                    '≤ ${_maxPingSlider.round()} мс',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary),
-                  ),
-              ],
-            ),
-            if (_filterByMaxPing)
-              Slider(
-                value: _maxPingSlider,
-                min: 50,
-                max: 800,
-                divisions: 15,
-                activeColor: AppTheme.primary,
-                onChanged: (val) {
-                  setState(() => _maxPingSlider = val);
-                  _generateExport();
-                },
-              ),
-
-            const SizedBox(height: 12),
+            // Format Selection
             const Text(
-              'Формат экспорта',
+              'Формат выгрузки',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 8),
@@ -390,6 +279,7 @@ class _ExportSheetState extends State<ExportSheet> {
                 return ChoiceChip(
                   label: Text(f['name']!),
                   selected: isSelected,
+                  selectedColor: AppTheme.primaryContainer,
                   onSelected: (selected) {
                     if (selected) {
                       setState(() => _format = f['id']!);
@@ -399,46 +289,65 @@ class _ExportSheetState extends State<ExportSheet> {
                 );
               }).toList(),
             ),
-
             const SizedBox(height: 16),
-            // Preview
+
+            // Preview Box
             Container(
-              height: 110,
-              width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: AppTheme.surface,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppTheme.outlineVariant),
               ),
-              child: _isGenerating
-                  ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary))
-                  : SingleChildScrollView(
-                      child: Text(
-                        _exportedContent.isEmpty ? 'Нет ключей, подходящих под выбранные фильтры.' : _exportedContent,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontFamily: 'monospace',
-                          color: AppTheme.textSecondary,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Готово к экспорту: $_matchedCount ключей',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primary),
+                      ),
+                      if (_isGenerating)
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
                         ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    height: 110,
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Text(
+                        _exportedContent.isEmpty ? 'Нет ключей для экспорта' : _exportedContent,
+                        style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: AppTheme.textSecondary),
                       ),
                     ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Action Button
+            // Copy Action Button
             SizedBox(
               width: double.infinity,
               height: 48,
               child: FilledButton.icon(
-                icon: const Icon(Icons.copy_rounded, size: 18),
-                label: Text('Копировать результат ($_matchedCount)'),
+                icon: const Icon(Icons.copy_all_rounded, size: 18),
+                label: Text('Скопировать $_matchedCount ключей в буфер'),
                 onPressed: _exportedContent.isEmpty
                     ? null
-                    : () {
-                        _copyToClipboard(_exportedContent, '$_matchedCount ключей скопировано в буфер!');
-                        Navigator.pop(context);
-                      },
+                    : () => _copyToClipboard(_exportedContent, 'Успешно скопировано $_matchedCount лучших ключей!'),
               ),
             ),
           ],
@@ -447,14 +356,15 @@ class _ExportSheetState extends State<ExportSheet> {
     );
   }
 
-  Widget _buildLimitChip(String label, int val) {
-    final isSelected = _limit == val;
+  Widget _buildLimitChip(String label, int limitVal) {
+    final isSelected = _limit == limitVal;
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
+      selectedColor: AppTheme.primaryContainer,
       onSelected: (selected) {
         if (selected) {
-          setState(() => _limit = val);
+          setState(() => _limit = limitVal);
           _generateExport();
         }
       },
