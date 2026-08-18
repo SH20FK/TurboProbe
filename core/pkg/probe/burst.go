@@ -62,7 +62,7 @@ func RunMicroBurst(ctx context.Context, node *parser.NodeConfig, timeout time.Du
 		diff := float64(p - avg)
 		jitterSum += math.Abs(diff)
 	}
-	jitter := time.Duration(jitterSum / float64(len(pings)))
+	jitter := time.Duration(int64(jitterSum / float64(len(pings))))
 
 	return BurstResult{
 		Pings:       pings,

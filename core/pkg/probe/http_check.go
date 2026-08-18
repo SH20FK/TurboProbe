@@ -2,6 +2,7 @@ package probe
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/http/httptrace"
@@ -49,7 +50,7 @@ func CheckHTTP(ctx context.Context, node *parser.NodeConfig, targetURL string, t
 		ConnectStart: func(_, _ string) { connStart = time.Now() },
 		ConnectDone: func(_, _ string, _ error) { connDur = time.Since(connStart) },
 		TLSHandshakeStart: func() { tlsStart = time.Now() },
-		TLSHandshakeDone:  func(_ httptrace.TLSClientState, _ error) { tlsDur = time.Since(tlsStart) },
+		TLSHandshakeDone:  func(_ tls.ConnectionState, _ error) { tlsDur = time.Since(tlsStart) },
 		WroteRequest:      func(_ httptrace.WroteRequestInfo) { ttfbStart = time.Now() },
 		GotFirstResponseByte: func() { ttfbDur = time.Since(ttfbStart) },
 	}

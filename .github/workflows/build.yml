@@ -34,7 +34,9 @@ jobs:
           GOOS: windows
           GOARCH: amd64
           CGO_ENABLED: 0
-        run: go build -ldflags="-s -w" -o ../dist/turboprobe-core-windows-amd64.exe ./main.go
+        run: |
+          mkdir -p ../dist
+          go build -ldflags="-s -w" -o ../dist/turboprobe-core-windows-amd64.exe ./main.go
 
       - name: Build Linux amd64 Core
         working-directory: ./core
