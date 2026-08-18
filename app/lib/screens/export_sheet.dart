@@ -10,9 +10,11 @@ class ExportSheet extends StatefulWidget {
   const ExportSheet({super.key, required this.provider});
 
   static Future<void> show(BuildContext context, ProbeProvider provider) {
+    FocusScope.of(context).unfocus();
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) => ExportSheet(provider: provider),
     );

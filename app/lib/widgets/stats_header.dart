@@ -9,8 +9,8 @@ class StatsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: [
           _buildStatCard('Всего', '${provider.totalCount}', AppTheme.textPrimary, Icons.dns_rounded),
@@ -28,18 +28,21 @@ class StatsHeader extends StatelessWidget {
   Widget _buildStatCard(String label, String value, Color color, IconData icon) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        height: 58,
         decoration: BoxDecoration(
           color: AppTheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppTheme.outlineVariant),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 13, color: color),
+                Icon(icon, size: 12, color: color),
                 const SizedBox(width: 4),
                 Text(
                   label,
@@ -47,10 +50,10 @@ class StatsHeader extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
               value,
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
             ),
           ],
         ),

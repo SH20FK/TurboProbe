@@ -31,6 +31,7 @@ class ProbeProvider extends ChangeNotifier {
   String _searchQuery = '';
   String _selectedProtocol = 'ALL';
   String _selectedCountry = 'ALL';
+  String _selectedRUCategory = 'ALL';
   SortOption _sortOption = SortOption.pingAsc;
 
   // Test Config
@@ -50,26 +51,51 @@ class ProbeProvider extends ChangeNotifier {
   Future<void> _startLocalHttpServer() async {
     try {
       _localHttpServer = await HttpServer.bind(InternetAddress.loopbackIPv4, 8999);
-      _localHttpServer!.listen((HttpRequest request) {
-        if (request.uri.path == '/sub') {
-          final q = request.uri.queryParameters;
-          int limit = int.tryParse(q['top'] ?? '') ?? 0;
-          final alive = _nodes.where((n) => n.isAlive).toList();
-          final toTake = (limit > 0 && limit < alive.length) ? limit : alive.length;
-          final rawUris = alive.take(toTake).map((n) => n.rawUri).join('\n');
-          final base64Content = base64.encode(utf8.encode(rawUris));
+      _localHttpServer!.listen((HttpRequest request) async {
+        try {
+          if (request.uri.path == '/sub') {
+            final q = request.uri.queryParameters;
+            int limit = int.tryParse(q['top'] ?? '') ?? 0;
+            final alive = _nodes.where((n) => n.isAlive).toList();
+            final toTake = (limit > 0 && limit < alive.length) ? limit : alive.length;
+            final rawUris = alive.take(toTake).map((n) => n.rawUri).join('\n');
+            final base64Content = base64.encode(utf8.encode(rawUris));
 
-          request.response
-            ..headers.contentType = ContentType.text
-            ..headers.set('Access-Control-Allow-Origin', '*')
-            ..headers.set('Subscription-Userinfo', 'upload=0; download=0; total=107374182400; expire=0')
-            ..write(q['format'] == 'raw' ? rawUris : base64Content)
-            ..close();
-        } else {
-          request.response
-            ..statusCode = HttpStatus.ok
-            ..write('TurboProbe Live Server OK')
-            ..close();
+            request.response
+              ..headers.contentType = ContentType.text
+              ..headers.set('Access-Control-Allow-Origin', '*')
+              ..headers.set('Subscription-Userinfo', 'upload=0; download=0; total=107374182400; expire=0')
+              ..write(q['format'] == 'raw' ? rawUris : base64Content)
+              ..close();
+          } else if (request.uri.path == '/api/health') {
+            request.response
+              ..headers.contentType = ContentType.json
+              ..headers.set('Access-Control-Allow-Origin', '*')
+              ..write(jsonEncode({'status': 'ok', 'version': '1.0.0-embedded'}))
+              ..close();
+          } else if (request.uri.path == '/api/parse' && request.method == 'POST') {
+            final body = await utf8.decodeStream(request);
+            final jsonBody = jsonDecode(body) as Map<String, dynamic>;
+            final inputText = jsonBody['input'] as String? ?? '';
+            final parsed = await DartProbeEngine.parseInput(inputText);
+            request.response
+              ..headers.contentType = ContentType.json
+              ..headers.set('Access-Control-Allow-Origin', '*')
+              ..write(jsonEncode({'success': true, 'nodes': parsed.map((n) => n.toJson()).toList()}))
+              ..close();
+          } else {
+            request.response
+              ..headers.contentType = ContentType.json
+              ..headers.set('Access-Control-Allow-Origin', '*')
+              ..write(jsonEncode({'status': 'ok'}))
+              ..close();
+          }
+        } catch (_) {
+          try {
+            request.response
+              ..statusCode = HttpStatus.internalServerError
+              ..close();
+          } catch (_) {}
         }
       });
     } catch (_) {}
@@ -90,6 +116,7 @@ class ProbeProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   String get selectedProtocol => _selectedProtocol;
   String get selectedCountry => _selectedCountry;
+  String get selectedRUCategory => _selectedRUCategory;
   SortOption get sortOption => _sortOption;
 
   void _throttledNotify() {
@@ -145,28 +172,39 @@ class ProbeProvider extends ChangeNotifier {
   }
 
   Future<void> parseInput(String input) async {
+    final text = input.trim();
+    if (text.isEmpty) return;
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      List<NodeModel> parsed;
-      final isBackendAlive = await api.checkHealth();
-      if (isBackendAlive) {
-        parsed = await api.parseInput(input);
-      } else {
-        parsed = await DartProbeEngine.parseInput(input);
+      List<NodeModel> parsed = [];
+      try {
+        final isBackendAlive = await api.checkHealth();
+        if (isBackendAlive) {
+          parsed = await api.parseInput(text);
+        } else {
+          parsed = await DartProbeEngine.parseInput(text);
+        }
+      } catch (_) {
+        parsed = await DartProbeEngine.parseInput(text);
       }
 
-      _nodes = parsed;
-      _totalCount = parsed.length;
-      _testedCount = 0;
-      _aliveCount = 0;
-      _deadCount = 0;
-      _percent = 0.0;
-      _averagePing = 0;
+      if (parsed.isEmpty) {
+        _errorMessage = 'Не удалось распознать ключи. Проверьте правильность ссылок или формата.';
+      } else {
+        _nodes = parsed;
+        _totalCount = parsed.length;
+        _testedCount = 0;
+        _aliveCount = 0;
+        _deadCount = 0;
+        _percent = 0.0;
+        _averagePing = 0;
+      }
     } catch (e) {
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _errorMessage = 'Ошибка парсинга: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -184,10 +222,16 @@ class ProbeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final isBackendAlive = await api.checkHealth();
-      if (isBackendAlive) {
-        await api.startTest(config);
-      } else {
+      bool usedBackend = false;
+      try {
+        final isBackendAlive = await api.checkHealth();
+        if (isBackendAlive) {
+          await api.startTest(config);
+          usedBackend = true;
+        }
+      } catch (_) {}
+
+      if (!usedBackend) {
         _dartEngine = DartProbeEngine();
         _dartEngine!.runBenchmark(
           nodes: _nodes,
@@ -234,7 +278,9 @@ class ProbeProvider extends ChangeNotifier {
 
   Future<void> stopBenchmark() async {
     _dartEngine?.stop();
-    await api.stopTest();
+    try {
+      await api.stopTest();
+    } catch (_) {}
     _isTesting = false;
     notifyListeners();
   }
@@ -274,6 +320,11 @@ class ProbeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setRUCategoryFilter(String category) {
+    _selectedRUCategory = category;
+    notifyListeners();
+  }
+
   void setSortOption(SortOption option) {
     _sortOption = option;
     _sortNodes();
@@ -297,14 +348,6 @@ class ProbeProvider extends ChangeNotifier {
           return (a.countryCode ?? '').compareTo(b.countryCode ?? '');
       }
     });
-  }
-
-  String _selectedRUCategory = 'ALL'; // ALL, YOUTUBE, DISCORD, REALITY, AI
-  String get selectedRUCategory => _selectedRUCategory;
-
-  void setRUCategoryFilter(String category) {
-    _selectedRUCategory = category;
-    notifyListeners();
   }
 
   List<NodeModel> get filteredNodes {

@@ -33,11 +33,11 @@ class CoreApiService {
             _wsStreamController?.add(data);
           } catch (_) {}
         },
-        onError: (err) {
-          Future.delayed(const Duration(seconds: 2), _connectWebSocket);
+        onError: (_) {
+          Future.delayed(const Duration(seconds: 3), _connectWebSocket);
         },
         onDone: () {
-          Future.delayed(const Duration(seconds: 2), _connectWebSocket);
+          Future.delayed(const Duration(seconds: 3), _connectWebSocket);
         },
       );
     } catch (_) {}
@@ -45,8 +45,12 @@ class CoreApiService {
 
   Future<bool> checkHealth() async {
     try {
-      final res = await http.get(Uri.parse('$baseUrl/api/health')).timeout(const Duration(seconds: 2));
-      return res.statusCode == 200;
+      final res = await http.get(Uri.parse('$baseUrl/api/health')).timeout(const Duration(milliseconds: 1200));
+      if (res.statusCode == 200) {
+        final decoded = jsonDecode(res.body);
+        return decoded is Map && decoded['status'] == 'ok';
+      }
+      return false;
     } catch (_) {
       return false;
     }
@@ -57,7 +61,7 @@ class CoreApiService {
       Uri.parse('$baseUrl/api/parse'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'input': input}),
-    );
+    ).timeout(const Duration(seconds: 10));
 
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body) as Map<String, dynamic>;
@@ -67,7 +71,7 @@ class CoreApiService {
       }
       throw Exception(data['error'] ?? 'Parse failed');
     }
-    throw Exception('Server error: ${res.statusCode}');
+    throw Exception('Server returned ${res.statusCode}');
   }
 
   Future<bool> startTest(TestConfigModel config) async {
@@ -75,43 +79,13 @@ class CoreApiService {
       Uri.parse('$baseUrl/api/test/start'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(config.toJson()),
-    );
+    ).timeout(const Duration(seconds: 5));
     return res.statusCode == 200;
   }
 
   Future<bool> stopTest() async {
-    final res = await http.post(Uri.parse('$baseUrl/api/test/stop'));
+    final res = await http.post(Uri.parse('$baseUrl/api/test/stop')).timeout(const Duration(seconds: 3));
     return res.statusCode == 200;
-  }
-
-  Future<String> export({
-    required String format,
-    bool onlyAlive = true,
-    int? limit,
-    int? maxPing,
-    List<String>? protocols,
-    List<String>? countries,
-  }) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/api/export'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'format': format,
-        'filters': {
-          'only_alive': onlyAlive,
-          'limit': limit ?? 0,
-          'max_ping_ms': maxPing ?? 0,
-          'protocols': protocols ?? [],
-          'countries': countries ?? [],
-        },
-      }),
-    );
-
-    if (res.statusCode == 200) {
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
-      return data['content'] as String? ?? '';
-    }
-    throw Exception('Export failed');
   }
 
   void dispose() {

@@ -25,58 +25,71 @@ class FilterBar extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search & Sort Row
+          // Search & Sort Row (Height matched to 46dp)
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: TextField(
-                  onChanged: provider.setSearchQuery,
-                  style: const TextStyle(fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'Поиск по имени, IP или стране...',
-                    prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppTheme.primary),
-                    suffixIcon: provider.searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 16, color: AppTheme.textSecondary),
-                            onPressed: () => provider.setSearchQuery(''),
-                          )
-                        : null,
+                child: SizedBox(
+                  height: 46,
+                  child: TextField(
+                    onChanged: provider.setSearchQuery,
+                    textAlignVertical: TextAlignVertical.center,
+                    style: const TextStyle(fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Поиск по имени, IP или стране...',
+                      isDense: true,
+                      prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppTheme.primary),
+                      suffixIcon: provider.searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 16, color: AppTheme.textSecondary),
+                              onPressed: () => provider.setSearchQuery(''),
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              // Sort Menu
-              PopupMenuButton<SortOption>(
-                icon: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppTheme.outlineVariant),
+              // Sort Menu Button
+              SizedBox(
+                height: 46,
+                width: 46,
+                child: PopupMenuButton<SortOption>(
+                  padding: EdgeInsets.zero,
+                  icon: Container(
+                    height: 46,
+                    width: 46,
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppTheme.outlineVariant),
+                    ),
+                    child: const Icon(Icons.sort_rounded, size: 20, color: AppTheme.primary),
                   ),
-                  child: const Icon(Icons.sort_rounded, size: 20, color: AppTheme.primary),
+                  color: AppTheme.surfaceContainer,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  onSelected: provider.setSortOption,
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: SortOption.pingAsc,
+                      child: Text('⚡ По пингу (быстрые первые)'),
+                    ),
+                    const PopupMenuItem(
+                      value: SortOption.scoreDesc,
+                      child: Text('🏆 По очкам качества (Score)'),
+                    ),
+                    const PopupMenuItem(
+                      value: SortOption.country,
+                      child: Text('🌐 По стране'),
+                    ),
+                    const PopupMenuItem(
+                      value: SortOption.protocol,
+                      child: Text('🔒 По протоколу'),
+                    ),
+                  ],
                 ),
-                color: AppTheme.surfaceContainer,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                onSelected: provider.setSortOption,
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: SortOption.pingAsc,
-                    child: Text('⚡ По пингу (быстрые первые)'),
-                  ),
-                  const PopupMenuItem(
-                    value: SortOption.scoreDesc,
-                    child: Text('🏆 По очкам качества (Score)'),
-                  ),
-                  const PopupMenuItem(
-                    value: SortOption.country,
-                    child: Text('🌐 По стране'),
-                  ),
-                  const PopupMenuItem(
-                    value: SortOption.protocol,
-                    child: Text('🔒 По протоколу'),
-                  ),
-                ],
               ),
             ],
           ),
@@ -85,6 +98,7 @@ class FilterBar extends StatelessWidget {
           // RU Region Specific Service Filter Chips (YouTube 4K, Discord, Reality, AI)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
             child: Row(
               children: ruCategories.map((cat) {
                 final isSelected = provider.selectedRUCategory == cat['id'];
@@ -101,12 +115,13 @@ class FilterBar extends StatelessWidget {
               }).toList(),
             ),
           ),
-          const SizedBox(height: 6),
 
           // Protocol Filter Chips
-          if (protocols.length > 2)
+          if (protocols.length > 2) ...[
+            const SizedBox(height: 6),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
               child: Row(
                 children: protocols.map((proto) {
                   final isSelected = provider.selectedProtocol == proto;
@@ -121,11 +136,13 @@ class FilterBar extends StatelessWidget {
                 }).toList(),
               ),
             ),
+          ],
 
           if (countries.length > 2) ...[
             const SizedBox(height: 6),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
               child: Row(
                 children: countries.map((c) {
                   final isSelected = provider.selectedCountry == c;

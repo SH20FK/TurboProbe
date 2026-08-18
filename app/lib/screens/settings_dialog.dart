@@ -8,9 +8,11 @@ class SettingsDialog extends StatefulWidget {
   const SettingsDialog({super.key, required this.initialConfig});
 
   static Future<TestConfigModel?> show(BuildContext context, TestConfigModel config) {
+    FocusScope.of(context).unfocus();
     return showModalBottomSheet<TestConfigModel>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) => SettingsDialog(initialConfig: config),
     );
@@ -60,38 +62,41 @@ class _SettingsDialogState extends State<SettingsDialog> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 16,
-        bottom: 24 + bottomInset,
+        left: 20,
+        right: 20,
+        top: 14,
+        bottom: 20 + bottomInset,
       ),
       child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Drag Handle
+            // Center drag handle
             Center(
               child: Container(
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppTheme.outline,
+                  color: AppTheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
+
+            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Row(
                   children: [
                     Icon(Icons.tune_rounded, color: AppTheme.primary, size: 22),
-                    SizedBox(width: 10),
+                    SizedBox(width: 8),
                     Text(
                       'Настройки бенчмарка',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                     ),
                   ],
                 ),
@@ -101,9 +106,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
+
+            // Target URL
             const Text(
-              'Целевой URL для замера пинга (HTTP 204)',
+              'Целевой URL для проверки (HTTP 204)',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 8),
@@ -117,13 +124,15 @@ class _SettingsDialogState extends State<SettingsDialog> {
             ),
             const SizedBox(height: 8),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: 6,
+              runSpacing: 6,
               children: _presets.map((preset) {
                 final isSelected = _urlController.text == preset['url'];
                 return FilterChip(
                   label: Text(preset['name']!),
                   selected: isSelected,
+                  selectedColor: AppTheme.primaryContainer,
+                  checkmarkColor: AppTheme.onPrimaryContainer,
                   onSelected: (_) {
                     setState(() {
                       _urlController.text = preset['url']!;
@@ -132,12 +141,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
+
             // Concurrency Slider
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Параллельных потоков:', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
+                const Text('Параллельных потоков:', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
@@ -159,12 +169,13 @@ class _SettingsDialogState extends State<SettingsDialog> {
               activeColor: AppTheme.primary,
               onChanged: (val) => setState(() => _concurrency = val.round()),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+
             // Timeout Slider
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Таймаут на ноду:', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
+                const Text('Таймаут на ноду:', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
@@ -186,26 +197,30 @@ class _SettingsDialogState extends State<SettingsDialog> {
               activeColor: AppTheme.primary,
               onChanged: (val) => setState(() => _timeoutMs = val.round()),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+
             // Micro-burst Toggle
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Микро-берст тест (Джиттер и потери)', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
-              subtitle: const Text('3 быстрых пакета для выявления блокировок ТСПУ', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+              title: const Text('Микро-берст тест (Джиттер и потери)', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
+              subtitle: const Text('3 быстрых пакета для выявления блокировок ТСПУ', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
               value: _enableBurst,
               activeColor: AppTheme.primary,
               onChanged: (val) => setState(() => _enableBurst = val),
             ),
+
             // GeoIP Toggle
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Определение стран и флагов (GeoIP)', style: TextStyle(fontSize: 14, color: AppTheme.textPrimary)),
-              subtitle: const Text('Показывает страну, город и провайдера ноды', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+              title: const Text('Определение стран и флагов (GeoIP)', style: TextStyle(fontSize: 13, color: AppTheme.textPrimary)),
+              subtitle: const Text('Показывает страну, город и провайдера ноды', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
               value: _enableGeoIp,
               activeColor: AppTheme.primary,
               onChanged: (val) => setState(() => _enableGeoIp = val),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // Save Button
             SizedBox(
               width: double.infinity,
               height: 48,

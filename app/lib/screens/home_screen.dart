@@ -38,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _parseKeys() {
+    FocusScope.of(context).unfocus();
     final text = _inputController.text.trim();
     if (text.isNotEmpty) {
       context.read<ProbeProvider>().parseInput(text);
@@ -51,19 +52,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 16,
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: AppTheme.primaryContainer,
+                color: const Color(0xFFE31E24).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE31E24).withOpacity(0.4)),
               ),
-              child: const Icon(Icons.bolt_rounded, color: AppTheme.primary, size: 22),
+              child: const Icon(Icons.vpn_key_rounded, color: Color(0xFF3DAE2B), size: 22),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'TurboProbe VPN',
@@ -91,7 +95,10 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton.filledTonal(
             icon: const Icon(Icons.tune_rounded, size: 20),
             tooltip: 'Настройки',
-            onPressed: () => SettingsDialog.show(context, provider.config),
+            onPressed: () {
+              FocusScope.of(context).unfocus();
+              SettingsDialog.show(context, provider.config);
+            },
           ),
           const SizedBox(width: 4),
           IconButton.filledTonal(
@@ -99,7 +106,10 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Экспорт лучших ключей',
             onPressed: provider.nodes.isEmpty
                 ? null
-                : () => ExportSheet.show(context, provider),
+                : () {
+                    FocusScope.of(context).unfocus();
+                    ExportSheet.show(context, provider);
+                  },
           ),
           const SizedBox(width: 12),
         ],
@@ -110,10 +120,10 @@ class _HomeScreenState extends State<HomeScreen> {
           if (provider.errorMessage != null)
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: AppTheme.error.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: AppTheme.error.withOpacity(0.4)),
               ),
               child: Row(
@@ -127,7 +137,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 16, color: AppTheme.error),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.close_rounded, size: 18, color: AppTheme.error),
                     onPressed: () => context.read<ProbeProvider>().clearNodes(),
                   ),
                 ],
@@ -136,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Input Section (Collapsible & Multi-URL)
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
               color: AppTheme.surfaceContainerLow,
               borderRadius: BorderRadius.circular(20),
@@ -152,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       maxLines: 4,
                       style: const TextStyle(fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: 'Вставьте одну или несколько ссылок на подписки (каждую с новой строки) либо сырые ключи (vless://, vmess://, ss://, hy2://, tuic://, Base64)...',
+                        hintText: 'Вставьте одну или несколько ссылок на подписки (каждую с новой строки) либо ключи (vless://, vmess://, ss://, hy2://, tuic://, Base64)...',
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -217,6 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             provider.nodes.isEmpty ? 'Запустить тест' : 'Проверить (${provider.nodes.length})',
                           ),
                           onPressed: () async {
+                            FocusScope.of(context).unfocus();
                             if (provider.nodes.isEmpty && _inputController.text.isNotEmpty) {
                               await provider.parseInput(_inputController.text.trim());
                             }
@@ -340,7 +353,10 @@ class _HomeScreenState extends State<HomeScreen> {
               elevation: 4,
               icon: const Icon(Icons.file_download_rounded),
               label: Text('Скачать ТОП-${provider.aliveCount > 10 ? 10 : provider.aliveCount} лучших'),
-              onPressed: () => ExportSheet.show(context, provider),
+              onPressed: () {
+                FocusScope.of(context).unfocus();
+                ExportSheet.show(context, provider);
+              },
             )
           : null,
     );
