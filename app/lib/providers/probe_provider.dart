@@ -217,38 +217,37 @@ class ProbeProvider extends ChangeNotifier {
         nodes: _nodes,
         config: config,
         onProgress: (data) {
-            _totalCount = (data['total_count'] as num?)?.toInt() ?? _totalCount;
-            _testedCount = (data['tested_count'] as num?)?.toInt() ?? _testedCount;
-            _aliveCount = (data['alive_count'] as num?)?.toInt() ?? _aliveCount;
-            _deadCount = (data['dead_count'] as num?)?.toInt() ?? _deadCount;
-            _percent = (data['percent'] as num?)?.toDouble() ?? _percent;
-            _averagePing = (data['average_ping_ms'] as num?)?.toInt() ?? _averagePing;
+          _totalCount = (data['total_count'] as num?)?.toInt() ?? _totalCount;
+          _testedCount = (data['tested_count'] as num?)?.toInt() ?? _testedCount;
+          _aliveCount = (data['alive_count'] as num?)?.toInt() ?? _aliveCount;
+          _deadCount = (data['dead_count'] as num?)?.toInt() ?? _deadCount;
+          _percent = (data['percent'] as num?)?.toDouble() ?? _percent;
+          _averagePing = (data['average_ping_ms'] as num?)?.toInt() ?? _averagePing;
 
-            final lastTested = data['last_tested'] as Map<String, dynamic>?;
-            if (lastTested != null) {
-              final updatedNode = NodeModel.fromJson(lastTested);
-              final idx = _nodes.indexWhere((n) => n.id == updatedNode.id);
-              if (idx != -1) {
-                _nodes[idx] = updatedNode;
-              }
+          final lastTested = data['last_tested'] as Map<String, dynamic>?;
+          if (lastTested != null) {
+            final updatedNode = NodeModel.fromJson(lastTested);
+            final idx = _nodes.indexWhere((n) => n.id == updatedNode.id);
+            if (idx != -1) {
+              _nodes[idx] = updatedNode;
             }
+          }
 
-            if (data['is_completed'] == true) {
-              _isTesting = false;
-              _sortNodes();
-              notifyListeners();
-            } else {
-              _throttledNotify();
-            }
-          },
-          onComplete: (completedNodes) {
+          if (data['is_completed'] == true) {
             _isTesting = false;
-            _nodes = completedNodes;
             _sortNodes();
             notifyListeners();
-          },
-        );
-      }
+          } else {
+            _throttledNotify();
+          }
+        },
+        onComplete: (completedNodes) {
+          _isTesting = false;
+          _nodes = completedNodes;
+          _sortNodes();
+          notifyListeners();
+        },
+      );
     } catch (e) {
       _isTesting = false;
       _errorMessage = e.toString();
