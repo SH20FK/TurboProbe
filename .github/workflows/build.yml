@@ -82,7 +82,7 @@ jobs:
 
       - name: Initialize Android Platform
         working-directory: ./app
-        run: flutter create --platforms=android --org com.turboprobe .
+        run: flutter create --platforms=android --org com.turboprobe --overwrite .
 
       - name: Get Flutter Packages
         working-directory: ./app
@@ -117,7 +117,7 @@ jobs:
 
       - name: Initialize Windows Platform
         working-directory: ./app
-        run: flutter create --platforms=windows --org com.turboprobe .
+        run: flutter create --platforms=windows --org com.turboprobe --overwrite .
 
       - name: Get Flutter Packages
         working-directory: ./app
@@ -168,7 +168,7 @@ jobs:
 
       - name: Initialize Linux Platform
         working-directory: ./app
-        run: flutter create --platforms=linux --org com.turboprobe .
+        run: flutter create --platforms=linux --org com.turboprobe --overwrite .
 
       - name: Get Flutter Packages
         working-directory: ./app
