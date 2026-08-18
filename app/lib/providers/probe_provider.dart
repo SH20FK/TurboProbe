@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/node_model.dart';
 import '../models/test_config_model.dart';
 import '../services/core_api_service.dart';
+import '../services/dart_probe_engine.dart';
 
 enum SortOption { pingAsc, scoreDesc, protocol, country }
 
@@ -89,13 +90,22 @@ class ProbeProvider extends ChangeNotifier {
     });
   }
 
+  DartProbeEngine? _dartEngine;
+
   Future<void> parseInput(String input) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final parsed = await api.parseInput(input);
+      List<NodeModel> parsed;
+      final isBackendAlive = await api.checkHealth();
+      if (isBackendAlive) {
+        parsed = await api.parseInput(input);
+      } else {
+        parsed = await DartProbeEngine.parseInput(input);
+      }
+
       _nodes = parsed;
       _totalCount = parsed.length;
       _testedCount = 0;
@@ -122,7 +132,45 @@ class ProbeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await api.startTest(config);
+      final isBackendAlive = await api.checkHealth();
+      if (isBackendAlive) {
+        await api.startTest(config);
+      } else {
+        _dartEngine = DartProbeEngine();
+        _dartEngine!.runBenchmark(
+          nodes: _nodes,
+          config: config,
+          onProgress: (data) {
+            _totalCount = (data['total_count'] as num?)?.toInt() ?? _totalCount;
+            _testedCount = (data['tested_count'] as num?)?.toInt() ?? _testedCount;
+            _aliveCount = (data['alive_count'] as num?)?.toInt() ?? _aliveCount;
+            _deadCount = (data['dead_count'] as num?)?.toInt() ?? _deadCount;
+            _percent = (data['percent'] as num?)?.toDouble() ?? _percent;
+            _averagePing = (data['average_ping_ms'] as num?)?.toInt() ?? _averagePing;
+
+            final lastTested = data['last_tested'] as Map<String, dynamic>?;
+            if (lastTested != null) {
+              final updatedNode = NodeModel.fromJson(lastTested);
+              final idx = _nodes.indexWhere((n) => n.id == updatedNode.id);
+              if (idx != -1) {
+                _nodes[idx] = updatedNode;
+              }
+            }
+
+            if (data['is_completed'] == true) {
+              _isTesting = false;
+              _sortNodes();
+            }
+            notifyListeners();
+          },
+          onComplete: (completedNodes) {
+            _isTesting = false;
+            _nodes = completedNodes;
+            _sortNodes();
+            notifyListeners();
+          },
+        );
+      }
     } catch (e) {
       _isTesting = false;
       _errorMessage = e.toString();
@@ -131,6 +179,7 @@ class ProbeProvider extends ChangeNotifier {
   }
 
   Future<void> stopBenchmark() async {
+    _dartEngine?.stop();
     await api.stopTest();
     _isTesting = false;
     notifyListeners();

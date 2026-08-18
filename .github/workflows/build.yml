@@ -82,7 +82,12 @@ jobs:
 
       - name: Initialize Android Platform
         working-directory: ./app
-        run: flutter create --platforms=android --org com.turboprobe --overwrite .
+        run: |
+          mkdir -p ../temp_lib
+          cp -r lib/* ../temp_lib/
+          flutter create --platforms=android --org com.turboprobe --overwrite .
+          rm -rf lib/*
+          cp -r ../temp_lib/* lib/
 
       - name: Get Flutter Packages
         working-directory: ./app
@@ -122,8 +127,13 @@ jobs:
           flutter config --enable-windows-desktop
 
       - name: Initialize Windows Platform
+        shell: pwsh
         working-directory: ./app
-        run: flutter create --platforms=windows --org com.turboprobe --overwrite .
+        run: |
+          New-Item -ItemType Directory -Force -Path ..\temp_lib
+          Copy-Item -Path lib\* -Destination ..\temp_lib -Recurse -Force
+          flutter create --platforms=windows --org com.turboprobe --overwrite .
+          Copy-Item -Path ..\temp_lib\* -Destination lib -Recurse -Force
 
       - name: Get Flutter Packages
         working-directory: ./app
@@ -174,7 +184,12 @@ jobs:
 
       - name: Initialize Linux Platform
         working-directory: ./app
-        run: flutter create --platforms=linux --org com.turboprobe --overwrite .
+        run: |
+          mkdir -p ../temp_lib
+          cp -r lib/* ../temp_lib/
+          flutter create --platforms=linux --org com.turboprobe --overwrite .
+          rm -rf lib/*
+          cp -r ../temp_lib/* lib/
 
       - name: Get Flutter Packages
         working-directory: ./app
