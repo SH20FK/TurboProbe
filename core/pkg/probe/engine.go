@@ -198,37 +198,28 @@ func (e *Engine) RunBenchmark(
 func (e *Engine) probeSingleNode(ctx context.Context, node *parser.NodeConfig, opts ProbeOptions) {
 	node.TestedAt = time.Now()
 
-	// 1. True Protocol-Level Tunnel Check (VLESS UUID / Trojan / TLS / HTTP 204)
-	tun := CheckTunnel(ctx, node, opts.Timeout)
-	if !tun.Success {
+	// 1. Run Quantum-Probe 4D Benchmark (Dual-Anycast, DPI Drop Check, Speed Estimation, Score)
+	qp := RunQuantumProbe(ctx, node, opts.Timeout)
+	if !qp.Success {
 		node.IsAlive = false
-		node.ErrorMsg = tun.Error.Error()
+		if qp.Error != nil {
+			node.ErrorMsg = qp.Error.Error()
+		} else {
+			node.ErrorMsg = "Connection rejected"
+		}
 		node.PingMs = 9999
 		node.Score = 0
 		return
 	}
 
-	// 2. Burst & Jitter Check
-	var burst BurstResult
-	if opts.EnableBurst {
-		burst = RunMicroBurst(ctx, node, opts.Timeout)
-		node.JitterMs = burst.Jitter.Milliseconds()
-		node.PacketLoss = burst.PacketLoss
-		if burst.AveragePing > 0 {
-			node.PingMs = burst.AveragePing.Milliseconds()
-		} else {
-			node.PingMs = tun.RTT.Milliseconds()
-		}
-	} else {
-		node.PingMs = tun.RTT.Milliseconds()
-		node.PacketLoss = 0
-		node.JitterMs = 0
-	}
-
 	node.IsAlive = true
+	node.PingMs = qp.PingMs
+	node.JitterMs = qp.JitterMs
+	node.PacketLoss = qp.PacketLoss
+	node.Score = qp.QuantumScore
 	node.HTTPStatus = 204
 
-	// 3. Resolve GeoIP if enabled
+	// 2. Resolve GeoIP if enabled
 	if opts.EnableGeoIP && e.geoResolver != nil {
 		geo, err := e.geoResolver.Resolve(ctx, node.Server)
 		if err == nil && geo != nil {
@@ -239,9 +230,6 @@ func (e *Engine) probeSingleNode(ctx context.Context, node *parser.NodeConfig, o
 			node.ISP = geo.ISP
 		}
 	}
-
-	// 4. Calculate Quality Score (0 to 100)
-	node.Score = calculateScore(node)
 }
 
 func calculateScore(node *parser.NodeConfig) int {

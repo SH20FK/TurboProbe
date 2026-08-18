@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../providers/probe_provider.dart';
@@ -103,10 +104,23 @@ class _ExportSheetState extends State<ExportSheet> {
     });
   }
 
+  void _copyToClipboard(String text, String message) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppTheme.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final countries = widget.provider.availableCountries;
+    final liveSubUrl = 'http://127.0.0.1:8999/sub';
 
     return Container(
       decoration: const BoxDecoration(
@@ -144,7 +158,7 @@ class _ExportSheetState extends State<ExportSheet> {
                     const Icon(Icons.file_download_rounded, color: AppTheme.primary, size: 24),
                     const SizedBox(width: 10),
                     const Text(
-                      'Экспорт лучших ключей',
+                      'Экспорт и интеграции',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                     ),
                     const SizedBox(width: 8),
@@ -164,6 +178,112 @@ class _ExportSheetState extends State<ExportSheet> {
                 IconButton(
                   icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.textSecondary),
                   onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Live Subscription Server Banner
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryContainer.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.sensors_rounded, color: AppTheme.primary, size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        '🔥 Live-подписка для Happ, Incy и Hiddify',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Добавьте этот URL в Happ или Incy 1 раз — клиенты будут всегда автоматически получать актуальный список лучших живых ключей!',
+                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppTheme.outlineVariant),
+                          ),
+                          child: Text(
+                            liveSubUrl,
+                            style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: AppTheme.primary),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton.tonalIcon(
+                        icon: const Icon(Icons.copy_rounded, size: 16),
+                        label: const Text('Копировать Live-URL'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () => _copyToClipboard(liveSubUrl, 'Live-ссылка подписки скопирована!'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 1-Click Client Launch Buttons
+            const Text(
+              '1-Клик импорт в VPN клиенты',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.flash_on_rounded, size: 16, color: AppTheme.primary),
+                  label: const Text('В Happ'),
+                  onPressed: () {
+                    final raw = widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 50).map((e) => e.rawUri).join('\n');
+                    _copyToClipboard(raw, 'Ключи скопированы для Happ!');
+                  },
+                ),
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.bolt_rounded, size: 16, color: AppTheme.secondary),
+                  label: const Text('В Incy'),
+                  onPressed: () {
+                    final raw = widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 50).map((e) => e.rawUri).join('\n');
+                    _copyToClipboard(raw, 'Ключи скопированы для Incy!');
+                  },
+                ),
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.shield_rounded, size: 16, color: AppTheme.success),
+                  label: const Text('В Hiddify'),
+                  onPressed: () {
+                    final raw = widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 50).map((e) => e.rawUri).join('\n');
+                    _copyToClipboard(raw, 'Ключи скопированы для Hiddify!');
+                  },
+                ),
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.android_rounded, size: 16, color: AppTheme.warning),
+                  label: const Text('В v2rayNG'),
+                  onPressed: () {
+                    final raw = widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 50).map((e) => e.rawUri).join('\n');
+                    _copyToClipboard(raw, 'Ключи скопированы для v2rayNG!');
+                  },
                 ),
               ],
             ),
@@ -304,33 +424,20 @@ class _ExportSheetState extends State<ExportSheet> {
             ),
             const SizedBox(height: 20),
 
-            // Action Buttons (Copy & Download)
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 48,
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.copy_rounded, size: 18),
-                      label: Text('Копировать ($_matchedCount)'),
-                      onPressed: _exportedContent.isEmpty
-                          ? null
-                          : () {
-                              Clipboard.setData(ClipboardData(text: _exportedContent));
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('$_matchedCount ключей скопировано в буфер!'),
-                                  backgroundColor: AppTheme.success,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                              );
-                            },
-                    ),
-                  ),
-                ),
-              ],
+            // Action Button
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: FilledButton.icon(
+                icon: const Icon(Icons.copy_rounded, size: 18),
+                label: Text('Копировать результат ($_matchedCount)'),
+                onPressed: _exportedContent.isEmpty
+                    ? null
+                    : () {
+                        _copyToClipboard(_exportedContent, '$_matchedCount ключей скопировано в буфер!');
+                        Navigator.pop(context);
+                      },
+              ),
             ),
           ],
         ),

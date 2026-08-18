@@ -78,12 +78,22 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          if (provider.nodes.isNotEmpty)
+            IconButton.filledTonal(
+              icon: const Icon(Icons.delete_outline_rounded, size: 20),
+              tooltip: 'Очистить всё',
+              onPressed: () {
+                _inputController.clear();
+                provider.clearNodes();
+              },
+            ),
+          const SizedBox(width: 4),
           IconButton.filledTonal(
             icon: const Icon(Icons.tune_rounded, size: 20),
             tooltip: 'Настройки',
             onPressed: () => SettingsDialog.show(context, provider.config),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           IconButton.filledTonal(
             icon: const Icon(Icons.file_download_rounded, size: 20),
             tooltip: 'Экспорт лучших ключей',
@@ -96,6 +106,34 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
+          // Error Message Banner
+          if (provider.errorMessage != null)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.error.withOpacity(0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, size: 18, color: AppTheme.error),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      provider.errorMessage!,
+                      style: const TextStyle(fontSize: 12, color: AppTheme.error),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 16, color: AppTheme.error),
+                    onPressed: () => context.read<ProbeProvider>().clearNodes(),
+                  ),
+                ],
+              ),
+            ),
+
           // Input Section (Collapsible & Multi-URL)
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -276,7 +314,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             itemCount: nodes.length,
                             physics: const BouncingScrollPhysics(),
                             itemBuilder: (context, index) {
-                              return NodeCard(node: nodes[index]);
+                              final node = nodes[index];
+                              return Dismissible(
+                                key: ValueKey(node.id),
+                                direction: DismissDirection.endToStart,
+                                background: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  color: AppTheme.error.withOpacity(0.2),
+                                  child: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
+                                ),
+                                onDismissed: (_) => provider.removeNode(node.id),
+                                child: NodeCard(node: node),
+                              );
                             },
                           ),
           ),

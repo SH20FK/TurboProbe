@@ -41,6 +41,8 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/test/stop", s.handleStopTest)
 	mux.HandleFunc("/api/test/status", s.handleTestStatus)
 	mux.HandleFunc("/api/export", s.handleExport)
+	mux.HandleFunc("/api/deeplinks", s.handleDeepLinks)
+	mux.HandleFunc("/sub", s.handleLiveSubscription)
 
 	addr := fmt.Sprintf("127.0.0.1:%d", s.port)
 	log.Printf("[TurboProbe Server] Listening on http://%s", addr)
@@ -267,4 +269,54 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(data)
+}
+
+// handleLiveSubscription serves an active, dynamic subscription link for Happ, Incy, v2rayNG, Hiddify, etc.
+func (s *Server) handleLiveSubscription(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	nodes := s.nodes
+	s.mu.RUnlock()
+
+	q := r.URL.Query()
+	format := q.Get("format")
+	if format == "" {
+		format = "base64" // default subscription format
+	}
+
+	limit := 0
+	if q.Get("top") != "" {
+		fmt.Sscanf(q.Get("top"), "%d", &limit)
+	}
+
+	var countries []string
+	if q.Get("country") != "" {
+		countries = strings.Split(strings.ToUpper(q.Get("country")), ",")
+	}
+
+	content, _ := exporter.Export(nodes, exporter.ExportFormat(format), exporter.FilterOptions{
+		OnlyAlive: true,
+		Limit:     limit,
+		Countries: countries,
+	})
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Subscription-Userinfo", "upload=0; download=0; total=107374182400; expire=0")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(content))
+}
+
+// handleDeepLinks returns 1-click import URLs for modern VPN clients
+func (s *Server) handleDeepLinks(w http.ResponseWriter, r *http.Request) {
+	subURL := fmt.Sprintf("http://127.0.0.1:%d/sub", s.port)
+	clashURL := fmt.Sprintf("http://127.0.0.1:%d/sub?format=clash", s.port)
+	singboxURL := fmt.Sprintf("http://127.0.0.1:%d/sub?format=singbox", s.port)
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"sub_url":     subURL,
+		"happ_link":   fmt.Sprintf("happ://import?url=%s", subURL),
+		"incy_link":   fmt.Sprintf("incy://import?url=%s", subURL),
+		"hiddify_link": fmt.Sprintf("hiddify://import/%s", singboxURL),
+		"v2rayng_link": fmt.Sprintf("v2rayng://install-config?url=%s", subURL),
+		"clash_link":  fmt.Sprintf("clash://install-config?url=%s", clashURL),
+	})
 }

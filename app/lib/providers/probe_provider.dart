@@ -33,6 +33,12 @@ class ProbeProvider extends ChangeNotifier {
   // Test Config
   TestConfigModel config = TestConfigModel();
 
+  // High-performance UI Notification Throttler (prevents UI jank during 100+ updates/sec)
+  Timer? _throttleTimer;
+  bool _hasPendingNotify = false;
+
+  DartProbeEngine? _dartEngine;
+
   ProbeProvider() {
     _initWebSocket();
   }
@@ -53,6 +59,20 @@ class ProbeProvider extends ChangeNotifier {
   String get selectedProtocol => _selectedProtocol;
   String get selectedCountry => _selectedCountry;
   SortOption get sortOption => _sortOption;
+
+  void _throttledNotify() {
+    if (_throttleTimer == null || !_throttleTimer!.isActive) {
+      notifyListeners();
+      _throttleTimer = Timer(const Duration(milliseconds: 80), () {
+        if (_hasPendingNotify) {
+          _hasPendingNotify = false;
+          notifyListeners();
+        }
+      });
+    } else {
+      _hasPendingNotify = true;
+    }
+  }
 
   void _initWebSocket() {
     _wsSubscription = api.stream.listen((event) {
@@ -78,8 +98,10 @@ class ProbeProvider extends ChangeNotifier {
         if (data['is_completed'] == true) {
           _isTesting = false;
           _sortNodes();
+          notifyListeners();
+        } else {
+          _throttledNotify();
         }
-        notifyListeners();
       } else if (type == 'complete') {
         _isTesting = false;
         final list = event['nodes'] as List<dynamic>? ?? [];
@@ -89,8 +111,6 @@ class ProbeProvider extends ChangeNotifier {
       }
     });
   }
-
-  DartProbeEngine? _dartEngine;
 
   Future<void> parseInput(String input) async {
     _isLoading = true;
@@ -160,8 +180,10 @@ class ProbeProvider extends ChangeNotifier {
             if (data['is_completed'] == true) {
               _isTesting = false;
               _sortNodes();
+              notifyListeners();
+            } else {
+              _throttledNotify();
             }
-            notifyListeners();
           },
           onComplete: (completedNodes) {
             _isTesting = false;
@@ -182,6 +204,26 @@ class ProbeProvider extends ChangeNotifier {
     _dartEngine?.stop();
     await api.stopTest();
     _isTesting = false;
+    notifyListeners();
+  }
+
+  void clearNodes() {
+    _nodes.clear();
+    _totalCount = 0;
+    _testedCount = 0;
+    _aliveCount = 0;
+    _deadCount = 0;
+    _percent = 0.0;
+    _averagePing = 0;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void removeNode(String id) {
+    _nodes.removeWhere((n) => n.id == id);
+    _totalCount = _nodes.length;
+    _aliveCount = _nodes.where((n) => n.isAlive).length;
+    _deadCount = _nodes.where((n) => !n.isAlive && n.pingMs > 0).length;
     notifyListeners();
   }
 
@@ -208,7 +250,6 @@ class ProbeProvider extends ChangeNotifier {
 
   void _sortNodes() {
     _nodes.sort((a, b) {
-      // Always put alive first
       if (a.isAlive != b.isAlive) {
         return a.isAlive ? -1 : 1;
       }
@@ -268,6 +309,7 @@ class ProbeProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _throttleTimer?.cancel();
     _wsSubscription?.cancel();
     api.dispose();
     super.dispose();
