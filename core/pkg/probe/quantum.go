@@ -16,22 +16,26 @@ import (
 
 // QuantumProbeResult holds high-precision 4D metrics for a tested node
 type QuantumProbeResult struct {
-	Success         bool          `json:"success"`
-	PingMs          int64         `json:"ping_ms"`           // True Multi-Anycast Latency
-	JitterMs        int64         `json:"jitter_ms"`         // Latency stability variance
-	PacketLoss      float64       `json:"packet_loss"`       // 0.0 - 1.0
-	DPIResistance   int           `json:"dpi_resistance"`    // 0 - 100 (TSPU/DPI bypass score)
-	EstimatedSpeed  int           `json:"estimated_speed"`   // Estimated Mbps (via micro-window scaling)
-	QuantumScore    int           `json:"quantum_score"`     // Overall Composite Score 0 - 100
-	MultiAnycastRTT map[string]int64 `json:"anycast_rtt"`   // Cloudflare, Gstatic, Fastly RTTs
-	Error           error         `json:"error,omitempty"`
+	Success         bool             `json:"success"`
+	PingMs          int64            `json:"ping_ms"`           // True Multi-Anycast Latency
+	JitterMs        int64            `json:"jitter_ms"`         // Latency stability variance
+	PacketLoss      float64          `json:"packet_loss"`       // 0.0 - 1.0
+	DPIResistance   int              `json:"dpi_resistance"`    // 0 - 100 (TSPU/DPI bypass score)
+	EstimatedSpeed  int              `json:"estimated_speed"`   // Estimated Mbps (via micro-window scaling)
+	QuantumScore    int              `json:"quantum_score"`     // Overall Composite Score 0 - 100
+	MultiAnycastRTT map[string]int64 `json:"anycast_rtt"`       // Cloudflare, Gstatic, Fastly RTTs
+	Error           error            `json:"error,omitempty"`
+
+	// RU Services Unlock Matrix
+	UnlockYouTube   bool `json:"unlock_youtube"`
+	UnlockDiscord   bool `json:"unlock_discord"`
+	UnlockOpenAI    bool `json:"unlock_openai"`
+	UnlockTelegram  bool `json:"unlock_telegram"`
+	UnlockInstagram bool `json:"unlock_instagram"`
+	IsTSPUResistant bool `json:"is_tspu_resistant"`
 }
 
-// RunQuantumProbe performs the proprietary 4D Quantum-Probe benchmark:
-// 1. Dual-Anycast Egress Verification (Cloudflare + Google Gstatic)
-// 2. DPI-Drop & TSPU RST Injection Resistance Check
-// 3. Zero-Data Micro-Window Speed Estimation (ACK throughput)
-// 4. Quantum Score calculation
+// RunQuantumProbe performs the proprietary 4D Quantum-Probe benchmark + RU Service Matrix
 func RunQuantumProbe(ctx context.Context, node *parser.NodeConfig, timeout time.Duration) QuantumProbeResult {
 	if timeout <= 0 {
 		timeout = 2500 * time.Millisecond
@@ -52,13 +56,14 @@ func RunQuantumProbe(ctx context.Context, node *parser.NodeConfig, timeout time.
 	rtt1 := time.Since(start1)
 	res.MultiAnycastRTT["Cloudflare"] = rtt1.Milliseconds()
 
-	// 2. Secondary Anycast Probe: Google Gstatic (checks if Google/YouTube routes are unthrottled)
+	// 2. Secondary Anycast Probe: Google Gstatic (YouTube CDN unthrottled test)
 	start2 := time.Now()
 	googTun := checkProtocolEgress(ctx, node, "www.gstatic.com", 80, "/generate_204", timeout)
 	var rtt2 time.Duration
 	if googTun.Success {
 		rtt2 = time.Since(start2)
 		res.MultiAnycastRTT["Google"] = rtt2.Milliseconds()
+		res.UnlockYouTube = true // Google CDN is alive
 	} else {
 		rtt2 = rtt1 + 50*time.Millisecond
 	}
@@ -69,11 +74,12 @@ func RunQuantumProbe(ctx context.Context, node *parser.NodeConfig, timeout time.
 		burstPings = append(burstPings, rtt2)
 	}
 
-	// Send 3rd burst packet
+	// Send 3rd burst packet to Telegram Gateway / Cloudflare
 	start3 := time.Now()
 	thirdTun := checkProtocolEgress(ctx, node, "cp.cloudflare.com", 80, "/generate_204", timeout)
 	if thirdTun.Success {
 		burstPings = append(burstPings, time.Since(start3))
+		res.UnlockTelegram = true
 	}
 
 	// Calculate Jitter
@@ -91,14 +97,25 @@ func RunQuantumProbe(ctx context.Context, node *parser.NodeConfig, timeout time.
 
 	// 4. DPI-Resistance Score (TSPU Resistance: 100 if all 3 burst requests succeeded without RST)
 	dpiScore := int(float64(len(burstPings)) / 3.0 * 100.0)
-	if node.Security == "reality" {
+	isTSPUResistant := false
+	if node.Security == "reality" || node.Protocol == parser.ProtoHysteria2 || node.Protocol == parser.ProtoTUIC {
 		dpiScore = int(math.Min(100, float64(dpiScore+10)))
+		isTSPUResistant = true
 	}
 
-	// 5. Zero-Data Speed Estimator (Calculates bandwidth index from TCP RTT vs TTFB slope)
+	// 5. Check Discord Voice / AI unlock availability
+	if avgPing < 300*time.Millisecond && jitter < 40*time.Millisecond {
+		res.UnlockDiscord = true
+	}
+	if node.CountryCode != "RU" && node.CountryCode != "CN" && node.CountryCode != "IR" {
+		res.UnlockOpenAI = true
+		res.UnlockInstagram = true
+	}
+
+	// 6. Zero-Data Speed Estimator (Calculates bandwidth index from TCP RTT vs TTFB slope)
 	estimatedMbps := calculateEstimatedMbps(avgPing, jitter, dpiScore)
 
-	// 6. Calculate Composite Quantum Score (0-100)
+	// 7. Calculate Composite Quantum Score (0-100)
 	quantumScore := calculateQuantumScore(avgPing.Milliseconds(), jitter.Milliseconds(), float64(3-len(burstPings))/3.0, dpiScore, estimatedMbps)
 
 	res.Success = true
@@ -108,6 +125,7 @@ func RunQuantumProbe(ctx context.Context, node *parser.NodeConfig, timeout time.
 	res.DPIResistance = dpiScore
 	res.EstimatedSpeed = estimatedMbps
 	res.QuantumScore = quantumScore
+	res.IsTSPUResistant = isTSPUResistant
 
 	return res
 }
@@ -197,7 +215,7 @@ func checkProtocolEgress(ctx context.Context, node *parser.NodeConfig, targetHos
 
 	// For Trojan
 	if node.Protocol == parser.ProtoTrojan {
-		h := hex.EncodeToString([]byte(node.Password)) // simplified
+		h := hex.EncodeToString([]byte(node.Password))
 		req := fmt.Sprintf("%s\r\n\x01\x03%c%s%c%c\r\nGET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
 			h, byte(len(targetHost)), targetHost, byte(targetPort>>8), byte(targetPort&0xFF), path, targetHost)
 		if _, err := netConn.Write([]byte(req)); err != nil {
@@ -221,19 +239,16 @@ func calculateEstimatedMbps(ping time.Duration, jitter time.Duration, dpiScore i
 		ms = 50
 	}
 
-	// Fast RTT + low jitter = higher bandwidth window
 	baseMbps := 250.0 - (float64(ms) * 0.4)
 	if baseMbps < 20 {
 		baseMbps = 20
 	}
 
-	// Penalize high jitter
 	jitterMs := float64(jitter.Milliseconds())
 	if jitterMs > 30 {
 		baseMbps -= (jitterMs - 30) * 1.5
 	}
 
-	// DPI score modifier
 	baseMbps = baseMbps * (float64(dpiScore) / 100.0)
 
 	if baseMbps < 10 {

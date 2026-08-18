@@ -404,6 +404,12 @@ class DartProbeEngine {
         jitterMs: (totalTime * 0.1).toInt(),
         packetLoss: 0.0,
         score: _calcScore(totalTime),
+        unlockYouTube: true,
+        unlockDiscord: totalTime < 280,
+        unlockOpenAI: cc != 'RU' && cc != 'CN',
+        unlockTelegram: true,
+        unlockInstagram: cc != 'RU',
+        isTSPUResistant: node.security == 'reality' || node.protocol == 'hysteria2' || node.protocol == 'tuic',
       );
     } catch (e) {
       return NodeModel(

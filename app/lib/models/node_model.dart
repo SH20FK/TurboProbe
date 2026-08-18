@@ -19,6 +19,14 @@ class NodeModel {
   final int score;
   final String? errorMsg;
 
+  // RU Region Specific Badges
+  final bool unlockYouTube;
+  final bool unlockDiscord;
+  final bool unlockOpenAI;
+  final bool unlockTelegram;
+  final bool unlockInstagram;
+  final bool isTSPUResistant;
+
   NodeModel({
     required this.id,
     required this.rawUri,
@@ -39,6 +47,12 @@ class NodeModel {
     this.packetLoss = 0.0,
     this.score = 0,
     this.errorMsg,
+    this.unlockYouTube = false,
+    this.unlockDiscord = false,
+    this.unlockOpenAI = false,
+    this.unlockTelegram = false,
+    this.unlockInstagram = false,
+    this.isTSPUResistant = false,
   });
 
   factory NodeModel.fromJson(Map<String, dynamic> json) {
@@ -62,6 +76,12 @@ class NodeModel {
       packetLoss: (json['packet_loss'] as num?)?.toDouble() ?? 0.0,
       score: (json['score'] as num?)?.toInt() ?? 0,
       errorMsg: json['error_msg'] as String?,
+      unlockYouTube: json['unlock_youtube'] as bool? ?? false,
+      unlockDiscord: json['unlock_discord'] as bool? ?? false,
+      unlockOpenAI: json['unlock_openai'] as bool? ?? false,
+      unlockTelegram: json['unlock_telegram'] as bool? ?? false,
+      unlockInstagram: json['unlock_instagram'] as bool? ?? false,
+      isTSPUResistant: json['is_tspu_resistant'] as bool? ?? false,
     );
   }
 
@@ -86,6 +106,12 @@ class NodeModel {
       'packet_loss': packetLoss,
       'score': score,
       'error_msg': errorMsg,
+      'unlock_youtube': unlockYouTube,
+      'unlock_discord': unlockDiscord,
+      'unlock_openai': unlockOpenAI,
+      'unlock_telegram': unlockTelegram,
+      'unlock_instagram': unlockInstagram,
+      'is_tspu_resistant': isTSPUResistant,
     };
   }
 }

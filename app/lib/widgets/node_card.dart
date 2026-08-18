@@ -21,7 +21,7 @@ class NodeCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Flag
+                // Country Flag
                 Text(
                   node.flagEmoji ?? '🌐',
                   style: const TextStyle(fontSize: 24),
@@ -72,6 +72,26 @@ class NodeCard extends StatelessWidget {
                 ),
               ],
             ),
+
+            // RU Unlock Badges Row (if alive)
+            if (node.isAlive) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  if (node.unlockYouTube)
+                    _buildUnlockBadge('🎬 YouTube 4K', AppTheme.error.withOpacity(0.2), AppTheme.error),
+                  if (node.unlockDiscord)
+                    _buildUnlockBadge('💬 Discord', AppTheme.primary.withOpacity(0.2), AppTheme.primary),
+                  if (node.unlockOpenAI)
+                    _buildUnlockBadge('🤖 ChatGPT', AppTheme.success.withOpacity(0.2), AppTheme.success),
+                  if (node.isTSPUResistant)
+                    _buildUnlockBadge('🛡 Анти-ТСПУ', AppTheme.secondary.withOpacity(0.2), AppTheme.secondary),
+                ],
+              ),
+            ],
+
             const SizedBox(height: 10),
             const Divider(height: 1, color: AppTheme.outlineVariant),
             const SizedBox(height: 10),
@@ -100,6 +120,14 @@ class NodeCard extends StatelessWidget {
                 if (node.isAlive)
                   Row(
                     children: [
+                      if (node.score > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text(
+                            '★ ${node.score} pts',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.warning),
+                          ),
+                        ),
                       if (node.jitterMs > 0)
                         Padding(
                           padding: const EdgeInsets.only(right: 10),
@@ -153,6 +181,20 @@ class NodeCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildUnlockBadge(String label, Color bgColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textColor),
       ),
     );
   }

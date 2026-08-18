@@ -12,6 +12,14 @@ class FilterBar extends StatelessWidget {
     final protocols = provider.availableProtocols;
     final countries = provider.availableCountries;
 
+    final ruCategories = [
+      {'id': 'ALL', 'label': '🌐 Все', 'icon': Icons.public_rounded},
+      {'id': 'YOUTUBE', 'label': '🎬 YouTube 4K', 'icon': Icons.play_circle_rounded},
+      {'id': 'DISCORD', 'label': '💬 Discord', 'icon': Icons.chat_rounded},
+      {'id': 'REALITY', 'label': '🛡 Анти-ТСПУ Reality', 'icon': Icons.security_rounded},
+      {'id': 'AI', 'label': '🤖 ChatGPT', 'icon': Icons.smart_toy_rounded},
+    ];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Column(
@@ -73,6 +81,27 @@ class FilterBar extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
+
+          // RU Region Specific Service Filter Chips (YouTube 4K, Discord, Reality, AI)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: ruCategories.map((cat) {
+                final isSelected = provider.selectedRUCategory == cat['id'];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    label: Text(cat['label'] as String),
+                    selected: isSelected,
+                    selectedColor: AppTheme.primaryContainer,
+                    checkmarkColor: AppTheme.onPrimaryContainer,
+                    onSelected: (_) => provider.setRUCategoryFilter(cat['id'] as String),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 6),
 
           // Protocol Filter Chips
           if (protocols.length > 2)

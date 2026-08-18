@@ -267,6 +267,14 @@ class ProbeProvider extends ChangeNotifier {
     });
   }
 
+  String _selectedRUCategory = 'ALL'; // ALL, YOUTUBE, DISCORD, REALITY, AI
+  String get selectedRUCategory => _selectedRUCategory;
+
+  void setRUCategoryFilter(String category) {
+    _selectedRUCategory = category;
+    notifyListeners();
+  }
+
   List<NodeModel> get filteredNodes {
     return _nodes.where((n) {
       if (_searchQuery.isNotEmpty) {
@@ -284,6 +292,12 @@ class ProbeProvider extends ChangeNotifier {
       if (_selectedCountry != 'ALL' && (n.countryCode ?? '').toUpperCase() != _selectedCountry) {
         return false;
       }
+
+      // RU Category Specific Filter
+      if (_selectedRUCategory == 'YOUTUBE' && !n.unlockYouTube) return false;
+      if (_selectedRUCategory == 'DISCORD' && !n.unlockDiscord) return false;
+      if (_selectedRUCategory == 'REALITY' && !(n.isTSPUResistant || n.security == 'reality')) return false;
+      if (_selectedRUCategory == 'AI' && !n.unlockOpenAI) return false;
 
       return true;
     }).toList();

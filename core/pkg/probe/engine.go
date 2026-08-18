@@ -218,6 +218,12 @@ func (e *Engine) probeSingleNode(ctx context.Context, node *parser.NodeConfig, o
 	node.PacketLoss = qp.PacketLoss
 	node.Score = qp.QuantumScore
 	node.HTTPStatus = 204
+	node.UnlockYouTube = qp.UnlockYouTube
+	node.UnlockDiscord = qp.UnlockDiscord
+	node.UnlockOpenAI = qp.UnlockOpenAI
+	node.UnlockTelegram = qp.UnlockTelegram
+	node.UnlockInstagram = qp.UnlockInstagram
+	node.IsTSPUResistant = qp.IsTSPUResistant
 
 	// 2. Resolve GeoIP if enabled
 	if opts.EnableGeoIP && e.geoResolver != nil {
