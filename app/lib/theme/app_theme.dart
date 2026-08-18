@@ -10,9 +10,11 @@ class AppTheme {
   static const Color primaryAccent = secondary; // Compatibility alias
   static const Color surface = Color(0xFF11131E);
   static const Color surfaceLight = Color(0xFF1E2235); // Compatibility alias
+  static const Color surfaceContainerLowest = Color(0xFF0C0E17);
   static const Color surfaceContainerLow = Color(0xFF171A28);
   static const Color surfaceContainer = Color(0xFF1E2235);
   static const Color surfaceContainerHigh = Color(0xFF272D45);
+  static const Color surfaceContainerHighest = Color(0xFF333A57);
   static const Color outline = Color(0xFF3B4363);
   static const Color outlineVariant = Color(0xFF262C42);
 
