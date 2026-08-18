@@ -94,9 +94,11 @@ jobs:
           distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-all.zip
           EOF
 
-      - name: Get Flutter Packages
+      - name: Get Flutter Packages & Generate Launcher Icons
         working-directory: ./app
-        run: flutter pub get
+        run: |
+          flutter pub get
+          dart run flutter_launcher_icons
 
       - name: Build Android APK
         working-directory: ./app
@@ -139,9 +141,11 @@ jobs:
           Copy-Item -Path temp_win\windows\* -Destination app\windows -Recurse -Force
           Remove-Item -Path temp_win -Recurse -Force
 
-      - name: Get Flutter Packages
+      - name: Get Flutter Packages & Generate Launcher Icons
         working-directory: ./app
-        run: flutter pub get
+        run: |
+          flutter pub get
+          dart run flutter_launcher_icons
 
       - name: Download Go Core Binary
         uses: actions/download-artifact@v4
@@ -193,9 +197,11 @@ jobs:
           cp -rn temp_linux/linux/* ./app/linux/ || true
           rm -rf temp_linux
 
-      - name: Get Flutter Packages
+      - name: Get Flutter Packages & Generate Launcher Icons
         working-directory: ./app
-        run: flutter pub get
+        run: |
+          flutter pub get
+          dart run flutter_launcher_icons
 
       - name: Build Linux Desktop
         working-directory: ./app

@@ -11,10 +11,10 @@ enum SortOption { pingAsc, scoreDesc, protocol, country }
 
 class ProbeProvider extends ChangeNotifier {
   final CoreApiService api = CoreApiService();
-  StreamSubscription? _wsSubscription;
   HttpServer? _localHttpServer;
 
   List<NodeModel> _nodes = [];
+  List<NodeModel> _filteredNodesCache = [];
   bool _isTesting = false;
   bool _isLoading = false;
   String? _errorMessage;
@@ -37,14 +37,13 @@ class ProbeProvider extends ChangeNotifier {
   // Test Config
   TestConfigModel config = TestConfigModel();
 
-  // High-performance UI Notification Throttler (prevents UI jank during 100+ updates/sec)
+  // High-performance UI Notification Throttler (120ms window)
   Timer? _throttleTimer;
   bool _hasPendingNotify = false;
 
   DartProbeEngine? _dartEngine;
 
   ProbeProvider() {
-    _initWebSocket();
     _startLocalHttpServer();
   }
 
@@ -102,6 +101,7 @@ class ProbeProvider extends ChangeNotifier {
   }
 
   List<NodeModel> get nodes => _nodes;
+  List<NodeModel> get filteredNodes => _filteredNodesCache;
   bool get isTesting => _isTesting;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -120,55 +120,19 @@ class ProbeProvider extends ChangeNotifier {
   SortOption get sortOption => _sortOption;
 
   void _throttledNotify() {
+    _recalculateFilteredCache();
     if (_throttleTimer == null || !_throttleTimer!.isActive) {
       notifyListeners();
-      _throttleTimer = Timer(const Duration(milliseconds: 80), () {
+      _throttleTimer = Timer(const Duration(milliseconds: 120), () {
         if (_hasPendingNotify) {
           _hasPendingNotify = false;
+          _recalculateFilteredCache();
           notifyListeners();
         }
       });
     } else {
       _hasPendingNotify = true;
     }
-  }
-
-  void _initWebSocket() {
-    _wsSubscription = api.stream.listen((event) {
-      final type = event['type'] as String?;
-      if (type == 'progress') {
-        final data = event['data'] as Map<String, dynamic>? ?? {};
-        _totalCount = (data['total_count'] as num?)?.toInt() ?? _totalCount;
-        _testedCount = (data['tested_count'] as num?)?.toInt() ?? _testedCount;
-        _aliveCount = (data['alive_count'] as num?)?.toInt() ?? _aliveCount;
-        _deadCount = (data['dead_count'] as num?)?.toInt() ?? _deadCount;
-        _percent = (data['percent'] as num?)?.toDouble() ?? _percent;
-        _averagePing = (data['average_ping_ms'] as num?)?.toInt() ?? _averagePing;
-
-        final lastTested = data['last_tested'] as Map<String, dynamic>?;
-        if (lastTested != null) {
-          final updatedNode = NodeModel.fromJson(lastTested);
-          final idx = _nodes.indexWhere((n) => n.id == updatedNode.id);
-          if (idx != -1) {
-            _nodes[idx] = updatedNode;
-          }
-        }
-
-        if (data['is_completed'] == true) {
-          _isTesting = false;
-          _sortNodes();
-          notifyListeners();
-        } else {
-          _throttledNotify();
-        }
-      } else if (type == 'complete') {
-        _isTesting = false;
-        final list = event['nodes'] as List<dynamic>? ?? [];
-        _nodes = list.map((e) => NodeModel.fromJson(e as Map<String, dynamic>)).toList();
-        _sortNodes();
-        notifyListeners();
-      }
-    });
   }
 
   Future<void> parseInput(String input) async {
@@ -192,6 +156,7 @@ class ProbeProvider extends ChangeNotifier {
         _deadCount = 0;
         _percent = 0.0;
         _averagePing = 0;
+        _recalculateFilteredCache();
       }
     } catch (e) {
       _errorMessage = 'Ошибка парсинга: $e';
@@ -209,6 +174,7 @@ class ProbeProvider extends ChangeNotifier {
     _deadCount = 0;
     _percent = 0.0;
     _averagePing = 0;
+    _recalculateFilteredCache();
     notifyListeners();
 
     try {
@@ -236,6 +202,7 @@ class ProbeProvider extends ChangeNotifier {
           if (data['is_completed'] == true) {
             _isTesting = false;
             _sortNodes();
+            _recalculateFilteredCache();
             notifyListeners();
           } else {
             _throttledNotify();
@@ -245,6 +212,7 @@ class ProbeProvider extends ChangeNotifier {
           _isTesting = false;
           _nodes = completedNodes;
           _sortNodes();
+          _recalculateFilteredCache();
           notifyListeners();
         },
       );
@@ -257,15 +225,14 @@ class ProbeProvider extends ChangeNotifier {
 
   Future<void> stopBenchmark() async {
     _dartEngine?.stop();
-    try {
-      await api.stopTest();
-    } catch (_) {}
     _isTesting = false;
+    _recalculateFilteredCache();
     notifyListeners();
   }
 
   void clearNodes() {
     _nodes.clear();
+    _filteredNodesCache.clear();
     _totalCount = 0;
     _testedCount = 0;
     _aliveCount = 0;
@@ -281,32 +248,38 @@ class ProbeProvider extends ChangeNotifier {
     _totalCount = _nodes.length;
     _aliveCount = _nodes.where((n) => n.isAlive).length;
     _deadCount = _nodes.where((n) => !n.isAlive && n.pingMs > 0).length;
+    _recalculateFilteredCache();
     notifyListeners();
   }
 
   void setSearchQuery(String query) {
     _searchQuery = query;
+    _recalculateFilteredCache();
     notifyListeners();
   }
 
   void setProtocolFilter(String proto) {
     _selectedProtocol = proto;
+    _recalculateFilteredCache();
     notifyListeners();
   }
 
   void setCountryFilter(String country) {
     _selectedCountry = country;
+    _recalculateFilteredCache();
     notifyListeners();
   }
 
   void setRUCategoryFilter(String category) {
     _selectedRUCategory = category;
+    _recalculateFilteredCache();
     notifyListeners();
   }
 
   void setSortOption(SortOption option) {
     _sortOption = option;
     _sortNodes();
+    _recalculateFilteredCache();
     notifyListeners();
   }
 
@@ -329,13 +302,13 @@ class ProbeProvider extends ChangeNotifier {
     });
   }
 
-  List<NodeModel> get filteredNodes {
-    return _nodes.where((n) {
-      if (_searchQuery.isNotEmpty) {
-        final q = _searchQuery.toLowerCase();
-        final matchesName = n.name.toLowerCase().contains(q);
-        final matchesServer = n.server.toLowerCase().contains(q);
-        final matchesCountry = (n.countryName ?? '').toLowerCase().contains(q);
+  void _recalculateFilteredCache() {
+    final query = _searchQuery.toLowerCase().trim();
+    _filteredNodesCache = _nodes.where((n) {
+      if (query.isNotEmpty) {
+        final matchesName = n.name.toLowerCase().contains(query);
+        final matchesServer = n.server.toLowerCase().contains(query);
+        final matchesCountry = (n.countryName ?? '').toLowerCase().contains(query);
         if (!matchesName && !matchesServer && !matchesCountry) return false;
       }
 
@@ -379,8 +352,6 @@ class ProbeProvider extends ChangeNotifier {
   void dispose() {
     _localHttpServer?.close(force: true);
     _throttleTimer?.cancel();
-    _wsSubscription?.cancel();
-    api.dispose();
     super.dispose();
   }
 }

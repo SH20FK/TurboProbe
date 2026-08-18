@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       maxLines: 4,
                       style: const TextStyle(fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: 'Вставьте одну или несколько ссылок на подписки (каждую с новой строки) либо ключи (vless://, vmess://, ss://, hy2://, tuic://, Base64)...',
+                        hintText: 'Вставьте ссылки на подписки (каждую с новой строки) либо ключи (vless://, vmess://, ss://, hy2://, tuic://, Base64)...',
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -224,7 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                       else
                         FilledButton.icon(
-                          icon: const Icon(Icons.bolt_rounded, size: 18),
+                          icon: const Icon(Icons.vpn_key_rounded, size: 18),
                           label: Text(
                             provider.nodes.isEmpty ? 'Запустить тест' : 'Проверить (${provider.nodes.length})',
                           ),
@@ -264,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Filters Bar
           if (provider.nodes.isNotEmpty) FilterBar(provider: provider),
 
-          // Main Nodes List
+          // Main Nodes List (High-performance virtualized builder)
           Expanded(
             child: provider.isLoading
                 ? const Center(
@@ -295,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: const Icon(
                                 Icons.vpn_key_rounded,
                                 size: 44,
-                                color: AppTheme.primary,
+                                color: Color(0xFF3DAE2B),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -309,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              'Вставьте одну или несколько ссылок на подписки\nдля быстрого локального бенчмарка.',
+                              'Вставьте ссылки на подписки для быстрого бенчмарка.',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                             ),
@@ -325,20 +325,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           )
                         : ListView.builder(
                             itemCount: nodes.length,
+                            cacheExtent: 200,
+                            addRepaintBoundaries: true,
+                            addAutomaticKeepAlives: false,
                             physics: const BouncingScrollPhysics(),
                             itemBuilder: (context, index) {
-                              final node = nodes[index];
-                              return Dismissible(
-                                key: ValueKey(node.id),
-                                direction: DismissDirection.endToStart,
-                                background: Container(
-                                  alignment: Alignment.centerRight,
-                                  padding: const EdgeInsets.only(right: 20),
-                                  color: AppTheme.error.withOpacity(0.2),
-                                  child: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
-                                ),
-                                onDismissed: (_) => provider.removeNode(node.id),
-                                child: NodeCard(node: node),
+                              return NodeCard(
+                                key: ValueKey(nodes[index].id),
+                                node: nodes[index],
                               );
                             },
                           ),

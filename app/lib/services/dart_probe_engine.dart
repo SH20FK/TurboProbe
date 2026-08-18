@@ -302,7 +302,7 @@ class DartProbeEngine {
     int dead = 0;
     int totalPingSum = 0;
 
-    final poolSize = min(max(config.concurrency, 10), 60);
+    final poolSize = min(max(config.concurrency, 10), 35);
     int index = 0;
 
     Future<void> worker() async {
