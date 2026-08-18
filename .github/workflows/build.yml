@@ -85,6 +85,14 @@ jobs:
           flutter create --platforms=android --org com.turboprobe temp_android
           cp -rn temp_android/android/* ./app/android/ || true
           rm -rf temp_android
+          mkdir -p app/android/gradle/wrapper
+          cat << 'EOF' > app/android/gradle/wrapper/gradle-wrapper.properties
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.2-all.zip
+          EOF
 
       - name: Get Flutter Packages
         working-directory: ./app
