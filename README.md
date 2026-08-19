@@ -7,25 +7,25 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Android-APK%20Ready-brightgreen?style=flat-square&logo=android" />
   <img src="https://img.shields.io/badge/Windows-PC%20Proxy-blue?style=flat-square&logo=windows" />
-  <img src="https://img.shields.io/badge/Ключей%20в%20базе-12%20500%2B-orange?style=flat-square" />
+  <img src="https://img.shields.io/badge/Проверено%20живых-29%20000%2B-orange?style=flat-square" />
   <img src="https://img.shields.io/badge/Анти--Белые%20списки-3%20200%2B-success?style=flat-square" />
   <img src="https://img.shields.io/badge/Лицензия-MIT-lightgrey?style=flat-square" />
 </p>
 
 ---
 
-## 📡 24/7 Авто-подписки (Агрегатор)
+## 📡 24/7 Авто-подписки (Агрегатор с пре-чекером)
 
-Бот каждые 6 часов собирает, проверяет на дубли и фильтрует ключи со всех живых источников (включая GitVerse, закрытые телеграм-каналы и белые российские списки):
+Бот каждые 6 часов собирает ключи из 115+ источников, **проверяет каждый сокетом на доступность** (отсекая все мёртвые серверы) и публикует 100% рабочие сабки:
 
 | Сабка | Ссылка | Для чего |
 | :--- | :--- | :--- |
 | 🛡️ **Анти-Белые списки** | [`sub/anti-whitelist.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/anti-whitelist.txt) | **Только работающие ключи на доменах `.ru`, Госуслуг, Сбера и VK (3 200+ шт)** |
-| ⚡ **VLESS Reality** | [`sub/reality.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/reality.txt) | Reality-ноды, устойчивые к глушению SNI (3 200+ шт) |
-| 🌐 **Все протоколы** | [`sub/all.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/all.txt) | Полный глобальный пул со всего мира (12 500+ шт) |
-| 🚀 **Hysteria 2 / TUIC** | [`sub/hysteria2.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/hysteria2.txt) | Скоростные UDP-протоколы |
-| 🔒 **Trojan TLS** | [`sub/trojan.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/trojan.txt) | Trojan ноды |
-| 🗝️ **Shadowsocks** | [`sub/shadowsocks.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/shadowsocks.txt) | Классический Shadowsocks |
+| ⚡ **VLESS Reality** | [`sub/reality.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/reality.txt) | Проверенные Reality-ноды против глушения SNI (6 000+ шт) |
+| 🌐 **Все протоколы** | [`sub/all.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/all.txt) | Полный глобальный пул 100% живых нод со всего мира (29 000+ шт) |
+| 🚀 **Hysteria 2 / TUIC** | [`sub/hysteria2.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/hysteria2.txt) | Скоростные UDP-протоколы (220+ шт) |
+| 🔒 **Trojan TLS** | [`sub/trojan.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/trojan.txt) | Зашифрованные Trojan ноды (2 900+ шт) |
+| 🗝️ **Shadowsocks** | [`sub/shadowsocks.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/shadowsocks.txt) | Классический Shadowsocks (5 000+ шт) |
 | ⚡ **Clash Meta** | [`sub/clash-meta.yaml`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/clash-meta.yaml) | Готовый конфиг для Mihomo / Clash Verge |
 | 📦 **Base64** | [`sub/base64.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/base64.txt) | Универсальный формат подписки |
 

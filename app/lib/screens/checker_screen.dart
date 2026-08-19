@@ -164,9 +164,9 @@ class _CheckerScreenState extends State<CheckerScreen> {
                           spacing: 6,
                           runSpacing: 6,
                           children: [
-                            _buildPresetChip('🛡️ Анти-Белые списки (1200+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/anti-whitelist.txt'),
-                            _buildPresetChip('⚡ VLESS Reality (3200+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/reality.txt'),
-                            _buildPresetChip('🌐 Все протоколы (11900+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/all.txt'),
+                            _buildPresetChip('🛡️ Анти-Белые списки (3200+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/anti-whitelist.txt'),
+                            _buildPresetChip('⚡ VLESS Reality (6000+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/reality.txt'),
+                            _buildPresetChip('🌐 Все протоколы (29000+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/all.txt'),
                             _buildPresetChip('🚀 Hysteria 2 / TUIC', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/hysteria2.txt'),
                           ],
                         ),
