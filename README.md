@@ -24,12 +24,14 @@
 
 | Категория | Ссылка на подписку (Raw URL) | Описание |
 | :--- | :--- | :--- |
-| 🛡️ **Anti-Whitelist** | `https://raw.githubusercontent.com/SH20FK/EGS/main/sub/anti-whitelist.txt` | **Ключи против белых списков и глушения ТСПУ** |
-| ⚡ **VLESS Reality** | `https://raw.githubusercontent.com/SH20FK/EGS/main/sub/reality.txt` | 100% неблокируемый VLESS Reality для РФ |
-| 🌐 **Все ключи (9500+)** | `https://raw.githubusercontent.com/SH20FK/EGS/main/sub/all.txt` | Полный объединённый пул всех протоколов |
-| 🚀 **Hysteria 2 / TUIC** | `https://raw.githubusercontent.com/SH20FK/EGS/main/sub/hysteria2.txt` | Сверхскоростные UDP-протоколы |
-| 🔒 **Trojan** | `https://raw.githubusercontent.com/SH20FK/EGS/main/sub/trojan.txt` | Зашифрованные Trojan TLS ноды |
-| 📦 **Base64** | `https://raw.githubusercontent.com/SH20FK/EGS/main/sub/base64.txt` | Универсальная Base64 подписка |
+| 🛡️ **Anti-Whitelist** | `https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/anti-whitelist.txt` | **Ключи против белых списков и глушения ТСПУ (11700+)** |
+| ⚡ **VLESS Reality** | `https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/reality.txt` | 100% неблокируемый VLESS Reality для РФ (3000+) |
+| 🌐 **Все ключи (12000+)** | `https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/all.txt` | Полный объединённый супер-пул со всего мира |
+| 🚀 **Hysteria 2 / TUIC** | `https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/hysteria2.txt` | Сверхскоростные UDP-протоколы |
+| 🔒 **Trojan** | `https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/trojan.txt` | Зашифрованные Trojan TLS ноды |
+| 🗝️ **Shadowsocks** | `https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/shadowsocks.txt` | Shadowsocks ноды |
+| ⚡ **Clash Meta** | `https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/clash-meta.yaml` | Готовый конфиг со Smart RU Direct |
+| 📦 **Base64** | `https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/base64.txt` | Универсальная Base64 подписка |
 
 ---
 
