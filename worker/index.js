@@ -314,7 +314,7 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #181614;
@@ -341,7 +341,7 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); background-image: var(--bg-gradient); color: var(--text); font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; min-height: 100vh; padding: 44px 18px; display: flex; flex-direction: column; align-items: center; -webkit-font-smoothing: antialiased; }
-    .material-symbols-rounded { font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; font-size: 18px; line-height: 1; display: inline-block; white-space: nowrap; vertical-align: middle; user-select: none; }
+    .icon-svg { width: 18px; height: 18px; fill: currentColor; vertical-align: middle; display: inline-block; flex-shrink: 0; }
     .container { max-width: 940px; width: 100%; }
     .header { text-align: center; margin-bottom: 32px; }
     .pill-tag { display: inline-flex; align-items: center; gap: 7px; padding: 5px 14px; border-radius: 24px; background: var(--terracotta-soft); border: 1px solid var(--terracotta-border); color: var(--terracotta-light); font-size: 12px; font-weight: 600; letter-spacing: 0.3px; margin-bottom: 14px; }
@@ -355,7 +355,7 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
     .ribbon-item { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px 16px; text-align: center; transition: all 0.25s ease; }
     .ribbon-item:hover { border-color: rgba(255, 255, 255, 0.15); transform: translateY(-1px); }
     .ribbon-val { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 600; color: var(--text); }
-    .ribbon-lbl { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .ribbon-lbl { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 5px; }
     .nav-tabs { display: flex; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 4px; margin-bottom: 24px; gap: 4px; }
     .tab-btn { flex: 1; padding: 10px 16px; font-size: 13px; font-weight: 600; border-radius: 10px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
     .tab-btn.active { background: #2e2823; color: var(--text); box-shadow: 0 4px 12px rgba(0,0,0,0.3); border: 1px solid var(--terracotta-border); }
@@ -367,10 +367,10 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
     .checker-title { font-size: 16.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--text); }
     .controls-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 16px; }
     .search-box { flex: 1; min-width: 220px; position: relative; display: flex; align-items: center; }
-    .search-box .material-symbols-rounded { position: absolute; left: 12px; color: var(--text-dim); font-size: 18px; }
+    .search-box .icon-svg { position: absolute; left: 12px; color: var(--text-dim); width: 16px; height: 16px; }
     .search-input { width: 100%; padding: 9px 14px 9px 36px; background: #141210; border: 1px solid var(--card-border); border-radius: 10px; color: var(--text); font-size: 13px; outline: none; transition: border-color 0.2s; }
     .search-input:focus { border-color: var(--terracotta); }
-    .filter-chip { padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; background: #191614; border: 1px solid var(--card-border); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s; }
+    .filter-chip { padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 600; background: #191614; border: 1px solid var(--card-border); color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
     .filter-chip.active { background: var(--terracotta-soft); border-color: var(--terracotta); color: var(--terracotta-light); }
     .flag-img { width: 20px; height: 14px; border-radius: 2px; object-fit: cover; vertical-align: middle; box-shadow: 0 1px 3px rgba(0,0,0,0.5); }
     .country-cell { display: flex; align-items: center; gap: 7px; font-weight: 600; font-size: 13px; }
@@ -388,7 +388,7 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
     .ping-fast { color: var(--sage); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
     .ping-med { color: var(--amber); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
     .ping-slow { color: var(--terracotta-light); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-    .btn-sm { padding: 6px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; border: 1px solid var(--card-border); background: #28231e; color: var(--text); display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; border: 1px solid var(--card-border); background: #28231e; color: var(--text); display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s; }
     .btn-sm:hover { background: #363029; border-color: #4f463c; }
     .builder-box { background: var(--card-bg); border: 1px solid var(--terracotta-border); border-radius: 18px; padding: 24px; margin-bottom: 30px; }
     .builder-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--text); display: flex; align-items: center; gap: 8px; }
@@ -435,31 +435,46 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
     <div class="ribbon">
       <div class="ribbon-item">
         <div class="ribbon-val" style="color: var(--sage);">29 693</div>
-        <div class="ribbon-lbl"><span class="material-symbols-rounded" style="font-size:14px; color:var(--sage);">check_circle</span> Живых нод онлайн</div>
+        <div class="ribbon-lbl">
+          <svg class="icon-svg" style="width:14px; height:14px; color:var(--sage);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          <span>Живых нод онлайн</span>
+        </div>
       </div>
       <div class="ribbon-item">
         <div class="ribbon-val" style="color: var(--terracotta-light);">3 236</div>
-        <div class="ribbon-lbl"><span class="material-symbols-rounded" style="font-size:14px; color:var(--terracotta-light);">shield</span> Анти-Белые списки</div>
+        <div class="ribbon-lbl">
+          <svg class="icon-svg" style="width:14px; height:14px; color:var(--terracotta-light);" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+          <span>Анти-Белые списки</span>
+        </div>
       </div>
       <div class="ribbon-item">
         <div class="ribbon-val" style="color: var(--amber);">6 028</div>
-        <div class="ribbon-lbl"><span class="material-symbols-rounded" style="font-size:14px; color:var(--amber);">bolt</span> VLESS Reality</div>
+        <div class="ribbon-lbl">
+          <svg class="icon-svg" style="width:14px; height:14px; color:var(--amber);" viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C14.9 14.66 12.96 18.06 11 21z"/></svg>
+          <span>VLESS Reality</span>
+        </div>
       </div>
       <div class="ribbon-item">
         <div class="ribbon-val" style="color: var(--lavender);">115+</div>
-        <div class="ribbon-lbl"><span class="material-symbols-rounded" style="font-size:14px; color:var(--lavender);">hub</span> Источников данных</div>
+        <div class="ribbon-lbl">
+          <svg class="icon-svg" style="width:14px; height:14px; color:var(--lavender);" viewBox="0 0 24 24"><path d="M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm0 14c-4.42 0-8 1.79-8 4v2h16v-2c0-2.21-3.58-4-8-4z"/></svg>
+          <span>Источников данных</span>
+        </div>
       </div>
     </div>
 
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('tab-checker')">
-        <span class="material-symbols-rounded">speed</span> Живой Web-Чекер
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.28-10.43zM10.59 15.41a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg>
+        <span>Живой Web-Чекер</span>
       </button>
       <button class="tab-btn" onclick="switchTab('tab-builder')">
-        <span class="material-symbols-rounded">tune</span> Конструктор Сабок
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
+        <span>Конструктор Сабок</span>
       </button>
       <button class="tab-btn" onclick="switchTab('tab-presets')">
-        <span class="material-symbols-rounded">inventory_2</span> Готовые Сабки
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v3.01c0 .72.39 1.36.96 1.7L4 20c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2l1.04-11.29c.57-.34.96-.98.96-1.7V4c0-1.1-.9-2-2-2zm-5 12H9v-2h6v2zm5-7H4V4h16v3z"/></svg>
+        <span>Готовые Сабки</span>
       </button>
     </div>
 
@@ -467,16 +482,18 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
       <div class="checker-panel">
         <div class="checker-top">
           <div class="checker-title">
-            <span class="material-symbols-rounded" style="color: var(--terracotta);">speed</span>
+            <svg class="icon-svg" style="color: var(--terracotta);" viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.28-10.43zM10.59 15.41a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg>
             <span>Живой Чекер Серверов в Браузере</span>
             <span class="tag tag-sage" id="checkedCountTag">0 / 0 проверено</span>
           </div>
           <div style="display: flex; gap: 8px;">
             <button class="action accent" style="padding: 8px 16px; font-size: 12.5px;" onclick="startLiveWebBenchmark()">
-              <span class="material-symbols-rounded" style="font-size:16px;">refresh</span> Запустить пинг-тест
+              <svg class="icon-svg" style="width:15px; height:15px;" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+              <span>Запустить пинг-тест</span>
             </button>
             <button class="action subtle" style="padding: 8px 14px; font-size: 12.5px;" onclick="copyTopAliveKeys()">
-              <span class="material-symbols-rounded" style="font-size:16px;">content_copy</span> Копировать ТОП-10
+              <svg class="icon-svg" style="width:15px; height:15px;" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              <span>Копировать ТОП-10</span>
             </button>
           </div>
         </div>
@@ -487,12 +504,21 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
 
         <div class="controls-row">
           <div class="search-box">
-            <span class="material-symbols-rounded">search</span>
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
             <input type="text" class="search-input" id="tableSearch" placeholder="Поиск по названию, хосту или стране..." oninput="renderTable()">
           </div>
-          <div class="filter-chip active" onclick="setTableFilter('all', this)"><span class="material-symbols-rounded" style="font-size:14px;">public</span> Все</div>
-          <div class="filter-chip" onclick="setTableFilter('white', this)"><span class="material-symbols-rounded" style="font-size:14px;">shield</span> Анти-Белые</div>
-          <div class="filter-chip" onclick="setTableFilter('reality', this)"><span class="material-symbols-rounded" style="font-size:14px;">bolt</span> Reality</div>
+          <div class="filter-chip active" onclick="setTableFilter('all', this)">
+            <svg class="icon-svg" style="width:14px; height:14px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            <span>Все</span>
+          </div>
+          <div class="filter-chip" onclick="setTableFilter('white', this)">
+            <svg class="icon-svg" style="width:14px; height:14px;" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+            <span>Анти-Белые</span>
+          </div>
+          <div class="filter-chip" onclick="setTableFilter('reality', this)">
+            <svg class="icon-svg" style="width:14px; height:14px;" viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C14.9 14.66 12.96 18.06 11 21z"/></svg>
+            <span>Reality</span>
+          </div>
           <div class="filter-chip" onclick="setTableFilter('kz', this)"><img src="https://flagcdn.com/w40/kz.png" class="flag-img"> KZ</div>
           <div class="filter-chip" onclick="setTableFilter('de', this)"><img src="https://flagcdn.com/w40/de.png" class="flag-img"> DE</div>
           <div class="filter-chip" onclick="setTableFilter('nl', this)"><img src="https://flagcdn.com/w40/nl.png" class="flag-img"> NL</div>
@@ -522,12 +548,16 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
     <div id="tab-builder" class="tab-content">
       <div class="builder-box">
         <div class="builder-title">
-          <span class="material-symbols-rounded" style="color:var(--terracotta);">tune</span> Индивидуальный Конструктор Подписки
+          <svg class="icon-svg" style="color:var(--terracotta);" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
+          <span>Индивидуальный Конструктор Подписки</span>
         </div>
         <div class="builder-row">
           <div class="builder-lbl">Локация / Страна:</div>
           <div class="chip-group">
-            <div class="chip selected" onclick="setChip('country', 'all', this)"><span class="material-symbols-rounded" style="font-size:14px;">public</span> Все страны (Auto)</div>
+            <div class="chip selected" onclick="setChip('country', 'all', this)">
+              <svg class="icon-svg" style="width:14px; height:14px;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+              <span>Все страны (Auto)</span>
+            </div>
             <div class="chip" onclick="setChip('country', 'kz', this)"><img src="https://flagcdn.com/w40/kz.png" class="flag-img"> Казахстан (0ms)</div>
             <div class="chip" onclick="setChip('country', 'de', this)"><img src="https://flagcdn.com/w40/de.png" class="flag-img"> Германия</div>
             <div class="chip" onclick="setChip('country', 'nl', this)"><img src="https://flagcdn.com/w40/nl.png" class="flag-img"> Нидерланды</div>
@@ -540,11 +570,26 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
         <div class="builder-row">
           <div class="builder-lbl">Протокол:</div>
           <div class="chip-group">
-            <div class="chip selected" onclick="setChip('proto', 'all', this)"><span class="material-symbols-rounded" style="font-size:14px;">dns</span> Все протоколы</div>
-            <div class="chip" onclick="setChip('proto', 'reality', this)"><span class="material-symbols-rounded" style="font-size:14px;">bolt</span> VLESS Reality</div>
-            <div class="chip" onclick="setChip('proto', 'white', this)"><span class="material-symbols-rounded" style="font-size:14px;">shield</span> Анти-Белые списки</div>
-            <div class="chip" onclick="setChip('proto', 'trojan', this)"><span class="material-symbols-rounded" style="font-size:14px;">lock</span> Trojan TLS</div>
-            <div class="chip" onclick="setChip('proto', 'hy2', this)"><span class="material-symbols-rounded" style="font-size:14px;">rocket_launch</span> Hysteria 2 / TUIC</div>
+            <div class="chip selected" onclick="setChip('proto', 'all', this)">
+              <svg class="icon-svg" style="width:14px; height:14px;" viewBox="0 0 24 24"><path d="M4 6h16V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z"/></svg>
+              <span>Все протоколы</span>
+            </div>
+            <div class="chip" onclick="setChip('proto', 'reality', this)">
+              <svg class="icon-svg" style="width:14px; height:14px;" viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C14.9 14.66 12.96 18.06 11 21z"/></svg>
+              <span>VLESS Reality</span>
+            </div>
+            <div class="chip" onclick="setChip('proto', 'white', this)">
+              <svg class="icon-svg" style="width:14px; height:14px;" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+              <span>Анти-Белые списки</span>
+            </div>
+            <div class="chip" onclick="setChip('proto', 'trojan', this)">
+              <svg class="icon-svg" style="width:14px; height:14px;" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+              <span>Trojan TLS</span>
+            </div>
+            <div class="chip" onclick="setChip('proto', 'hy2', this)">
+              <svg class="icon-svg" style="width:14px; height:14px;" viewBox="0 0 24 24"><path d="M9.19 6.35c-2.04 2.29-3.44 5.58-3.57 5.89l4.5 4.5c.35-.14 3.6-1.54 5.89-3.57L9.19 6.35zM12 2.5s-4.03 6.06-4.03 10.5c0 2.22 1.81 4.03 4.03 4.03s4.03-1.81 4.03-4.03C16.03 8.56 12 2.5 12 2.5z"/></svg>
+              <span>Hysteria 2 / TUIC</span>
+            </div>
           </div>
         </div>
 
@@ -560,10 +605,12 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
         <div class="result-box">
           <div class="result-url" id="customSubUrl">${origin}/sub</div>
           <button class="action accent" style="flex:0 0 130px;" onclick="copyLink(currentCustomUrl)">
-            <span class="material-symbols-rounded" style="font-size:16px;">content_copy</span> Копировать
+            <svg class="icon-svg" style="width:15px; height:15px;" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            <span>Копировать</span>
           </button>
           <button class="action subtle" style="flex:0 0 110px;" onclick="showQR(currentCustomUrl, 'Ваша Конфигурация')">
-            <span class="material-symbols-rounded" style="font-size:16px;">qr_code_2</span> QR-код
+            <svg class="icon-svg" style="width:15px; height:15px;" viewBox="0 0 24 24"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13-2h-2v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+            <span>QR-код</span>
           </button>
         </div>
       </div>
@@ -571,21 +618,26 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
 
     <div id="tab-presets" class="tab-content">
       <div class="grid">
-        <div class="card">
+        <div class="card" style="border-color: var(--sage-border);">
           <div>
             <div class="card-top">
-              <span class="card-title"><span class="material-symbols-rounded" style="color:var(--terracotta);">shield</span> Анти-Белые списки РФ</span>
-              <span class="tag tag-terracotta">3 236 ключей</span>
+              <span class="card-title">
+                <svg class="icon-svg" style="color:var(--sage);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                <span>ТОП-20 Сверхнизкий пинг</span>
+              </span>
+              <span class="tag tag-sage">⚡ 10-35 ms</span>
             </div>
-            <p class="card-desc">Работающие ключи на доменах .ru, Госуслуг, Сбера, VK и Яндекса для обхода ТСПУ.</p>
-            <div class="card-link">${origin}/sub/anti-whitelist</div>
+            <p class="card-desc">Самые быстрые и стабильные серверы с минимальной задержкой. Идеально для онлайн-игр и видеосвязи.</p>
+            <div class="card-link">${origin}/sub/top20</div>
           </div>
           <div class="btn-row">
-            <button class="action accent" onclick="copyLink('${origin}/sub/anti-whitelist')">
-              <span class="material-symbols-rounded" style="font-size:16px;">content_copy</span> Скопировать
+            <button class="action accent" onclick="copyLink('${origin}/sub/top20')">
+              <svg class="icon-svg" style="width:15px; height:15px;" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              <span>Скопировать</span>
             </button>
-            <button class="action subtle" onclick="showQR('${origin}/sub/anti-whitelist', 'Анти-Белые списки')">
-              <span class="material-symbols-rounded" style="font-size:16px;">qr_code_2</span> QR-код
+            <button class="action subtle" onclick="showQR('${origin}/sub/top20', 'ТОП-20 Сверхнизкий пинг')">
+              <svg class="icon-svg" style="width:15px; height:15px;" viewBox="0 0 24 24"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13-2h-2v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+              <span>QR-код</span>
             </button>
           </div>
         </div>
@@ -593,7 +645,34 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
         <div class="card">
           <div>
             <div class="card-top">
-              <span class="card-title"><span class="material-symbols-rounded" style="color:var(--amber);">bolt</span> VLESS Reality</span>
+              <span class="card-title">
+                <svg class="icon-svg" style="color:var(--terracotta);" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                <span>Анти-Белые списки РФ</span>
+              </span>
+              <span class="tag tag-terracotta">3 236 ключей</span>
+            </div>
+            <p class="card-desc">Работающие ключи на доменах .ru, Госуслуг, Сбера, VK и Яндекса для обхода ТСПУ.</p>
+            <div class="card-link">${origin}/sub/anti-whitelist</div>
+          </div>
+          <div class="btn-row">
+            <button class="action accent" onclick="copyLink('${origin}/sub/anti-whitelist')">
+              <svg class="icon-svg" style="width:15px; height:15px;" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              <span>Скопировать</span>
+            </button>
+            <button class="action subtle" onclick="showQR('${origin}/sub/anti-whitelist', 'Анти-Белые списки')">
+              <svg class="icon-svg" style="width:15px; height:15px;" viewBox="0 0 24 24"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13-2h-2v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+              <span>QR-код</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div>
+            <div class="card-top">
+              <span class="card-title">
+                <svg class="icon-svg" style="color:var(--amber);" viewBox="0 0 24 24"><path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C14.9 14.66 12.96 18.06 11 21z"/></svg>
+                <span>VLESS Reality</span>
+              </span>
               <span class="tag tag-amber">6 028 нод</span>
             </div>
             <p class="card-desc">Неблокируемые Reality-серверы с маскировкой под популярные веб-ресурсы.</p>
@@ -601,10 +680,12 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
           </div>
           <div class="btn-row">
             <button class="action accent" onclick="copyLink('${origin}/sub/reality')">
-              <span class="material-symbols-rounded" style="font-size:16px;">content_copy</span> Скопировать
+              <svg class="icon-svg" style="width:15px; height:15px;" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              <span>Скопировать</span>
             </button>
             <button class="action subtle" onclick="showQR('${origin}/sub/reality', 'VLESS Reality')">
-              <span class="material-symbols-rounded" style="font-size:16px;">qr_code_2</span> QR-код
+              <svg class="icon-svg" style="width:15px; height:15px;" viewBox="0 0 24 24"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13-2h-2v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+              <span>QR-код</span>
             </button>
           </div>
         </div>
@@ -786,7 +867,7 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
         const pingClass = n.ping < 50 ? 'ping-fast' : (n.ping < 120 ? 'ping-med' : 'ping-slow');
         const flagHtml = n.countryCode !== 'un' 
           ? `<img src="https://flagcdn.com/w40/\${n.countryCode}.png" class="flag-img" alt="\${n.countryCode}"> <span>\${n.countryName}</span>`
-          : `<span class="material-symbols-rounded" style="font-size:16px; color:var(--text-dim);">public</span> <span>Global</span>`;
+          : `<svg class="icon-svg" style="width:16px; height:16px; color:var(--text-dim);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg> <span>Global</span>`;
 
         return `
           <tr>
@@ -800,10 +881,12 @@ function handleWebDashboard(request, url, clientCountry, clientCity) {
             <td><span class="\${pingClass}">\${n.ping} ms</span></td>
             <td style="text-align: right;">
               <button class="btn-sm" onclick="copyLink('\${n.uri}')">
-                <span class="material-symbols-rounded" style="font-size:14px;">content_copy</span> Ключ
+                <svg class="icon-svg" style="width:13px; height:13px;" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                <span>Ключ</span>
               </button>
               <button class="btn-sm" style="margin-left:4px;" onclick="showQR('\${n.uri}', '\${n.name}')">
-                <span class="material-symbols-rounded" style="font-size:14px;">qr_code_2</span> QR
+                <svg class="icon-svg" style="width:13px; height:13px;" viewBox="0 0 24 24"><path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13-2h-2v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
+                <span>QR</span>
               </button>
             </td>
           </tr>

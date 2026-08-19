@@ -225,6 +225,24 @@ class ProbeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void purgeDeadAndSortByPing() {
+    _nodes = _nodes.where((n) => n.isAlive && n.pingMs < 900).toList();
+    _nodes.sort((a, b) => a.pingMs.compareTo(b.pingMs));
+    _rebuildIndex();
+    _totalCount = _nodes.length;
+    _aliveCount = _nodes.length;
+    _deadCount = 0;
+    _sortOption = SortOption.pingAsc;
+    _recalculateFilteredCache();
+    notifyListeners();
+  }
+
+  String getTopSubscriptionRaw({int limit = 50}) {
+    final alive = _nodes.where((n) => n.isAlive && n.pingMs < 900).toList();
+    alive.sort((a, b) => a.pingMs.compareTo(b.pingMs));
+    return alive.take(limit).map((n) => n.rawUri).join('\n');
+  }
+
   void clearNodes() {
     _dartEngine?.stop();
     _nodes.clear();

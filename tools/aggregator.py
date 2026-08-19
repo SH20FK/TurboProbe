@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-TurboProbe Mega-Aggregator & Anti-Whitelist Engine v3.0
-Gathers, health-checks, deduplicates, and structures VPN proxies from 100+ active global and Russian sources.
-Strictly filters genuine Russian Domestic Whitelist SNIs (.ru, Gosuslugi, Sber, VK, Yandex, Ozon, WB).
-Pre-filters and drops dead nodes so output files contain ONLY ALIVE working servers.
+TurboProbe Ultra-Speed Mega-Aggregator & Low-Latency Engine v5.0
+- Concurrently fetches from 100+ active global and Russian sources
+- Ultra-speed concurrent TCP RTT latency benchmark across all keys
+- Instant dead-node purge: drops offline/slow/broken servers
+- Strict sort by LOWEST PING (fastest servers always appear first)
+- Clean, aesthetic node remarks with country badge, protocol, and measured ping
+- Outputs dedicated sub files, Top-20 / Top-50 VIP sub, and Clash Meta YAML
 """
 
 import os
@@ -13,6 +16,7 @@ import ssl
 import time
 import socket
 import base64
+import json
 import urllib.request
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -26,19 +30,8 @@ except Exception:
 SUB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sub")
 
 # =============================================================================
-# 🏛️ GENUINE RUSSIAN DOMESTIC WHITELIST SNIS (Госуслуги, Сбер, VK, Яндекс, WB)
+# 🏛️ GENUINE RUSSIAN DOMESTIC WHITELIST SNIS & KEYWORDS
 # =============================================================================
-WHITE_LIST_SNIS = [
-    {"sni": "api.gosuslugi.ru", "label": "Gosuslugi-Gov", "fp": "chrome"},
-    {"sni": "cdn.vk.com", "label": "VK-CDN", "fp": "chrome"},
-    {"sni": "static.sberbank.ru", "label": "Sber-Static", "fp": "chrome"},
-    {"sni": "yandex.ru", "label": "Yandex-Main", "fp": "chrome"},
-    {"sni": "ozon.ru", "label": "Ozon-Market", "fp": "chrome"},
-    {"sni": "wildberries.ru", "label": "WB-Market", "fp": "chrome"},
-    {"sni": "nalog.gov.ru", "label": "FNS-Nalog", "fp": "chrome"},
-    {"sni": "rutube.ru", "label": "Rutube-Video", "fp": "chrome"},
-]
-
 WHITELIST_SNI_KEYWORDS = [
     "gosuslugi.ru", "sberbank.ru", "sber.ru", "vk.com", "vk.ru", "vkvideo.ru",
     "yandex.ru", "ya.ru", "yandex.net", "tinkoff.ru", "tbank.ru", "vtb.ru",
@@ -48,10 +41,10 @@ WHITELIST_SNI_KEYWORDS = [
 ]
 
 # =============================================================================
-# 📡 100+ VERIFIED LIVING SOURCES (GITVERSE, TELEGRAM, GITHUB, RUSSIAN FEEDS)
+# 📡 100+ HIGH QUALITY LIVING SOURCES (GITVERSE, GITHUB, TELEGRAM)
 # =============================================================================
 SOURCES = [
-    # 🇷🇺 Russian Domestic Anti-Censorship, Igareck & GitVerse Feeds
+    # 🇷🇺 Russian Domestic Anti-Censorship & GitVerse Feeds
     "https://gitverse.ru/api/repos/ru-wbl/wl/raw/branch/master/KvRuVPN/KvRuVPN.txt",
     "https://gitverse.ru/api/repos/Akres/VPN/raw/branch/master/all",
     "https://gitverse.ru/api/repos/flaafix/AetrisVPN/raw/branch/master/AetrisVPN.txt",
@@ -157,7 +150,7 @@ SSL_CTX = ssl.create_default_context()
 SSL_CTX.check_hostname = False
 SSL_CTX.verify_mode = ssl.CERT_NONE
 
-def fetch_url(url: str, timeout: int = 10) -> str:
+def fetch_url(url: str, timeout: int = 8) -> str:
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -179,7 +172,7 @@ def extract_uris_from_content(content: str) -> list:
     
     uris = []
     
-    # 1. Base64 auto-decoding
+    # Base64 auto-decoding
     clean = re.sub(r'\s+', '', content)
     if len(clean) > 20 and len(clean) % 4 == 0 and not clean.startswith(("vless://", "trojan://", "ss://", "vmess://", "<")):
         try:
@@ -189,17 +182,17 @@ def extract_uris_from_content(content: str) -> list:
         except Exception:
             pass
             
-    # 2. Telegram Web Parsing
+    # Telegram Web Parsing
     if '<div class="tgme_widget_message_text' in content:
         for block in re.findall(r'<div class="tgme_widget_message_text[^>]*>(.*?)</div>', content, re.DOTALL):
             for match in URI_REGEX.finditer(block):
                 uris.append(match.group(0).strip())
                 
-    # 3. Direct Regex
+    # Direct Regex
     for match in URI_REGEX.finditer(content):
         uris.append(match.group(0).strip())
         
-    # 4. Line by line
+    # Line by line
     for line in content.splitlines():
         line = line.strip()
         if any(line.startswith(proto) for proto in ("vless://", "trojan://", "ss://", "hy2://", "hysteria2://", "tuic://")):
@@ -214,8 +207,8 @@ def get_node_key(uri: str) -> str:
     except Exception:
         return uri.strip().lower()
 
-def check_node_alive(uri: str, timeout: float = 1.0) -> bool:
-    """High-speed non-blocking TCP socket health check to discard dead/offline nodes."""
+def check_node_ping(uri: str, timeout: float = 0.45) -> tuple:
+    """Ultra-speed socket health and RTT latency benchmark. Returns (uri, ping_ms) or (uri, 9999.0)."""
     try:
         parsed = urllib.parse.urlparse(uri)
         netloc = parsed.netloc
@@ -230,26 +223,57 @@ def check_node_alive(uri: str, timeout: float = 1.0) -> bool:
             host = netloc.strip('[]')
             port = 443
             
+        start_t = time.perf_counter()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
         res = sock.connect_ex((host, port))
         sock.close()
-        return res == 0
+        
+        if res == 0:
+            elapsed_ms = (time.perf_counter() - start_t) * 1000.0
+            return (uri, round(elapsed_ms, 1))
+        return (uri, 9999.0)
     except Exception:
-        return False
+        return (uri, 9999.0)
+
+def sanitize_node_remark(uri: str, ping_ms: float) -> str:
+    """Cleans spam from remarks and formats country badge + protocol + measured latency."""
+    base_uri = uri.split('#')[0]
+    low = uri.lower()
+    
+    # Country detection
+    country = "🌐 Fast"
+    if "kz" in low or "kazakhstan" in low or ".kz" in low: country = "🇰🇿 KZ"
+    elif "de" in low or "germany" in low or "fra" in low: country = "🇩🇪 DE"
+    elif "nl" in low or "netherlands" in low or "ams" in low: country = "🇳🇱 NL"
+    elif "fi" in low or "finland" in low or "hel" in low: country = "🇫🇮 FI"
+    elif "tr" in low or "turkey" in low or "ist" in low: country = "🇹🇷 TR"
+    elif ".ru" in low or "russia" in low or "mow" in low: country = "🇷🇺 RU"
+    elif "us" in low or "usa" in low: country = "🇺🇸 US"
+    elif "se" in low or "sweden" in low: country = "🇸🇪 SE"
+    
+    # Protocol detection
+    ptype = "VLESS"
+    if "trojan://" in low: ptype = "Trojan"
+    elif "hy2://" in low or "hysteria2://" in low: ptype = "Hy2"
+    elif "ss://" in low: ptype = "SS"
+    elif "security=reality" in low or "pbk=" in low: ptype = "Reality"
+    
+    remark = f"⚡ {country} {ptype} · {int(ping_ms)}ms"
+    return f"{base_uri}#{urllib.parse.quote(remark)}"
 
 def generate_clash_meta_yaml(nodes: list) -> str:
     sb = ["port: 7890", "socks-port: 7891", "allow-lan: false", "mode: rule", "log-level: info", "proxies:"]
     proxy_names = []
     
-    for idx, uri in enumerate(nodes[:400], start=1):
+    for idx, uri in enumerate(nodes[:500], start=1):
         try:
             parsed = urllib.parse.urlparse(uri)
             name = f"Node-{idx}"
             if '#' in uri:
                 raw_name = urllib.parse.unquote(uri.split('#')[-1]).strip()
                 if raw_name:
-                    name = f"[{idx:03d}] {raw_name[:25]}"
+                    name = f"[{idx:03d}] {raw_name[:28]}"
                     
             name = re.sub(r'[:"\'\[\]]', '', name).strip()
             if not name:
@@ -299,16 +323,16 @@ def generate_clash_meta_yaml(nodes: list) -> str:
             continue
             
     sb.append("\nproxy-groups:")
-    sb.append("  - name: \"⚡ TURBOPROBE-AUTO\"")
+    sb.append("  - name: \"⚡ TURBOPROBE-FASTEST\"")
     sb.append("    type: url-test")
     sb.append("    url: http://cp.cloudflare.com/generate_204")
-    sb.append("    interval: 300")
-    sb.append("    tolerance: 50")
+    sb.append("    interval: 180")
+    sb.append("    tolerance: 30")
     sb.append("    proxies:")
     for p in proxy_names:
         sb.append(f"      - {p}")
         
-    sb.append("\n  - name: \"🚀 SELECT-PROXY\"")
+    sb.append("\n  - name: \"🚀 MANUAL-SELECT\"")
     sb.append("    type: select")
     sb.append("    proxies:")
     for p in proxy_names:
@@ -319,15 +343,15 @@ def generate_clash_meta_yaml(nodes: list) -> str:
     return "\n".join(sb)
 
 def main():
-    print(f"🚀 [TurboProbe Mega-Aggregator & Health-Check Engine] Starting collection from {len(SOURCES)} verified sources...")
+    print(f"🚀 [TurboProbe Ultra-Speed Engine v5.0] Crawling from {len(SOURCES)} verified sources...")
     os.makedirs(SUB_DIR, exist_ok=True)
     
     fetched_count = 0
     all_uris = []
     direct_ru_fetched = {}
 
-    # Concurrent Fetching
-    with ThreadPoolExecutor(max_workers=40) as executor:
+    # 1. Concurrent Fetching (50 workers)
+    with ThreadPoolExecutor(max_workers=50) as executor:
         future_to_url = {executor.submit(fetch_url, url): url for url in SOURCES}
         for future in as_completed(future_to_url):
             url = future_to_url[future]
@@ -340,13 +364,13 @@ def main():
                         all_uris.extend(extracted)
                         if url in RU_DIRECT_SOURCES:
                             direct_ru_fetched[url] = extracted
-                        print(f"  [+] Fetched {len(extracted):4d} keys from: {url[:65]}...")
+                        print(f"  [+] Fetched {len(extracted):4d} keys from: {url[:60]}...")
             except Exception:
                 pass
                 
-    print(f"\n📊 Total raw URIs fetched: {len(all_uris)} from {fetched_count}/{len(SOURCES)} active sources.")
+    print(f"\n📊 Total raw keys collected: {len(all_uris)} across {fetched_count}/{len(SOURCES)} active sources.")
     
-    # Deduplication
+    # 2. Deduplication
     unique_map = {}
     for uri in all_uris:
         uri = uri.strip()
@@ -357,26 +381,34 @@ def main():
             unique_map[key] = uri
             
     unique_uris = list(unique_map.values())
-    print(f"✨ Deduplication complete: {len(unique_uris)} unique nodes identified.")
+    print(f"✨ Deduplication complete: {len(unique_uris)} unique nodes.")
     
-    # ⚡ High-Speed Multi-Threaded Health Check (Discard Dead Nodes)
-    print(f"🩺 Starting concurrent TCP health check across {len(unique_uris)} nodes (timeout: 0.6s, workers: 200)...", flush=True)
-    alive_nodes = []
+    # 3. ⚡ High-Speed Multi-Threaded Latency Benchmark & Dead-Node Purge (250 workers)
+    print(f"🩺 Starting concurrent latency benchmark across {len(unique_uris)} nodes (timeout: 0.45s, 250 threads)...", flush=True)
+    alive_tuples = []  # list of (formatted_uri, ping_ms, raw_key)
     
-    with ThreadPoolExecutor(max_workers=200) as checker:
-        future_to_node = {checker.submit(check_node_alive, node, 0.6): node for node in unique_uris}
+    with ThreadPoolExecutor(max_workers=250) as checker:
+        future_to_node = {checker.submit(check_node_ping, node, 0.45): node for node in unique_uris}
         for future in as_completed(future_to_node):
-            node = future_to_node[future]
             try:
-                is_alive = future.result()
-                if is_alive:
-                    alive_nodes.append(node)
+                uri, ping_ms = future.result()
+                if ping_ms < 900.0:
+                    formatted_uri = sanitize_node_remark(uri, ping_ms)
+                    alive_tuples.append((formatted_uri, ping_ms, get_node_key(uri)))
             except Exception:
                 pass
-                
-    print(f"✅ Health check complete: {len(alive_nodes)}/{len(unique_uris)} nodes are 100% ONLINE and RESPONSIVE!", flush=True)
+
+    # 4. 🥇 STRICT SORT BY LOWEST PING (Ascending: 10ms -> 30ms -> 50ms)
+    alive_tuples.sort(key=lambda item: item[1])
+    alive_nodes = [item[0] for item in alive_tuples]
+    alive_keys_set = {item[2] for item in alive_tuples}
     
-    # Strict Genuine Russian Domestic Whitelist Filtering
+    avg_ping = round(sum(item[1] for item in alive_tuples) / max(len(alive_tuples), 1), 1)
+    best_ping = alive_tuples[0][1] if alive_tuples else 0.0
+    
+    print(f"✅ Benchmark finished: {len(alive_nodes)} nodes ONLINE! 🏆 Best Ping: {best_ping}ms | ⚡ Avg Ping: {avg_ping}ms", flush=True)
+    
+    # 5. Strict Categorization (All strictly sorted by ping!)
     vless_nodes = []
     reality_nodes = []
     trojan_nodes = []
@@ -384,35 +416,44 @@ def main():
     ss_nodes = []
     anti_whitelist_pool = []
 
-    # 1. Unconditionally add all keys from direct Russian anti-whitelist sources
+    # Russian direct sources check
     for url, keys in direct_ru_fetched.items():
         for k in keys:
-            if k in alive_nodes:
-                anti_whitelist_pool.append(k)
+            k_key = get_node_key(k)
+            if k_key in alive_keys_set:
+                for formatted_uri, p, rk in alive_tuples:
+                    if rk == k_key:
+                        anti_whitelist_pool.append(formatted_uri)
+                        break
 
-    # 2. Add keys with verified Russian SNIs from global sources
-    for uri in alive_nodes:
-        lower = uri.lower()
-        if lower.startswith("vless://"):
+    for uri, ping_ms, rk in alive_tuples:
+        low = uri.lower()
+        if low.startswith("vless://"):
             vless_nodes.append(uri)
-            if "security=reality" in lower or "pbk=" in lower:
+            if "security=reality" in low or "pbk=" in low:
                 reality_nodes.append(uri)
-                if any(kw in lower for kw in WHITELIST_SNI_KEYWORDS):
+                if any(kw in low for kw in WHITELIST_SNI_KEYWORDS):
                     anti_whitelist_pool.append(uri)
-        elif lower.startswith("trojan://"):
+        elif low.startswith("trojan://"):
             trojan_nodes.append(uri)
-            if any(kw in lower for kw in WHITELIST_SNI_KEYWORDS):
+            if any(kw in low for kw in WHITELIST_SNI_KEYWORDS):
                 anti_whitelist_pool.append(uri)
-        elif lower.startswith("hy2://") or lower.startswith("hysteria2://") or lower.startswith("tuic://"):
+        elif low.startswith("hy2://") or low.startswith("hysteria2://") or low.startswith("tuic://"):
             hy2_nodes.append(uri)
             anti_whitelist_pool.append(uri)
-        elif lower.startswith("ss://"):
+        elif low.startswith("ss://"):
             ss_nodes.append(uri)
             
-    # Deduplicate Anti-Whitelist Pool
-    anti_wl_unique = list({get_node_key(u): u for u in anti_whitelist_pool}.values())
-    
-    # 🌍 Country Classification
+    # Deduplicate anti-whitelist while preserving lowest ping order
+    seen_aw = set()
+    anti_wl_sorted = []
+    for u in anti_whitelist_pool:
+        k = get_node_key(u)
+        if k not in seen_aw:
+            seen_aw.add(k)
+            anti_wl_sorted.append(u)
+
+    # 🌍 Country Classification (All sorted by lowest ping)
     country_pools = {
         "de.txt": [],
         "nl.txt": [],
@@ -422,32 +463,34 @@ def main():
         "ru.txt": [],
         "us.txt": [],
     }
-    for uri in alive_nodes:
+    for uri, ping_ms, rk in alive_tuples:
         low = uri.lower()
         if "de" in low or "germany" in low or "fra" in low: country_pools["de.txt"].append(uri)
         if "nl" in low or "netherlands" in low or "ams" in low: country_pools["nl.txt"].append(uri)
-        if "kz" in low or "kazakhstan" in low or "ala" in low or "ast" in low: country_pools["kz.txt"].append(uri)
+        if "kz" in low or "kazakhstan" in low or "ala" in low or "ast" in low or ".kz" in low: country_pools["kz.txt"].append(uri)
         if "fi" in low or "finland" in low or "hel" in low: country_pools["fi.txt"].append(uri)
         if "tr" in low or "turkey" in low or "ist" in low: country_pools["tr.txt"].append(uri)
         if ".ru" in low or "russia" in low or "mow" in low: country_pools["ru.txt"].append(uri)
         if "us" in low or "usa" in low: country_pools["us.txt"].append(uri)
 
-    # 🤖 AI Clean IP Pool (Residential & Clean Reality Nodes)
+    # VIP Curated Pools (Top-20, Top-50, Clean AI IP, YouTube 4K Stream)
+    top20_pool = alive_nodes[:20]
+    top50_pool = alive_nodes[:50]
     clean_ip_pool = [u for u in reality_nodes if not any(b in u.lower() for b in ["tor", "anon", "free-vpn", "public"])][:1500]
-    
-    # 🎬 High-Bandwidth YouTube & Discord Pool (Fast Reality + Hysteria2)
     youtube_discord_pool = (hy2_nodes + reality_nodes[:2000])
 
-    # Write to files
+    # 6. File Writer
     def write_sub(filename: str, nodes: list):
         path = os.path.join(SUB_DIR, filename)
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(nodes))
-        print(f"  💾 Saved {len(nodes):5d} verified alive keys -> sub/{filename}", flush=True)
+        print(f"  💾 sub/{filename:20s} -> {len(nodes):5d} ultra-low ping keys", flush=True)
 
-    print("\n📁 Generating structured subscription files (100% Alive Nodes):", flush=True)
+    print("\n📁 Saving curated, lowest-latency subscription files:", flush=True)
     write_sub("all.txt", alive_nodes)
-    write_sub("anti-whitelist.txt", anti_wl_unique)
+    write_sub("top20.txt", top20_pool)
+    write_sub("top50.txt", top50_pool)
+    write_sub("anti-whitelist.txt", anti_wl_sorted)
     write_sub("reality.txt", reality_nodes)
     write_sub("trojan.txt", trojan_nodes)
     write_sub("hysteria2.txt", hy2_nodes)
@@ -464,13 +507,13 @@ def main():
     clash_yaml = generate_clash_meta_yaml(alive_nodes)
     with open(os.path.join(SUB_DIR, "clash-meta.yaml"), "w", encoding="utf-8") as f:
         f.write(clash_yaml)
-    print("  💾 Saved Clash Meta Group -> sub/clash-meta.yaml", flush=True)
+    print("  💾 sub/clash-meta.yaml      -> Clash Meta (auto-select lowest latency)", flush=True)
     
     # Base64 Subscription
     base64_str = base64.b64encode("\n".join(alive_nodes).encode("utf-8")).decode("utf-8")
     with open(os.path.join(SUB_DIR, "base64.txt"), "w", encoding="utf-8") as f:
         f.write(base64_str)
-    print("  💾 Saved Base64 subscription -> sub/base64.txt", flush=True)
+    print("  💾 sub/base64.txt           -> Base64 subscription", flush=True)
     
     # Stats metadata
     stats = {
@@ -480,18 +523,19 @@ def main():
         "raw_fetched": len(all_uris),
         "unique_nodes": len(unique_uris),
         "alive_verified_nodes": len(alive_nodes),
-        "anti_whitelist_nodes": len(anti_wl_unique),
+        "best_ping_ms": best_ping,
+        "avg_ping_ms": avg_ping,
+        "anti_whitelist_nodes": len(anti_wl_sorted),
         "reality_nodes": len(reality_nodes),
         "trojan_nodes": len(trojan_nodes),
         "hysteria2_nodes": len(hy2_nodes),
         "shadowsocks_nodes": len(ss_nodes),
     }
     
-    import json
     with open(os.path.join(SUB_DIR, "stats.json"), "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
         
-    print(f"\n🎉 [Done] Mega-Aggregator v3.0 successfully finished with {len(alive_nodes)} VERIFIED ALIVE keys at {stats['updated_at']}!")
+    print(f"\n🎉 [Complete] TurboProbe v5.0 generated pristine subscriptions with {len(alive_nodes)} active nodes (Avg Ping: {avg_ping}ms)!")
 
 if __name__ == "__main__":
     main()
