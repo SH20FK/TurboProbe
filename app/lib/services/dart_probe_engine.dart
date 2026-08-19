@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import '../models/node_model.dart';
 import '../models/test_config_model.dart';
+import 'geoip_engine.dart';
 
 class _BenchmarkIsolateParams {
   final List<Map<String, dynamic>> nodesJson;
@@ -784,6 +785,7 @@ class DartProbeEngine {
     String loc = '';
     String colo = '';
     String egressIp = '';
+    String asnp = '';
     bool isClean = true;
 
     if (responseBody != null && responseBody.isNotEmpty) {
@@ -802,24 +804,34 @@ class DartProbeEngine {
           colo = trimmed.substring(5).toUpperCase();
         } else if (trimmed.startsWith('ip=')) {
           egressIp = trimmed.substring(3).trim();
+        } else if (trimmed.startsWith('asnp=') || trimmed.startsWith('asn=')) {
+          asnp = trimmed.split('=')[1].trim();
         }
       }
     }
 
-    if (loc.isEmpty) {
-      loc = _extractCountryFromName(node.name) ?? 'UN';
-    }
+    // 🌐 3-Tier Resolution via GeoIpEngine: Trace ➔ Host GeoIP Range ➔ Deep Linguistic Regex
+    final geo = GeoIpEngine.resolve(
+      traceLoc: loc.isNotEmpty ? loc : null,
+      traceColo: colo.isNotEmpty ? colo : null,
+      traceAsn: asnp.isNotEmpty ? asnp : null,
+      traceIp: egressIp.isNotEmpty ? egressIp : null,
+      host: node.server,
+      nodeName: node.name,
+    );
 
-    final countryName = _countryCodeToRussianName(loc, colo);
-    final flagEmoji = _countryToEmoji(loc);
+    final resolvedCountryCode = geo.countryCode;
+    final resolvedCountryName = geo.displayName;
+    final resolvedFlagEmoji = geo.flagEmoji;
+
     final isTSPUResistant = !isTSPUThrottled &&
         (node.security == 'reality' || node.protocol == 'hysteria2' || node.protocol == 'tuic' || realisticPing < 180);
 
     final isGamingReady = realisticPing < 75 && finalJitter < 15 && !isTSPUThrottled;
 
-    final unlockYT = loc != 'RU' && loc != 'CN' && loc != 'IR' && !isTSPUThrottled;
-    final unlockDiscord = loc != 'RU' && loc != 'CN' && realisticPing < 320 && !isTSPUThrottled;
-    final unlockOpenAI = isClean && loc != 'RU' && loc != 'IR' && loc != 'CN' && loc != 'BY';
+    final unlockYT = resolvedCountryCode != 'RU' && resolvedCountryCode != 'CN' && resolvedCountryCode != 'IR' && !isTSPUThrottled;
+    final unlockDiscord = resolvedCountryCode != 'RU' && resolvedCountryCode != 'CN' && realisticPing < 320 && !isTSPUThrottled;
+    final unlockOpenAI = isClean && resolvedCountryCode != 'RU' && resolvedCountryCode != 'IR' && resolvedCountryCode != 'CN' && resolvedCountryCode != 'BY';
 
     // If resurrected, update URI with new working port
     String finalUri = node.rawUri;
@@ -839,9 +851,9 @@ class DartProbeEngine {
       security: node.security,
       sni: node.sni,
       type: node.type,
-      countryCode: loc,
-      countryName: countryName,
-      flagEmoji: flagEmoji,
+      countryCode: resolvedCountryCode,
+      countryName: resolvedCountryName,
+      flagEmoji: resolvedFlagEmoji,
       isAlive: true,
       pingMs: realisticPing,
       jitterMs: finalJitter,

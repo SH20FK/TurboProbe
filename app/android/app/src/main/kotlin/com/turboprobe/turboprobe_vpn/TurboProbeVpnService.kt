@@ -100,8 +100,9 @@ class TurboProbeVpnService : VpnService() {
         isRunning = false
         isVpnConnected = false
         try {
-            if (networkCallback != null && connectivityManager != null) {
-                connectivityManager?.unregisterNetworkCallback(networkCallback!)
+            val cb = networkCallback
+            if (cb != null) {
+                connectivityManager?.unregisterNetworkCallback(cb)
                 networkCallback = null
             }
             vpnInterface?.close()
