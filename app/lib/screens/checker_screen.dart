@@ -7,7 +7,8 @@ import '../providers/probe_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/filter_bar.dart';
 import '../widgets/node_card.dart';
-import '../widgets/progress_header.dart';
+import '../widgets/progress_bar.dart';
+import '../widgets/stats_header.dart';
 import 'export_sheet.dart';
 import 'filter_sheet.dart';
 import 'settings_dialog.dart';
@@ -207,12 +208,14 @@ class _CheckerScreenState extends State<CheckerScreen> {
         ),
 
         // 2. Progress Header (Only when testing or completed)
-        if (isTesting || provider.totalCount > 0)
-          const ProgressHeader(),
+        if (isTesting || provider.totalCount > 0) ...[
+          ProgressBar(percent: provider.percent, isTesting: isTesting),
+          StatsHeader(provider: provider),
+        ],
 
         // 3. Sticky Filter & Sorting Bar
         if (provider.totalCount > 0)
-          const FilterBar(),
+          FilterBar(provider: provider),
 
         // 4. Node List
         Expanded(

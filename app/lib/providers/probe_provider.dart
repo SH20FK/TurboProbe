@@ -143,6 +143,18 @@ class ProbeProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadAndBenchmark(String text) async {
+    await parseInput(text);
+    if (_nodes.isNotEmpty) {
+      await startBenchmark();
+    }
+  }
+
+  void updateConfig(TestConfigModel newConfig) {
+    config = newConfig;
+    notifyListeners();
+  }
+
   Future<void> startBenchmark() async {
     if (_nodes.isEmpty) return;
     _isTesting = true;
