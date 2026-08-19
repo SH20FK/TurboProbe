@@ -16,6 +16,11 @@ public final class GeneratedPluginRegistrant {
   private static final String TAG = "GeneratedPluginRegistrant";
   public static void registerWith(@NonNull FlutterEngine flutterEngine) {
     try {
+      flutterEngine.getPlugins().add(new com.github.blueboytm.flutter_v2ray.FlutterV2rayPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin flutter_v2ray, com.github.blueboytm.flutter_v2ray.FlutterV2rayPlugin", e);
+    }
+    try {
       flutterEngine.getPlugins().add(new com.github.dart_lang.jni.JniPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin jni, com.github.dart_lang.jni.JniPlugin", e);

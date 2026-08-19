@@ -48,10 +48,11 @@ android {
 
     defaultConfig {
         applicationId "com.turboprobe.turboprobe_vpn"
-        minSdkVersion flutter.minSdkVersion
+        minSdkVersion 21
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        multiDexEnabled true
     }
 
     buildTypes {

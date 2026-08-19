@@ -22,6 +22,29 @@ class VpnProvider extends ChangeNotifier {
   String? _lastSentinelMessage;
   int _consecutiveFailures = 0;
 
+  VpnProvider() {
+    VpnService.initialize();
+    if (Platform.isAndroid) {
+      VpnService.statusNotifier.addListener(() {
+        final status = VpnService.statusNotifier.value;
+        if (status != null && status.duration.isNotEmpty) {
+          _downloadSpeedMbps = (status.downloadSpeed / 1024 / 1024) * 8;
+          _uploadSpeedMbps = (status.uploadSpeed / 1024 / 1024) * 8;
+          notifyListeners();
+        }
+      });
+      VpnService.stateNotifier.addListener(() {
+        final stateStr = VpnService.stateNotifier.value;
+        if (stateStr == 'CONNECTED') {
+          _state = VpnState.connected;
+        } else if (stateStr == 'DISCONNECTED') {
+          _state = VpnState.disconnected;
+        }
+        notifyListeners();
+      });
+    }
+  }
+
   VpnState get state => _state;
   bool get isConnected => _state == VpnState.connected;
   bool get isConnecting => _state == VpnState.connecting;
