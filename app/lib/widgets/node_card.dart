@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../models/node_model.dart';
 import '../providers/vpn_provider.dart';
+import '../screens/stream_benchmark_sheet.dart';
 import '../theme/app_theme.dart';
 
 class NodeCard extends StatefulWidget {
@@ -338,6 +339,16 @@ class _NodeCardState extends State<NodeCard> {
                         constraints: const BoxConstraints(),
                         onPressed: () => _showQrModal(context),
                       ),
+                      if (node.isAlive) ...[
+                        const SizedBox(width: 6),
+                        IconButton(
+                          icon: const Icon(Icons.play_circle_outline, size: 18, color: AppTheme.statusFast),
+                          tooltip: '4K Стресс-тест потока',
+                          padding: const EdgeInsets.all(6),
+                          constraints: const BoxConstraints(),
+                          onPressed: () => StreamBenchmarkSheet.show(context, node),
+                        ),
+                      ],
                     ],
                   ),
                 ],

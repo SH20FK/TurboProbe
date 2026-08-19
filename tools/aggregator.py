@@ -412,32 +412,65 @@ def main():
     # Deduplicate Anti-Whitelist Pool
     anti_wl_unique = list({get_node_key(u): u for u in anti_whitelist_pool}.values())
     
+    # 🌍 Country Classification
+    country_pools = {
+        "de.txt": [],
+        "nl.txt": [],
+        "kz.txt": [],
+        "fi.txt": [],
+        "tr.txt": [],
+        "ru.txt": [],
+        "us.txt": [],
+    }
+    for uri in alive_nodes:
+        low = uri.lower()
+        if "de" in low or "germany" in low or "fra" in low: country_pools["de.txt"].append(uri)
+        if "nl" in low or "netherlands" in low or "ams" in low: country_pools["nl.txt"].append(uri)
+        if "kz" in low or "kazakhstan" in low or "ala" in low or "ast" in low: country_pools["kz.txt"].append(uri)
+        if "fi" in low or "finland" in low or "hel" in low: country_pools["fi.txt"].append(uri)
+        if "tr" in low or "turkey" in low or "ist" in low: country_pools["tr.txt"].append(uri)
+        if ".ru" in low or "russia" in low or "mow" in low: country_pools["ru.txt"].append(uri)
+        if "us" in low or "usa" in low: country_pools["us.txt"].append(uri)
+
+    # 🤖 AI Clean IP Pool (Residential & Clean Reality Nodes)
+    clean_ip_pool = [u for u in reality_nodes if not any(b in u.lower() for b in ["tor", "anon", "free-vpn", "public"])][:1500]
+    
+    # 🎬 High-Bandwidth YouTube & Discord Pool (Fast Reality + Hysteria2)
+    youtube_discord_pool = (hy2_nodes + reality_nodes[:2000])
+
     # Write to files
     def write_sub(filename: str, nodes: list):
         path = os.path.join(SUB_DIR, filename)
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(nodes))
-        print(f"  💾 Saved {len(nodes):5d} verified alive keys -> sub/{filename}")
+        print(f"  💾 Saved {len(nodes):5d} verified alive keys -> sub/{filename}", flush=True)
 
-    print("\n📁 Generating structured subscription files (100% Alive Nodes):")
+    print("\n📁 Generating structured subscription files (100% Alive Nodes):", flush=True)
     write_sub("all.txt", alive_nodes)
     write_sub("anti-whitelist.txt", anti_wl_unique)
     write_sub("reality.txt", reality_nodes)
     write_sub("trojan.txt", trojan_nodes)
     write_sub("hysteria2.txt", hy2_nodes)
     write_sub("shadowsocks.txt", ss_nodes)
+    write_sub("clean-ip.txt", clean_ip_pool)
+    write_sub("youtube-discord.txt", youtube_discord_pool)
+
+    # Country sub files
+    for cfile, cnodes in country_pools.items():
+        if cnodes:
+            write_sub(cfile, cnodes)
     
     # Clash Meta Config
     clash_yaml = generate_clash_meta_yaml(alive_nodes)
     with open(os.path.join(SUB_DIR, "clash-meta.yaml"), "w", encoding="utf-8") as f:
         f.write(clash_yaml)
-    print("  💾 Saved Clash Meta Group -> sub/clash-meta.yaml")
+    print("  💾 Saved Clash Meta Group -> sub/clash-meta.yaml", flush=True)
     
     # Base64 Subscription
     base64_str = base64.b64encode("\n".join(alive_nodes).encode("utf-8")).decode("utf-8")
     with open(os.path.join(SUB_DIR, "base64.txt"), "w", encoding="utf-8") as f:
         f.write(base64_str)
-    print("  💾 Saved Base64 subscription -> sub/base64.txt")
+    print("  💾 Saved Base64 subscription -> sub/base64.txt", flush=True)
     
     # Stats metadata
     stats = {

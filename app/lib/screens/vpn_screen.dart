@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import 'ghost_matrix_sheet.dart';
 import 'location_picker_sheet.dart';
 import 'topology_hud_sheet.dart';
+import 'split_tunnel_sheet.dart';
 
 class VpnScreen extends StatefulWidget {
   const VpnScreen({super.key});
@@ -390,6 +391,16 @@ class _VpnScreenState extends State<VpnScreen> with SingleTickerProviderStateMix
                 ),
               );
             },
+          ),
+          const SizedBox(height: 8),
+
+          // Module 5: Split-Tunneling (Per-App Proxying)
+          _buildActionTile(
+            icon: '🎯',
+            title: 'Раздельное туннелирование',
+            subtitle: 'Выбор приложений: YouTube, Discord через VPN, банки напрямую',
+            trailing: const Icon(Icons.chevron_right, color: AppTheme.textTertiaryDark, size: 18),
+            onTap: () => SplitTunnelSheet.show(context),
           ),
           const SizedBox(height: 24),
         ],
