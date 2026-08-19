@@ -21,10 +21,6 @@ class WindowsProxyService {
         try {
           if (request.method == 'CONNECT') {
             // HTTPS Tunneling
-            final hostParts = request.uri.path.split(':');
-            final targetHost = hostParts[0];
-            final targetPort = hostParts.length > 1 ? int.tryParse(hostParts[1]) ?? 443 : 443;
-
             final clientSocket = await request.response.detachSocket();
             try {
               final remoteSocket = await Socket.connect(node.server, node.port, timeout: const Duration(seconds: 5));
@@ -32,10 +28,29 @@ class WindowsProxyService {
               await clientSocket.flush();
 
               // Pipe sockets bidirectionally
-              clientSocket.pipe(remoteSocket).catchError((_) {});
-              remoteSocket.pipe(clientSocket).catchError((_) {});
+              clientSocket.listen(
+                (data) => remoteSocket.add(data),
+                onError: (_) {
+                  try { clientSocket.destroy(); remoteSocket.destroy(); } catch (_) {}
+                },
+                onDone: () {
+                  try { remoteSocket.close(); } catch (_) {}
+                },
+                cancelOnError: true,
+              );
+
+              remoteSocket.listen(
+                (data) => clientSocket.add(data),
+                onError: (_) {
+                  try { remoteSocket.destroy(); clientSocket.destroy(); } catch (_) {}
+                },
+                onDone: () {
+                  try { clientSocket.close(); } catch (_) {}
+                },
+                cancelOnError: true,
+              );
             } catch (_) {
-              clientSocket.destroy();
+              try { clientSocket.destroy(); } catch (_) {}
             }
           } else {
             // Standard HTTP
@@ -53,7 +68,8 @@ class WindowsProxyService {
                 request.response.headers.add(name, v);
               }
             });
-            await resp.pipe(request.response);
+            await request.response.addStream(resp);
+            await request.response.close();
           }
         } catch (_) {}
       });
