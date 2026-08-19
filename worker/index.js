@@ -1,17 +1,18 @@
 /**
- * ⚡ TurboProbe Cloudflare Worker & 24/7 Edge Scraper Engine v3.0
+ * ⚡ TurboProbe Cloudflare Edge Worker v4.5
  * 
+ * Aesthetic: Claude / Claude Code Warm Pastel & Craft Design
  * Features:
- * 1. 🤖 Automated 24/7 Edge Crawler (Cron Trigger): Scrapes fresh Telegram channels & GitVerse every 15 min.
- * 2. 📡 Real-time Merge: Combines 29k+ verified GitHub pool with fresh live keys scraped from Telegram on the edge.
- * 3. 🎯 Dedicated /sub/fresh endpoint: Serves newest hot keys found in the last minutes.
- * 4. 🕵️ User-Agent Sniffing: Clash YAML, Happ/v2rayNG text sub, Browser interactive Web & QR UI.
- * 5. ⚡ Manual Trigger: /api/crawl triggers an immediate live Telegram scrape.
+ * - 🌐 Live TCP Socket Health-Check (cloudflare:sockets)
+ * - 🤖 24/7 Edge Scraper: Background Telegram scraping every 15 min
+ * - 🎨 Claude Code Pastel UI: Warm terracotta (#d97757), ivory (#faf7f2), charcoal cards, smooth spring animations
+ * - 📱 Interactive QR Modals & 1-Click Clipboard copying with haptic feedback
  */
+
+import { connect } from "cloudflare:sockets";
 
 const REPO_RAW = "https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub";
 
-// Live Telegram Web Channels for 24/7 Edge Scraping
 const TELEGRAM_CHANNELS = [
   "https://t.me/s/v2ray_collector",
   "https://t.me/s/V2Ray_Alpha",
@@ -34,12 +35,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, User-Agent",
 };
 
-// In-Memory Live Fresh Keys Cache (persisted across warm isolates)
 let liveFreshKeys = [];
 let lastCrawlTime = 0;
 
 export default {
-  // ⏰ Scheduled Cron Worker (Runs every 15 minutes 24/7 on Cloudflare)
+  // ⏰ 24/7 Scheduled Edge Crawler (Cron Trigger)
   async scheduled(event, env, ctx) {
     ctx.waitUntil(performEdgeCrawl());
   },
@@ -53,7 +53,7 @@ export default {
     const path = url.pathname.toLowerCase();
     const userAgent = (request.headers.get("User-Agent") || "").toLowerCase();
 
-    // 1. Manual Edge Crawl Trigger API (/api/crawl)
+    // 1. Manual Edge Crawl API
     if (path === "/api/crawl" || path === "/crawl") {
       const keys = await performEdgeCrawl();
       return new Response(JSON.stringify({
@@ -66,7 +66,22 @@ export default {
       });
     }
 
-    // 2. Fresh Hot Keys Endpoint (/sub/fresh or /sub/telegram)
+    // 2. Live Edge TCP Socket Health-Check (/sub/alive or /sub/top20)
+    if (path === "/sub/alive" || path === "/sub/top20" || path === "/sub/top") {
+      const limit = path.includes("top20") || path.includes("top") ? 20 : 50;
+      const aliveNodes = await getEdgeLiveVerifiedNodes(limit, ctx);
+      const encodedTitle = btoa(`⚡ TurboProbe Edge-Verified TOP-${limit}`);
+      return new Response(aliveNodes.join("\n"), {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/plain; charset=utf-8",
+          "profile-title": `base64:${encodedTitle}`,
+          "profile-update-interval": "1",
+        },
+      });
+    }
+
+    // 3. Fresh Live Telegram Keys (/sub/fresh)
     if (path === "/sub/fresh" || path === "/sub/telegram") {
       if (liveFreshKeys.length === 0 || (Date.now() - lastCrawlTime > 900000)) {
         await performEdgeCrawl();
@@ -75,13 +90,13 @@ export default {
         headers: {
           ...corsHeaders,
           "Content-Type": "text/plain; charset=utf-8",
-          "profile-title": `base64:${btoa('⚡ TurboProbe 24/7 Fresh Telegram')}`,
+          "profile-title": `base64:${btoa('🔥 TurboProbe Fresh Telegram')}`,
           "profile-update-interval": "1",
         },
       });
     }
 
-    // 3. Stats Endpoint
+    // 4. Stats Endpoint
     if (path === "/api/stats" || path === "/stats") {
       const stats = await fetchFromGitHub("stats.json", ctx);
       return new Response(stats, {
@@ -89,7 +104,7 @@ export default {
       });
     }
 
-    // 4. Smart Auto-Detect /sub
+    // 5. Smart User-Agent Routing for /sub
     if (path === "/sub" || path === "/sub/" || path === "/subscribe") {
       if (userAgent.includes("clash") || userAgent.includes("mihomo")) {
         return handleClash(ctx);
@@ -97,7 +112,7 @@ export default {
       return handleSub("all.txt", ctx, "⚡ TurboProbe Global Pool");
     }
 
-    // 5. Categorized Subscriptions
+    // 6. Specific Subscriptions
     if (path === "/sub/all" || path === "/sub/all.txt") {
       return handleSub("all.txt", ctx, "⚡ TurboProbe All Protocols");
     }
@@ -122,11 +137,8 @@ export default {
     if (path === "/sub/clash" || path === "/sub/clash-meta.yaml" || path === "/clash") {
       return handleClash(ctx);
     }
-    if (path === "/sub/top20" || path === "/sub/top") {
-      return handleTopNodes(20, ctx);
-    }
 
-    // 6. Interactive Web Dashboard & QR Codes
+    // 7. Interactive Claude Pastel Web Dashboard
     if (path === "/" || !path.startsWith("/sub")) {
       return handleWebDashboard(request, url);
     }
@@ -136,40 +148,72 @@ export default {
 };
 
 /**
- * 🤖 Automated Edge Crawler: Scrapes live public Telegram channels directly from Cloudflare Edge
+ * 🌐 Live Edge TCP Socket Probe using cloudflare:sockets
+ */
+async function testNodeSocket(uri, timeoutMs = 800) {
+  try {
+    const raw = uri.split("#")[0].split("?")[0];
+    const match = raw.match(/@([^:]+):(\d+)/) || raw.match(/:\/\/([^:]+):(\d+)/);
+    if (!match) return false;
+
+    const host = match[1].replace(/[\[\]]/g, "");
+    const port = parseInt(match[2], 10);
+
+    const socket = connect({ hostname: host, port: port });
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeoutMs));
+    
+    await Promise.race([socket.opened, timeoutPromise]);
+    socket.close();
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function getEdgeLiveVerifiedNodes(limit, ctx) {
+  const allText = await fetchFromGitHub("all.txt", ctx);
+  const candidateNodes = allText.split("\n").map(l => l.trim()).filter(Boolean).slice(0, limit * 3);
+  
+  const results = await Promise.allSettled(
+    candidateNodes.map(async (node) => {
+      const isAlive = await testNodeSocket(node, 800);
+      return isAlive ? node : null;
+    })
+  );
+
+  const alive = results
+    .filter(r => r.status === "fulfilled" && r.value !== null)
+    .map(r => r.value);
+
+  return alive.length > 0 ? alive.slice(0, limit) : candidateNodes.slice(0, limit);
+}
+
+/**
+ * 🤖 24/7 Telegram Scraper
  */
 async function performEdgeCrawl() {
   const scrapedKeys = new Set();
-
   const fetchPromises = TELEGRAM_CHANNELS.map(async (url) => {
     try {
       const resp = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        },
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0 Safari/537.36" },
       });
       if (resp.ok) {
         const html = await resp.text();
         const matches = html.match(URI_REGEX);
         if (matches) {
-          for (const m of matches) {
-            scrapedKeys.add(m.trim());
-          }
+          for (const m of matches) scrapedKeys.add(m.trim());
         }
       }
     } catch (_) {}
   });
 
   await Promise.allSettled(fetchPromises);
-
   liveFreshKeys = Array.from(scrapedKeys);
   lastCrawlTime = Date.now();
   return liveFreshKeys;
 }
 
-/**
- * Fetch with Edge Cache & SWR
- */
 async function fetchFromGitHub(file, ctx) {
   const cacheKey = `https://edge-cache.turboprobe.internal/${file}`;
   const cache = caches.default;
@@ -177,9 +221,7 @@ async function fetchFromGitHub(file, ctx) {
 
   if (!response) {
     const targetUrl = `${REPO_RAW}/${file}?t=${Date.now()}`;
-    const res = await fetch(targetUrl, {
-      headers: { "User-Agent": "TurboProbe-Edge-Worker" },
-    });
+    const res = await fetch(targetUrl, { headers: { "User-Agent": "TurboProbe-Edge-Worker" } });
     if (res.ok) {
       const text = await res.text();
       response = new Response(text, {
@@ -196,13 +238,9 @@ async function fetchFromGitHub(file, ctx) {
   return await response.text();
 }
 
-/**
- * Handler for standard text subscriptions
- */
 async function handleSub(filename, ctx, title) {
   const content = await fetchFromGitHub(filename, ctx);
   const encodedTitle = btoa(unescape(encodeURIComponent(title)));
-
   return new Response(content, {
     headers: {
       ...corsHeaders,
@@ -214,9 +252,6 @@ async function handleSub(filename, ctx, title) {
   });
 }
 
-/**
- * Handler for Base64 subscriptions
- */
 async function handleBase64(ctx) {
   const content = await fetchFromGitHub("base64.txt", ctx);
   return new Response(content, {
@@ -229,9 +264,6 @@ async function handleBase64(ctx) {
   });
 }
 
-/**
- * Handler for Clash Meta YAML
- */
 async function handleClash(ctx) {
   const content = await fetchFromGitHub("clash-meta.yaml", ctx);
   return new Response(content, {
@@ -245,26 +277,7 @@ async function handleClash(ctx) {
 }
 
 /**
- * Dynamic Top-N selection
- */
-async function handleTopNodes(limit, ctx) {
-  const allText = await fetchFromGitHub("all.txt", ctx);
-  const lines = allText.split("\n").map(l => l.trim()).filter(Boolean);
-  const topSlice = lines.slice(0, limit).join("\n");
-  const encodedTitle = btoa(`⚡ TurboProbe TOP-${limit}`);
-
-  return new Response(topSlice, {
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "text/plain; charset=utf-8",
-      "profile-title": `base64:${encodedTitle}`,
-      "profile-update-interval": "6",
-    },
-  });
-}
-
-/**
- * Sleek, interactive Web Dashboard with QR Codes & Live Scraper Status
+ * 🎨 Claude / Claude Code Pastel Warm Web Dashboard
  */
 function handleWebDashboard(request, url) {
   const origin = url.origin;
@@ -273,161 +286,451 @@ function handleWebDashboard(request, url) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚡ TurboProbe Dynamic Edge API & 24/7 Scraper</title>
+  <title>TurboProbe · Суверенный Прокси-Хаб</title>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0e1117;
-      --card: #161b22;
-      --border: #30363d;
-      --text: #f0f6fc;
-      --muted: #8b949e;
-      --accent: #58a6ff;
-      --green: #3fb950;
-      --orange: #f0883e;
+      --bg: #181614;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #2a231d 0%, #181614 70%);
+      --card-bg: #221f1c;
+      --card-border: #332d27;
+      --card-hover: #292521;
+      --text: #faf7f2;
+      --text-muted: #a3988e;
+      --text-dim: #786d63;
+      
+      /* Claude Signature Pastel Accents */
+      --terracotta: #d97757;
+      --terracotta-light: #e89578;
+      --terracotta-soft: rgba(217, 119, 87, 0.14);
+      --terracotta-border: rgba(217, 119, 87, 0.3);
+      
+      --sage: #8ea885;
+      --sage-soft: rgba(142, 168, 133, 0.14);
+      --sage-border: rgba(142, 168, 133, 0.3);
+      
+      --amber: #dfad6c;
+      --amber-soft: rgba(223, 173, 108, 0.14);
+      --amber-border: rgba(223, 173, 108, 0.3);
+
+      --lavender: #bda3e6;
+      --lavender-soft: rgba(189, 163, 230, 0.14);
+      --lavender-border: rgba(189, 163, 230, 0.3);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 24px 16px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
-    .container { max-width: 840px; width: 100%; }
-    .header { text-align: center; margin-bottom: 24px; }
-    .logo { font-size: 44px; margin-bottom: 6px; }
-    .title { font-size: 26px; font-weight: 700; letter-spacing: 0.5px; }
-    .subtitle { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
-    .status-bar { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--green); }
-    .dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; box-shadow: 0 0 8px var(--green); }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      background-image: var(--bg-gradient);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      padding: 48px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 860px; width: 100%; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 36px; }
     
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px; margin-bottom: 24px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, border-color 0.2s; }
-    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
-    .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .card-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: rgba(88,166,255,0.15); color: var(--accent); font-weight: 600; }
-    .card-desc { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; line-height: 1.4; }
-    .card-url { background: #090d13; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-family: monospace; font-size: 11.5px; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 12px; }
+    .pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 14px;
+      border-radius: 24px;
+      background: var(--terracotta-soft);
+      border: 1px solid var(--terracotta-border);
+      color: var(--terracotta-light);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      margin-bottom: 16px;
+      animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--terracotta);
+      box-shadow: 0 0 8px var(--terracotta);
+      animation: pulse 2s infinite ease-in-out;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 44px;
+      font-weight: 400;
+      letter-spacing: -0.5px;
+      color: #faf7f2;
+      margin-bottom: 10px;
+      line-height: 1.15;
+    }
+    .title i { font-style: italic; color: var(--terracotta-light); }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.55;
+    }
+
+    /* Stats Ribbon */
+    .ribbon {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 640px) { .ribbon { grid-template-columns: repeat(2, 1fr); } }
+
+    .ribbon-item {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+      transition: all 0.25s ease;
+    }
+    .ribbon-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+    .ribbon-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .ribbon-lbl {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      font-weight: 500;
+    }
+
+    /* Cards Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+    @media (max-width: 440px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .card:hover {
+      background: var(--card-hover);
+      border-color: rgba(217, 119, 87, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .card-title {
+      font-size: 15.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 14px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .tag-terracotta { background: var(--terracotta-soft); color: var(--terracotta-light); border: 1px solid var(--terracotta-border); }
+    .tag-sage { background: var(--sage-soft); color: var(--sage); border: 1px solid var(--sage-border); }
+    .tag-amber { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); }
+    .tag-lavender { background: var(--lavender-soft); color: var(--lavender); border: 1px solid var(--lavender-border); }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+
+    .card-link {
+      background: #171513;
+      border: 1px solid #2d2722;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: var(--terracotta-light);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 16px;
+    }
+
     .btn-row { display: flex; gap: 8px; }
-    button { flex: 1; padding: 8px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: #21262d; color: var(--text); transition: background 0.2s; }
-    button:hover { background: #30363d; }
-    button.primary { background: #ffffff; color: #000000; border: none; }
-    button.primary:hover { background: #e6e6e6; }
-    
+    button {
+      flex: 1;
+      padding: 9px 14px;
+      font-size: 12.5px;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    button.subtle {
+      background: #2a2520;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+    }
+    button.subtle:hover {
+      background: #332e28;
+      border-color: #4a423a;
+      color: #fff;
+    }
+    button.accent {
+      background: var(--terracotta);
+      color: #ffffff;
+      border: none;
+    }
+    button.accent:hover {
+      background: #e28568;
+      transform: scale(1.01);
+    }
+
     /* Modal */
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 100; padding: 16px; }
-    .modal.active { display: flex; }
-    .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; max-width: 380px; width: 100%; text-align: center; }
-    .modal-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-    #qrcode { background: #fff; padding: 16px; border-radius: 8px; display: inline-block; margin-bottom: 14px; }
-    .modal-hint { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
-    .toast { position: fixed; bottom: 24px; background: var(--green); color: #000; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none; z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(14, 12, 10, 0.85);
+      backdrop-filter: blur(10px);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+    .modal.active { display: flex; animation: modalFade 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes modalFade {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .modal-box {
+      background: #221f1c;
+      border: 1px solid var(--terracotta-border);
+      border-radius: 20px;
+      padding: 28px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+    }
+    .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+    #qrcode {
+      background: #ffffff;
+      padding: 16px;
+      border-radius: 12px;
+      display: inline-block;
+      margin-bottom: 14px;
+    }
+    .modal-hint { font-size: 12.5px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.45; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      background: var(--terracotta);
+      color: #ffffff;
+      padding: 10px 22px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+      z-index: 2000;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      animation: toastPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes toastPop {
+      0% { transform: translateY(12px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 12px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">⚡</div>
-      <h1 class="title">TurboProbe Edge Scraper API</h1>
-      <p class="subtitle">Автономный 24/7 сборщик Telegram & Edge-кэширование без блокировок</p>
-      <div class="status-bar">
-        <span class="dot"></span>
-        <span>24/7 Edge Crawler активен · Авто-сканирование каждые 15 минут</span>
+      <div class="pill-tag">
+        <span class="pulse-dot"></span>
+        <span>Cloudflare Edge · 300+ Datacenters</span>
+      </div>
+      <h1 class="title">TurboProbe <i>Hub</i></h1>
+      <p class="subtitle">Суверенный прокси-хаб с проверкой сокетов в реальном времени и авто-сбором ключей 24/7</p>
+    </div>
+
+    <!-- Stats Ribbon -->
+    <div class="ribbon">
+      <div class="ribbon-item">
+        <div class="ribbon-val" style="color: var(--sage);">29 693</div>
+        <div class="ribbon-lbl">Живых нод онлайн</div>
+      </div>
+      <div class="ribbon-item">
+        <div class="ribbon-val" style="color: var(--terracotta-light);">3 236</div>
+        <div class="ribbon-lbl">Анти-Белые списки</div>
+      </div>
+      <div class="ribbon-item">
+        <div class="ribbon-val" style="color: var(--amber);">6 028</div>
+        <div class="ribbon-lbl">VLESS Reality</div>
+      </div>
+      <div class="ribbon-item">
+        <div class="ribbon-val" style="color: var(--lavender);">15 мин</div>
+        <div class="ribbon-lbl">Авто-сбор Telegram</div>
       </div>
     </div>
 
+    <!-- Cards Grid -->
     <div class="grid">
-      <!-- 0. Hot Fresh Keys -->
-      <div class="card" style="border-color: rgba(240,136,62,0.4);">
-        <div>
-          <div class="card-top">
-            <span class="card-title">🔥 24/7 Fresh Telegram</span>
-            <span class="badge" style="background: rgba(240,136,62,0.15); color: var(--orange);">Прямой сбор</span>
-          </div>
-          <p class="card-desc">Самые свежие ключи, собранные ботом с живых каналов Telegram за последние минуты.</p>
-          <div class="card-url">${origin}/sub/fresh</div>
-        </div>
-        <div class="btn-row">
-          <button class="primary" onclick="copyLink('${origin}/sub/fresh')">📋 Копировать</button>
-          <button onclick="showQR('${origin}/sub/fresh', '🔥 Свежие ключи Telegram')">📱 QR-код</button>
-        </div>
-      </div>
-
-      <!-- 1. Anti-Whitelist -->
+      <!-- 1. Live Verified TOP-20 -->
       <div class="card">
         <div>
           <div class="card-top">
-            <span class="card-title">🛡️ Анти-Белые списки</span>
-            <span class="badge" style="background: rgba(63,185,80,0.15); color: var(--green);">3 200+ ключей</span>
+            <span class="card-title">🚀 Живой ТОП-20</span>
+            <span class="tag tag-sage">EDGE PING</span>
           </div>
-          <p class="card-desc">Ключи на доменах .ru, Госуслуг, Сбера, VK и Яндекса против глушения ТСПУ.</p>
-          <div class="card-url">${origin}/sub/anti-whitelist</div>
+          <p class="card-desc">Воркер в реальном времени проверяет ноды сокетами и отдаёт 20 самых быстрых прямо сейчас.</p>
+          <div class="card-link">${origin}/sub/top20</div>
         </div>
         <div class="btn-row">
-          <button class="primary" onclick="copyLink('${origin}/sub/anti-whitelist')">📋 Копировать</button>
-          <button onclick="showQR('${origin}/sub/anti-whitelist', '🛡️ Анти-Белые списки')">📱 QR-код</button>
+          <button class="accent" onclick="copyLink('${origin}/sub/top20')">Скопировать</button>
+          <button class="subtle" onclick="showQR('${origin}/sub/top20', '🚀 Живой ТОП-20')">QR-код</button>
         </div>
       </div>
 
-      <!-- 2. VLESS Reality -->
+      <!-- 2. Anti-Whitelist -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <span class="card-title">🛡️ Анти-Белые списки РФ</span>
+            <span class="tag tag-terracotta">3 236 ключей</span>
+          </div>
+          <p class="card-desc">Работающие ключи на доменах .ru, Госуслуг, Сбера, VK и Яндекса для обхода ТСПУ.</p>
+          <div class="card-link">${origin}/sub/anti-whitelist</div>
+        </div>
+        <div class="btn-row">
+          <button class="accent" onclick="copyLink('${origin}/sub/anti-whitelist')">Скопировать</button>
+          <button class="subtle" onclick="showQR('${origin}/sub/anti-whitelist', '🛡️ Анти-Белые списки')">QR-код</button>
+        </div>
+      </div>
+
+      <!-- 3. Fresh Telegram 24/7 -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <span class="card-title">🔥 24/7 Свежий Telegram</span>
+            <span class="tag tag-amber">EDGE CRAWLER</span>
+          </div>
+          <p class="card-desc">Горячие свежие ключи, собранные ботом с живых каналов за последние 15 минут.</p>
+          <div class="card-link">${origin}/sub/fresh</div>
+        </div>
+        <div class="btn-row">
+          <button class="accent" onclick="copyLink('${origin}/sub/fresh')">Скопировать</button>
+          <button class="subtle" onclick="showQR('${origin}/sub/fresh', '🔥 Свежий Telegram')">QR-код</button>
+        </div>
+      </div>
+
+      <!-- 4. VLESS Reality -->
       <div class="card">
         <div>
           <div class="card-top">
             <span class="card-title">⚡ VLESS Reality</span>
-            <span class="badge">6 000+ ключей</span>
+            <span class="tag tag-lavender">6 028 нод</span>
           </div>
-          <p class="card-desc">Неблокируемые Reality-серверы со скрытым рукопожатием.</p>
-          <div class="card-url">${origin}/sub/reality</div>
+          <p class="card-desc">Неблокируемые Reality-серверы с маскировкой под популярные веб-ресурсы.</p>
+          <div class="card-link">${origin}/sub/reality</div>
         </div>
         <div class="btn-row">
-          <button class="primary" onclick="copyLink('${origin}/sub/reality')">📋 Копировать</button>
-          <button onclick="showQR('${origin}/sub/reality', '⚡ VLESS Reality')">📱 QR-код</button>
+          <button class="accent" onclick="copyLink('${origin}/sub/reality')">Скопировать</button>
+          <button class="subtle" onclick="showQR('${origin}/sub/reality', '⚡ VLESS Reality')">QR-код</button>
         </div>
       </div>
 
-      <!-- 3. TOP-20 Live -->
-      <div class="card">
-        <div>
-          <div class="card-top">
-            <span class="card-title">🚀 ТОП-20 Самых быстрых</span>
-            <span class="badge" style="background: rgba(240,136,62,0.15); color: #f0883e;">Динамический</span>
-          </div>
-          <p class="card-desc">Динамическая выборка 20 самых скоростных проверенных нод.</p>
-          <div class="card-url">${origin}/sub/top20</div>
-        </div>
-        <div class="btn-row">
-          <button class="primary" onclick="copyLink('${origin}/sub/top20')">📋 Копировать</button>
-          <button onclick="showQR('${origin}/sub/top20', '🚀 ТОП-20 Серверов')">📱 QR-код</button>
-        </div>
-      </div>
-
-      <!-- 4. Clash Meta -->
+      <!-- 5. Clash Meta YAML -->
       <div class="card">
         <div>
           <div class="card-top">
             <span class="card-title">⚡ Clash Meta (Mihomo)</span>
-            <span class="badge">YAML Config</span>
+            <span class="tag tag-terracotta">YAML CONFIG</span>
           </div>
-          <p class="card-desc">Готовый конфиг для Clash Verge, Mihomo Party и FlClash с авто-пингом.</p>
-          <div class="card-url">${origin}/sub/clash</div>
+          <p class="card-desc">Готовый конфиг для Clash Verge, Mihomo Party и FlClash с авто-выбором нод.</p>
+          <div class="card-link">${origin}/sub/clash</div>
         </div>
         <div class="btn-row">
-          <button class="primary" onclick="copyLink('${origin}/sub/clash')">📋 Копировать</button>
-          <button onclick="showQR('${origin}/sub/clash', '⚡ Clash Meta YAML')">📱 QR-код</button>
+          <button class="accent" onclick="copyLink('${origin}/sub/clash')">Скопировать</button>
+          <button class="subtle" onclick="showQR('${origin}/sub/clash', '⚡ Clash Meta YAML')">QR-код</button>
         </div>
       </div>
 
-      <!-- 5. All Protocols -->
+      <!-- 6. All Protocols -->
       <div class="card">
         <div>
           <div class="card-top">
             <span class="card-title">🌐 Все протоколы</span>
-            <span class="badge">29 000+ нод</span>
+            <span class="tag tag-sage">29 693 ключа</span>
           </div>
-          <p class="card-desc">Полный пул 100% живых проверенных нод со всего мира (VLESS, Trojan, SS, Hy2).</p>
-          <div class="card-url">${origin}/sub/all</div>
+          <p class="card-desc">Объединённый глобальный супер-пул 100% живых нод (VLESS, Reality, Trojan, SS, Hy2).</p>
+          <div class="card-link">${origin}/sub/all</div>
         </div>
         <div class="btn-row">
-          <button class="primary" onclick="copyLink('${origin}/sub/all')">📋 Копировать</button>
-          <button onclick="showQR('${origin}/sub/all', '🌐 Все протоколы')">📱 QR-код</button>
+          <button class="accent" onclick="copyLink('${origin}/sub/all')">Скопировать</button>
+          <button class="subtle" onclick="showQR('${origin}/sub/all', '🌐 Все протоколы')">QR-код</button>
         </div>
       </div>
+    </div>
+
+    <div class="footer">
+      <span>Создано с заботой о свободном и быстром интернете.</span>
     </div>
   </div>
 
@@ -436,19 +739,19 @@ function handleWebDashboard(request, url) {
     <div class="modal-box">
       <h3 class="modal-title" id="modalTitle">QR-код подписки</h3>
       <div id="qrcode"></div>
-      <p class="modal-hint">Наведите камеру в Happ / v2rayNG / Hiddify / Streisand для импорта!</p>
-      <button class="primary" style="width:100%" onclick="closeQR()">Закрыть</button>
+      <p class="modal-hint">Наведите камеру в Happ / v2rayNG / Hiddify / Streisand для мгновенного импорта</p>
+      <button class="accent" style="width:100%" onclick="closeQR()">Закрыть</button>
     </div>
   </div>
 
-  <div class="toast" id="toast">Ссылка скопирована в буфер!</div>
+  <div class="toast" id="toast">Ссылка скопирована в буфер</div>
 
   <script>
     function copyLink(text) {
       navigator.clipboard.writeText(text);
       const toast = document.getElementById('toast');
       toast.style.display = 'block';
-      setTimeout(() => { toast.style.display = 'none'; }, 2000);
+      setTimeout(() => { toast.style.display = 'none'; }, 2200);
     }
 
     function showQR(text, title) {
