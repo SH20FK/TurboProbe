@@ -1,122 +1,112 @@
-# ⚡ TurboProbe v2.0
-
 <p align="center">
-  <img src="https://img.shields.io/badge/Release-APK%20Available-brightgreen?style=for-the-badge&logo=android" alt="Release APK" />
-  <img src="https://img.shields.io/badge/Nodes-12%20000%2B%20Daily-orange?style=for-the-badge&logo=server" alt="Nodes Daily" />
-  <img src="https://img.shields.io/badge/GeoIP%20Accuracy-99.9%25%20ASN%20Trace-blue?style=for-the-badge" alt="Accuracy" />
-  <img src="https://img.shields.io/badge/License-MIT-black?style=for-the-badge" alt="License" />
+  <img src="app/assets/icon.png" width="108" alt="TurboProbe Logo" /><br>
+  <b><font size="6">TurboProbe</font></b><br>
+  <i>Суверенный VPN-клиент и сверхбыстрый чекер прокси для обхода ТСПУ и белых списков</i>
 </p>
 
 <p align="center">
-  <b>Суверенный VPN-клиент нового поколения и ультра-быстрый бенчмарк прокси-сетей для обхода блокировок ТСПУ и белых списков.</b>
+  <img src="https://img.shields.io/badge/Android-APK%20Ready-brightgreen?style=flat-square&logo=android" />
+  <img src="https://img.shields.io/badge/Windows-PC%20Proxy-blue?style=flat-square&logo=windows" />
+  <img src="https://img.shields.io/badge/Ключей%20в%20базе-12%20500%2B-orange?style=flat-square" />
+  <img src="https://img.shields.io/badge/Анти--Белые%20списки-3%20200%2B-success?style=flat-square" />
+  <img src="https://img.shields.io/badge/Лицензия-MIT-lightgrey?style=flat-square" />
 </p>
 
 ---
 
-## 📡 24/7 Автоматические супер-подписки (Auto-Aggregator)
+## 📡 24/7 Авто-подписки (Агрегатор)
 
-GitHub Actions каждые 6 часов сканирует десятки проверенных источников (включая GitVerse и российские каналы), дедуплицирует ключи, фильтрует настоящие белые домены (`.ru`, Госуслуги, Сбер, VK, Яндекс) и публикует единые ссылки:
+Бот каждые 6 часов собирает, проверяет на дубли и фильтрует ключи со всех живых источников (включая GitVerse, закрытые телеграм-каналы и белые российские списки):
 
-| Категория | Ссылка на подписку (Raw URL) | Описание |
+| Сабка | Ссылка | Для чего |
 | :--- | :--- | :--- |
-| 🛡️ **Анти-Белые списки** | [`sub/anti-whitelist.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/anti-whitelist.txt) | **100% настоящие белые SNI против глушения ТСПУ (1200+)** |
-| ⚡ **VLESS Reality** | [`sub/reality.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/reality.txt) | Неблокируемый VLESS Reality для РФ (3200+) |
-| 🌐 **Все протоколы** | [`sub/all.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/all.txt) | Объединённый глобальный супер-пул со всего мира (11900+) |
-| 🚀 **Hysteria 2 / TUIC** | [`sub/hysteria2.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/hysteria2.txt) | Сверхскоростные UDP-протоколы |
-| 🔒 **Trojan TLS** | [`sub/trojan.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/trojan.txt) | Зашифрованные Trojan TLS ноды |
-| 🗝️ **Shadowsocks** | [`sub/shadowsocks.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/shadowsocks.txt) | Shadowsocks ноды |
-| ⚡ **Clash Meta YAML** | [`sub/clash-meta.yaml`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/clash-meta.yaml) | Готовый конфиг с авто-группами |
-| 📦 **Base64** | [`sub/base64.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/base64.txt) | Универсальная Base64 подписка |
+| 🛡️ **Анти-Белые списки** | [`sub/anti-whitelist.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/anti-whitelist.txt) | **Только работающие ключи на доменах `.ru`, Госуслуг, Сбера и VK (3 200+ шт)** |
+| ⚡ **VLESS Reality** | [`sub/reality.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/reality.txt) | Reality-ноды, устойчивые к глушению SNI (3 200+ шт) |
+| 🌐 **Все протоколы** | [`sub/all.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/all.txt) | Полный глобальный пул со всего мира (12 500+ шт) |
+| 🚀 **Hysteria 2 / TUIC** | [`sub/hysteria2.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/hysteria2.txt) | Скоростные UDP-протоколы |
+| 🔒 **Trojan TLS** | [`sub/trojan.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/trojan.txt) | Trojan ноды |
+| 🗝️ **Shadowsocks** | [`sub/shadowsocks.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/shadowsocks.txt) | Классический Shadowsocks |
+| ⚡ **Clash Meta** | [`sub/clash-meta.yaml`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/clash-meta.yaml) | Готовый конфиг для Mihomo / Clash Verge |
+| 📦 **Base64** | [`sub/base64.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/base64.txt) | Универсальный формат подписки |
 
 ---
 
-## 🧠 Архитектура маршрутизации (Ghost-Matrix)
+## 🧠 Как устроена маршрутизация (Ghost-Matrix)
 
-TurboProbe автоматически разделяет трафик на уровне системы, гарантируя максимальную скорость и доступность всех сервисов одновременно:
+Приложение само распределяет трафик так, чтобы ничего не тормозило и не ломалось:
 
 ```mermaid
 flowchart TD
-    App["📱 Трафик устройства (Android / PC)"] --> Router{"🤖 Ghost-Matrix Router"}
+    Device["📱 Ваше устройство"] --> Splitter{"Маршрутизатор"}
     
-    Router -->|"🏛️ Банки, Госуслуги, VK, Ozon, .RU"| Direct["⚡ Direct ISP (0ms / 1000 Мбит/с)"]
-    Router -->|"🎬 YouTube 4K, Twitch, Стримы"| FastNode["🚀 StreamBand High-Speed (95+ Мб/с)"]
-    Router -->|"💬 Discord, Игры, Голос"| LowPing["🎮 Low-Latency & Zero Jitter (<40ms)"]
-    Router -->|"🤖 ChatGPT, Claude, Instagram, X"| SecureExit["🛡️ Clean Egress IP (Anti-DPI Reality)"]
+    Splitter -->|"🇷🇺 Банки, Госуслуги, VK, Ozon, .RU"| Direct["Прямое соединение (0ms / Без VPN)"]
+    Splitter -->|"🎬 YouTube 4K, Стримы"| FastProxy["Высокоскоростная нода"]
+    Splitter -->|"💬 Discord, Онлайн-игры"| LowPing["Нода с минимальным пингом"]
+    Splitter -->|"🤖 ChatGPT, Instagram, Заблокированные сайты"| StealthProxy["Reality / Anti-DPI туннель"]
     
-    Direct --> Internet["🌐 Интернет"]
-    FastNode --> Internet
-    LowPing --> Internet
-    SecureExit --> Internet
+    Direct --> Web["🌐 Интернет"]
+    FastProxy --> Web
+    LowPing --> Web
+    StealthProxy --> Web
 ```
 
 ---
 
-## 📱 Два режима в одном приложении
+## 📱 Возможности приложения
 
-Интерфейс TurboProbe v2.0 чётко разделен на 2 независимых экрана в минималистичном стиле Google B&W:
+### 1. ⚡ VPN-клиент (Android + Windows)
+* **Минималистичный дизайн в стиле WireGuard / 1.1.1.1**: один большой тумблер включения с плавной пульсирующей анимацией.
+* **Авто-выбор локации**: умный подбор самой быстрой ноды из проверенных.
+* **Спидометр в реальном времени**: точный замер скорости загрузки и отдачи прямо в интерфейсе.
+* **Модули защиты**:
+  * `Ghost-Matrix AI` — раздельная маршрутизация для приложений.
+  * `HUD Маршрута` — просмотр DoH 1.1.1.1, IPv6 защиты и статуса DPI.
+  * `Anti-DPI Щит` — микро-фрагментация пакетов TLS (1-3B) против замедлений ТСПУ.
+  * `Smart RU Direct` — российские сайты открываются напрямую без потери скорости.
 
-### 1. ⚡ Встроенный VPN-клиент
-* **Минимализм WireGuard / Cloudflare 1.1.1.1**: мгновенный Power-переключатель с тактильной отдачей.
-* **Карточка сервера и выбор локации**: отображение страны, города, флага и пинга. При тапе открывается шторка с авто-выбором самого быстрого сервера.
-* **Телеметрия в реальном времени**: живой спидометр загрузки/отдачи (Мбит/с) и счетчик трафика.
-* **Быстрое управление защитой**:
-  * `🤖 Ghost-Matrix AI` — интеллектуальное разделение сервисов.
-  * `📊 HUD Маршрута` — просмотр DoH 1.1.1.1, IPv6 Blackhole и DPI Bypass статуса.
-  * `🛡️ Anti-DPI Щит` — микро-расщепление ClientHello (1-3 байта).
-  * `🇷🇺 Smart RU Direct` — прямой доступ для российских сервисов.
+### 2. 🧪 Турбо-Чекер
+* **Параллельный тест сотен ключей** за пару секунд (TCP + TLS Handshake + Egress CDN Trace).
+* **3-уровневое определение страны (99.9% точность)**:
+  * Показывает не только страну, но и город с хостинг-провайдером: `🇩🇪 Германия (Франкфурт) · Hetzner`, `🇳🇱 Нидерланды (Амстердам) · DigitalOcean`.
+* **Быстрый фильтр**: сортировка по пингу, отбор `ТОП-20`, `YouTube 4K`, `Discord`, `Reality`.
 
-### 2. 🧪 Турбо-Чекер & Бенчмарк
-* **Массовое сквозное тестирование**: параллельная проверка сотен нод сквозными туннелями с замером пинга, джиттера и устойчивости к ТСПУ.
-* **3-уровневое определение страны и провайдера (99.9% точность)**:
-  1. *Egress CDN Trace* — парсинг страны (`loc`), города (`colo`) и провайдера (`ASN: Hetzner, DigitalOcean, OVH, Leaseweb, Selectel`).
-  2. *Локальный GeoIP & Доменный TLD хоста* — мгновенное распознавание без сетевых задержек.
-  3. *Мультиязычный эвристический парсер* — поиск городов и стран на русском и английском языках.
-* **Фильтры и сортировки**: мгновенное выделение категорий `Живые`, `ТОП-20`, `YouTube 4K`, `Discord`, `Reality`, `Multi-Hop`.
-
----
-
-## 📷 Мгновенный QR-импорт и совместимость
-
-TurboProbe поддерживает обмен как отдельными ключами, так и целыми папками подписок:
-* Нажмите кнопку **`[ 📱 QR ]`** на любом сервере или в шторке экспорта.
-* Наведите камеру в любом совместимом клиенте для мгновенного импорта:
-  * 📱 **Happ** / **Incy**
-  * 🚀 **v2rayNG** / **Hiddify** / **Streisand**
-  * ⚡ **Clash Meta (Mihomo)** / **Sing-Box**
-  * 📺 **Android TV**
+### 3. 📷 QR-код в 1 клик
+* Нажмите кнопку **`[ 📱 QR ]`** на любом сервере или в окне экспорта.
+* Наведите камеру в **Happ, Incy, v2rayNG, Hiddify, Streisand** или на **Android TV** — и конфиг импортируется моментально.
 
 ---
 
-## 🚀 Установка и сборка
+## 🚀 Установка
 
-### Скачать готовый APK
-Скачайте актуальный релиз со страницы [Releases](https://github.com/SH20FK/TurboProbe/releases).
+### Android
+Скачайте готовый `.apk` из раздела [Releases](https://github.com/SH20FK/TurboProbe/releases) и установите на телефон.
 
-### Сборка из исходников (Flutter)
+### Windows
+Склонируйте репозиторий и запустите:
 ```bash
-# Клонировать репозиторий
+cd app
+flutter run -d windows
+```
+*На Windows при нажатии «Подключить» автоматически настраивается системный системный прокси `127.0.0.1:10808` с прямым доступом для всех `.ru` сайтов.*
+
+---
+
+## 🛠️ Сборка из исходников
+
+```bash
+# Клонировать репо
 git clone https://github.com/SH20FK/TurboProbe.git
 cd TurboProbe/app
 
-# Установить зависимости
+# Установить зависимости Flutter
 flutter pub get
 
-# Собрать Release APK
+# Собрать релизный APK
 flutter build apk --release
 ```
 
 ---
 
-## 🌐 English Summary
-
-**TurboProbe** is a next-generation sovereign VPN client and ultra-fast proxy benchmark engine designed for high resilience against DPI censorship and whitelist shutdowns:
-* **Built-in Native Android VPN Engine** with WireGuard / 1.1.1.1 minimalist aesthetic and split-routing.
-* **Ghost-Matrix Smart Routing**: automatically routes YouTube through high-bandwidth nodes, Discord/Gaming through low-jitter nodes, and domestic banking directly at full speed.
-* **3-Tier Egress GeoIP & ASN Provider Detection**: determines real server location and hosting company (`Hetzner`, `DigitalOcean`, `OVH`, `Leaseweb`) with 99.9% accuracy.
-* **24/7 Automated GitHub Aggregator**: auto-updates clean, deduplicated subscriptions every 6 hours in `sub/`.
-
----
-
 <p align="center">
-  Разработано с ❤️ для свободного и быстрого интернета без цензуры.
+  Делитесь сабками и пользуйтесь свободным интернетом! ⚡
 </p>

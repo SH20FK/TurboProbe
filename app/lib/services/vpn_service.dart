@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import '../models/node_model.dart';
+import 'windows_proxy_service.dart';
 
 enum VpnState {
   disconnected,
@@ -38,9 +39,10 @@ class VpnService {
       } catch (_) {
         return false;
       }
+    } else if (Platform.isWindows) {
+      return await WindowsProxyService.start(node);
     } else {
-      // Desktop Fallback: Local proxy simulation / SOCKS5 connection
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 300));
       return true;
     }
   }
@@ -53,6 +55,8 @@ class VpnService {
       } catch (_) {
         return false;
       }
+    } else if (Platform.isWindows) {
+      return await WindowsProxyService.stop();
     } else {
       await Future.delayed(const Duration(milliseconds: 300));
       return true;

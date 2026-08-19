@@ -31,6 +31,9 @@ class MainActivity : FlutterActivity() {
                 "startVpn" -> {
                     val serverName = call.argument<String>("server_name") ?: "TurboProbe Fast Node"
                     val serverIp = call.argument<String>("server_ip") ?: "1.1.1.1"
+                    val serverPort = call.argument<Int>("port") ?: 443
+                    val protocol = call.argument<String>("protocol") ?: "vless"
+                    val rawUri = call.argument<String>("raw_uri") ?: ""
 
                     val intent = VpnService.prepare(this)
                     if (intent != null) {
@@ -39,7 +42,7 @@ class MainActivity : FlutterActivity() {
                         pendingServerIp = serverIp
                         startActivityForResult(intent, VPN_REQUEST_CODE)
                     } else {
-                        startVpnService(serverName, serverIp)
+                        startVpnService(serverName, serverIp, serverPort, protocol, rawUri)
                         result.success(true)
                     }
                 }
@@ -60,11 +63,14 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun startVpnService(serverName: String, serverIp: String) {
+    private fun startVpnService(serverName: String, serverIp: String, serverPort: Int = 443, protocol: String = "vless", rawUri: String = "") {
         val intent = Intent(this, TurboProbeVpnService::class.java).apply {
             action = TurboProbeVpnService.ACTION_CONNECT
             putExtra("server_name", serverName)
             putExtra("server_ip", serverIp)
+            putExtra("port", serverPort)
+            putExtra("protocol", protocol)
+            putExtra("raw_uri", rawUri)
         }
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             startForegroundService(intent)

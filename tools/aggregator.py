@@ -252,6 +252,18 @@ def main():
     
     fetched_count = 0
     all_uris = []
+    direct_ru_fetched = {}
+
+    RU_DIRECT_SOURCES = {
+        "https://gitverse.ru/api/repos/ru-wbl/wl/raw/branch/master/KvRuVPN/KvRuVPN.txt",
+        "https://gitverse.ru/api/repos/Akres/VPN/raw/branch/master/all",
+        "https://gitverse.ru/api/repos/flaafix/AetrisVPN/raw/branch/master/AetrisVPN.txt",
+        "https://gitverse.ru/api/repos/flaafix/AetrisVPN_Black_list/raw/branch/master/configs.txt",
+        "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
+        "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt",
+        "https://yahuy.eu.cc/purple.txt",
+        "https://clck.ru/3Tju7N",
+    }
     
     # Concurrent Fetching
     with ThreadPoolExecutor(max_workers=30) as executor:
@@ -265,6 +277,8 @@ def main():
                     if extracted:
                         fetched_count += 1
                         all_uris.extend(extracted)
+                        if url in RU_DIRECT_SOURCES:
+                            direct_ru_fetched[url] = extracted
                         print(f"  [+] Fetched {len(extracted):4d} keys from: {url[:65]}...")
             except Exception:
                 pass
@@ -291,14 +305,29 @@ def main():
     hy2_nodes = []
     ss_nodes = []
     anti_whitelist_pool = []
+
+    RU_DIRECT_SOURCES = {
+        "https://gitverse.ru/api/repos/ru-wbl/wl/raw/branch/master/KvRuVPN/KvRuVPN.txt",
+        "https://gitverse.ru/api/repos/Akres/VPN/raw/branch/master/all",
+        "https://gitverse.ru/api/repos/flaafix/AetrisVPN/raw/branch/master/AetrisVPN.txt",
+        "https://gitverse.ru/api/repos/flaafix/AetrisVPN_Black_list/raw/branch/master/configs.txt",
+        "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
+        "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt",
+        "https://yahuy.eu.cc/purple.txt",
+        "https://clck.ru/3Tju7N",
+    }
     
+    # 1. Unconditionally add all keys from direct Russian anti-whitelist sources
+    for url, keys in direct_ru_fetched.items():
+        anti_whitelist_pool.extend(keys)
+
+    # 2. Add keys with verified Russian SNIs from global sources
     for uri in unique_uris:
         lower = uri.lower()
         if lower.startswith("vless://"):
             vless_nodes.append(uri)
             if "security=reality" in lower or "pbk=" in lower:
                 reality_nodes.append(uri)
-                # Genuine Russian Whitelist SNI match
                 if any(kw in lower for kw in WHITELIST_SNI_KEYWORDS):
                     anti_whitelist_pool.append(uri)
         elif lower.startswith("trojan://"):

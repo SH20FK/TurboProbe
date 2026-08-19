@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/node_model.dart';
@@ -16,9 +17,29 @@ class VpnScreen extends StatefulWidget {
   State<VpnScreen> createState() => _VpnScreenState();
 }
 
-class _VpnScreenState extends State<VpnScreen> {
+class _VpnScreenState extends State<VpnScreen> with SingleTickerProviderStateMixin {
   bool _smartRuDirect = true;
   bool _antiDpiShield = true;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.06).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +64,8 @@ class _VpnScreenState extends State<VpnScreen> {
       child: Column(
         children: [
           // 1. Status Pill Badge
-          Container(
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: isConnected
@@ -59,14 +81,26 @@ class _VpnScreenState extends State<VpnScreen> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: isConnected
-                        ? AppTheme.statusFast
-                        : (isConnecting ? AppTheme.accent : AppTheme.statusSlow),
-                    shape: BoxShape.circle,
+                AnimatedBuilder(
+                  animation: _pulseAnimation,
+                  builder: (context, child) => Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: isConnected
+                          ? AppTheme.statusFast
+                          : (isConnecting ? AppTheme.accent : AppTheme.statusSlow),
+                      shape: BoxShape.circle,
+                      boxShadow: isConnected
+                          ? [
+                              BoxShadow(
+                                color: AppTheme.statusFast.withOpacity(0.6),
+                                blurRadius: 6 * _pulseAnimation.value,
+                                spreadRadius: 2 * _pulseAnimation.value,
+                              ),
+                            ]
+                          : [],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -88,11 +122,12 @@ class _VpnScreenState extends State<VpnScreen> {
           ),
           const SizedBox(height: 24),
 
-          // 2. Central Minimal Power Toggle Switch (WireGuard / 1.1.1.1 Style)
+          // 2. Central Animated Power Switch with Breathing Pulse
           GestureDetector(
             onTap: isConnecting
                 ? null
                 : () {
+                    HapticFeedback.mediumImpact();
                     if (isConnected) {
                       vpn.disconnect();
                     } else if (targetNode != null) {
@@ -101,45 +136,59 @@ class _VpnScreenState extends State<VpnScreen> {
                       LocationPickerSheet.show(context);
                     }
                   },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isConnected ? Colors.white : AppTheme.surfaceContainerLow,
-                border: Border.all(
-                  color: isConnected
-                      ? Colors.white
-                      : (isConnecting ? AppTheme.accent : AppTheme.dividerDark),
-                  width: isConnected ? 4 : 2,
-                ),
-                boxShadow: isConnected
-                    ? [
-                        BoxShadow(
-                          color: Colors.white.withOpacity(0.25),
-                          blurRadius: 30,
-                          spreadRadius: 4,
-                        ),
-                      ]
-                    : [],
-              ),
-              child: Center(
-                child: isConnecting
-                    ? const SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 3,
-                          color: AppTheme.accent,
-                        ),
-                      )
-                    : Icon(
-                        Icons.power_settings_new,
-                        size: 56,
-                        color: isConnected ? Colors.black : AppTheme.textPrimaryDark,
+            child: AnimatedBuilder(
+              animation: _pulseAnimation,
+              builder: (context, child) {
+                final scale = isConnected ? _pulseAnimation.value : 1.0;
+                return Transform.scale(
+                  scale: scale,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 140,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isConnected ? Colors.white : AppTheme.surfaceContainerLow,
+                      border: Border.all(
+                        color: isConnected
+                            ? Colors.white
+                            : (isConnecting ? AppTheme.accent : AppTheme.dividerDark),
+                        width: isConnected ? 4 : 2,
                       ),
-              ),
+                      boxShadow: isConnected
+                          ? [
+                              BoxShadow(
+                                color: Colors.white.withOpacity(0.35 * _pulseAnimation.value),
+                                blurRadius: 35 * _pulseAnimation.value,
+                                spreadRadius: 6 * _pulseAnimation.value,
+                              ),
+                              BoxShadow(
+                                color: AppTheme.accent.withOpacity(0.2),
+                                blurRadius: 60,
+                                spreadRadius: 10,
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: Center(
+                      child: isConnecting
+                          ? const SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: AppTheme.accent,
+                              ),
+                            )
+                          : Icon(
+                              Icons.power_settings_new,
+                              size: 56,
+                              color: isConnected ? Colors.black : AppTheme.textPrimaryDark,
+                            ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(height: 14),

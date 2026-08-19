@@ -321,11 +321,15 @@ class _GhostMatrixSheetState extends State<GhostMatrixSheet> {
                   else if (node != null)
                     Row(
                       children: [
-                        Text(node.flagEmoji ?? '🌐', style: const TextStyle(fontSize: 13)),
-                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            '${node.name} (${node.countryName ?? "Node"})',
+                            rule.id == 'streaming'
+                                ? '🚀 ${node.flagEmoji ?? "🌐"} ${node.speedMbps.toStringAsFixed(1)} Мбит/с (${node.streamBandGrade}) · ${node.name}'
+                                : (rule.id == 'gaming_voice'
+                                    ? '🎮 ${node.flagEmoji ?? "🌐"} ${node.pingMs} мс · Джиттер: ${node.jitterMs} мс (Zero-Lag) · ${node.name}'
+                                    : (rule.id == 'ai_work'
+                                        ? '🤖 ${node.flagEmoji ?? "🌐"} Чистый IP (OpenAI Pass) · ${node.name}'
+                                        : '🛡️ ${node.flagEmoji ?? "🌐"} Anti-DPI Reality (${node.pingMs} мс) · ${node.name}')),
                             style: GoogleFonts.roboto(fontSize: 11, fontWeight: FontWeight.w500, color: AppTheme.textPrimaryDark),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
