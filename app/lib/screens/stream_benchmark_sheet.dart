@@ -113,7 +113,7 @@ class _StreamBenchmarkSheetState extends State<StreamBenchmarkSheet> {
                 color: AppTheme.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: _result!.canStream4K ? AppTheme.statusFast.withValues(alpha: 0.4) : AppTheme.accent.withValues(alpha: 0.3),
+                  color: _result!.canStream4K ? AppTheme.statusFast.withOpacity(0.4) : AppTheme.accent.withOpacity(0.3),
                 ),
               ),
               child: Column(

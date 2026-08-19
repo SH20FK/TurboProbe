@@ -154,7 +154,7 @@ class _SplitTunnelSheetState extends State<SplitTunnelSheet> {
                     color: AppTheme.surfaceContainerLowest,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: app.isProxied ? AppTheme.accent.withValues(alpha: 0.3) : AppTheme.dividerDark,
+                      color: app.isProxied ? AppTheme.accent.withOpacity(0.3) : AppTheme.dividerDark,
                     ),
                   ),
                   child: Row(
