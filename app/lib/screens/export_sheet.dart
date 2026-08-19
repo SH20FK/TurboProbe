@@ -157,6 +157,7 @@ class _ExportSheetState extends State<ExportSheet> {
 
     sb.writeln('port: 7890\nsocks-port: 7891\nmode: rule\n\nproxies:');
     for (int i = 0; i < nodes.length; i++) {
+      final n = nodes[i];
       final name = '⚡ [TOP-#${i + 1}] ${n.flagEmoji ?? "🌐"} ${n.countryName ?? "Node"} ${n.pingMs}ms';
       proxyNames.add('"$name"');
       sb.writeln('  - name: "$name"');

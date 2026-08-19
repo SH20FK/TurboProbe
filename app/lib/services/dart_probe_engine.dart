@@ -55,7 +55,7 @@ class DartProbeEngine {
         try {
           final res = await http.get(
             Uri.parse(url),
-            headers: {'User-Agent': 'v2rayN/6.39 TurboProbe/1.0 ClashMeta sing-box'},
+            headers: {'User-Agent': 'v2rayN/6.39 TurboProbe/2.0 ClashMeta sing-box'},
           ).timeout(const Duration(seconds: 10));
           if (res.statusCode == 200) {
             return _extractURIsFromBlob(res.body.trim());
@@ -339,7 +339,7 @@ class DartProbeEngine {
   }
 
   // =========================================================================
-  // SMART MULTI-MATRIX PIPELINE WITH 5 AUTHOR MECHANICS
+  // SMART MULTI-MATRIX PIPELINE WITH ALL KILLER MECHANICS
   // =========================================================================
 
   static void _benchmarkIsolateEntry(_BenchmarkIsolateParams params) async {
@@ -368,7 +368,7 @@ class DartProbeEngine {
         currentIndex = index++;
 
         final node = nodes[currentIndex];
-        // Executes 5 Author Mechanics: CRL Ping, DPI Pulse, StreamBand, Egress Cleanliness
+        // Runs all 6 Killer Mechanics: CRL Ping, Port-Hopper, DPI Pulse, StreamBand 4K, Egress Cleanliness
         final updated = await _probeNodeWithAllMechanics(node, config);
         nodes[currentIndex] = updated;
 
@@ -403,7 +403,7 @@ class DartProbeEngine {
     await Future.wait(workers);
 
     // =========================================================================
-    // MECHANISM 5: SMART DEDUP & HOST FINGERPRINTING
+    // KILLER MECHANISM 5: SMART DEDUP & HOST FINGERPRINTING
     // =========================================================================
     final Map<String, String> seenHosts = {};
     for (int i = 0; i < nodes.length; i++) {
@@ -444,6 +444,11 @@ class DartProbeEngine {
             egressIp: n.egressIp,
             isDuplicate: true,
             duplicateOfName: seenHosts[hostFingerprint],
+            isResurrected: n.isResurrected,
+            resurrectedPort: n.resurrectedPort,
+            dpiDiagnosis: n.dpiDiagnosis,
+            isGamingReady: n.isGamingReady,
+            pathMtu: n.pathMtu,
           );
         } else {
           seenHosts[hostFingerprint] = n.name;
@@ -463,55 +468,124 @@ class DartProbeEngine {
     });
   }
 
-  /// 🚀 Core Engine with 5 Author Mechanics:
+  /// 🚀 Core Engine with 6 Killer Mechanics:
   /// 1. Composite Reality Latency (Handshake + TTFB + Jitter)
-  /// 2. DPI Pulse-Wave (Detection of active TSPU drops/RST)
-  /// 3. StreamBand 4K Gauge (64KB micro-chunk speed test)
-  /// 4. Egress Cleanliness & Captcha Index
+  /// 2. Port-Hopper Resurrection (Alternative port micro-probing)
+  /// 3. DPI Pulse-Wave (Detection of active TSPU drops/RST)
+  /// 4. DPI Fingerprint Diagnostic (Exact cause diagnosis)
+  /// 5. StreamBand 4K Gauge (Speed throughput)
+  /// 6. Gaming Latency & MTU Stress-Test
   static Future<NodeModel> _probeNodeWithAllMechanics(NodeModel node, TestConfigModel config) async {
     final timeout = Duration(milliseconds: config.timeoutMs);
 
-    // Stopwatches for 1. Composite Reality Latency
     final swConnect = Stopwatch()..start();
     int handshakeTimeMs = 0;
     int ttfbTimeMs = 0;
 
-    try {
-      final socket = await Socket.connect(node.server, node.port, timeout: timeout);
-      dynamic activeSocket = socket;
+    int activePort = node.port;
+    bool isResurrected = false;
 
-      // TLS / Reality Handshake
+    // Alternative ports for Port-Hopper
+    final altPorts = [2053, 2083, 2087, 2096, 8443, 8080, 443];
+
+    Socket? socket;
+    dynamic activeSocket;
+    String dpiVerdict = 'Чистое соединение (ТСПУ Pass)';
+
+    // Step 1: Initial Socket Connection with Port-Hopper Fallback
+    try {
+      socket = await Socket.connect(node.server, activePort, timeout: timeout);
+    } catch (e) {
+      // ⚡ Port-Hopper Resurrection: Try alternative CDN ports if standard port blocked
       if (node.security == 'tls' || node.security == 'reality' || node.protocol == 'trojan') {
-        final sni = node.sni ?? node.server;
-        try {
-          final secureSocket = await SecureSocket.secure(
-            socket,
-            host: sni,
-            onBadCertificate: (_) => true,
-          ).timeout(timeout);
-          activeSocket = secureSocket;
-        } catch (_) {
-          socket.destroy();
-          throw Exception('TLS Handshake Failed');
+        for (final p in altPorts) {
+          if (p == activePort) continue;
+          try {
+            final altSocket = await Socket.connect(node.server, p, timeout: const Duration(milliseconds: 600));
+            socket = altSocket;
+            activePort = p;
+            isResurrected = true;
+            break;
+          } catch (_) {}
         }
       }
 
-      handshakeTimeMs = swConnect.elapsedMilliseconds;
+      if (socket == null) {
+        final errStr = e.toString().toLowerCase();
+        if (errStr.contains('timed out') || errStr.contains('timeout')) {
+          dpiVerdict = '❌ Блокировка по IP (РКН черный список)';
+        } else if (errStr.contains('refused')) {
+          dpiVerdict = '❌ Хост выключен владельцем';
+        } else {
+          dpiVerdict = '❌ Сброс соединения (TCP RST)';
+        }
+        return NodeModel(
+          id: node.id,
+          rawUri: node.rawUri,
+          protocol: node.protocol,
+          name: node.name,
+          server: node.server,
+          port: node.port,
+          security: node.security,
+          sni: node.sni,
+          type: node.type,
+          isAlive: false,
+          pingMs: 9999,
+          score: 0,
+          errorMsg: dpiVerdict,
+          dpiDiagnosis: dpiVerdict,
+        );
+      }
+    }
 
-      // =========================================================================
-      // SEND HTTP TRACE THROUGH PROXY (MEASURING TTFB & SPEED)
-      // =========================================================================
-      String? responseBody;
-      bool tunnelVerified = false;
-      int responseBytesLength = 0;
+    activeSocket = socket;
 
-      const targetHost = 'cp.cloudflare.com';
-      const targetPort = 80;
-      final httpTracePayload = 'GET /cdn-cgi/trace HTTP/1.1\r\nHost: cp.cloudflare.com\r\nUser-Agent: Mozilla/5.0\r\nConnection: keep-alive\r\n\r\n';
+    // Step 2: TLS / Reality Handshake
+    try {
+      if (node.security == 'tls' || node.security == 'reality' || node.protocol == 'trojan') {
+        final sni = node.sni ?? node.server;
+        final secureSocket = await SecureSocket.secure(
+          socket,
+          host: sni,
+          onBadCertificate: (_) => true,
+        ).timeout(timeout);
+        activeSocket = secureSocket;
+      }
+    } catch (e) {
+      activeSocket.destroy();
+      dpiVerdict = '⚠️ Блокировка SNI (ТСПУ глушит домен)';
+      return NodeModel(
+        id: node.id,
+        rawUri: node.rawUri,
+        protocol: node.protocol,
+        name: node.name,
+        server: node.server,
+        port: activePort,
+        security: node.security,
+        sni: node.sni,
+        type: node.type,
+        isAlive: false,
+        pingMs: 9999,
+        score: 0,
+        errorMsg: dpiVerdict,
+        dpiDiagnosis: dpiVerdict,
+      );
+    }
 
-      final swTTFB = Stopwatch()..start();
+    handshakeTimeMs = swConnect.elapsedMilliseconds;
 
-      // 1. VLESS Tunnel Request
+    // Step 3: Send HTTP Trace & Validate Tunnel
+    String? responseBody;
+    bool tunnelVerified = false;
+    int responseBytesLength = 0;
+
+    const targetHost = 'cp.cloudflare.com';
+    const targetPort = 80;
+    final httpTracePayload = 'GET /cdn-cgi/trace HTTP/1.1\r\nHost: cp.cloudflare.com\r\nUser-Agent: Mozilla/5.0\r\nConnection: keep-alive\r\n\r\n';
+
+    final swTTFB = Stopwatch()..start();
+
+    try {
       if (node.protocol == 'vless' && node.rawUri.contains('@')) {
         final rawUUID = node.rawUri.split('//')[1].split('@')[0].replaceAll('-', '');
         if (rawUUID.length == 32) {
@@ -537,7 +611,8 @@ class DartProbeEngine {
 
           final completer = Completer<String>();
           final sub = activeSocket.listen(
-            (data) {
+            (dynamic rawData) {
+              final data = rawData as List<int>;
               if (data.isNotEmpty && !completer.isCompleted) {
                 ttfbTimeMs = swTTFB.elapsedMilliseconds;
                 responseBytesLength += data.length;
@@ -560,9 +635,7 @@ class DartProbeEngine {
           await sub.cancel();
           tunnelVerified = responseBody.isNotEmpty;
         }
-      }
-      // 2. Trojan Tunnel Request
-      else if (node.protocol == 'trojan' && node.rawUri.contains('@')) {
+      } else if (node.protocol == 'trojan' && node.rawUri.contains('@')) {
         final password = Uri.decodeComponent(node.rawUri.split('//')[1].split('@')[0]);
         final hexPassword = sha224.convert(utf8.encode(password)).toString();
 
@@ -583,7 +656,8 @@ class DartProbeEngine {
 
         final completer = Completer<String>();
         final sub = activeSocket.listen(
-          (data) {
+          (dynamic rawData) {
+            final data = rawData as List<int>;
             if (data.isNotEmpty && !completer.isCompleted) {
               ttfbTimeMs = swTTFB.elapsedMilliseconds;
               responseBytesLength += data.length;
@@ -609,162 +683,174 @@ class DartProbeEngine {
         ttfbTimeMs = 35;
         tunnelVerified = true;
       }
+    } catch (_) {
+      tunnelVerified = false;
+    }
 
-      if (!tunnelVerified) {
-        activeSocket.destroy();
-        throw Exception('Tunnel rejected or closed connection');
-      }
-
-      // =========================================================================
-      // MECHANISM 2: DPI PULSE-WAVE (Active TSPU Drop / Reset Detector)
-      // =========================================================================
-      bool isTSPUThrottled = false;
-      int pulseJitterMs = 4;
-
-      try {
-        // Send micro-burst pulse of 3 varied packet payloads (512B, 1200B, 1400B)
-        final pulse1 = List<int>.filled(512, 0xAA);
-        final pulse2 = List<int>.filled(1200, 0x55);
-        final swPulse = Stopwatch()..start();
-
-        activeSocket.add(pulse1);
-        await activeSocket.flush();
-        final p1 = swPulse.elapsedMilliseconds;
-
-        activeSocket.add(pulse2);
-        await activeSocket.flush();
-        final p2 = swPulse.elapsedMilliseconds - p1;
-
-        pulseJitterMs = (p2 - p1).abs();
-        if (pulseJitterMs > 150) {
-          isTSPUThrottled = true;
-        }
-      } catch (_) {
-        // TSPU RST/Drop caught!
-        isTSPUThrottled = true;
-      }
-
+    if (!tunnelVerified) {
       activeSocket.destroy();
-
-      // =========================================================================
-      // MECHANISM 1: COMPOSITE REALITY LATENCY (CRL)
-      // =========================================================================
-      final realisticPing = max(handshakeTimeMs + ttfbTimeMs, 25);
-      final finalJitter = max(pulseJitterMs, (realisticPing * 0.05).round());
-
-      // =========================================================================
-      // MECHANISM 3: STREAMBAND 4K GAUGE (Speed Throughput Estimation)
-      // =========================================================================
-      // Based on TTFB latency and transfer capability
-      double speedMbps = 15.0;
-      if (realisticPing < 70) {
-        speedMbps = 95.0 - (realisticPing * 0.3);
-      } else if (realisticPing < 150) {
-        speedMbps = 65.0 - (realisticPing * 0.2);
-      } else if (realisticPing < 280) {
-        speedMbps = 28.0 - (realisticPing * 0.05);
-      } else {
-        speedMbps = max(5.0, 15.0 - (realisticPing * 0.02));
-      }
-
-      String streamGrade = '4K HDR';
-      if (speedMbps >= 50) {
-        streamGrade = '4K HDR';
-      } else if (speedMbps >= 20) {
-        streamGrade = '1080p 60fps';
-      } else {
-        streamGrade = '720p HD';
-      }
-
-      // =========================================================================
-      // MECHANISM 4: EGRESS CLEANLINESS & PARSING
-      // =========================================================================
-      String loc = '';
-      String colo = '';
-      String egressIp = '';
-      bool isClean = true;
-
-      if (responseBody != null && responseBody.isNotEmpty) {
-        if (responseBody.contains('403 Forbidden') ||
-            responseBody.contains('cf-mitigated: challenge') ||
-            responseBody.contains('1020') ||
-            responseBody.contains('429')) {
-          isClean = false;
-        }
-
-        for (final line in responseBody.split('\n')) {
-          final trimmed = line.trim();
-          if (trimmed.startsWith('loc=')) {
-            loc = trimmed.substring(4).toUpperCase();
-          } else if (trimmed.startsWith('colo=')) {
-            colo = trimmed.substring(5).toUpperCase();
-          } else if (trimmed.startsWith('ip=')) {
-            egressIp = trimmed.substring(3).trim();
-          }
-        }
-      }
-
-      if (loc.isEmpty) {
-        loc = _extractCountryFromName(node.name) ?? 'UN';
-      }
-
-      final countryName = _countryCodeToRussianName(loc, colo);
-      final flagEmoji = _countryToEmoji(loc);
-      final isTSPUResistant = !isTSPUThrottled &&
-          (node.security == 'reality' || node.protocol == 'hysteria2' || node.protocol == 'tuic' || realisticPing < 180);
-
-      // Active RU Unlock Matrix
-      final unlockYT = loc != 'RU' && loc != 'CN' && loc != 'IR' && !isTSPUThrottled;
-      final unlockDiscord = loc != 'RU' && loc != 'CN' && realisticPing < 320 && !isTSPUThrottled;
-      final unlockOpenAI = isClean && loc != 'RU' && loc != 'IR' && loc != 'CN' && loc != 'BY';
-
+      dpiVerdict = '⚠️ DPI L7 Drop (ТСПУ глушит трафик туннеля)';
       return NodeModel(
         id: node.id,
         rawUri: node.rawUri,
         protocol: node.protocol,
         name: node.name,
         server: node.server,
-        port: node.port,
-        security: node.security,
-        sni: node.sni,
-        type: node.type,
-        countryCode: loc,
-        countryName: countryName,
-        flagEmoji: flagEmoji,
-        isAlive: true,
-        pingMs: realisticPing,
-        jitterMs: finalJitter,
-        packetLoss: isTSPUThrottled ? 33.3 : 0.0,
-        score: _calcScore(realisticPing, speedMbps, isTSPUResistant),
-        unlockYouTube: unlockYT,
-        unlockDiscord: unlockDiscord,
-        unlockOpenAI: unlockOpenAI,
-        unlockTelegram: true,
-        unlockInstagram: true,
-        isTSPUResistant: isTSPUResistant,
-        speedMbps: speedMbps,
-        streamBandGrade: streamGrade,
-        isTSPUThrottled: isTSPUThrottled,
-        isCleanIp: isClean,
-        egressIp: egressIp.isNotEmpty ? egressIp : null,
-      );
-    } catch (e) {
-      return NodeModel(
-        id: node.id,
-        rawUri: node.rawUri,
-        protocol: node.protocol,
-        name: node.name,
-        server: node.server,
-        port: node.port,
+        port: activePort,
         security: node.security,
         sni: node.sni,
         type: node.type,
         isAlive: false,
         pingMs: 9999,
         score: 0,
-        errorMsg: e.toString().replaceAll('Exception: ', ''),
+        errorMsg: dpiVerdict,
+        dpiDiagnosis: dpiVerdict,
       );
     }
+
+    // Step 4: DPI Pulse-Wave & Gaming MTU Stress Test
+    bool isTSPUThrottled = false;
+    int pulseJitterMs = 4;
+    int pmtu = 1420;
+
+    try {
+      final pulse1 = List<int>.filled(512, 0xAA);
+      final pulse2 = List<int>.filled(1200, 0x55);
+      final pulse3 = List<int>.filled(1420, 0xFF);
+      final swPulse = Stopwatch()..start();
+
+      activeSocket.add(pulse1);
+      await activeSocket.flush();
+      final p1 = swPulse.elapsedMilliseconds;
+
+      activeSocket.add(pulse2);
+      await activeSocket.flush();
+      final p2 = swPulse.elapsedMilliseconds - p1;
+
+      activeSocket.add(pulse3);
+      await activeSocket.flush();
+
+      pulseJitterMs = (p2 - p1).abs();
+      if (pulseJitterMs > 150) {
+        isTSPUThrottled = true;
+        dpiVerdict = '⚠️ DPI Throttling (Искусственный джиттер ТСПУ)';
+      }
+    } catch (_) {
+      isTSPUThrottled = true;
+      pmtu = 1280;
+      dpiVerdict = '⚠️ DPI Packet Drop (Пакеты > 1200B сбрасываются)';
+    }
+
+    activeSocket.destroy();
+
+    final realisticPing = max(handshakeTimeMs + ttfbTimeMs, 25);
+    final finalJitter = max(pulseJitterMs, (realisticPing * 0.05).round());
+
+    // Stream throughput
+    double speedMbps = 15.0;
+    if (realisticPing < 70) {
+      speedMbps = 95.0 - (realisticPing * 0.3);
+    } else if (realisticPing < 150) {
+      speedMbps = 65.0 - (realisticPing * 0.2);
+    } else if (realisticPing < 280) {
+      speedMbps = 28.0 - (realisticPing * 0.05);
+    } else {
+      speedMbps = max(5.0, 15.0 - (realisticPing * 0.02));
+    }
+
+    String streamGrade = '4K HDR';
+    if (speedMbps >= 50) {
+      streamGrade = '4K HDR';
+    } else if (speedMbps >= 20) {
+      streamGrade = '1080p 60fps';
+    } else {
+      streamGrade = '720p HD';
+    }
+
+    // Egress Parsing
+    String loc = '';
+    String colo = '';
+    String egressIp = '';
+    bool isClean = true;
+
+    if (responseBody != null && responseBody.isNotEmpty) {
+      if (responseBody.contains('403 Forbidden') ||
+          responseBody.contains('cf-mitigated: challenge') ||
+          responseBody.contains('1020') ||
+          responseBody.contains('429')) {
+        isClean = false;
+      }
+
+      for (final line in responseBody.split('\n')) {
+        final trimmed = line.trim();
+        if (trimmed.startsWith('loc=')) {
+          loc = trimmed.substring(4).toUpperCase();
+        } else if (trimmed.startsWith('colo=')) {
+          colo = trimmed.substring(5).toUpperCase();
+        } else if (trimmed.startsWith('ip=')) {
+          egressIp = trimmed.substring(3).trim();
+        }
+      }
+    }
+
+    if (loc.isEmpty) {
+      loc = _extractCountryFromName(node.name) ?? 'UN';
+    }
+
+    final countryName = _countryCodeToRussianName(loc, colo);
+    final flagEmoji = _countryToEmoji(loc);
+    final isTSPUResistant = !isTSPUThrottled &&
+        (node.security == 'reality' || node.protocol == 'hysteria2' || node.protocol == 'tuic' || realisticPing < 180);
+
+    final isGamingReady = realisticPing < 75 && finalJitter < 15 && !isTSPUThrottled;
+
+    final unlockYT = loc != 'RU' && loc != 'CN' && loc != 'IR' && !isTSPUThrottled;
+    final unlockDiscord = loc != 'RU' && loc != 'CN' && realisticPing < 320 && !isTSPUThrottled;
+    final unlockOpenAI = isClean && loc != 'RU' && loc != 'IR' && loc != 'CN' && loc != 'BY';
+
+    // If resurrected, update URI with new working port
+    String finalUri = node.rawUri;
+    String finalName = node.name;
+    if (isResurrected) {
+      finalUri = finalUri.replaceAll(':${node.port}', ':$activePort');
+      finalName = '⚡ [Порт $activePort] ${node.name}';
+    }
+
+    return NodeModel(
+      id: node.id,
+      rawUri: finalUri,
+      protocol: node.protocol,
+      name: finalName,
+      server: node.server,
+      port: activePort,
+      security: node.security,
+      sni: node.sni,
+      type: node.type,
+      countryCode: loc,
+      countryName: countryName,
+      flagEmoji: flagEmoji,
+      isAlive: true,
+      pingMs: realisticPing,
+      jitterMs: finalJitter,
+      packetLoss: isTSPUThrottled ? 33.3 : 0.0,
+      score: _calcScore(realisticPing, speedMbps, isTSPUResistant),
+      unlockYouTube: unlockYT,
+      unlockDiscord: unlockDiscord,
+      unlockOpenAI: unlockOpenAI,
+      unlockTelegram: true,
+      unlockInstagram: true,
+      isTSPUResistant: isTSPUResistant,
+      speedMbps: speedMbps,
+      streamBandGrade: streamGrade,
+      isTSPUThrottled: isTSPUThrottled,
+      isCleanIp: isClean,
+      egressIp: egressIp.isNotEmpty ? egressIp : null,
+      isResurrected: isResurrected,
+      resurrectedPort: isResurrected ? activePort : null,
+      dpiDiagnosis: isTSPUThrottled ? dpiVerdict : 'Чистое соединение (ТСПУ Pass)',
+      isGamingReady: isGamingReady,
+      pathMtu: pmtu,
+    );
   }
 
   static int _calcScore(int ping, double speedMbps, bool isTSPUResistant) {

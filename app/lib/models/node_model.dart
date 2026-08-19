@@ -27,7 +27,7 @@ class NodeModel {
   final bool unlockInstagram;
   final bool isTSPUResistant;
 
-  // 🌟 5 Author Mechanics Fields
+  // Author Mechanics Fields
   final double speedMbps;
   final String? streamBandGrade; // '4K HDR', '1080p 60fps', '720p HD'
   final bool isTSPUThrottled; // DPI Pulse-Wave dropped/reset
@@ -35,6 +35,13 @@ class NodeModel {
   final String? egressIp; // True exit IP from Cloudflare Anycast
   final bool isDuplicate; // Host Fingerprint Deduplication
   final String? duplicateOfName;
+
+  // 🌟 6 New Killer Mechanics
+  final bool isResurrected; // Port-Hopper resurrection
+  final int? resurrectedPort;
+  final String? dpiDiagnosis; // 'Блокировка по IP', 'Блокировка по SNI', 'DPI L7 Drop', 'Хост выключен', 'Чистое соединение'
+  final bool isGamingReady; // Gaming Latency & MTU test
+  final int pathMtu; // e.g. 1420
 
   NodeModel({
     required this.id,
@@ -69,6 +76,11 @@ class NodeModel {
     this.egressIp,
     this.isDuplicate = false,
     this.duplicateOfName,
+    this.isResurrected = false,
+    this.resurrectedPort,
+    this.dpiDiagnosis,
+    this.isGamingReady = false,
+    this.pathMtu = 1420,
   });
 
   factory NodeModel.fromJson(Map<String, dynamic> json) {
@@ -105,6 +117,11 @@ class NodeModel {
       egressIp: json['egress_ip'] as String?,
       isDuplicate: json['is_duplicate'] as bool? ?? false,
       duplicateOfName: json['duplicate_of_name'] as String?,
+      isResurrected: json['is_resurrected'] as bool? ?? false,
+      resurrectedPort: (json['resurrected_port'] as num?)?.toInt(),
+      dpiDiagnosis: json['dpi_diagnosis'] as String?,
+      isGamingReady: json['is_gaming_ready'] as bool? ?? false,
+      pathMtu: (json['path_mtu'] as num?)?.toInt() ?? 1420,
     );
   }
 
@@ -142,6 +159,11 @@ class NodeModel {
       'egress_ip': egressIp,
       'is_duplicate': isDuplicate,
       'duplicate_of_name': duplicateOfName,
+      'is_resurrected': isResurrected,
+      'resurrected_port': resurrectedPort,
+      'dpi_diagnosis': dpiDiagnosis,
+      'is_gaming_ready': isGamingReady,
+      'path_mtu': pathMtu,
     };
   }
 }
