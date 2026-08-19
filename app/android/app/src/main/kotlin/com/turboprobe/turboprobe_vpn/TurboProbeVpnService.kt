@@ -66,7 +66,7 @@ class TurboProbeVpnService : VpnService() {
 
             vpnInterface = builder.establish()
 
-            // 🚀 Feature #6: Turbo-Boost Dual-Stack Wi-Fi / LTE Handover
+            // 🚀 Turbo-Boost Dual-Stack Wi-Fi / LTE Handover
             registerNetworkHandoverCallback()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -76,21 +76,21 @@ class TurboProbeVpnService : VpnService() {
 
     private fun registerNetworkHandoverCallback() {
         try {
-            connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             val request = NetworkRequest.Builder()
                 .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .build()
 
-            networkCallback = object : ConnectivityManager.NetworkCallback() {
+            val cb = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
                     super.onAvailable(network)
-                    // Bind underlying socket seamlessly without tearing down VPN TUN device
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                         setUnderlyingNetworks(arrayOf(network))
                     }
                 }
             }
-            connectivityManager?.registerNetworkCallback(request, networkCallback!!)
+            networkCallback = cb
+            connectivityManager?.registerNetworkCallback(request, cb)
         } catch (e: Exception) {
             e.printStackTrace()
         }
