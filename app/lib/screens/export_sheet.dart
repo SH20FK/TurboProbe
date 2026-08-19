@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/node_model.dart';
 import '../providers/probe_provider.dart';
 import '../theme/app_theme.dart';
@@ -219,6 +220,60 @@ class _ExportSheetState extends State<ExportSheet> {
     );
   }
 
+  void _showQrDialog(BuildContext context, String data, String title) {
+    if (data.isEmpty) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Row(
+          children: [
+            const Icon(Icons.qr_code_2, color: AppTheme.accent, size: 22),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.roboto(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textPrimaryDark),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: QrImageView(
+                data: data,
+                version: QrVersions.auto,
+                size: 220.0,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Наведите камеру в Happ / v2rayNG / Hiddify для импорта всей папки или ключа!',
+              style: GoogleFonts.roboto(fontSize: 12, color: AppTheme.textSecondaryDark),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Закрыть'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -238,9 +293,22 @@ class _ExportSheetState extends State<ExportSheet> {
                   'Экспорт с авто-группировкой',
                   style: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimaryDark),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 20, color: AppTheme.textSecondaryDark),
-                  onPressed: () => Navigator.pop(context),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.qr_code_2, size: 22, color: AppTheme.accent),
+                      tooltip: 'Показать QR-код',
+                      onPressed: () => _showQrDialog(
+                        context,
+                        _localSubUrl ?? 'http://127.0.0.1:8999/sub/top$_limit',
+                        'QR-код авто-папки TOP-$_limit',
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 20, color: AppTheme.textSecondaryDark),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -297,6 +365,20 @@ class _ExportSheetState extends State<ExportSheet> {
                             onPressed: () => _copyToClipboard(
                               _localSubUrl ?? 'http://127.0.0.1:8999/sub/top$_limit',
                               'Ссылка на подписку-группу скопирована! Вставьте в Happ как подписку.',
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            icon: const Icon(Icons.qr_code_2, size: 20, color: AppTheme.accent),
+                            tooltip: 'QR-код подписки',
+                            style: IconButton.styleFrom(
+                              backgroundColor: AppTheme.surfaceContainerHighest,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            ),
+                            onPressed: () => _showQrDialog(
+                              context,
+                              _localSubUrl ?? 'http://127.0.0.1:8999/sub/top$_limit',
+                              'QR-код подписки TOP-$_limit',
                             ),
                           ),
                         ],
@@ -418,24 +500,46 @@ class _ExportSheetState extends State<ExportSheet> {
               color: AppTheme.surfaceDark,
               border: Border(top: BorderSide(color: AppTheme.dividerDark, width: 1)),
             ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: FilledButton.icon(
-                icon: const Icon(Icons.copy, size: 16, color: Colors.black),
-                label: Text(
-                  'Скопировать пак в буфер ($_matchedCount нод с тегами)',
-                  style: GoogleFonts.roboto(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.copy, size: 16, color: Colors.black),
+                      label: Text(
+                        'Скопировать пак ($_matchedCount нод)',
+                        style: GoogleFonts.roboto(fontSize: 13.5, fontWeight: FontWeight.w600, color: Colors.black),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: _exportedContent.isEmpty
+                          ? null
+                          : () => _copyToClipboard(_exportedContent, 'Успешно скопировано $_matchedCount ключей с тегами!'),
+                    ),
+                  ),
                 ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 44,
+                  width: 48,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.surfaceContainerHighest,
+                      foregroundColor: AppTheme.accent,
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: _exportedContent.isEmpty
+                        ? null
+                        : () => _showQrDialog(context, _exportedContent, 'QR-код выгрузки ($_matchedCount ключей)'),
+                    child: const Icon(Icons.qr_code_2, size: 22),
+                  ),
                 ),
-                onPressed: _exportedContent.isEmpty
-                    ? null
-                    : () => _copyToClipboard(_exportedContent, 'Успешно скопировано $_matchedCount ключей с тегами!'),
-              ),
+              ],
             ),
           ),
         ],
