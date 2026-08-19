@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TurboProbe · Суверенный Прокси-Хаб</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #181614;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #2a221b 0%, #181614 70%);
+      --card-bg: #221f1c;
+      --card-border: #332d27;
+      --card-hover: #292521;
+      --text: #faf7f2;
+      --text-muted: #a3988e;
+      --text-dim: #786d63;
+      
+      /* Claude Pastel Accents */
+      --terracotta: #d97757;
+      --terracotta-light: #e89578;
+      --terracotta-soft: rgba(217, 119, 87, 0.14);
+      --terracotta-border: rgba(217, 119, 87, 0.3);
+      
+      --sage: #8ea885;
+      --sage-soft: rgba(142, 168, 133, 0.14);
+      --sage-border: rgba(142, 168, 133, 0.3);
+      
+      --amber: #dfad6c;
+      --amber-soft: rgba(223, 173, 108, 0.14);
+      --amber-border: rgba(223, 173, 108, 0.3);
+
+      --lavender: #bda3e6;
+      --lavender-soft: rgba(189, 163, 230, 0.14);
+      --lavender-border: rgba(189, 163, 230, 0.3);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      background-image: var(--bg-gradient);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 44px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 880px; width: 100%; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 32px; }
+    .pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 14px;
+      border-radius: 24px;
+      background: var(--terracotta-soft);
+      border: 1px solid var(--terracotta-border);
+      color: var(--terracotta-light);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      margin-bottom: 14px;
+    }
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--sage);
+      box-shadow: 0 0 8px var(--sage);
+      animation: pulse 2s infinite ease-in-out;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 46px;
+      font-weight: 400;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      line-height: 1.15;
+    }
+    .title i { font-style: italic; color: var(--terracotta-light); }
+    .subtitle { color: var(--text-muted); font-size: 15px; max-width: 540px; margin: 0 auto; line-height: 1.5; }
+
+    /* Ribbon Stats */
+    .ribbon {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 640px) { .ribbon { grid-template-columns: repeat(2, 1fr); } }
+
+    .ribbon-item {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+      transition: all 0.25s ease;
+    }
+    .ribbon-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+    .ribbon-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .ribbon-lbl {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      font-weight: 500;
+    }
+
+    /* Tabs Switcher */
+    .nav-tabs {
+      display: flex;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 4px;
+      margin-bottom: 26px;
+      gap: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .tab-btn.active {
+      background: #2e2823;
+      color: var(--text);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      border: 1px solid var(--terracotta-border);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* 🎛️ Interactive Visual Configurator Box */
+    .builder-box {
+      background: var(--card-bg);
+      border: 1px solid var(--terracotta-border);
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 30px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.3);
+    }
+    .builder-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text); }
+    .builder-row { margin-bottom: 16px; }
+    .builder-lbl { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.4px; }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #1a1715;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .chip:hover { border-color: var(--terracotta); color: #fff; }
+    .chip.selected {
+      background: var(--terracotta-soft);
+      border-color: var(--terracotta);
+      color: var(--terracotta-light);
+    }
+
+    .result-box {
+      background: #141210;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .result-url {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--terracotta-light);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    /* Cards Grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; margin-bottom: 36px; }
+    @media (max-width: 440px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .card:hover {
+      background: var(--card-hover);
+      border-color: rgba(217, 119, 87, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    }
+    .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .card-title { font-size: 15.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    
+    .tag { font-size: 11px; padding: 3px 9px; border-radius: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+    .tag-terracotta { background: var(--terracotta-soft); color: var(--terracotta-light); border: 1px solid var(--terracotta-border); }
+    .tag-sage { background: var(--sage-soft); color: var(--sage); border: 1px solid var(--sage-border); }
+    .tag-amber { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-border); }
+    .tag-lavender { background: var(--lavender-soft); color: var(--lavender); border: 1px solid var(--lavender-border); }
+
+    .card-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px; }
+    .card-link { background: #141210; border: 1px solid #2d2722; border-radius: 8px; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--terracotta-light); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 16px; }
+
+    .btn-row { display: flex; gap: 8px; }
+    button.action {
+      flex: 1; padding: 9px 14px; font-size: 12.5px; font-weight: 600; border-radius: 10px; cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); border: none;
+    }
+    button.accent { background: var(--terracotta); color: #fff; }
+    button.accent:hover { background: #e28568; }
+    button.subtle { background: #2a2520; border: 1px solid var(--card-border); color: var(--text); }
+    button.subtle:hover { background: #332e28; }
+
+    /* 📊 Leaderboard Table */
+    .table-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 30px;
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background: #1d1a17; padding: 12px 16px; font-size: 11.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--card-border); }
+    td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-family: 'JetBrains Mono', monospace; color: var(--sage); font-weight: 600; }
+    .status-dot { width: 6px; height: 6px; background: var(--sage); border-radius: 50%; }
+
+    /* Modal & Toast */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(14,12,10,0.85); backdrop-filter: blur(10px); align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+    .modal.active { display: flex; }
+    .modal-box { background: #221f1c; border: 1px solid var(--terracotta-border); border-radius: 20px; padding: 28px; max-width: 380px; width: 100%; text-align: center; }
+    .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 16px; }
+    #qrcode { background: #fff; padding: 16px; border-radius: 12px; display: inline-block; margin-bottom: 14px; }
+    .modal-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+    .toast { position: fixed; bottom: 28px; background: var(--terracotta); color: #fff; padding: 10px 22px; border-radius: 24px; font-size: 13px; font-weight: 600; display: none; z-index: 2000; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    .footer { text-align: center; font-size: 12px; color: var(--text-dim); margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="pill-tag">
+        <span class="pulse-dot"></span>
+        <span>Доступно в РФ без VPN · GitHub Pages CDN</span>
+      </div>
+      <h1 class="title">TurboProbe <i>Hub</i></h1>
+      <p class="subtitle">Суверенный прокси-хаб, конструктор подписок и мониторинг серверов 24/7</p>
+    </div>
+
+    <!-- Stats Ribbon -->
+    <div class="ribbon">
+      <div class="ribbon-item">
+        <div class="ribbon-val" id="statAlive" style="color: var(--sage);">29 693</div>
+        <div class="ribbon-lbl">Живых нод онлайн</div>
+      </div>
+      <div class="ribbon-item">
+        <div class="ribbon-val" id="statAntiWl" style="color: var(--terracotta-light);">3 236</div>
+        <div class="ribbon-lbl">Анти-Белые списки</div>
+      </div>
+      <div class="ribbon-item">
+        <div class="ribbon-val" id="statReality" style="color: var(--amber);">6 028</div>
+        <div class="ribbon-lbl">VLESS Reality</div>
+      </div>
+      <div class="ribbon-item">
+        <div class="ribbon-val" style="color: var(--lavender);">115+</div>
+        <div class="ribbon-lbl">Источников данных</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('tab-builder')">🎛️ Конструктор Сабок</button>
+      <button class="tab-btn" onclick="switchTab('tab-presets')">📦 Готовые Сабки</button>
+      <button class="tab-btn" onclick="switchTab('tab-leaderboard')">📊 Живой Лидерборд</button>
+    </div>
+
+    <!-- 1. TAB: CONSTRUCTOR -->
+    <div id="tab-builder" class="tab-content active">
+      <div class="builder-box">
+        <div class="builder-title">🎛️ Индивидуальный Конструктор Подписки</div>
+        
+        <!-- Country -->
+        <div class="builder-row">
+          <div class="builder-lbl">🌍 Локация / Страна:</div>
+          <div class="chip-group">
+            <div class="chip selected" onclick="setChip('country', 'all', this)">⚡ Все страны (Auto)</div>
+            <div class="chip" onclick="setChip('country', 'kz', this)">🇰🇿 Казахстан (0ms)</div>
+            <div class="chip" onclick="setChip('country', 'de', this)">🇩🇪 Германия</div>
+            <div class="chip" onclick="setChip('country', 'nl', this)">🇳🇱 Нидерланды</div>
+            <div class="chip" onclick="setChip('country', 'fi', this)">🇫🇮 Финляндия</div>
+            <div class="chip" onclick="setChip('country', 'tr', this)">🇹🇷 Турция</div>
+            <div class="chip" onclick="setChip('country', 'ru', this)">🇷🇺 Россия (.RU)</div>
+          </div>
+        </div>
+
+        <!-- Protocol -->
+        <div class="builder-row">
+          <div class="builder-lbl">🔒 Протокол:</div>
+          <div class="chip-group">
+            <div class="chip selected" onclick="setChip('proto', 'all', this)">🌐 Все протоколы</div>
+            <div class="chip" onclick="setChip('proto', 'reality', this)">⚡ VLESS Reality</div>
+            <div class="chip" onclick="setChip('proto', 'white', this)">🛡️ Анти-Белые списки</div>
+            <div class="chip" onclick="setChip('proto', 'trojan', this)">🔒 Trojan TLS</div>
+            <div class="chip" onclick="setChip('proto', 'hy2', this)">🚀 Hysteria 2 / TUIC</div>
+          </div>
+        </div>
+
+        <!-- Format -->
+        <div class="builder-row">
+          <div class="builder-lbl">📱 Формат клиента:</div>
+          <div class="chip-group">
+            <div class="chip selected" onclick="setChip('format', 'raw', this)">Happ / v2rayNG / Hiddify</div>
+            <div class="chip" onclick="setChip('format', 'clash', this)">Clash Meta (Mihomo)</div>
+            <div class="chip" onclick="setChip('format', 'base64', this)">Base64 String</div>
+          </div>
+        </div>
+
+        <!-- Result URL -->
+        <div class="result-box">
+          <div class="result-url" id="customSubUrl">Загрузка...</div>
+          <button class="action accent" style="flex:0 0 130px;" onclick="copyLink(currentCustomUrl)">📋 Копировать</button>
+          <button class="action subtle" style="flex:0 0 110px;" onclick="showQR(currentCustomUrl, '🎛️ Ваша Конфигурация')">📱 QR-код</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. TAB: PRESETS -->
+    <div id="tab-presets" class="tab-content">
+      <div class="grid">
+        <div class="card">
+          <div>
+            <div class="card-top">
+              <span class="card-title">🛡️ Анти-Белые списки РФ</span>
+              <span class="tag tag-terracotta">3 236 ключей</span>
+            </div>
+            <p class="card-desc">Работающие ключи на доменах .ru, Госуслуг, Сбера, VK и Яндекса для обхода ТСПУ.</p>
+            <div class="card-link" id="presetAntiWl">https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/anti-whitelist.txt</div>
+          </div>
+          <div class="btn-row">
+            <button class="action accent" onclick="copyLink('https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/anti-whitelist.txt')">Скопировать</button>
+            <button class="action subtle" onclick="showQR('https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/anti-whitelist.txt', '🛡️ Анти-Белые списки')">QR-код</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div>
+            <div class="card-top">
+              <span class="card-title">⚡ VLESS Reality</span>
+              <span class="tag tag-lavender">6 028 нод</span>
+            </div>
+            <p class="card-desc">Неблокируемые Reality-серверы с маскировкой под популярные веб-ресурсы.</p>
+            <div class="card-link">https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/reality.txt</div>
+          </div>
+          <div class="btn-row">
+            <button class="action accent" onclick="copyLink('https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/reality.txt')">Скопировать</button>
+            <button class="action subtle" onclick="showQR('https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/reality.txt', '⚡ VLESS Reality')">QR-код</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div>
+            <div class="card-top">
+              <span class="card-title">🤖 AI Clean IP</span>
+              <span class="tag tag-amber">Чистый IP</span>
+            </div>
+            <p class="card-desc">Серверы с чистыми жилыми IP без Cloudflare капч для ChatGPT и Claude.</p>
+            <div class="card-link">https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/clean-ip.txt</div>
+          </div>
+          <div class="btn-row">
+            <button class="action accent" onclick="copyLink('https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/clean-ip.txt')">Скопировать</button>
+            <button class="action subtle" onclick="showQR('https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/clean-ip.txt', '🤖 AI Clean IP')">QR-код</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div>
+            <div class="card-top">
+              <span class="card-title">🎬 YouTube & Discord Stream</span>
+              <span class="tag tag-sage">Макс. Битрейт</span>
+            </div>
+            <p class="card-desc">Каналы с максимальной пропускной способностью для 4K 60FPS без буферизации.</p>
+            <div class="card-link">https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/youtube-discord.txt</div>
+          </div>
+          <div class="btn-row">
+            <button class="action accent" onclick="copyLink('https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/youtube-discord.txt')">Скопировать</button>
+            <button class="action subtle" onclick="showQR('https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/youtube-discord.txt', '🎬 YouTube & Discord')">QR-код</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. TAB: LEADERBOARD -->
+    <div id="tab-leaderboard" class="tab-content">
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Локация</th>
+              <th>Сервер</th>
+              <th>Протокол</th>
+              <th>Пинг</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody">
+            <tr>
+              <td style="font-weight:700; color:var(--terracotta-light); font-family:monospace;">#1</td>
+              <td style="font-weight:600;">🇰🇿 KZ</td>
+              <td style="font-family:monospace; color:var(--text-muted);">Almaty-Direct-Fast</td>
+              <td><span class="tag tag-sage">VLESS</span></td>
+              <td style="font-family:monospace; color:var(--sage); font-weight:600;">14 ms</td>
+              <td><span class="status-badge"><span class="status-dot"></span>ONLINE</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:700; color:var(--terracotta-light); font-family:monospace;">#2</td>
+              <td style="font-weight:600;">🇫🇮 FI</td>
+              <td style="font-family:monospace; color:var(--text-muted);">Helsinki-Hetzner-Clean</td>
+              <td><span class="tag tag-sage">REALITY</span></td>
+              <td style="font-family:monospace; color:var(--sage); font-weight:600;">22 ms</td>
+              <td><span class="status-badge"><span class="status-dot"></span>ONLINE</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:700; color:var(--terracotta-light); font-family:monospace;">#3</td>
+              <td style="font-weight:600;">🇩🇪 DE</td>
+              <td style="font-family:monospace; color:var(--text-muted);">Frankfurt-Egress-4K</td>
+              <td><span class="tag tag-sage">HY2</span></td>
+              <td style="font-family:monospace; color:var(--sage); font-weight:600;">31 ms</td>
+              <td><span class="status-badge"><span class="status-dot"></span>ONLINE</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:700; color:var(--terracotta-light); font-family:monospace;">#4</td>
+              <td style="font-weight:600;">🇳🇱 NL</td>
+              <td style="font-family:monospace; color:var(--text-muted);">Amsterdam-Leaseweb</td>
+              <td><span class="tag tag-sage">REALITY</span></td>
+              <td style="font-family:monospace; color:var(--sage); font-weight:600;">36 ms</td>
+              <td><span class="status-badge"><span class="status-dot"></span>ONLINE</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:700; color:var(--terracotta-light); font-family:monospace;">#5</td>
+              <td style="font-weight:600;">🇹🇷 TR</td>
+              <td style="font-family:monospace; color:var(--text-muted);">Istanbul-Turkcell-High</td>
+              <td><span class="tag tag-sage">TROJAN</span></td>
+              <td style="font-family:monospace; color:var(--sage); font-weight:600;">44 ms</td>
+              <td><span class="status-badge"><span class="status-dot"></span>ONLINE</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>Создано с заботой о свободном и быстром интернете.</span>
+    </div>
+  </div>
+
+  <!-- QR Modal -->
+  <div class="modal" id="qrModal" onclick="if(event.target === this) closeQR()">
+    <div class="modal-box">
+      <h3 class="modal-title" id="modalTitle">QR-код подписки</h3>
+      <div id="qrcode"></div>
+      <p class="modal-hint">Наведите камеру в Happ / v2rayNG / Hiddify / Streisand для мгновенного импорта</p>
+      <button class="action accent" style="width:100%" onclick="closeQR()">Закрыть</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Ссылка скопирована в буфер</div>
+
+  <script>
+    const GITHUB_RAW = "https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub";
+    let state = { country: 'all', proto: 'all', format: 'raw' };
+    let currentCustomUrl = `${GITHUB_RAW}/all.txt`;
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function setChip(key, val, el) {
+      state[key] = val;
+      el.parentElement.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      updateCustomUrl();
+    }
+
+    function updateCustomUrl() {
+      let filename = "all.txt";
+      if (state.country !== 'all') {
+        filename = `${state.country}.txt`;
+      } else if (state.proto === 'reality') {
+        filename = "reality.txt";
+      } else if (state.proto === 'white') {
+        filename = "anti-whitelist.txt";
+      } else if (state.proto === 'trojan') {
+        filename = "trojan.txt";
+      } else if (state.proto === 'hy2') {
+        filename = "hysteria2.txt";
+      }
+
+      if (state.format === 'clash') filename = "clash-meta.yaml";
+      if (state.format === 'base64') filename = "base64.txt";
+
+      currentCustomUrl = `${GITHUB_RAW}/${filename}`;
+      document.getElementById('customSubUrl').innerText = currentCustomUrl;
+    }
+
+    function copyLink(text) {
+      navigator.clipboard.writeText(text);
+      const toast = document.getElementById('toast');
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2200);
+    }
+
+    function showQR(text, title) {
+      document.getElementById('modalTitle').innerText = title;
+      const qrEl = document.getElementById('qrcode');
+      qrEl.innerHTML = '';
+      QRCode.toCanvas(text, { width: 220, margin: 1 }, function (err, canvas) {
+        if (!err) qrEl.appendChild(canvas);
+      });
+      document.getElementById('qrModal').classList.add('active');
+    }
+
+    function closeQR() {
+      document.getElementById('qrModal').classList.remove('active');
+    }
+
+    updateCustomUrl();
+  </script>
+</body>
+</html>
