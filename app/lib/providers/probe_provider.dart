@@ -316,10 +316,13 @@ class ProbeProvider extends ChangeNotifier {
         return false;
       }
 
-      // RU Category Filter
+      // RU & Author Filter Criteria
       if (_selectedRUCategory == 'YOUTUBE' && !n.unlockYouTube) return false;
       if (_selectedRUCategory == 'DISCORD' && !n.unlockDiscord) return false;
       if (_selectedRUCategory == 'REALITY' && !(n.isTSPUResistant || n.security == 'reality')) return false;
+      if (_selectedRUCategory == 'STREAM_4K' && n.speedMbps < 50) return false;
+      if (_selectedRUCategory == 'CLEAN_IP' && !n.isCleanIp) return false;
+      if (_selectedRUCategory == 'UNIQUE_HOSTS' && n.isDuplicate) return false;
       if (_selectedRUCategory == 'AI' && !n.unlockOpenAI) return false;
 
       return true;

@@ -19,13 +19,22 @@ class NodeModel {
   final int score;
   final String? errorMsg;
 
-  // RU Region Specific Badges
+  // RU Region Specific Badges & Security
   final bool unlockYouTube;
   final bool unlockDiscord;
   final bool unlockOpenAI;
   final bool unlockTelegram;
   final bool unlockInstagram;
   final bool isTSPUResistant;
+
+  // 🌟 5 Author Mechanics Fields
+  final double speedMbps;
+  final String? streamBandGrade; // '4K HDR', '1080p 60fps', '720p HD'
+  final bool isTSPUThrottled; // DPI Pulse-Wave dropped/reset
+  final bool isCleanIp; // Egress Cleanliness (no Cloudflare challenge/block)
+  final String? egressIp; // True exit IP from Cloudflare Anycast
+  final bool isDuplicate; // Host Fingerprint Deduplication
+  final String? duplicateOfName;
 
   NodeModel({
     required this.id,
@@ -53,6 +62,13 @@ class NodeModel {
     this.unlockTelegram = false,
     this.unlockInstagram = false,
     this.isTSPUResistant = false,
+    this.speedMbps = 0.0,
+    this.streamBandGrade,
+    this.isTSPUThrottled = false,
+    this.isCleanIp = true,
+    this.egressIp,
+    this.isDuplicate = false,
+    this.duplicateOfName,
   });
 
   factory NodeModel.fromJson(Map<String, dynamic> json) {
@@ -82,6 +98,13 @@ class NodeModel {
       unlockTelegram: json['unlock_telegram'] as bool? ?? false,
       unlockInstagram: json['unlock_instagram'] as bool? ?? false,
       isTSPUResistant: json['is_tspu_resistant'] as bool? ?? false,
+      speedMbps: (json['speed_mbps'] as num?)?.toDouble() ?? 0.0,
+      streamBandGrade: json['stream_band_grade'] as String?,
+      isTSPUThrottled: json['is_tspu_throttled'] as bool? ?? false,
+      isCleanIp: json['is_clean_ip'] as bool? ?? true,
+      egressIp: json['egress_ip'] as String?,
+      isDuplicate: json['is_duplicate'] as bool? ?? false,
+      duplicateOfName: json['duplicate_of_name'] as String?,
     );
   }
 
@@ -112,6 +135,13 @@ class NodeModel {
       'unlock_telegram': unlockTelegram,
       'unlock_instagram': unlockInstagram,
       'is_tspu_resistant': isTSPUResistant,
+      'speed_mbps': speedMbps,
+      'stream_band_grade': streamBandGrade,
+      'is_tspu_throttled': isTSPUThrottled,
+      'is_clean_ip': isCleanIp,
+      'egress_ip': egressIp,
+      'is_duplicate': isDuplicate,
+      'duplicate_of_name': duplicateOfName,
     };
   }
 }
