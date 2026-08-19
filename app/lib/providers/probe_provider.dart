@@ -5,9 +5,11 @@ import '../models/test_config_model.dart';
 import '../services/dart_probe_engine.dart';
 
 enum SortOption { pingAsc, scoreDesc, protocol, country }
+enum QuickFilter { all, alive, top }
 
 class ProbeProvider extends ChangeNotifier {
   List<NodeModel> _nodes = [];
+  Map<String, int> _idToIndex = {};
   List<NodeModel> _filteredNodesCache = [];
   bool _isTesting = false;
   bool _isLoading = false;
@@ -23,6 +25,7 @@ class ProbeProvider extends ChangeNotifier {
 
   // Filter & Search
   String _searchQuery = '';
+  QuickFilter _quickFilter = QuickFilter.all;
   String _selectedProtocol = 'ALL';
   String _selectedCountry = 'ALL';
   String _selectedRUCategory = 'ALL';
@@ -53,14 +56,45 @@ class ProbeProvider extends ChangeNotifier {
   int get averagePing => _averagePing;
 
   String get searchQuery => _searchQuery;
+  QuickFilter get quickFilter => _quickFilter;
   String get selectedProtocol => _selectedProtocol;
   String get selectedCountry => _selectedCountry;
   String get selectedRUCategory => _selectedRUCategory;
   SortOption get sortOption => _sortOption;
 
+  int get activeFilterCount {
+    int count = 0;
+    if (_selectedRUCategory != 'ALL') count++;
+    if (_selectedProtocol != 'ALL') count++;
+    if (_selectedCountry != 'ALL') count++;
+    if (_sortOption != SortOption.pingAsc) count++;
+    return count;
+  }
+
+  // Returns nodes grouped by Country for Sticky/Section Headers
+  Map<String, List<NodeModel>> get groupedByCountry {
+    final map = <String, List<NodeModel>>{};
+    for (final node in _filteredNodesCache) {
+      final key = node.countryName != null && node.countryName!.isNotEmpty
+          ? '${node.flagEmoji ?? "🌐"} ${node.countryName}'
+          : (node.countryCode != null && node.countryCode!.isNotEmpty
+              ? '${node.flagEmoji ?? "🌐"} ${node.countryCode}'
+              : '🌐 Другие серверы');
+      map.putIfAbsent(key, () => []).add(node);
+    }
+    return map;
+  }
+
+  void _rebuildIndex() {
+    _idToIndex = {
+      for (int i = 0; i < _nodes.length; i++) _nodes[i].id: i,
+    };
+  }
+
+  /// Throttled notification: recalculates cache strictly when UI actually updates
   void _throttledNotify() {
-    _recalculateFilteredCache();
     if (_throttleTimer == null || !_throttleTimer!.isActive) {
+      _recalculateFilteredCache();
       notifyListeners();
       _throttleTimer = Timer(const Duration(milliseconds: 120), () {
         if (_hasPendingNotify) {
@@ -86,9 +120,10 @@ class ProbeProvider extends ChangeNotifier {
       final parsed = await DartProbeEngine.parseInput(text);
 
       if (parsed.isEmpty) {
-        _errorMessage = 'Не удалось распознать ключи. Проверьте правильность ссылок или формата.';
+        _errorMessage = 'Не удалось распознать ключи. Проверьте ссылки или формат.';
       } else {
         _nodes = parsed;
+        _rebuildIndex();
         _totalCount = parsed.length;
         _testedCount = 0;
         _aliveCount = 0;
@@ -117,6 +152,7 @@ class ProbeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      _dartEngine?.stop();
       _dartEngine = DartProbeEngine();
       _dartEngine!.runBenchmark(
         nodes: _nodes,
@@ -132,8 +168,9 @@ class ProbeProvider extends ChangeNotifier {
           final lastTested = data['last_tested'] as Map<String, dynamic>?;
           if (lastTested != null) {
             final updatedNode = NodeModel.fromJson(lastTested);
-            final idx = _nodes.indexWhere((n) => n.id == updatedNode.id);
-            if (idx != -1) {
+            // O(1) direct map lookup instead of O(N) linear scan
+            final idx = _idToIndex[updatedNode.id];
+            if (idx != null && idx < _nodes.length) {
               _nodes[idx] = updatedNode;
             }
           }
@@ -141,6 +178,7 @@ class ProbeProvider extends ChangeNotifier {
           if (data['is_completed'] == true) {
             _isTesting = false;
             _sortNodes();
+            _rebuildIndex();
             _recalculateFilteredCache();
             notifyListeners();
           } else {
@@ -151,6 +189,7 @@ class ProbeProvider extends ChangeNotifier {
           _isTesting = false;
           _nodes = completedNodes;
           _sortNodes();
+          _rebuildIndex();
           _recalculateFilteredCache();
           notifyListeners();
         },
@@ -170,7 +209,9 @@ class ProbeProvider extends ChangeNotifier {
   }
 
   void clearNodes() {
+    _dartEngine?.stop();
     _nodes.clear();
+    _idToIndex.clear();
     _filteredNodesCache.clear();
     _totalCount = 0;
     _testedCount = 0;
@@ -184,6 +225,7 @@ class ProbeProvider extends ChangeNotifier {
 
   void removeNode(String id) {
     _nodes.removeWhere((n) => n.id == id);
+    _rebuildIndex();
     _totalCount = _nodes.length;
     _aliveCount = _nodes.where((n) => n.isAlive).length;
     _deadCount = _nodes.where((n) => !n.isAlive && n.pingMs > 0).length;
@@ -193,6 +235,12 @@ class ProbeProvider extends ChangeNotifier {
 
   void setSearchQuery(String query) {
     _searchQuery = query;
+    _recalculateFilteredCache();
+    notifyListeners();
+  }
+
+  void setQuickFilter(QuickFilter qf) {
+    _quickFilter = qf;
     _recalculateFilteredCache();
     notifyListeners();
   }
@@ -218,6 +266,7 @@ class ProbeProvider extends ChangeNotifier {
   void setSortOption(SortOption option) {
     _sortOption = option;
     _sortNodes();
+    _rebuildIndex();
     _recalculateFilteredCache();
     notifyListeners();
   }
@@ -243,12 +292,20 @@ class ProbeProvider extends ChangeNotifier {
 
   void _recalculateFilteredCache() {
     final query = _searchQuery.toLowerCase().trim();
-    _filteredNodesCache = _nodes.where((n) {
+    List<NodeModel> list = _nodes.where((n) {
       if (query.isNotEmpty) {
         final matchesName = n.name.toLowerCase().contains(query);
         final matchesServer = n.server.toLowerCase().contains(query);
         final matchesCountry = (n.countryName ?? '').toLowerCase().contains(query);
         if (!matchesName && !matchesServer && !matchesCountry) return false;
+      }
+
+      // Quick Segment Filter (Все / Живые / ТОП)
+      if (_quickFilter == QuickFilter.alive && !n.isAlive) {
+        return false;
+      }
+      if (_quickFilter == QuickFilter.top && !n.isAlive) {
+        return false;
       }
 
       if (_selectedProtocol != 'ALL' && n.protocol.toUpperCase() != _selectedProtocol) {
@@ -259,7 +316,7 @@ class ProbeProvider extends ChangeNotifier {
         return false;
       }
 
-      // RU Category Specific Filter
+      // RU Category Filter
       if (_selectedRUCategory == 'YOUTUBE' && !n.unlockYouTube) return false;
       if (_selectedRUCategory == 'DISCORD' && !n.unlockDiscord) return false;
       if (_selectedRUCategory == 'REALITY' && !(n.isTSPUResistant || n.security == 'reality')) return false;
@@ -267,6 +324,15 @@ class ProbeProvider extends ChangeNotifier {
 
       return true;
     }).toList();
+
+    if (_quickFilter == QuickFilter.top) {
+      list.sort((a, b) => a.pingMs.compareTo(b.pingMs));
+      if (list.length > 20) {
+        list = list.sublist(0, 20);
+      }
+    }
+
+    _filteredNodesCache = list;
   }
 
   List<String> get availableProtocols {
@@ -289,6 +355,7 @@ class ProbeProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _dartEngine?.stop();
     _throttleTimer?.cancel();
     super.dispose();
   }

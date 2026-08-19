@@ -1,17 +1,34 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import '../models/node_model.dart';
 import '../models/test_config_model.dart';
 
+class _BenchmarkIsolateParams {
+  final List<Map<String, dynamic>> nodesJson;
+  final Map<String, dynamic> configJson;
+  final SendPort sendPort;
+
+  _BenchmarkIsolateParams({
+    required this.nodesJson,
+    required this.configJson,
+    required this.sendPort,
+  });
+}
+
 class DartProbeEngine {
-  bool _isCancelled = false;
+  Isolate? _isolate;
+  ReceivePort? _receivePort;
 
   void stop() {
-    _isCancelled = true;
+    _isolate?.kill(priority: Isolate.immediate);
+    _isolate = null;
+    _receivePort?.close();
+    _receivePort = null;
   }
 
   static Future<List<NodeModel>> parseInput(String input) async {
@@ -88,7 +105,6 @@ class DartProbeEngine {
       if (_isSupportedUri(line)) {
         uris.add(line);
       } else {
-        // Try decoding line as base64
         final decoded = _tryBase64Decode(line);
         if (decoded != null && decoded.isNotEmpty) {
           final subLines = _extractLines(decoded);
@@ -99,7 +115,6 @@ class DartProbeEngine {
       }
     }
 
-    // If still empty, try full text base64
     if (uris.isEmpty) {
       final decoded = _tryBase64Decode(text.replaceAll(RegExp(r'\s+'), ''));
       if (decoded != null) {
@@ -287,26 +302,69 @@ class DartProbeEngine {
     return null;
   }
 
+  /// Launches the benchmark in a dedicated background Isolate so the UI Isolate stays 100% jank-free
   Future<void> runBenchmark({
     required List<NodeModel> nodes,
     required TestConfigModel config,
     required Function(Map<String, dynamic>) onProgress,
     required Function(List<NodeModel>) onComplete,
   }) async {
-    _isCancelled = false;
+    stop();
+
     final total = nodes.length;
     if (total == 0) return;
+
+    _receivePort = ReceivePort();
+
+    final params = _BenchmarkIsolateParams(
+      nodesJson: nodes.map((n) => n.toJson()).toList(),
+      configJson: config.toJson(),
+      sendPort: _receivePort!.sendPort,
+    );
+
+    _isolate = await Isolate.spawn(_benchmarkIsolateEntry, params);
+
+    _receivePort!.listen((message) {
+      if (message is Map<String, dynamic>) {
+        final type = message['type'] as String?;
+        if (type == 'progress') {
+          onProgress(message['data'] as Map<String, dynamic>);
+        } else if (type == 'complete') {
+          final listJson = message['nodes'] as List<dynamic>? ?? [];
+          final completed = listJson.map((e) => NodeModel.fromJson(e as Map<String, dynamic>)).toList();
+          onComplete(completed);
+          stop();
+        }
+      }
+    });
+  }
+
+  // =========================================================================
+  // BACKGROUND ISOLATE ENTRYPOINT & WORKER EXECUTION
+  // =========================================================================
+
+  static void _benchmarkIsolateEntry(_BenchmarkIsolateParams params) async {
+    final nodes = params.nodesJson.map((e) => NodeModel.fromJson(e)).toList();
+    final config = TestConfigModel.fromJson(params.configJson);
+    final sendPort = params.sendPort;
+
+    final total = nodes.length;
+    if (total == 0) {
+      sendPort.send({'type': 'complete', 'nodes': []});
+      return;
+    }
 
     int tested = 0;
     int alive = 0;
     int dead = 0;
     int totalPingSum = 0;
 
-    final poolSize = min(max(config.concurrency, 10), 35);
+    // Background isolate can safely handle up to 100 concurrent workers
+    final poolSize = min(max(config.concurrency, 5), 100);
     int index = 0;
 
     Future<void> worker() async {
-      while (!_isCancelled) {
+      while (true) {
         int currentIndex;
         if (index >= total) return;
         currentIndex = index++;
@@ -326,15 +384,18 @@ class DartProbeEngine {
         final avgPing = alive > 0 ? (totalPingSum ~/ alive) : 0;
         final pct = (tested / total) * 100.0;
 
-        onProgress({
-          'total_count': total,
-          'tested_count': tested,
-          'alive_count': alive,
-          'dead_count': dead,
-          'percent': pct,
-          'average_ping_ms': avgPing,
-          'last_tested': updated.toJson(),
-          'is_completed': tested == total || _isCancelled,
+        sendPort.send({
+          'type': 'progress',
+          'data': {
+            'total_count': total,
+            'tested_count': tested,
+            'alive_count': alive,
+            'dead_count': dead,
+            'percent': pct,
+            'average_ping_ms': avgPing,
+            'last_tested': updated.toJson(),
+            'is_completed': tested == total,
+          },
         });
       }
     }
@@ -348,10 +409,13 @@ class DartProbeEngine {
       return a.pingMs.compareTo(b.pingMs);
     });
 
-    onComplete(nodes);
+    sendPort.send({
+      'type': 'complete',
+      'nodes': nodes.map((n) => n.toJson()).toList(),
+    });
   }
 
-  Future<NodeModel> _probeNode(NodeModel node, TestConfigModel config) async {
+  static Future<NodeModel> _probeNode(NodeModel node, TestConfigModel config) async {
     final timeout = Duration(milliseconds: config.timeoutMs);
     final stopwatch = Stopwatch()..start();
 
@@ -392,7 +456,6 @@ class DartProbeEngine {
           final targetHost = 'cp.cloudflare.com';
           const targetPort = 80;
 
-          // VLESS Request: Ver(0) + UUID(16) + Addons(0) + Command(1=CONNECT) + Port(2) + AddrType(2=Domain) + DomainLen + Domain
           final vlessHeader = <int>[
             0x00,
             ...uuidBytes,
@@ -414,11 +477,9 @@ class DartProbeEngine {
             (data) {
               if (data.isNotEmpty && !completer.isCompleted) {
                 final text = String.fromCharCodes(data);
-                // Must receive real HTTP response through proxy tunnel
                 if (text.contains('HTTP/') || text.contains('204') || text.contains('200') || text.contains('301') || text.contains('302')) {
                   completer.complete(true);
                 } else if (data.length > 2 && (data[0] == 0x00 || data[0] == 0x05)) {
-                  // VLESS response header
                   completer.complete(true);
                 }
               }
@@ -444,17 +505,16 @@ class DartProbeEngine {
         final targetHost = 'cp.cloudflare.com';
         const targetPort = 80;
 
-        // Trojan Protocol: HexPassword(56) + CRLF + Command(1=CONNECT) + AddrType(3=Domain) + DomainLen + Domain + Port(2) + CRLF
         final trojanHeader = <int>[
           ...hexPassword.codeUnits,
-          0x0D, 0x0A, // \r\n
-          0x01,       // CONNECT
-          0x03,       // Domain
+          0x0D, 0x0A,
+          0x01,
+          0x03,
           targetHost.length,
           ...targetHost.codeUnits,
           (targetPort >> 8) & 0xFF,
           targetPort & 0xFF,
-          0x0D, 0x0A, // \r\n
+          0x0D, 0x0A,
         ];
 
         final httpPayload = 'GET /generate_204 HTTP/1.1\r\nHost: cp.cloudflare.com\r\nUser-Agent: Mozilla/5.0\r\nConnection: close\r\n\r\n';

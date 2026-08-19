@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../models/node_model.dart';
 import '../providers/probe_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/filter_bar.dart';
@@ -19,7 +21,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _inputController = TextEditingController();
-  bool _isInputExpanded = true;
 
   @override
   void dispose() {
@@ -33,326 +34,464 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _inputController.text = data.text!;
       });
-      _parseKeys();
+      _parseAndRun();
     }
   }
 
-  void _parseKeys() {
+  void _parseAndRun() async {
     FocusScope.of(context).unfocus();
     final text = _inputController.text.trim();
     if (text.isNotEmpty) {
-      context.read<ProbeProvider>().parseInput(text);
+      final provider = context.read<ProbeProvider>();
+      await provider.parseInput(text);
+      if (provider.nodes.isNotEmpty) {
+        provider.startBenchmark();
+      }
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final provider = context.watch<ProbeProvider>();
-    final nodes = provider.filteredNodes;
+  void _showAddKeysDialog() {
+    final addController = TextEditingController();
 
-    return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 16,
-        title: Row(
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 16,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE31E24).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE31E24).withOpacity(0.4)),
-              ),
-              child: const Icon(Icons.vpn_key_rounded, color: Color(0xFF3DAE2B), size: 22),
-            ),
-            const SizedBox(width: 12),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'TurboProbe VPN',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary),
+                  'Добавить ключи или подписки',
+                  style: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimaryDark),
                 ),
-                Text(
-                  'Бенчмарк и фильтр ключей',
-                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20, color: AppTheme.textSecondaryDark),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: addController,
+              maxLines: 5,
+              style: GoogleFonts.robotoMono(fontSize: 12.5, color: AppTheme.textPrimaryDark),
+              decoration: InputDecoration(
+                hintText: 'Вставьте ссылки на подписки или ключи (vless://, trojan://, ss://, hy2://, Base64)...',
+                hintStyle: GoogleFonts.roboto(fontSize: 12.5, color: AppTheme.textSecondaryDark),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.paste, size: 16, color: AppTheme.textPrimaryDark),
+                  label: const Text('Вставить'),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppTheme.dividerDark),
+                    foregroundColor: AppTheme.textPrimaryDark,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  onPressed: () async {
+                    final d = await Clipboard.getData('text/plain');
+                    if (d?.text != null) addController.text = d!.text!;
+                  },
+                ),
+                const Spacer(),
+                FilledButton.icon(
+                  icon: const Icon(Icons.play_arrow, size: 16, color: Colors.black),
+                  label: const Text('Проверить'),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    if (addController.text.trim().isNotEmpty) {
+                      final provider = context.read<ProbeProvider>();
+                      await provider.parseInput(addController.text.trim());
+                      if (provider.nodes.isNotEmpty) {
+                        provider.startBenchmark();
+                      }
+                    }
+                  },
                 ),
               ],
             ),
           ],
         ),
-        actions: [
-          if (provider.nodes.isNotEmpty)
-            IconButton.filledTonal(
-              icon: const Icon(Icons.delete_outline_rounded, size: 20),
-              tooltip: 'Очистить всё',
-              onPressed: () {
-                _inputController.clear();
-                provider.clearNodes();
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            Text(
+              'TurboProbe',
+              style: GoogleFonts.roboto(fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+            ),
+            // Fine-grained selector for spinner during active benchmark
+            Selector<ProbeProvider, bool>(
+              selector: (_, p) => p.isTesting,
+              builder: (_, isTesting, __) {
+                if (!isTesting) return const SizedBox.shrink();
+                return const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent),
+                  ),
+                );
               },
             ),
-          const SizedBox(width: 4),
-          IconButton.filledTonal(
-            icon: const Icon(Icons.tune_rounded, size: 20),
-            tooltip: 'Настройки',
-            onPressed: () {
-              FocusScope.of(context).unfocus();
-              SettingsDialog.show(context, provider.config);
+          ],
+        ),
+        actions: [
+          // Add keys icon: visible only if nodes exist
+          Selector<ProbeProvider, bool>(
+            selector: (_, p) => p.nodes.isNotEmpty,
+            builder: (_, hasNodes, __) {
+              if (!hasNodes) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.add, size: 22),
+                tooltip: 'Добавить ключи',
+                onPressed: _showAddKeysDialog,
+              );
+            },
+          ),
+
+          // Standard Android Overflow Menu (⋮)
+          Selector<ProbeProvider, bool>(
+            selector: (_, p) => p.nodes.isNotEmpty,
+            builder: (ctx, hasNodes, __) {
+              return PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 22),
+                onSelected: (val) {
+                  FocusScope.of(ctx).unfocus();
+                  final provider = ctx.read<ProbeProvider>();
+                  if (val == 'settings') {
+                    SettingsDialog.show(ctx, provider.config);
+                  } else if (val == 'export') {
+                    ExportSheet.show(ctx, provider);
+                  } else if (val == 'clear') {
+                    _inputController.clear();
+                    provider.clearNodes();
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'settings',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.settings_outlined, size: 18, color: AppTheme.textSecondaryDark),
+                        const SizedBox(width: 10),
+                        Text('Настройки', style: GoogleFonts.roboto(fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                  if (hasNodes)
+                    PopupMenuItem(
+                      value: 'export',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.file_download_outlined, size: 18, color: AppTheme.textSecondaryDark),
+                          const SizedBox(width: 10),
+                          Text('Экспорт ключей', style: GoogleFonts.roboto(fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  if (hasNodes)
+                    PopupMenuItem(
+                      value: 'clear',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.delete_outline, size: 18, color: AppTheme.statusSlow),
+                          const SizedBox(width: 10),
+                          Text('Очистить всё', style: GoogleFonts.roboto(fontSize: 13, color: AppTheme.statusSlow)),
+                        ],
+                      ),
+                    ),
+                ],
+              );
             },
           ),
           const SizedBox(width: 4),
-          IconButton.filledTonal(
-            icon: const Icon(Icons.file_download_rounded, size: 20),
-            tooltip: 'Экспорт лучших ключей',
-            onPressed: provider.nodes.isEmpty
-                ? null
-                : () {
-                    FocusScope.of(context).unfocus();
-                    ExportSheet.show(context, provider);
-                  },
-          ),
-          const SizedBox(width: 12),
         ],
       ),
       body: Column(
         children: [
-          // Error Message Banner
-          if (provider.errorMessage != null)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppTheme.error.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.error.withOpacity(0.4)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error_outline_rounded, size: 18, color: AppTheme.error),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      provider.errorMessage!,
-                      style: const TextStyle(fontSize: 12, color: AppTheme.error),
-                    ),
-                  ),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: const Icon(Icons.close_rounded, size: 18, color: AppTheme.error),
-                    onPressed: () => context.read<ProbeProvider>().clearNodes(),
-                  ),
-                ],
-              ),
-            ),
-
-          // Input Section (Collapsible & Multi-URL)
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.outlineVariant),
-            ),
-            child: Column(
-              children: [
-                if (_isInputExpanded) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: TextField(
-                      controller: _inputController,
-                      maxLines: 4,
-                      style: const TextStyle(fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: 'Вставьте ссылки на подписки (каждую с новой строки) либо ключи (vless://, vmess://, ss://, hy2://, tuic://, Base64)...',
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        filled: false,
-                        contentPadding: EdgeInsets.zero,
-                        suffixIcon: _inputController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear_rounded, size: 18, color: AppTheme.textSecondary),
-                                onPressed: () {
-                                  _inputController.clear();
-                                  setState(() {});
-                                },
-                              )
-                            : null,
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                  const Divider(height: 1, color: AppTheme.outlineVariant),
-                ],
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
-                    children: [
-                      // Paste Button
-                      FilledButton.tonalIcon(
-                        icon: const Icon(Icons.paste_rounded, size: 16),
-                        label: const Text('Вставить'),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: _pasteFromClipboard,
-                      ),
-                      const SizedBox(width: 8),
-                      // Parse Button if not loaded
-                      if (_inputController.text.isNotEmpty && provider.nodes.isEmpty)
-                        FilledButton.tonal(
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: _parseKeys,
-                          child: const Text('Загрузить'),
-                        ),
-                      const Spacer(),
-                      // Start / Stop Button
-                      if (provider.isTesting)
-                        FilledButton.icon(
-                          icon: const Icon(Icons.stop_rounded, size: 18),
-                          label: const Text('Стоп'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppTheme.error,
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: provider.stopBenchmark,
-                        )
-                      else
-                        FilledButton.icon(
-                          icon: const Icon(Icons.vpn_key_rounded, size: 18),
-                          label: Text(
-                            provider.nodes.isEmpty ? 'Запустить тест' : 'Проверить (${provider.nodes.length})',
-                          ),
-                          onPressed: () async {
-                            FocusScope.of(context).unfocus();
-                            if (provider.nodes.isEmpty && _inputController.text.isNotEmpty) {
-                              await provider.parseInput(_inputController.text.trim());
-                            }
-                            if (provider.nodes.isNotEmpty) {
-                              setState(() => _isInputExpanded = false);
-                              provider.startBenchmark();
-                            }
-                          },
-                        ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        icon: Icon(
-                          _isInputExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                          color: AppTheme.textSecondary,
-                          size: 22,
-                        ),
-                        onPressed: () => setState(() => _isInputExpanded = !_isInputExpanded),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          // 1. Thin 2.5px Progress Indicator (Granular selector)
+          Selector<ProbeProvider, (double, bool)>(
+            selector: (_, p) => (p.percent, p.isTesting),
+            builder: (_, data, __) => ProgressBar(percent: data.$1, isTesting: data.$2),
           ),
 
-          // Progress Bar
-          ProgressBar(percent: provider.percent, isTesting: provider.isTesting),
+          // 2. Error Banner if any
+          Selector<ProbeProvider, String?>(
+            selector: (_, p) => p.errorMessage,
+            builder: (ctx, errorMsg, __) {
+              if (errorMsg == null) return const SizedBox.shrink();
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: AppTheme.statusSlow.withOpacity(0.12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, size: 16, color: AppTheme.statusSlow),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        errorMsg,
+                        style: GoogleFonts.roboto(fontSize: 12, color: AppTheme.statusSlow),
+                      ),
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: const Icon(Icons.close, size: 16, color: AppTheme.statusSlow),
+                      onPressed: () => ctx.read<ProbeProvider>().clearNodes(),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
 
-          // Stats Bar
-          if (provider.nodes.isNotEmpty) StatsHeader(provider: provider),
+          // 3. Stats Summary (Single-line)
+          Selector<ProbeProvider, bool>(
+            selector: (_, p) => p.nodes.isNotEmpty,
+            builder: (ctx, hasNodes, __) {
+              if (!hasNodes) return const SizedBox.shrink();
+              return StatsHeader(provider: ctx.watch<ProbeProvider>());
+            },
+          ),
 
-          // Filters Bar
-          if (provider.nodes.isNotEmpty) FilterBar(provider: provider),
+          // 4. Search & 3-Segment Quick Filter (Все / Живые / ТОП)
+          Selector<ProbeProvider, bool>(
+            selector: (_, p) => p.nodes.isNotEmpty,
+            builder: (ctx, hasNodes, __) {
+              if (!hasNodes) return const SizedBox.shrink();
+              return FilterBar(provider: ctx.watch<ProbeProvider>());
+            },
+          ),
 
-          // Main Nodes List (High-performance virtualized builder)
+          // 5. Main Body (Empty State Input OR Grouped Sliver List)
           Expanded(
-            child: provider.isLoading
-                ? const Center(
+            child: Selector<ProbeProvider, (bool, bool, bool, Map<String, List<NodeModel>>)>(
+              selector: (_, p) => (p.isLoading, p.nodes.isNotEmpty, p.filteredNodes.isEmpty, p.groupedByCountry),
+              builder: (_, state, __) {
+                final isLoading = state.$1;
+                final hasNodes = state.$2;
+                final isFilteredEmpty = state.$3;
+                final grouped = state.$4;
+
+                if (isLoading) {
+                  return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircularProgressIndicator(color: AppTheme.primary, strokeWidth: 3),
-                        SizedBox(height: 16),
+                        const SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(strokeWidth: 2.5, color: AppTheme.accent),
+                        ),
+                        const SizedBox(height: 16),
                         Text(
                           'Загрузка и парсинг подписок...',
-                          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                          style: GoogleFonts.roboto(color: AppTheme.textSecondaryDark, fontSize: 13),
                         ),
                       ],
                     ),
-                  )
-                : provider.nodes.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(22),
-                              decoration: BoxDecoration(
-                                color: AppTheme.surfaceContainerLow,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: AppTheme.outlineVariant),
-                              ),
-                              child: const Icon(
-                                Icons.vpn_key_rounded,
-                                size: 44,
-                                color: Color(0xFF3DAE2B),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Ключи еще не загружены',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Вставьте ссылки на подписки для быстрого бенчмарка.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                            ),
-                          ],
-                        ),
-                      )
-                    : nodes.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'Нет ключей, подходящих под критерии поиска',
-                              style: TextStyle(color: AppTheme.textSecondary),
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: nodes.length,
-                            cacheExtent: 200,
-                            addRepaintBoundaries: true,
-                            addAutomaticKeepAlives: false,
-                            physics: const BouncingScrollPhysics(),
-                            itemBuilder: (context, index) {
-                              return NodeCard(
-                                key: ValueKey(nodes[index].id),
-                                node: nodes[index],
-                              );
-                            },
-                          ),
+                  );
+                }
+
+                if (!hasNodes) {
+                  return _buildEmptyStateInput();
+                }
+
+                if (isFilteredEmpty) {
+                  return Center(
+                    child: Text(
+                      'Нет ключей, подходящих под критерии поиска',
+                      style: GoogleFonts.roboto(color: AppTheme.textSecondaryDark, fontSize: 13),
+                    ),
+                  );
+                }
+
+                return _buildGroupedNodeList(grouped);
+              },
+            ),
           ),
         ],
       ),
-      // Floating Export Bar when completed
-      floatingActionButton: (provider.aliveCount > 0 && !provider.isTesting)
-          ? FloatingActionButton.extended(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: AppTheme.onPrimary,
-              elevation: 4,
-              icon: const Icon(Icons.file_download_rounded),
-              label: Text('Скачать ТОП-${provider.aliveCount > 10 ? 10 : provider.aliveCount} лучших'),
-              onPressed: () {
-                FocusScope.of(context).unfocus();
-                ExportSheet.show(context, provider);
+      // 6. Flat Google Style FAB «Скачать ТОП-10»
+      floatingActionButton: Selector<ProbeProvider, (int, bool)>(
+        selector: (_, p) => (p.aliveCount, p.isTesting),
+        builder: (ctx, data, __) {
+          final aliveCount = data.$1;
+          final isTesting = data.$2;
+
+          if (aliveCount == 0 || isTesting) return const SizedBox.shrink();
+
+          return FloatingActionButton.extended(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            icon: const Icon(Icons.file_download, size: 18, color: Colors.black),
+            label: Text(
+              'Скачать ТОП-${aliveCount > 10 ? 10 : aliveCount}',
+              style: GoogleFonts.roboto(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black),
+            ),
+            onPressed: () {
+              FocusScope.of(ctx).unfocus();
+              ExportSheet.show(ctx, ctx.read<ProbeProvider>());
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  // 100% Clean Fullscreen Empty State Input
+  Widget _buildEmptyStateInput() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Бенчмарк и фильтр VPN',
+            style: GoogleFonts.roboto(fontSize: 20, fontWeight: FontWeight.w600, color: AppTheme.textPrimaryDark),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Вставьте одну или несколько ссылок на подписки либо сырые ключи (vless, trojan, ss, hy2, tuic, Base64):',
+            style: GoogleFonts.roboto(fontSize: 13, color: AppTheme.textSecondaryDark, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _inputController,
+            maxLines: 8,
+            style: GoogleFonts.robotoMono(fontSize: 12.5, color: AppTheme.textPrimaryDark),
+            decoration: InputDecoration(
+              hintText: 'https://example.com/sub/vless...\nvless://uuid@server:port?...\ntrojan://...\nss://...',
+              hintStyle: GoogleFonts.robotoMono(fontSize: 12, color: AppTheme.textTertiaryDark),
+              suffixIcon: _inputController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18, color: AppTheme.textSecondaryDark),
+                      onPressed: () => setState(() => _inputController.clear()),
+                    )
+                  : null,
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.paste, size: 16, color: AppTheme.textPrimaryDark),
+                label: const Text('Вставить из буфера'),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppTheme.dividerDark),
+                  foregroundColor: AppTheme.textPrimaryDark,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: _pasteFromClipboard,
+              ),
+              const Spacer(),
+              FilledButton.icon(
+                icon: const Icon(Icons.play_arrow, size: 18, color: Colors.black),
+                label: const Text('Запустить тест'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: _inputController.text.trim().isEmpty ? null : _parseAndRun,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Grouped by Country with Sticky/Section Headers
+  Widget _buildGroupedNodeList(Map<String, List<NodeModel>> grouped) {
+    final entries = grouped.entries.toList();
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        for (final entry in entries) ...[
+          // Sticky / Section Header
+          SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              color: AppTheme.surfaceContainerLowest,
+              child: Row(
+                children: [
+                  Text(
+                    entry.key,
+                    style: GoogleFonts.roboto(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textSecondaryDark,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text('·', style: TextStyle(color: AppTheme.textTertiaryDark, fontSize: 12)),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${entry.value.length}',
+                    style: GoogleFonts.robotoMono(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textTertiaryDark,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Node Rows
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final node = entry.value[index];
+                return NodeCard(
+                  key: ValueKey(node.id),
+                  node: node,
+                );
               },
-            )
-          : null,
+              childCount: entry.value.length,
+            ),
+          ),
+        ],
+        // Bottom padding for FAB
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 80),
+        ),
+      ],
     );
   }
 }
