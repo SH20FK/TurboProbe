@@ -413,9 +413,9 @@ class _HomeScreenState extends State<HomeScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _buildPresetChip('🛡️ Анти-Белые списки (1000+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/anti-whitelist.txt'),
-              _buildPresetChip('⚡ VLESS Reality (2800+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/reality.txt'),
-              _buildPresetChip('🌐 Все протоколы (6400+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/all.txt'),
+              _buildPresetChip('🛡️ Анти-Белые списки (1200+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/anti-whitelist.txt'),
+              _buildPresetChip('⚡ VLESS Reality (3200+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/reality.txt'),
+              _buildPresetChip('🌐 Все протоколы (11900+)', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/all.txt'),
               _buildPresetChip('🚀 Hysteria 2 / TUIC', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/hysteria2.txt'),
               _buildPresetChip('🔒 Trojan TLS', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/trojan.txt'),
               _buildPresetChip('🗝️ Shadowsocks', 'https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/shadowsocks.txt'),
