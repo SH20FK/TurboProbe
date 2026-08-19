@@ -1,16 +1,18 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../models/multihop_model.dart';
 import '../models/node_model.dart';
 import '../models/test_config_model.dart';
 import '../services/dart_probe_engine.dart';
 
 enum SortOption { pingAsc, scoreDesc, protocol, country }
-enum QuickFilter { all, alive, top }
+enum QuickFilter { all, alive, top, multiHop }
 
 class ProbeProvider extends ChangeNotifier {
   List<NodeModel> _nodes = [];
   Map<String, int> _idToIndex = {};
   List<NodeModel> _filteredNodesCache = [];
+  List<MultiHopChain> _multiHopChains = [];
   bool _isTesting = false;
   bool _isLoading = false;
   String? _errorMessage;
@@ -44,6 +46,7 @@ class ProbeProvider extends ChangeNotifier {
 
   List<NodeModel> get nodes => _nodes;
   List<NodeModel> get filteredNodes => _filteredNodesCache;
+  List<MultiHopChain> get multiHopChains => _multiHopChains;
   bool get isTesting => _isTesting;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -177,6 +180,7 @@ class ProbeProvider extends ChangeNotifier {
 
           if (data['is_completed'] == true) {
             _isTesting = false;
+            _multiHopChains = MultiHopChain.generateOptimalChains(_nodes);
             _sortNodes();
             _rebuildIndex();
             _recalculateFilteredCache();
@@ -188,6 +192,7 @@ class ProbeProvider extends ChangeNotifier {
         onComplete: (completedNodes) {
           _isTesting = false;
           _nodes = completedNodes;
+          _multiHopChains = MultiHopChain.generateOptimalChains(_nodes);
           _sortNodes();
           _rebuildIndex();
           _recalculateFilteredCache();
@@ -327,6 +332,11 @@ class ProbeProvider extends ChangeNotifier {
 
       return true;
     }).toList();
+
+    if (_selectedRUCategory == 'MULTIHOP' || _quickFilter == QuickFilter.multiHop) {
+      _filteredNodesCache = _multiHopChains.map((c) => c.toNodeModel()).toList();
+      return;
+    }
 
     if (_quickFilter == QuickFilter.top) {
       list.sort((a, b) => a.pingMs.compareTo(b.pingMs));

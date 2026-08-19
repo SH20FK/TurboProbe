@@ -9,6 +9,7 @@ import '../widgets/filter_bar.dart';
 import '../widgets/node_card.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/stats_header.dart';
+import '../widgets/vpn_connect_bar.dart';
 import 'export_sheet.dart';
 import 'settings_dialog.dart';
 
@@ -272,6 +273,9 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+
+          // 2.5 Built-in Quick VPN Connect Bar (All-in-one VPN Client)
+          const VpnConnectBar(),
 
           // 3. Stats Summary (Single-line)
           Selector<ProbeProvider, bool>(

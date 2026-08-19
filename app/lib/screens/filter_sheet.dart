@@ -40,6 +40,7 @@ class _FilterSheetState extends State<FilterSheet> {
     {'id': 'STREAM_4K', 'label': '⚡ 4K HDR Скорость (50+ Мб/с)'},
     {'id': 'CLEAN_IP', 'label': '✨ Чистый IP (Без капчи)'},
     {'id': 'UNIQUE_HOSTS', 'label': '🔗 Без клонов (Уникальные)'},
+    {'id': 'MULTIHOP', 'label': '🛡️ Multi-Hop Stealth Цепи'},
     {'id': 'AI', 'label': '🤖 ChatGPT'},
   ];
 

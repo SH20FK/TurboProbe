@@ -183,11 +183,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 const SizedBox(height: 16),
 
                 // 4. Switches (Android Settings style)
-                _buildSectionHeader('Дополнительно'),
+                _buildSectionHeader('Обход цензуры и DPI (Хамелеон)'),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text('Микро-берст тест (Джиттер)', style: GoogleFonts.roboto(fontSize: 13, color: AppTheme.textPrimaryDark)),
-                  subtitle: Text('Проверка стабильности пакетов', style: GoogleFonts.roboto(fontSize: 11.5, color: AppTheme.textSecondaryDark)),
+                  title: Text('🛡️ DPI Auto-Morph & Anti-DPI Shield', style: GoogleFonts.roboto(fontSize: 13, color: AppTheme.textPrimaryDark)),
+                  subtitle: Text('Адаптивное расщепление ClientHello (1-3B) против ТСПУ', style: GoogleFonts.roboto(fontSize: 11.5, color: AppTheme.textSecondaryDark)),
                   value: _enableBurst,
                   activeColor: AppTheme.accent,
                   onChanged: (val) => setState(() => _enableBurst = val),
@@ -195,7 +195,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text('Определение GeoIP и флагов', style: GoogleFonts.roboto(fontSize: 13, color: AppTheme.textPrimaryDark)),
-                  subtitle: Text('Показывает страну и провайдера ноды', style: GoogleFonts.roboto(fontSize: 11.5, color: AppTheme.textSecondaryDark)),
+                  subtitle: Text('Показывает реальный Egress IP и страну ноды', style: GoogleFonts.roboto(fontSize: 11.5, color: AppTheme.textSecondaryDark)),
                   value: _enableGeoIp,
                   activeColor: AppTheme.accent,
                   onChanged: (val) => setState(() => _enableGeoIp = val),

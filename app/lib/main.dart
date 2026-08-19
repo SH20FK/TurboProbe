@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/probe_provider.dart';
+import 'providers/vpn_provider.dart';
 import 'screens/home_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -17,9 +18,10 @@ class TurboProbeApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ProbeProvider()),
+        ChangeNotifierProvider(create: (_) => VpnProvider()),
       ],
       child: MaterialApp(
-        title: 'TurboProbe VPN Filter',
+        title: 'TurboProbe VPN Filter & Client',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         home: const HomeScreen(),

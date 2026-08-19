@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/node_model.dart';
+import '../providers/vpn_provider.dart';
 import '../theme/app_theme.dart';
 
 class NodeCard extends StatefulWidget {
@@ -25,6 +28,51 @@ class _NodeCardState extends State<NodeCard> {
         duration: const Duration(seconds: 1),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      ),
+    );
+  }
+
+  void _showQrModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(
+          '${widget.node.flagEmoji ?? "🌐"} ${widget.node.name}',
+          style: GoogleFonts.roboto(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textPrimaryDark),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: QrImageView(
+                data: widget.node.rawUri,
+                version: QrVersions.auto,
+                size: 200.0,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Наведите камеру в Happ / v2rayNG / Hiddify для импорта этого ключа!',
+              style: GoogleFonts.roboto(fontSize: 12, color: AppTheme.textSecondaryDark),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Закрыть'),
+          ),
+        ],
       ),
     );
   }
@@ -237,25 +285,60 @@ class _NodeCardState extends State<NodeCard> {
 
                   const SizedBox(height: 10),
 
-                  // Copy Action
-                  InkWell(
-                    onTap: _copyKey,
-                    borderRadius: BorderRadius.circular(4),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppTheme.dividerDark, width: 1),
-                        borderRadius: BorderRadius.circular(4),
+                  // Actions Row: Connect & Copy
+                  Row(
+                    children: [
+                      if (node.isAlive) ...[
+                        Consumer<VpnProvider>(
+                          builder: (ctx, vpn, _) {
+                            final isThisConnected = vpn.isConnected && vpn.activeNode?.id == node.id;
+                            final isThisConnecting = vpn.isConnecting && vpn.activeNode?.id == node.id;
+
+                            return FilledButton.icon(
+                              icon: isThisConnecting
+                                  ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : Icon(isThisConnected ? Icons.power_settings_new : Icons.play_arrow, size: 14, color: isThisConnected ? Colors.white : Colors.black),
+                              label: Text(isThisConnected ? 'Отключить' : 'Подключить'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: isThisConnected ? AppTheme.statusSlow : Colors.white,
+                                foregroundColor: isThisConnected ? Colors.white : Colors.black,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              ),
+                              onPressed: isThisConnecting
+                                  ? null
+                                  : () {
+                                      if (isThisConnected) {
+                                        vpn.disconnect();
+                                      } else {
+                                        vpn.connect(node);
+                                      }
+                                    },
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.copy, size: 14, color: AppTheme.textPrimaryDark),
+                        label: const Text('Скопировать'),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppTheme.dividerDark, width: 1),
+                          foregroundColor: AppTheme.textPrimaryDark,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                        ),
+                        onPressed: _copyKey,
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.copy, size: 14, color: AppTheme.accent),
-                          const SizedBox(width: 6),
-                          Text('Скопировать ключ', style: GoogleFonts.roboto(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.accent)),
-                        ],
+                      const SizedBox(width: 6),
+                      IconButton(
+                        icon: const Icon(Icons.qr_code_2, size: 18, color: AppTheme.accent),
+                        tooltip: 'Поделиться по QR-коду',
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(),
+                        onPressed: () => _showQrModal(context),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
