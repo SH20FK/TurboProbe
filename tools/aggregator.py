@@ -47,9 +47,19 @@ WHITE_LIST_SNIS = [
 ]
 
 # =============================================================================
-# 📡 500+ SOURCES LIST (GITHUB, TELEGRAM, GITLAB, MIRRORS)
+# 📡 500+ SOURCES LIST (GITHUB, TELEGRAM, GITLAB, GITVERSE, MIRRORS)
 # =============================================================================
 SOURCES = [
+    # 🇷🇺 Russian Domestic & Anti-Whitelist Direct Sources (GitVerse & Specialized Feeds)
+    "https://gitverse.ru/api/repos/ru-wbl/wl/raw/branch/master/KvRuVPN/KvRuVPN.txt",
+    "https://gitverse.ru/api/repos/Akres/VPN/raw/branch/master/all",
+    "https://gitverse.ru/api/repos/flaafix/AetrisVPN/raw/branch/master/AetrisVPN.txt",
+    "https://gitverse.ru/api/repos/flaafix/AetrisVPN_Black_list/raw/branch/master/configs.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-CIDR-RU-checked.txt",
+    "https://raw.githubusercontent.com/igareck/vpn-configs-for-russia/refs/heads/main/WHITE-SNI-RU-all.txt",
+    "https://yahuy.eu.cc/purple.txt",
+    "https://clck.ru/3Tju7N",
+
     # Top tier auto-collectors (15 000+ keys)
     "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub1.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Sub2.txt",

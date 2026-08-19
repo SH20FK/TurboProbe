@@ -39,9 +39,13 @@ class DartProbeEngine {
     final List<String> urlList = [];
     final List<String> directLines = [];
 
-    for (final line in rawLines) {
+    for (var line in rawLines) {
+      line = line.trim();
       if (line.startsWith('http://') || line.startsWith('https://')) {
         urlList.add(line);
+      } else if (line.contains('.') && line.contains('/') && !line.startsWith('vless://') && !line.startsWith('trojan://') && !line.startsWith('ss://') && !line.startsWith('hy2://') && !line.startsWith('vmess://') && !line.startsWith('tuic://')) {
+        // Auto-normalize missing https:// (e.g. yahuy.eu.cc/purple.txt or clck.ru/3Tju7N)
+        urlList.add('https://$line');
       } else {
         directLines.add(line);
       }
@@ -49,16 +53,25 @@ class DartProbeEngine {
 
     final List<String> allUris = [];
 
-    // Fetch all subscription URLs concurrently
+    // Fetch all subscription URLs concurrently with robust redirect & cert bypass
     if (urlList.isNotEmpty) {
       final futures = urlList.map((url) async {
         try {
-          final res = await http.get(
-            Uri.parse(url),
-            headers: {'User-Agent': 'v2rayN/6.39 TurboProbe/2.0 ClashMeta sing-box'},
-          ).timeout(const Duration(seconds: 10));
-          if (res.statusCode == 200) {
-            return _extractURIsFromBlob(res.body.trim());
+          final uri = Uri.parse(url);
+          final client = HttpClient()
+            ..badCertificateCallback = ((X509Certificate cert, String host, int port) => true)
+            ..connectionTimeout = const Duration(seconds: 12);
+          
+          final request = await client.getUrl(uri);
+          request.headers.set('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 v2rayN/6.39 TurboProbe/2.0');
+          request.headers.set('Accept', '*/*');
+          request.followRedirects = true;
+          request.maxRedirects = 8;
+          
+          final response = await request.close().timeout(const Duration(seconds: 12));
+          if (response.statusCode == 200) {
+            final responseBody = await response.transform(utf8.decoder).join();
+            return _extractURIsFromBlob(responseBody.trim());
           }
         } catch (_) {}
         return <String>[];
