@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../models/node_model.dart';
 import '../providers/probe_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -15,7 +18,10 @@ class ExportSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppTheme.surfaceDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (context) => ExportSheet(provider: provider),
     );
   }
@@ -25,46 +31,84 @@ class ExportSheet extends StatefulWidget {
 }
 
 class _ExportSheetState extends State<ExportSheet> {
-  String _format = 'raw'; // raw, base64, clash, singbox
-  int _limit = 10; // Default: Top 10
-  double _maxPingSlider = 400; // ms
-  bool _filterByMaxPing = false;
-  String _selectedCountry = 'ALL';
+  String _format = 'smart_tagged'; // smart_tagged, raw, base64, clash, singbox
+  int _limit = 10;
   String _exportedContent = '';
   int _matchedCount = 0;
   bool _isGenerating = false;
+  static HttpServer? _localSubServer;
+  String? _localSubUrl;
 
   final List<Map<String, String>> _formats = const [
-    {'id': 'raw', 'name': 'Raw ссылки (vless://...)'},
+    {'id': 'smart_tagged', 'name': '⚡ С тегом [TOP-10] (для Happ)'},
+    {'id': 'raw', 'name': 'Raw ссылки'},
     {'id': 'base64', 'name': 'Base64 подписка'},
-    {'id': 'clash', 'name': 'Clash Meta (YAML)'},
-    {'id': 'singbox', 'name': 'sing-box (JSON)'},
+    {'id': 'clash', 'name': 'Clash Meta Group (YAML)'},
+    {'id': 'singbox', 'name': 'sing-box Group (JSON)'},
   ];
 
   @override
   void initState() {
     super.initState();
     _generateExport();
+    _startLocalSubServer();
+  }
+
+  Future<void> _startLocalSubServer() async {
+    try {
+      _localSubServer?.close(force: true);
+      _localSubServer = await HttpServer.bind(InternetAddress.loopbackIPv4, 8999);
+      _localSubServer!.listen((HttpRequest request) {
+        final nodes = widget.provider.nodes.where((n) => n.isAlive).toList();
+        nodes.sort((a, b) => a.pingMs.compareTo(b.pingMs));
+        final targetNodes = nodes.take(_limit > 0 ? _limit : 10).toList();
+
+        final content = _generateSmartTaggedList(targetNodes, _limit);
+        final base64Content = base64.encode(utf8.encode(content));
+
+        final groupTitle = '⚡ TurboProbe TOP-${_limit > 0 ? _limit : 10}';
+        final b64Title = base64.encode(utf8.encode(groupTitle));
+
+        request.response.headers
+          ..set('Content-Type', 'text/plain; charset=utf-8')
+          ..set('Profile-Title', 'base64:$b64Title')
+          ..set('Profile-Update-Interval', '1')
+          ..set('Subscription-Userinfo', 'upload=0; download=0; total=107374182400; expire=1790000000');
+
+        request.response.write(base64Content);
+        request.response.close();
+      });
+
+      if (mounted) {
+        setState(() {
+          _localSubUrl = 'http://127.0.0.1:8999/sub/top$_limit';
+        });
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _localSubServer?.close(force: true);
+    _localSubServer = null;
+    super.dispose();
   }
 
   Future<void> _generateExport() async {
     setState(() => _isGenerating = true);
     try {
-      final nodes = widget.provider.nodes.where((n) {
-        if (!n.isAlive) return false;
-        if (_filterByMaxPing && n.pingMs > _maxPingSlider) return false;
-        if (_selectedCountry != 'ALL' && (n.countryCode ?? '').toUpperCase() != _selectedCountry) return false;
-        if (widget.provider.selectedProtocol != 'ALL' && n.protocol.toUpperCase() != widget.provider.selectedProtocol) return false;
-        return true;
-      }).toList();
+      final nodes = widget.provider.nodes.where((n) => n.isAlive).toList();
+      nodes.sort((a, b) => a.pingMs.compareTo(b.pingMs));
 
       final countToTake = (_limit > 0 && _limit < nodes.length) ? _limit : nodes.length;
       final targetNodes = nodes.take(countToTake).toList();
 
       String content = '';
-      if (_format == 'base64') {
-        final uris = targetNodes.map((e) => e.rawUri).join('\n');
-        content = base64.encode(utf8.encode(uris));
+      if (_format == 'smart_tagged') {
+        content = _generateSmartTaggedList(targetNodes, _limit);
+      } else if (_format == 'base64') {
+        final tagged = _generateSmartTaggedList(targetNodes, _limit);
+        content = base64.encode(utf8.encode(tagged));
       } else if (_format == 'clash') {
         content = _generateClash(targetNodes);
       } else if (_format == 'singbox') {
@@ -83,26 +127,82 @@ class _ExportSheetState extends State<ExportSheet> {
     }
   }
 
-  String _generateClash(List nodes) {
+  String _generateSmartTaggedList(List<NodeModel> nodes, int limit) {
+    final groupTag = limit > 0 ? 'TOP-$limit' : 'TOP';
+    final List<String> taggedList = [];
+
+    for (int i = 0; i < nodes.length; i++) {
+      final n = nodes[i];
+      final rank = (i + 1).toString().padLeft(2, '0');
+      final flag = n.flagEmoji ?? '🌐';
+      final country = n.countryName ?? 'Node';
+      final cleanName = '⚡ [$groupTag #$rank] $flag $country · ${n.pingMs}ms';
+
+      String uri = n.rawUri;
+      if (uri.contains('#')) {
+        uri = uri.split('#')[0] + '#' + Uri.encodeComponent(cleanName);
+      } else {
+        uri = uri + '#' + Uri.encodeComponent(cleanName);
+      }
+      taggedList.add(uri);
+    }
+
+    return taggedList.join('\n');
+  }
+
+  String _generateClash(List<NodeModel> nodes) {
     final sb = StringBuffer();
+    final groupName = '⚡ TurboProbe TOP-${_limit > 0 ? _limit : 10}';
+    final proxyNames = <String>[];
+
     sb.writeln('port: 7890\nsocks-port: 7891\nmode: rule\n\nproxies:');
-    for (final n in nodes) {
-      sb.writeln('  - name: "${n.name.replaceAll(':', '-')}"');
+    for (int i = 0; i < nodes.length; i++) {
+      final name = '⚡ [TOP-#${i + 1}] ${n.flagEmoji ?? "🌐"} ${n.countryName ?? "Node"} ${n.pingMs}ms';
+      proxyNames.add('"$name"');
+      sb.writeln('  - name: "$name"');
       sb.writeln('    type: ${n.protocol}');
       sb.writeln('    server: ${n.server}');
       sb.writeln('    port: ${n.port}');
+      final userPart = n.rawUri.contains('@') ? n.rawUri.split('//')[1].split('@')[0] : '';
+      if (userPart.isNotEmpty) sb.writeln('    uuid: $userPart');
+      if (n.sni != null && n.sni!.isNotEmpty) sb.writeln('    sni: ${n.sni}');
     }
+
+    sb.writeln('\nproxy-groups:');
+    sb.writeln('  - name: "$groupName"');
+    sb.writeln('    type: select');
+    sb.writeln('    proxies:');
+    for (final p in proxyNames) {
+      sb.writeln('      - $p');
+    }
+
     return sb.toString();
   }
 
-  String _generateSingBox(List nodes) {
-    return const JsonEncoder.withIndent('  ').convert({
-      'outbounds': nodes.map((n) => {
+  String _generateSingBox(List<NodeModel> nodes) {
+    final groupName = '⚡ TurboProbe TOP-${_limit > 0 ? _limit : 10}';
+    final tags = <String>[];
+
+    final outbounds = nodes.map((n) {
+      final tag = '⚡ [TOP] ${n.flagEmoji ?? "🌐"} ${n.name} · ${n.pingMs}ms';
+      tags.add(tag);
+      return {
         'type': n.protocol,
-        'tag': n.name,
+        'tag': tag,
         'server': n.server,
         'server_port': n.port,
-      }).toList()
+      };
+    }).toList();
+
+    return const JsonEncoder.withIndent('  ').convert({
+      'outbounds': [
+        {
+          'type': 'selector',
+          'tag': groupName,
+          'outbounds': tags,
+        },
+        ...outbounds,
+      ]
     });
   }
 
@@ -113,261 +213,280 @@ class _ExportSheetState extends State<ExportSheet> {
         content: Text(message),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final countries = widget.provider.availableCountries;
-
     return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.surfaceContainerLow,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Center drag handle
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Header
-            Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
-                  children: [
-                    Icon(Icons.file_download_rounded, color: AppTheme.primary, size: 22),
-                    SizedBox(width: 8),
-                    Text(
-                      'Экспорт лучших ключей',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                    ),
-                  ],
+                Text(
+                  'Экспорт с авто-группировкой',
+                  style: GoogleFonts.roboto(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimaryDark),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20, color: AppTheme.textSecondary),
+                  icon: const Icon(Icons.close, size: 20, color: AppTheme.textSecondaryDark),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+          ),
+          const Divider(height: 1, color: AppTheme.dividerDark),
 
-            // 1-Click Client Launch Buttons
-            const Text(
-              '⚡ Быстрый экспорт в VPN клиенты',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+          // Scrollable Body
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               children: [
-                FilledButton.tonalIcon(
-                  icon: const Icon(Icons.vpn_key_rounded, size: 16, color: Color(0xFF3DAE2B)),
-                  label: Text('В Happ (ТОП ${_limit > 0 ? _limit : 50})'),
-                  onPressed: () {
-                    final raw = widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 50).map((e) => e.rawUri).join('\n');
-                    _copyToClipboard(raw, 'Ключи скопированы для Happ!');
-                  },
-                ),
-                FilledButton.tonalIcon(
-                  icon: const Icon(Icons.vpn_key_rounded, size: 16, color: AppTheme.primary),
-                  label: Text('В Incy (ТОП ${_limit > 0 ? _limit : 50})'),
-                  onPressed: () {
-                    final raw = widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 50).map((e) => e.rawUri).join('\n');
-                    _copyToClipboard(raw, 'Ключи скопированы для Incy!');
-                  },
-                ),
-                FilledButton.tonalIcon(
-                  icon: const Icon(Icons.shield_rounded, size: 16, color: AppTheme.success),
-                  label: const Text('В Hiddify'),
-                  onPressed: () {
-                    final raw = widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 50).map((e) => e.rawUri).join('\n');
-                    _copyToClipboard(raw, 'Ключи скопированы для Hiddify!');
-                  },
-                ),
-                FilledButton.tonalIcon(
-                  icon: const Icon(Icons.android_rounded, size: 16, color: AppTheme.warning),
-                  label: const Text('В v2rayNG'),
-                  onPressed: () {
-                    final raw = widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 50).map((e) => e.rawUri).join('\n');
-                    _copyToClipboard(raw, 'Ключи скопированы для v2rayNG!');
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-
-            // Top Limit Presets: 10 / 50 / 100 / All
-            const Text(
-              'Количество лучших ключей (по наименьшему пингу)',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildLimitChip('ТОП 10 лучших', 10),
-                _buildLimitChip('ТОП 50 лучших', 50),
-                _buildLimitChip('ТОП 100 лучших', 100),
-                _buildLimitChip('Все рабочие', 0),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Country Filter
-            if (countries.length > 1) ...[
-              const Text(
-                'Фильтр по стране',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
-              ),
-              const SizedBox(height: 8),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: countries.map((c) {
-                    final isSelected = _selectedCountry == c;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(c == 'ALL' ? '🌐 Все страны' : c),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() => _selectedCountry = c);
-                            _generateExport();
-                          }
-                        },
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // Format Selection
-            const Text(
-              'Формат выгрузки',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _formats.map((f) {
-                final isSelected = _format == f['id'];
-                return ChoiceChip(
-                  label: Text(f['name']!),
-                  selected: isSelected,
-                  selectedColor: AppTheme.primaryContainer,
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() => _format = f['id']!);
-                      _generateExport();
-                    }
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-
-            // Preview Box
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.outlineVariant),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                // 1. Live Local Subscription URL (Auto-Folder in Happ/Hiddify)
+                _buildSectionHeader('📁 1. Авто-папка / Подписка для Happ и Hiddify'),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.accent.withOpacity(0.4)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Готово к экспорту: $_matchedCount ключей',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primary),
+                        'Вставьте эту ссылку в Happ («Добавить подписку») — создастся отдельная папка «⚡ TurboProbe TOP-$_limit»:',
+                        style: GoogleFonts.roboto(fontSize: 12, color: AppTheme.textSecondaryDark, height: 1.3),
                       ),
-                      if (_isGenerating)
-                        const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary),
-                        ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: AppTheme.dividerDark),
+                              ),
+                              child: Text(
+                                _localSubUrl ?? 'http://127.0.0.1:8999/sub/top$_limit',
+                                style: GoogleFonts.robotoMono(fontSize: 12, color: AppTheme.accent, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.icon(
+                            icon: const Icon(Icons.link, size: 16, color: Colors.white),
+                            label: const Text('Копировать ссылку'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppTheme.accent,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            ),
+                            onPressed: () => _copyToClipboard(
+                              _localSubUrl ?? 'http://127.0.0.1:8999/sub/top$_limit',
+                              'Ссылка на подписку-группу скопирована! Вставьте в Happ как подписку.',
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 110,
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: SingleChildScrollView(
-                      child: Text(
-                        _exportedContent.isEmpty ? 'Нет ключей для экспорта' : _exportedContent,
-                        style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: AppTheme.textSecondary),
-                      ),
+                ),
+                const SizedBox(height: 20),
+
+                // 2. 1-Click Copy with Smart Tags [TOP-10 #01]
+                _buildSectionHeader('⚡ 2. Быстрое копирование ключей с тегом [TOP-$_limit]'),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildClientButton('В Happ (Тег [TOP-$_limit])', () {
+                      final tagged = _generateSmartTaggedList(
+                        widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 10).toList(),
+                        _limit,
+                      );
+                      _copyToClipboard(tagged, 'ТОП-$_limit ключей с тегами скопированы для Happ!');
+                    }),
+                    _buildClientButton('В Incy', () {
+                      final tagged = _generateSmartTaggedList(
+                        widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 10).toList(),
+                        _limit,
+                      );
+                      _copyToClipboard(tagged, 'ТОП-$_limit ключей скопированы для Incy!');
+                    }),
+                    _buildClientButton('В Hiddify', () {
+                      final tagged = _generateSmartTaggedList(
+                        widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 10).toList(),
+                        _limit,
+                      );
+                      _copyToClipboard(tagged, 'ТОП-$_limit ключей скопированы для Hiddify!');
+                    }),
+                    _buildClientButton('В v2rayNG', () {
+                      final tagged = _generateSmartTaggedList(
+                        widget.provider.nodes.where((e) => e.isAlive).take(_limit > 0 ? _limit : 10).toList(),
+                        _limit,
+                      );
+                      _copyToClipboard(tagged, 'ТОП-$_limit ключей скопированы для v2rayNG!');
+                    }),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // 3. Limit selector
+                _buildSectionHeader('Количество лучших нод'),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildChoiceChip('ТОП 5', _limit == 5, () {
+                      setState(() => _limit = 5);
+                      _generateExport();
+                      _startLocalSubServer();
+                    }),
+                    _buildChoiceChip('ТОП 10', _limit == 10, () {
+                      setState(() => _limit = 10);
+                      _generateExport();
+                      _startLocalSubServer();
+                    }),
+                    _buildChoiceChip('ТОП 20', _limit == 20, () {
+                      setState(() => _limit = 20);
+                      _generateExport();
+                      _startLocalSubServer();
+                    }),
+                    _buildChoiceChip('ТОП 50', _limit == 50, () {
+                      setState(() => _limit = 50);
+                      _generateExport();
+                      _startLocalSubServer();
+                    }),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // 4. Format selector
+                _buildSectionHeader('Формат выгрузки'),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _formats.map((f) {
+                    final isSelected = _format == f['id'];
+                    return _buildChoiceChip(f['name']!, isSelected, () {
+                      setState(() => _format = f['id']!);
+                      _generateExport();
+                    });
+                  }).toList(),
+                ),
+                const SizedBox(height: 20),
+
+                // 5. Preview Box (Roboto Mono)
+                _buildSectionHeader('Предпросмотр структуры ($_matchedCount ключей)'),
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppTheme.dividerDark, width: 1),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Text(
+                      _exportedContent.isEmpty ? 'Нет доступных ключей' : _exportedContent,
+                      style: GoogleFonts.robotoMono(fontSize: 11, color: AppTheme.textSecondaryDark),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+          ),
 
-            // Copy Action Button
-            SizedBox(
+          // Action Button
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: AppTheme.surfaceDark,
+              border: Border(top: BorderSide(color: AppTheme.dividerDark, width: 1)),
+            ),
+            child: SizedBox(
               width: double.infinity,
-              height: 48,
+              height: 44,
               child: FilledButton.icon(
-                icon: const Icon(Icons.copy_all_rounded, size: 18),
-                label: Text('Скопировать $_matchedCount ключей в буфер'),
+                icon: const Icon(Icons.copy, size: 16, color: Colors.black),
+                label: Text(
+                  'Скопировать пак в буфер ($_matchedCount нод с тегами)',
+                  style: GoogleFonts.roboto(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
                 onPressed: _exportedContent.isEmpty
                     ? null
-                    : () => _copyToClipboard(_exportedContent, 'Успешно скопировано $_matchedCount лучших ключей!'),
+                    : () => _copyToClipboard(_exportedContent, 'Успешно скопировано $_matchedCount ключей с тегами!'),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildLimitChip(String label, int limitVal) {
-    final isSelected = _limit == limitVal;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      selectedColor: AppTheme.primaryContainer,
-      onSelected: (selected) {
-        if (selected) {
-          setState(() => _limit = limitVal);
-          _generateExport();
-        }
-      },
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        title.toUpperCase(),
+        style: GoogleFonts.roboto(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.textTertiaryDark, letterSpacing: 0.5),
+      ),
+    );
+  }
+
+  Widget _buildClientButton(String label, VoidCallback onTap) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: AppTheme.dividerDark),
+        foregroundColor: AppTheme.textPrimaryDark,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      ),
+      child: Text(label, style: GoogleFonts.roboto(fontSize: 12, fontWeight: FontWeight.w500)),
+    );
+  }
+
+  Widget _buildChoiceChip(String label, bool isSelected, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.accent.withOpacity(0.18) : AppTheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected ? AppTheme.accent : AppTheme.dividerDark,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.roboto(
+            fontSize: 12.5,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            color: isSelected ? Colors.white : AppTheme.textPrimaryDark,
+          ),
+        ),
+      ),
     );
   }
 }
