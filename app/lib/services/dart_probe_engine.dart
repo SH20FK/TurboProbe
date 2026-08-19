@@ -569,7 +569,7 @@ class DartProbeEngine {
     }
 
     String streamGrade = speedMbps >= 50 ? '4K HDR' : (speedMbps >= 20 ? '1080p 60fps' : '720p HD');
-    final geo = GeoIpEngine.lookup(node.server);
+    final geo = GeoIpEngine.resolve(host: node.server, nodeName: node.name);
 
     return NodeModel(
       id: node.id,
@@ -581,14 +581,14 @@ class DartProbeEngine {
       security: node.security,
       sni: node.sni,
       type: node.type,
-      countryCode: geo.code,
-      countryName: geo.name,
-      flagEmoji: geo.flag,
+      countryCode: geo.countryCode,
+      countryName: geo.countryName,
+      flagEmoji: geo.flagEmoji,
       isAlive: true,
       pingMs: realisticPing,
       jitterMs: jitter,
       packetLoss: 0.0,
-      score: max(10, 100 - (realisticPing ~/ 4)),
+      score: _calcScore(realisticPing, speedMbps, true),
       errorMsg: null,
       unlockYouTube: true,
       unlockDiscord: true,
@@ -597,162 +597,6 @@ class DartProbeEngine {
       streamGrade: streamGrade,
       dpiVerdict: dpiVerdict,
       dpiDiagnosis: '✅ Пакеты проходят без сброса',
-    );
-  }
-
-    // Step 4: DPI Pulse-Wave & Gaming MTU Stress Test
-    bool isTSPUThrottled = false;
-    int pulseJitterMs = 4;
-    int pmtu = 1420;
-
-    try {
-      final pulse1 = List<int>.filled(512, 0xAA);
-      final pulse2 = List<int>.filled(1200, 0x55);
-      final pulse3 = List<int>.filled(1420, 0xFF);
-      final swPulse = Stopwatch()..start();
-
-      activeSocket.add(pulse1);
-      await activeSocket.flush();
-      final p1 = swPulse.elapsedMilliseconds;
-
-      activeSocket.add(pulse2);
-      await activeSocket.flush();
-      final p2 = swPulse.elapsedMilliseconds - p1;
-
-      activeSocket.add(pulse3);
-      await activeSocket.flush();
-
-      pulseJitterMs = (p2 - p1).abs();
-      if (pulseJitterMs > 150) {
-        isTSPUThrottled = true;
-        dpiVerdict = '⚠️ DPI Throttling (Искусственный джиттер ТСПУ)';
-      }
-    } catch (_) {
-      isTSPUThrottled = true;
-      pmtu = 1280;
-      dpiVerdict = '⚠️ DPI Packet Drop (Пакеты > 1200B сбрасываются)';
-    }
-
-    activeSocket.destroy();
-
-    final realisticPing = max(handshakeTimeMs + ttfbTimeMs, 25);
-    final finalJitter = max(pulseJitterMs, (realisticPing * 0.05).round());
-
-    // Stream throughput
-    double speedMbps = 15.0;
-    if (realisticPing < 70) {
-      speedMbps = 95.0 - (realisticPing * 0.3);
-    } else if (realisticPing < 150) {
-      speedMbps = 65.0 - (realisticPing * 0.2);
-    } else if (realisticPing < 280) {
-      speedMbps = 28.0 - (realisticPing * 0.05);
-    } else {
-      speedMbps = max(5.0, 15.0 - (realisticPing * 0.02));
-    }
-
-    String streamGrade = '4K HDR';
-    if (speedMbps >= 50) {
-      streamGrade = '4K HDR';
-    } else if (speedMbps >= 20) {
-      streamGrade = '1080p 60fps';
-    } else {
-      streamGrade = '720p HD';
-    }
-
-    // Egress Parsing
-    String loc = '';
-    String colo = '';
-    String egressIp = '';
-    String asnp = '';
-    bool isClean = true;
-
-    if (responseBody != null && responseBody.isNotEmpty) {
-      if (responseBody.contains('403 Forbidden') ||
-          responseBody.contains('cf-mitigated: challenge') ||
-          responseBody.contains('1020') ||
-          responseBody.contains('429')) {
-        isClean = false;
-      }
-
-      for (final line in responseBody.split('\n')) {
-        final trimmed = line.trim();
-        if (trimmed.startsWith('loc=')) {
-          loc = trimmed.substring(4).toUpperCase();
-        } else if (trimmed.startsWith('colo=')) {
-          colo = trimmed.substring(5).toUpperCase();
-        } else if (trimmed.startsWith('ip=')) {
-          egressIp = trimmed.substring(3).trim();
-        } else if (trimmed.startsWith('asnp=') || trimmed.startsWith('asn=')) {
-          asnp = trimmed.split('=')[1].trim();
-        }
-      }
-    }
-
-    // 🌐 3-Tier Resolution via GeoIpEngine: Trace ➔ Host GeoIP Range ➔ Deep Linguistic Regex
-    final geo = GeoIpEngine.resolve(
-      traceLoc: loc.isNotEmpty ? loc : null,
-      traceColo: colo.isNotEmpty ? colo : null,
-      traceAsn: asnp.isNotEmpty ? asnp : null,
-      traceIp: egressIp.isNotEmpty ? egressIp : null,
-      host: node.server,
-      nodeName: node.name,
-    );
-
-    final resolvedCountryCode = geo.countryCode;
-    final resolvedCountryName = geo.displayName;
-    final resolvedFlagEmoji = geo.flagEmoji;
-
-    final isTSPUResistant = !isTSPUThrottled &&
-        (node.security == 'reality' || node.protocol == 'hysteria2' || node.protocol == 'tuic' || realisticPing < 180);
-
-    final isGamingReady = realisticPing < 75 && finalJitter < 15 && !isTSPUThrottled;
-
-    final unlockYT = resolvedCountryCode != 'RU' && resolvedCountryCode != 'CN' && resolvedCountryCode != 'IR' && !isTSPUThrottled;
-    final unlockDiscord = resolvedCountryCode != 'RU' && resolvedCountryCode != 'CN' && realisticPing < 320 && !isTSPUThrottled;
-    final unlockOpenAI = isClean && resolvedCountryCode != 'RU' && resolvedCountryCode != 'IR' && resolvedCountryCode != 'CN' && resolvedCountryCode != 'BY';
-
-    // If resurrected, update URI with new working port
-    String finalUri = node.rawUri;
-    String finalName = node.name;
-    if (isResurrected) {
-      finalUri = finalUri.replaceAll(':${node.port}', ':$activePort');
-      finalName = '⚡ [Порт $activePort] ${node.name}';
-    }
-
-    return NodeModel(
-      id: node.id,
-      rawUri: finalUri,
-      protocol: node.protocol,
-      name: finalName,
-      server: node.server,
-      port: activePort,
-      security: node.security,
-      sni: node.sni,
-      type: node.type,
-      countryCode: resolvedCountryCode,
-      countryName: resolvedCountryName,
-      flagEmoji: resolvedFlagEmoji,
-      isAlive: true,
-      pingMs: realisticPing,
-      jitterMs: finalJitter,
-      packetLoss: isTSPUThrottled ? 33.3 : 0.0,
-      score: _calcScore(realisticPing, speedMbps, isTSPUResistant),
-      unlockYouTube: unlockYT,
-      unlockDiscord: unlockDiscord,
-      unlockOpenAI: unlockOpenAI,
-      unlockTelegram: true,
-      unlockInstagram: true,
-      isTSPUResistant: isTSPUResistant,
-      speedMbps: speedMbps,
-      streamBandGrade: streamGrade,
-      isTSPUThrottled: isTSPUThrottled,
-      isCleanIp: isClean,
-      egressIp: egressIp.isNotEmpty ? egressIp : null,
-      isResurrected: isResurrected,
-      resurrectedPort: isResurrected ? activePort : null,
-      dpiDiagnosis: isTSPUThrottled ? dpiVerdict : 'Чистое соединение (ТСПУ Pass)',
-      isGamingReady: isGamingReady,
-      pathMtu: pmtu,
     );
   }
 
