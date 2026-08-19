@@ -1,0 +1,42 @@
+name: VPN Subscription Auto-Aggregator
+
+on:
+  schedule:
+    # Runs every 6 hours automatically (00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Allows manual trigger anytime from GitHub Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  aggregate:
+    name: Aggregate & Deduplicate VPN Subscriptions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run VPN Auto-Aggregator
+        run: |
+          python tools/aggregator.py
+
+      - name: Commit and push updated subscriptions
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add sub/
+          if git diff --staged --quiet; then
+            echo "No subscription updates detected."
+          else
+            git commit -m "chore(sub): auto-update VPN subscriptions [$(date -u +'%Y-%m-%d %H:%M UTC')]"
+            git push
+          fi

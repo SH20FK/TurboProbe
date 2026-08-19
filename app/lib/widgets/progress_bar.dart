@@ -13,48 +13,19 @@ class ProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isTesting && percent == 0) return const SizedBox.shrink();
+    if (!isTesting && percent == 0) {
+      return const SizedBox.shrink();
+    }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isTesting ? '⚡ Turbo-Probing in progress...' : '✅ Benchmark Complete',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: isTesting ? AppTheme.primary : AppTheme.success,
-                ),
-              ),
-              Text(
-                '${percent.toStringAsFixed(1)}%',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: percent / 100.0,
-              minHeight: 6,
-              backgroundColor: AppTheme.surfaceContainer,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isTesting ? AppTheme.primary : AppTheme.success,
-              ),
-            ),
-          ),
-        ],
-      ),
+    return SizedBox(
+      height: 2.5,
+      child: isTesting
+          ? LinearProgressIndicator(
+              value: percent > 0 ? (percent / 100.0).clamp(0.0, 1.0) : null,
+              backgroundColor: AppTheme.dividerDark,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accent),
+            )
+          : const Divider(height: 1, color: AppTheme.dividerDark),
     );
   }
 }

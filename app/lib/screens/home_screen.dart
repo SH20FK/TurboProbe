@@ -402,7 +402,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          Text('Быстрые публичные подписки:', style: GoogleFonts.roboto(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondaryDark)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildPresetChip('⚡ Анти-ТСПУ Reality (1500+)', 'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/vless.txt'),
+              _buildPresetChip('🛡️ Anti-Whitelist SNI', 'https://raw.githubusercontent.com/yebekhe/TVC/main/subscriptions/xray/normal/mix'),
+              _buildPresetChip('🌐 Все протоколы (9500+)', 'https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt'),
+              _buildPresetChip('⚡ Hysteria 2 / TUIC', 'https://raw.githubusercontent.com/barry-far/V2ray-Configs/main/Splitted-By-Protocol/hysteria2.txt'),
+            ],
+          ),
+          const SizedBox(height: 18),
           Row(
             children: [
               OutlinedButton.icon(
@@ -431,6 +444,30 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPresetChip(String label, String url) {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _inputController.text = url;
+        });
+        _parseAndRun();
+      },
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppTheme.dividerDark, width: 1),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.roboto(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.textPrimaryDark),
+        ),
       ),
     );
   }
