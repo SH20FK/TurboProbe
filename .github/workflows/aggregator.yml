@@ -62,7 +62,7 @@ jobs:
 
       - name: Run Deep Service Prober (Real Tunnel Verifier)
         run: |
-          python tools/service_prober.py --limit 250
+          python tools/service_prober.py --limit 600
 
       - name: Copy subscriptions to docs for GitHub Pages hosting
         run: |
