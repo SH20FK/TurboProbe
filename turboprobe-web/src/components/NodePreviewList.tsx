@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThinkingOrb } from 'thinking-orbs';
 import { ChevronDown, ChevronUp, Copy, Check, ShieldCheck, Radio } from 'lucide-react';
+import { CountryFlag } from './CountryFlags';
 import type { NodeItem } from '../types';
 
 interface NodePreviewListProps {
@@ -26,15 +27,6 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
     } catch (_) {}
   };
 
-  const getFlagEmoji = (countryCode?: string) => {
-    if (!countryCode || countryCode === 'GLOBAL') return '🌐';
-    const code = countryCode.toUpperCase();
-    if (code.length === 2) {
-      return String.fromCodePoint(127397 + code.charCodeAt(0)) + String.fromCodePoint(127397 + code.charCodeAt(1));
-    }
-    return '🌐';
-  };
-
   const extractRemark = (uri: string) => {
     if (uri.includes('#')) {
       try {
@@ -46,7 +38,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
   return (
     <section className="w-full max-w-5xl mx-auto px-4 py-4">
-      <div className="p-5 rounded-2xl bg-zinc-900/40 border border-white/[0.07]">
+      <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
         {/* Section Header with Toggle */}
         <div
           onClick={() => setIsExpanded(!isExpanded)}
@@ -111,7 +103,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                   nodes.map((node, index) => {
                     const ping = node.ping_ms ? Math.round(node.ping_ms) : 35 + index * 2;
                     const remark = extractRemark(node.uri);
-                    const flag = getFlagEmoji(node.country);
+                    const countryCode = (node.country || 'all').toLowerCase();
                     const proto = node.protocol || (node.uri.split('://')[0] || 'vless').toUpperCase();
                     const health = node.health ?? 100;
                     const isCopied = copiedIndex === index;
@@ -124,7 +116,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                         <div className="flex items-center gap-3 overflow-hidden">
                           {/* Country Flag & Protocol Badge */}
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-base">{flag}</span>
+                            <CountryFlag countryCode={countryCode} className="w-4 h-2.5 rounded-[1px] shadow-sm flex-shrink-0" />
                             <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/10">
                               {proto.toUpperCase()}
                             </span>

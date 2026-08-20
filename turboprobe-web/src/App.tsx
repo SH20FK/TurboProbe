@@ -262,15 +262,15 @@ export default function App() {
   return (
     <div className="relative min-h-screen bg-[#050505] text-zinc-100 selection:bg-zinc-100 selection:text-zinc-950 overflow-x-hidden">
       
-      {/* Interactive 3D Earth Globe Background */}
-      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden opacity-35">
-        <div className="w-[800px] h-[800px] sm:w-[1100px] sm:h-[1100px] lg:w-[1300px] lg:h-[1300px] flex items-center justify-center">
+      {/* Interactive 3D Earth Globe Background (Scaled & Centered without clipping) */}
+      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden opacity-30">
+        <div className="w-[340px] h-[340px] sm:w-[500px] sm:h-[500px] md:w-[620px] md:h-[620px] max-w-[90vw] max-h-[90vh] flex items-center justify-center">
           <Globe
-            speed={1.2}
+            speed={1.0}
             smoothing={8}
-            scale={10}
+            scale={6.5}
             dots={{ color: '#ffffff', size: 3.5, density: 7, allDots: false }}
-            markerConfig={{ markers: SERVER_HUB_MARKERS, color: '#ffffff', size: 40 }}
+            markerConfig={{ markers: SERVER_HUB_MARKERS, color: '#ffffff', size: 35 }}
             oceanColor="#00000000"
             graticuleColor="#27272a"
             showGrid={false}

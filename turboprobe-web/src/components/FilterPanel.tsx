@@ -11,6 +11,7 @@ import {
   SpotifyIcon,
   GitHubIcon,
 } from './ServiceIcons';
+import { CountryFlag } from './CountryFlags';
 
 interface FilterPanelProps {
   selectedServices: string[];
@@ -37,16 +38,16 @@ const SERVICES = [
 ];
 
 const COUNTRIES = [
-  { code: 'all', label: '🌐 Все страны' },
-  { code: 'de', label: '🇩🇪 Германия' },
-  { code: 'nl', label: '🇳🇱 Нидерланды' },
-  { code: 'kz', label: '🇰🇿 Казахстан' },
-  { code: 'fi', label: '🇫🇮 Финляндия' },
-  { code: 'tr', label: '🇹🇷 Турция' },
-  { code: 'ru', label: '🇷🇺 Россия (Direct)' },
-  { code: 'se', label: '🇸🇪 Швеция' },
-  { code: 'us', label: '🇺🇸 США' },
-  { code: 'sg', label: '🇸🇬 Сингапур' },
+  { code: 'all', label: 'Все страны' },
+  { code: 'de', label: 'Германия' },
+  { code: 'nl', label: 'Нидерланды' },
+  { code: 'kz', label: 'Казахстан' },
+  { code: 'fi', label: 'Финляндия' },
+  { code: 'tr', label: 'Турция' },
+  { code: 'ru', label: 'Россия (Direct)' },
+  { code: 'se', label: 'Швеция' },
+  { code: 'us', label: 'США' },
+  { code: 'sg', label: 'Сингапур' },
 ];
 
 const PROTOCOLS = [
@@ -71,15 +72,15 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 }) => {
   return (
     <section className="w-full max-w-5xl mx-auto px-4 py-4 space-y-4">
-      {/* 1. Services Selection with Authentic Official Icons */}
-      <div className="p-5 rounded-2xl bg-zinc-900/40 border border-white/[0.07]">
+      {/* 1. Services Selection with Official SVG Logos */}
+      <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-zinc-300" />
             1. Выбор сервисов (Официальные шлюзы)
           </span>
           {selectedServices.length > 0 && (
-            <span className="text-xs text-zinc-300 font-mono bg-zinc-800 px-2 py-0.5 rounded border border-white/10">
+            <span className="text-xs text-zinc-200 font-mono bg-zinc-800 px-2 py-0.5 rounded border border-white/10">
               Выбрано: {selectedServices.length}
             </span>
           )}
@@ -100,7 +101,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium border transition-all cursor-pointer select-none ${
                   isSelected
                     ? 'bg-zinc-100 text-zinc-950 font-bold border-white shadow-md'
-                    : 'bg-zinc-900/60 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
+                    : 'bg-zinc-900/80 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
                 }`}
               >
                 <Icon className="w-4 h-4 flex-shrink-0" />
@@ -114,7 +115,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       {/* 2. Country & Protocol Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Country */}
-        <div className="p-5 rounded-2xl bg-zinc-900/40 border border-white/[0.07]">
+        <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-2 mb-3.5">
             <Globe2 className="w-4 h-4 text-zinc-300" />
             2. Локация серверов
@@ -131,13 +132,14 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                   onClick={() => onSelectCountry(c.code)}
                   type="button"
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
                     isSelected
                       ? 'bg-zinc-100 text-zinc-950 font-bold border-white'
-                      : 'bg-zinc-900/60 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
+                      : 'bg-zinc-900/80 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
                   }`}
                 >
-                  {c.label}
+                  <CountryFlag countryCode={c.code} className="w-4 h-2.5 rounded-[1px] shadow-sm flex-shrink-0" />
+                  <span>{c.label}</span>
                 </motion.button>
               );
             })}
@@ -145,7 +147,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         </div>
 
         {/* Protocol */}
-        <div className="p-5 rounded-2xl bg-zinc-900/40 border border-white/[0.07]">
+        <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-2 mb-3.5">
             <Sliders className="w-4 h-4 text-zinc-300" />
             3. Протокол шифрования
@@ -165,7 +167,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
                     isSelected
                       ? 'bg-zinc-100 text-zinc-950 font-bold border-white'
-                      : 'bg-zinc-900/60 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
+                      : 'bg-zinc-900/80 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
                   }`}
                 >
                   {p.label}
@@ -179,7 +181,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       {/* 3. Sliders: Max Ping & Min Health Score */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Ping Slider */}
-        <div className="p-5 rounded-2xl bg-zinc-900/40 border border-white/[0.07]">
+        <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono">
               Максимальный пинг
@@ -195,7 +197,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             step={10}
             value={maxPing}
             onChange={(e) => onChangeMaxPing(Number(e.target.value))}
-            className="w-full accent-white cursor-pointer my-2"
+            className="w-full my-2"
           />
           <div className="flex justify-between text-[11px] text-zinc-500 font-mono">
             <span>Все</span>
@@ -206,7 +208,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         </div>
 
         {/* Health Score Slider */}
-        <div className="p-5 rounded-2xl bg-zinc-900/40 border border-white/[0.07]">
+        <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
@@ -223,7 +225,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             step={5}
             value={minHealth}
             onChange={(e) => onChangeMinHealth(Number(e.target.value))}
-            className="w-full accent-white cursor-pointer my-2"
+            className="w-full my-2"
           />
           <div className="flex justify-between text-[11px] text-zinc-500 font-mono">
             <span>Все</span>
