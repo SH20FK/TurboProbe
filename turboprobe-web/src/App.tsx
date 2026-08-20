@@ -5,10 +5,24 @@ import { FilterPanel } from './components/FilterPanel';
 import { ExportPanel } from './components/ExportPanel';
 import { NodePreviewList } from './components/NodePreviewList';
 import { QrModal } from './components/QrModal';
+import Globe from './components/ui/Globe';
 import type { NodeItem, StatsData, PresetItem } from './types';
 
 const CDN_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
 const JSDELIVR_BASE = 'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub';
+
+// Primary Server Hubs for 3D Globe Markers
+const SERVER_HUB_MARKERS = [
+  { lat: 50.1109, lng: 8.6821 },  // Frankfurt (DE)
+  { lat: 52.3676, lng: 4.9041 },  // Amsterdam (NL)
+  { lat: 43.2220, lng: 76.8512 }, // Almaty (KZ)
+  { lat: 60.1699, lng: 24.9384 }, // Helsinki (FI)
+  { lat: 41.0082, lng: 28.9784 }, // Istanbul (TR)
+  { lat: 55.7558, lng: 37.6173 }, // Moscow (RU)
+  { lat: 1.3521, lng: 103.8198 }, // Singapore (SG)
+  { lat: 40.7128, lng: -74.0060 },// New York (US)
+  { lat: 59.3293, lng: 18.0686 }, // Stockholm (SE)
+];
 
 export default function App() {
   const [activePreset, setActivePreset] = useState<string>('all');
@@ -36,7 +50,6 @@ export default function App() {
         `${CDN_BASE}/preview.json`,
       ];
 
-      // Multi-mirror race for instant load (< 100ms)
       const fetchWithTimeout = async (url: string, ms = 2500) => {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), ms);
@@ -58,7 +71,6 @@ export default function App() {
           setIsLoading(false);
         }
       } catch (_) {
-        // Fallback: load raw top50.txt
         try {
           const res = await fetch(`${JSDELIVR_BASE}/top50.txt`);
           if (res.ok) {
@@ -248,58 +260,81 @@ export default function App() {
   }, [filteredNodes]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-neutral-100 selection:bg-green-500 selection:text-black">
-      {/* Header with MetalFx & Pop-in Metrics */}
-      <Header stats={stats} totalFilteredNodes={allNodes.length || 45000} />
+    <div className="relative min-h-screen bg-[#050505] text-zinc-100 selection:bg-zinc-100 selection:text-zinc-950 overflow-x-hidden">
+      
+      {/* Interactive 3D Earth Globe Background */}
+      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden opacity-35">
+        <div className="w-[800px] h-[800px] sm:w-[1100px] sm:h-[1100px] lg:w-[1300px] lg:h-[1300px] flex items-center justify-center">
+          <Globe
+            speed={1.2}
+            smoothing={8}
+            scale={10}
+            dots={{ color: '#ffffff', size: 3.5, density: 7, allDots: false }}
+            markerConfig={{ markers: SERVER_HUB_MARKERS, color: '#ffffff', size: 40 }}
+            oceanColor="#00000000"
+            graticuleColor="#27272a"
+            showGrid={false}
+          />
+        </div>
+      </div>
 
-      <main className="pb-16 space-y-2">
-        {/* Preset Selector with BorderBeam */}
-        <PresetSelector activePreset={activePreset} onSelectPreset={handleSelectPreset} />
+      {/* Subtle Radial Gradient to Vignette the Globe */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-transparent via-[#050505]/60 to-[#050505]" />
 
-        {/* Filter Panel with Spring Physics */}
-        <FilterPanel
-          selectedServices={selectedServices}
-          onToggleService={handleToggleService}
-          selectedCountry={selectedCountry}
-          onSelectCountry={handleSelectCountry}
-          selectedProto={selectedProto}
-          onSelectProto={handleSelectProto}
-          maxPing={maxPing}
-          onChangeMaxPing={handleChangeMaxPing}
-          minHealth={minHealth}
-          onChangeMinHealth={handleChangeMinHealth}
-        />
+      {/* Main Content Layer */}
+      <div className="relative z-10">
+        {/* Header with MetalFx & Pop-in Metrics */}
+        <Header stats={stats} totalFilteredNodes={allNodes.length || 45000} />
 
-        {/* Export Panel with Text Blur Swap & Icon Morph */}
-        <ExportPanel
-          subUrl={subUrl}
-          filteredCount={filteredNodes.length}
-          allFilteredKeys={allFilteredKeys}
-          onOpenQr={() => setIsQrOpen(true)}
-          onDownloadTxt={handleDownloadTxt}
-          onDownloadClash={handleDownloadClash}
-        />
+        <main className="pb-16 space-y-2">
+          {/* Preset Selector with BorderBeam */}
+          <PresetSelector activePreset={activePreset} onSelectPreset={handleSelectPreset} />
 
-        {/* Live Node Preview List with ThinkingOrbs & Reveal Animation */}
-        <NodePreviewList
-          nodes={filteredNodes.slice(0, 50)}
-          isLoading={isLoading}
-          totalAvailable={filteredNodes.length}
-        />
-      </main>
+          {/* Filter Panel with Spring Physics */}
+          <FilterPanel
+            selectedServices={selectedServices}
+            onToggleService={handleToggleService}
+            selectedCountry={selectedCountry}
+            onSelectCountry={handleSelectCountry}
+            selectedProto={selectedProto}
+            onSelectProto={handleSelectProto}
+            maxPing={maxPing}
+            onChangeMaxPing={handleChangeMaxPing}
+            minHealth={minHealth}
+            onChangeMinHealth={handleChangeMinHealth}
+          />
 
-      {/* QR Code Modal with Scale Animation */}
-      <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
+          {/* Export Panel with Text Blur Swap & Icon Morph */}
+          <ExportPanel
+            subUrl={subUrl}
+            filteredCount={filteredNodes.length}
+            allFilteredKeys={allFilteredKeys}
+            onOpenQr={() => setIsQrOpen(true)}
+            onDownloadTxt={handleDownloadTxt}
+            onDownloadClash={handleDownloadClash}
+          />
 
-      {/* Minimal Footer */}
-      <footer className="w-full max-w-5xl mx-auto py-8 px-4 border-t border-white/[0.06] text-center text-xs text-neutral-500 font-mono">
-        <p className="m-0">
-          TurboProbe · Полностью открытый и автономный VPN-агрегатор
-        </p>
-        <p className="mt-1 m-0 text-neutral-600">
-          Обновляется автоматически каждые 6 часов через GitHub Actions
-        </p>
-      </footer>
+          {/* Live Node Preview List with ThinkingOrbs & Reveal Animation */}
+          <NodePreviewList
+            nodes={filteredNodes.slice(0, 50)}
+            isLoading={isLoading}
+            totalAvailable={filteredNodes.length}
+          />
+        </main>
+
+        {/* QR Code Modal with Scale Animation */}
+        <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
+
+        {/* Minimal Footer */}
+        <footer className="w-full max-w-5xl mx-auto py-8 px-4 border-t border-white/[0.06] text-center text-xs text-zinc-500 font-mono">
+          <p className="m-0">
+            TurboProbe · Суверенный и автономный VPN-агрегатор
+          </p>
+          <p className="mt-1 m-0 text-zinc-600">
+            Обновляется автоматически каждые 6 часов через GitHub Actions
+          </p>
+        </footer>
+      </div>
     </div>
   );
 }
