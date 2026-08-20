@@ -508,12 +508,21 @@ def load_discovered_sources() -> list:
         return []
 
 def main():
-    extra_sources = load_discovered_sources()
-    # Static seed list + anything the discovery bot has confirmed on past runs
-    all_sources = list(dict.fromkeys(SOURCES + extra_sources))
+    import argparse
+    parser = argparse.ArgumentParser(description="TurboProbe VPN Aggregator")
+    parser.add_argument("--fast", action="store_true", help="Fast mode: Only Tier-1 sources, under 30s")
+    parser.add_argument("--limit", type=int, default=0, help="Max candidates to test")
+    args = parser.parse_args()
 
-    print(f"🚀 [TurboProbe Ultra-Speed Engine v5.0] Crawling from {len(all_sources)} verified sources "
-          f"({len(SOURCES)} seed + {len(extra_sources)} auto-discovered)...")
+    if args.fast:
+        all_sources = SOURCES[:35]
+        print(f"⚡ [TurboProbe Fast Mode] Crawling only {len(all_sources)} Tier-1 high-yield sources (under 30s)...", flush=True)
+    else:
+        extra_sources = load_discovered_sources()
+        all_sources = list(dict.fromkeys(SOURCES + extra_sources))
+        print(f"🚀 [TurboProbe Full Engine] Crawling from {len(all_sources)} verified sources "
+              f"({len(SOURCES)} seed + {len(extra_sources)} auto-discovered)...", flush=True)
+
     fetched_count = 0
     all_uris = []
     direct_ru_fetched = {}
@@ -575,6 +584,11 @@ def main():
         candidate_uris.append(uri)
     if skipped_dead:
         print(f"  🚫 Purged {skipped_dead} persistent dead keys from crawl pool.")
+
+    if args.fast:
+        candidate_uris = candidate_uris[:5000]
+    elif args.limit > 0:
+        candidate_uris = candidate_uris[:args.limit]
 
     # 3. ⚡ High-Speed Turbo Multi-Threaded Latency Benchmark (1000 workers)
     print(f"🩺 Starting ultra-speed latency benchmark across {len(candidate_uris)} nodes (timeout: 0.40s, 1000 threads)...", flush=True)
