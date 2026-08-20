@@ -35,8 +35,8 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
       await navigator.clipboard.writeText(subUrl);
       setCopiedHapp(true);
       setTimeout(() => setCopiedHapp(false), 2500);
-      // Launch Happ app via dedicated deep link
-      window.location.href = `happ://add/${encodeURIComponent(subUrl)}`;
+      // Launch Happ app via direct unencoded URL so it detects https protocol
+      window.location.href = `happ://add/${subUrl}#TurboProbe`;
     } catch (_) {}
   };
 
