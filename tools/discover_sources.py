@@ -278,7 +278,7 @@ def search_single_query(q: str) -> list:
             break
     return results
 
-def discover_all_github_repositories() -> set:
+def discover_all_github_repositories(scanned_repos_cache: dict) -> tuple:
     """Dynamically searches ALL GitHub repositories matching proxy queries in parallel."""
     discovered_repos = set(SEED_REPOSITORIES)
 
@@ -292,21 +292,35 @@ def discover_all_github_repositories() -> set:
             except Exception:
                 pass
 
-    print(f"  📦 Total active repositories discovered: {len(discovered_repos)} repos!", flush=True)
+    # Filter out repos that were already scanned recently (within last 18 hours)
+    now_ts = time.time()
+    fresh_repos = []
+    skipped_cached = 0
+    for r in discovered_repos:
+        repo_name = r[0]
+        last_scanned = scanned_repos_cache.get(repo_name, 0)
+        if now_ts - last_scanned < 64800:  # 18 hours cache
+            skipped_cached += 1
+            continue
+        fresh_repos.append(r)
 
-    # Crawl all discovered repositories concurrently (200 workers)
+    print(f"  📦 Total repositories: {len(discovered_repos)} ({skipped_cached} cached & skipped, {len(fresh_repos)} newly discovered to crawl)", flush=True)
+
+    # Crawl only NEW/FRESH discovered repositories concurrently (200 workers)
     all_repo_candidates = set()
     with ThreadPoolExecutor(max_workers=200) as pool:
-        future_map = {pool.submit(crawl_single_repository, r[0], r[1]): r[0] for r in discovered_repos}
+        future_map = {pool.submit(crawl_single_repository, r[0], r[1]): r[0] for r in fresh_repos}
         for fut in as_completed(future_map):
+            repo_name = future_map[fut]
             try:
                 res = fut.result()
                 all_repo_candidates.update(res)
+                scanned_repos_cache[repo_name] = now_ts
             except Exception:
                 pass
 
-    print(f"  🚀 Repository Crawler generated {len(all_repo_candidates)} candidate URLs", flush=True)
-    return all_repo_candidates
+    print(f"  🚀 Delta Repository Crawler generated {len(all_repo_candidates)} fresh candidate URLs", flush=True)
+    return all_repo_candidates, scanned_repos_cache
 
 # =============================================================================
 # 3. 📡 TELEGRAM PUBLIC CHANNELS SCRAPER
@@ -356,7 +370,7 @@ def discover_from_telegram() -> tuple:
 def validate_source(url: str, min_nodes: int = MIN_NODES_TO_KEEP) -> int:
     """Fetches source URL and counts how many valid keys it contains."""
     try:
-        content = fetch_url(url, timeout=6)
+        content = fetch_url(url, timeout=5)
         if not content:
             return 0
         uris = extract_uris_from_content(content)
@@ -370,26 +384,34 @@ def validate_source(url: str, min_nodes: int = MIN_NODES_TO_KEEP) -> int:
 def main():
     print("=" * 70)
     print("🤖 TurboProbe Ultra Source Discovery & Scraper Bot v3.0")
-    print("   (Global Multi-Repo Crawler + Code Search + Telegram Engine)")
+    print("   (Global Delta Multi-Repo Crawler + Code Search + Telegram Engine)")
     print("=" * 70, flush=True)
 
-    # 1. Load existing discovered sources
+    # 1. Load existing discovered sources & cache
     existing = {}
+    metadata = {}
     if os.path.exists(DISCOVERED_PATH):
         try:
             with open(DISCOVERED_PATH, "r", encoding="utf-8") as f:
-                existing = json.load(f)
+                loaded = json.load(f)
+                metadata = loaded.get("_metadata", {})
+                existing = {k: v for k, v in loaded.items() if not k.startswith("_")}
         except Exception:
             existing = {}
+            metadata = {}
 
-    known_sources = set(SOURCES) | set(existing.keys())
-    print(f"📚 Known baseline sources: {len(known_sources)} URLs", flush=True)
+    scanned_repos_cache = metadata.get("scanned_repos", {})
+    dead_urls_set = set(metadata.get("dead_urls", []))
+
+    known_sources = set(SOURCES) | set(existing.keys()) | dead_urls_set
+    print(f"📚 Known baseline sources: {len(known_sources)} URLs ({len(dead_urls_set)} cached dead)", flush=True)
 
     # 2. Run All Crawlers Concurrently
     candidate_urls = set()
 
-    # Step A: Dynamic GitHub Repositories Crawler
-    candidate_urls.update(discover_all_github_repositories())
+    # Step A: Dynamic GitHub Repositories Crawler with delta caching
+    repo_candidates, scanned_repos_cache = discover_all_github_repositories(scanned_repos_cache)
+    candidate_urls.update(repo_candidates)
 
     # Step B: GitHub Code Search (if token provided or in CI)
     candidate_urls.update(discover_from_github_code())
@@ -405,9 +427,9 @@ def main():
             f.write("\n".join(unique_tg))
         print(f"\n💾 Saved {len(unique_tg)} fresh direct keys to tools/telegram_feed.txt", flush=True)
 
-    # Filter out already known URLs
+    # Filter out already known & dead URLs
     new_candidates = [u for u in candidate_urls if u not in known_sources]
-    print(f"\n🧪 Validating {len(new_candidates)} new candidate subscription URLs concurrently...", flush=True)
+    print(f"\n🧪 Validating {len(new_candidates)} fresh candidate subscription URLs concurrently...", flush=True)
 
     new_confirmed = 0
     with ThreadPoolExecutor(max_workers=300) as pool:
@@ -425,17 +447,23 @@ def main():
                     }
                     new_confirmed += 1
                     print(f"  ✅ [VALID NEW SOURCE] ({count:4d} keys): {url}", flush=True)
+                else:
+                    dead_urls_set.add(url)
             except Exception:
-                pass
+                dead_urls_set.add(url)
 
-    # 3. Save updated database
+    # 3. Save updated database & metadata
+    metadata["scanned_repos"] = scanned_repos_cache
+    metadata["dead_urls"] = list(dead_urls_set)[-5000:]  # Cap to last 5000 dead URLs
+    existing["_metadata"] = metadata
+
     with open(DISCOVERED_PATH, "w", encoding="utf-8") as f:
         json.dump(existing, f, indent=2, ensure_ascii=False, sort_keys=True)
 
     print("\n" + "=" * 70)
-    print(f"🎉 [Complete] Discovery Bot v3.0 finished successfully!")
+    print(f"🎉 [Complete] Discovery Bot finished successfully!")
     print(f"   • New validated sources added: {new_confirmed}")
-    print(f"   • Total active discovered pool: {len(existing)} sources")
+    print(f"   • Total active discovered pool: {len(existing) - 1} sources")
     if telegram_keys:
         print(f"   • Direct live Telegram feed:   {len(unique_tg)} nodes")
     print("=" * 70, flush=True)
