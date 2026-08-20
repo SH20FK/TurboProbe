@@ -43,6 +43,14 @@ except Exception:
         return json.loads(s)
 
 try:
+    import resource
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    target = min(65536, hard if hard > 0 else 65536)
+    resource.setrlimit(resource.RLIMIT_NOFILE, (target, hard))
+except Exception:
+    pass
+
+try:
     sys.stdout.reconfigure(encoding='utf-8')
 except Exception:
     pass

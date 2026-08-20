@@ -48,20 +48,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          ulimit -n 65536 || true
           python tools/discover_sources.py
 
       - name: Run VPN Auto-Aggregator (Fast)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'fast' }}
         run: |
+          ulimit -n 65536 || true
           python tools/aggregator.py --fast
 
       - name: Run VPN Auto-Aggregator (Full)
         if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full') }}
         run: |
+          ulimit -n 65536 || true
           python tools/aggregator.py
 
       - name: Run Deep Service Prober (Real Tunnel Verifier)
         run: |
+          ulimit -n 65536 || true
           if [ "${{ github.event.inputs.mode }}" = "fast" ]; then
             python tools/service_prober.py --limit 1000
           else

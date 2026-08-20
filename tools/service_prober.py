@@ -61,8 +61,13 @@ try:
 except Exception:
     def fast_json_dumps(obj, indent=True) -> str:
         return json.dumps(obj, indent=2 if indent else None, ensure_ascii=False)
-    def fast_json_loads(s):
-        return json.loads(s)
+try:
+    import resource
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    target = min(65536, hard if hard > 0 else 65536)
+    resource.setrlimit(resource.RLIMIT_NOFILE, (target, hard))
+except Exception:
+    pass
 
 try:
     import requests
