@@ -20,18 +20,6 @@
 | ⚔️ **Clash Meta / FlClash (YAML Auto-Best)** | Clash YAML | https://sub.turboprobe.workers.dev/sub/clash |
 | 📦 **Резервное зеркало (GitHub Raw)** | Base64 / Plain | https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/top50.txt |
 
-> 💡 **Конструктор персональных подписок:** на сайте [sh20fk.github.io/TurboProbe](https://sh20fk.github.io/TurboProbe/) вы можете собрать подписку под свои любимые сервисы и страны (например: ?services=chatgpt,gemini&country=de,nl).
-
----
-
-## 🌟 Ключевые особенности
-
-- 🛡️ **100% Защита от блокировок ТСПУ и РКН:** приоритет протоколов **VLESS Reality** с валидными публичными ключами (pbk=), **Hysteria 2**, **Trojan TLS** и маскировкой под разрешенные в РФ домены.
-- 🔬 **Глубокий Xray-тест реальным трафиком:** каждый сервер проверяется через настоящий локальный HTTP-туннель Xray-core на отдачу трафика к Cloudflare и целевым сервисам. Никаких мертвых «пинг-заглушек».
-- 🌍 **Честный GeoIP:** страна и флаг узла определяются строго по исходящему IP-адресу через cloudflare.com/cdn-cgi/trace, игнорируя неверные названия в исходных ссылках.
-- ⚡ **Динамическая генерация на Cloudflare Edge Worker:** умный воркер налету фильтрует тысячи узлов по вашим параметрам (country, proto, max_ping, services) со скоростью ответа менее 5 мс.
-- 📲 **Импорт в 1 клик:** прямая интеграция протоколов `happ://add/...` и `flclash://install-config...` прямо из веб-интерфейса.
-
 ---
 
 ## 📱 Рекомендуемые клиенты
