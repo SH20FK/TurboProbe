@@ -5,24 +5,11 @@ import { FilterPanel } from './components/FilterPanel';
 import { ExportPanel } from './components/ExportPanel';
 import { NodePreviewList } from './components/NodePreviewList';
 import { QrModal } from './components/QrModal';
-import Globe from './components/ui/Globe';
+import ScrollWaveField from './components/ui/ScrollWaveField';
 import type { NodeItem, PresetItem } from './types';
 
 const CDN_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
 const JSDELIVR_BASE = 'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub';
-
-// Primary Server Hubs for 3D Globe Markers
-const SERVER_HUB_MARKERS = [
-  { lat: 50.1109, lng: 8.6821 },  // Frankfurt (DE)
-  { lat: 52.3676, lng: 4.9041 },  // Amsterdam (NL)
-  { lat: 43.2220, lng: 76.8512 }, // Almaty (KZ)
-  { lat: 60.1699, lng: 24.9384 }, // Helsinki (FI)
-  { lat: 41.0082, lng: 28.9784 }, // Istanbul (TR)
-  { lat: 55.7558, lng: 37.6173 }, // Moscow (RU)
-  { lat: 1.3521, lng: 103.8198 }, // Singapore (SG)
-  { lat: 40.7128, lng: -74.0060 },// New York (US)
-  { lat: 59.3293, lng: 18.0686 }, // Stockholm (SE)
-];
 
 export default function App() {
   const [activePreset, setActivePreset] = useState<string>('all');
@@ -252,22 +239,13 @@ export default function App() {
   return (
     <div className="relative min-h-screen bg-[#050505] text-zinc-100 selection:bg-zinc-100 selection:text-zinc-950 overflow-x-hidden">
       
-      {/* Interactive 3D Earth Globe Background (Scaled & Centered without clipping) */}
-      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden opacity-30">
-        <div className="w-[500px] h-[500px] sm:w-[720px] sm:h-[720px] md:w-[880px] md:h-[880px] flex items-center justify-center">
-          <Globe
-            speed={1.0}
-            smoothing={8}
-            scale={8.5}
-            dots={{ color: '#ffffff', size: 3.5, density: 7, allDots: false }}
-            markerConfig={{ markers: SERVER_HUB_MARKERS, color: '#ffffff', size: 35 }}
-            oceanColor="#00000000"
-          />
-        </div>
+      {/* 3D Particle Scroll Wave Field Background */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-50">
+        <ScrollWaveField />
       </div>
 
-      {/* Subtle Radial Gradient to Vignette the Globe */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-transparent via-[#050505]/60 to-[#050505]" />
+      {/* Subtle Radial Gradient to Vignette the Wave Field */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-transparent via-[#050505]/50 to-[#050505]" />
 
       {/* Main Content Layer */}
       <div className="relative z-10">
