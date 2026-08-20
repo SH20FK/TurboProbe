@@ -193,17 +193,6 @@ export default function App() {
     return filteredNodes.map((n) => n.uri);
   }, [filteredNodes]);
 
-  // 6. Direct Downloads
-  const handleDownloadTxt = useCallback(() => {
-    const blob = new Blob([allFilteredKeys.join('\n')], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `turboprobe-sub-${activePreset}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [allFilteredKeys, activePreset]);
-
   const handleDownloadClash = useCallback(() => {
     const proxies = filteredNodes.slice(0, 100).map((n, i) => {
       let name = `TurboProbe-${String(i + 1).padStart(3, '0')}`;
@@ -268,13 +257,12 @@ export default function App() {
             onChangeMinHealth={handleChangeMinHealth}
           />
 
-          {/* Export Panel with Text Blur Swap & Icon Morph */}
+          {/* Export Panel with Full Width Copy & App Integrations */}
           <ExportPanel
             subUrl={subUrl}
             filteredCount={filteredNodes.length}
             allFilteredKeys={allFilteredKeys}
             onOpenQr={() => setIsQrOpen(true)}
-            onDownloadTxt={handleDownloadTxt}
             onDownloadClash={handleDownloadClash}
           />
 

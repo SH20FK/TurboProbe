@@ -1,28 +1,27 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, ExternalLink, QrCode, Download, ShieldCheck, FileCode } from 'lucide-react';
+import { Copy, Check, QrCode, ShieldCheck, Zap, Layers } from 'lucide-react';
 
 interface ExportPanelProps {
   subUrl: string;
   filteredCount: number;
   allFilteredKeys: string[];
   onOpenQr: () => void;
-  onDownloadTxt: () => void;
   onDownloadClash: () => void;
 }
 
 export const ExportPanel: React.FC<ExportPanelProps> = ({
   subUrl,
   filteredCount,
-  allFilteredKeys,
+  allFilteredKeys: _allFilteredKeys,
   onOpenQr,
-  onDownloadTxt,
-  onDownloadClash,
+  onDownloadClash: _onDownloadClash,
 }) => {
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [copiedKeys, setCopiedKeys] = useState(false);
+  const [copiedHapp, setCopiedHapp] = useState(false);
+  const [copiedFlclash, setCopiedFlclash] = useState(false);
 
-  const handleCopyUrl = async () => {
+  const handleCopyMainUrl = async () => {
     try {
       await navigator.clipboard.writeText(subUrl);
       setCopiedUrl(true);
@@ -30,30 +29,34 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
     } catch (_) {}
   };
 
-  const handleCopyKeys = async () => {
-    if (allFilteredKeys.length === 0) return;
+  const handleCopyHapp = async () => {
     try {
-      await navigator.clipboard.writeText(allFilteredKeys.join('\n'));
-      setCopiedKeys(true);
-      setTimeout(() => setCopiedKeys(false), 2000);
+      await navigator.clipboard.writeText(subUrl);
+      setCopiedHapp(true);
+      setTimeout(() => setCopiedHapp(false), 2000);
+      // Try opening Happ protocol
+      const happLink = `happ://add/${encodeURIComponent(subUrl)}`;
+      window.location.href = happLink;
     } catch (_) {}
   };
 
-  const happUrl = `happ://add/${encodeURIComponent(subUrl)}`;
+  const handleCopyFlclash = async () => {
+    try {
+      await navigator.clipboard.writeText(subUrl);
+      setCopiedFlclash(true);
+      setTimeout(() => setCopiedFlclash(false), 2000);
+      // Try opening Clash / FlClash protocol
+      const clashLink = `clash://install-config?url=${encodeURIComponent(subUrl)}&name=TurboProbe`;
+      window.location.href = clashLink;
+    } catch (_) {}
+  };
 
   return (
-    <section className="w-full max-w-5xl mx-auto px-4 py-4">
-      <div className="p-6 rounded-2xl bg-zinc-900/40 border border-white/10 shadow-2xl relative overflow-hidden">
+    <section className="w-full max-w-5xl mx-auto px-4 py-3">
+      <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/10 shadow-2xl relative overflow-hidden space-y-4">
         
-        {/* Subtle Wave Pattern on Hover */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileHover={{ opacity: 0.05 }}
-          transition={{ duration: 0.3 }}
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"
-        />
-
-        <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+        {/* Header Label */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-zinc-200" />
             Персональная ссылка на подписку
@@ -63,8 +66,8 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           </span>
         </div>
 
-        {/* Subscription URL Bar */}
-        <div className="flex items-center gap-2 p-2 rounded-xl bg-black/80 border border-white/10 mb-5">
+        {/* 1. Subscription URL Bar with QR-code button inside on the right */}
+        <div className="flex items-center gap-2 p-2 rounded-xl bg-black/80 border border-white/10">
           <input
             type="text"
             readOnly
@@ -74,109 +77,94 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <motion.button
             whileTap={{ scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-            onClick={handleCopyUrl}
-            type="button"
-            className="flex-shrink-0 px-3.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-xs font-medium text-zinc-200 flex items-center gap-1.5 cursor-pointer transition-colors"
-          >
-            {copiedUrl ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-white" />
-                <span>Скопировано</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Скопировать URL</span>
-              </>
-            )}
-          </motion.button>
-        </div>
-
-        {/* Action Buttons Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* 1. Copy All Filtered Keys (Monochrome Hero CTA) */}
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-            onClick={handleCopyKeys}
-            type="button"
-            className="col-span-1 sm:col-span-2 py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-white/5 cursor-pointer transition-all"
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {copiedKeys ? (
-                <motion.div
-                  key="check"
-                  initial={{ opacity: 0, filter: 'blur(4px)', scale: 0.8, rotate: -180 }}
-                  animate={{ opacity: 1, filter: 'blur(0px)', scale: 1, rotate: 0 }}
-                  exit={{ opacity: 0, filter: 'blur(4px)', scale: 0.8 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
-                  className="flex items-center gap-2 font-bold"
-                >
-                  <Check className="w-4 h-4 stroke-[3]" />
-                  <span>Скопировано в буфер ({filteredCount} ключей)!</span>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="copy"
-                  initial={{ opacity: 0, filter: 'blur(4px)', scale: 0.8, rotate: 180 }}
-                  animate={{ opacity: 1, filter: 'blur(0px)', scale: 1, rotate: 0 }}
-                  exit={{ opacity: 0, filter: 'blur(4px)', scale: 0.8 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
-                  className="flex items-center gap-2 font-bold"
-                >
-                  <Copy className="w-4 h-4" />
-                  <span>{filteredCount > 0 ? `Скопировать все ключи сразу (${filteredCount})` : 'Скопировать ссылку на подписку'}</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.button>
-
-          {/* 2. Open in Happ */}
-          <motion.a
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-            href={happUrl}
-            className="py-3 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-zinc-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer no-underline transition-colors"
-          >
-            <ExternalLink className="w-4 h-4 text-zinc-400" />
-            <span>Открыть в Happ</span>
-          </motion.a>
-
-          {/* 3. Clash Meta YAML */}
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-            onClick={onDownloadClash}
-            type="button"
-            className="py-3 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-zinc-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
-          >
-            <FileCode className="w-4 h-4 text-zinc-400" />
-            <span>Clash Meta .yaml</span>
-          </motion.button>
-        </div>
-
-        {/* Secondary Buttons Row */}
-        <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-white/[0.06]">
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             onClick={onOpenQr}
             type="button"
-            className="px-3.5 py-1.5 rounded-lg bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-xs font-medium text-zinc-300 flex items-center gap-1.5 cursor-pointer transition-colors"
+            className="flex-shrink-0 px-3.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-xs font-medium text-zinc-200 flex items-center gap-1.5 cursor-pointer transition-colors"
           >
             <QrCode className="w-3.5 h-3.5 text-zinc-400" />
             <span>QR-код</span>
           </motion.button>
+        </div>
 
+        {/* 2. Big Full-Width White Copy Button */}
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+          onClick={handleCopyMainUrl}
+          type="button"
+          className="w-full py-3.5 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-white/5 cursor-pointer transition-all"
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {copiedUrl ? (
+              <motion.div
+                key="check"
+                initial={{ opacity: 0, filter: 'blur(4px)', scale: 0.8, rotate: -180 }}
+                animate={{ opacity: 1, filter: 'blur(0px)', scale: 1, rotate: 0 }}
+                exit={{ opacity: 0, filter: 'blur(4px)', scale: 0.8 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="flex items-center gap-2 font-bold"
+              >
+                <Check className="w-5 h-5 stroke-[3]" />
+                <span>Ссылка скопирована в буфер обмена!</span>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="copy"
+                initial={{ opacity: 0, filter: 'blur(4px)', scale: 0.8, rotate: 180 }}
+                animate={{ opacity: 1, filter: 'blur(0px)', scale: 1, rotate: 0 }}
+                exit={{ opacity: 0, filter: 'blur(4px)', scale: 0.8 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="flex items-center gap-2 font-bold"
+              >
+                <Copy className="w-5 h-5" />
+                <span>Скопировать ссылку на подписку</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.button>
+
+        {/* 3. Two equal buttons below: Happ (left) & FlClash (right) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Happ */}
           <motion.button
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-            onClick={onDownloadTxt}
+            onClick={handleCopyHapp}
             type="button"
-            className="px-3.5 py-1.5 rounded-lg bg-zinc-900/60 hover:bg-zinc-800 border border-white/10 text-xs font-medium text-zinc-300 flex items-center gap-1.5 cursor-pointer transition-colors"
+            className="py-3 px-4 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-zinc-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
-            <Download className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Скачать .txt</span>
+            {copiedHapp ? (
+              <>
+                <Check className="w-4 h-4 text-white" />
+                <span>Скопировано в Happ!</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4 text-zinc-300" />
+                <span>Скопировать в Happ</span>
+              </>
+            )}
+          </motion.button>
+
+          {/* FlClash */}
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            onClick={handleCopyFlclash}
+            type="button"
+            className="py-3 px-4 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 border border-white/10 text-zinc-100 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
+          >
+            {copiedFlclash ? (
+              <>
+                <Check className="w-4 h-4 text-white" />
+                <span>Скопировано в FlClash!</span>
+              </>
+            ) : (
+              <>
+                <Layers className="w-4 h-4 text-zinc-300" />
+                <span>Скопировать в FlClash</span>
+              </>
+            )}
           </motion.button>
         </div>
 
