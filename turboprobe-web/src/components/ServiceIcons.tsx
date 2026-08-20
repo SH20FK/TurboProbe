@@ -54,16 +54,16 @@ export const GitHubIcon = ({ className = 'w-4 h-4' }: { className?: string }) =>
   </svg>
 );
 
-// Official Happ Proxy Client Icon (Bolt Hexagon)
+// Official Happ Proxy Client Icon
 export const HappIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.2" />
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M6 3.5A2.5 2.5 0 0 1 8.5 1h0A2.5 2.5 0 0 1 11 3.5v17A2.5 2.5 0 0 1 8.5 23h0A2.5 2.5 0 0 1 6 20.5v-17zm7 0A2.5 2.5 0 0 1 15.5 1h0A2.5 2.5 0 0 1 18 3.5v17a2.5 2.5 0 0 1-2.5 2.5h0a2.5 2.5 0 0 1-2.5-2.5v-17zm-4.5 7h7a1.5 1.5 0 0 1 1.5 1.5v0a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 7 12v0a1.5 1.5 0 0 1 1.5-1.5z" />
   </svg>
 );
 
-// Official FlClash Client Icon (Clash Kitten Silhouette)
+// Official FlClash Client Icon (Clash Mascot Cat)
 export const FlClashIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2C6.48 2 2 6.48 2 12c0 2.85 1.2 5.41 3.12 7.24L4 21l3.5-1.12C8.94 20.57 10.42 21 12 21c5.52 0 10-4.48 10-10S17.52 2 12 2zm-3 8c.83 0 1.5.67 1.5 1.5S9.83 13 9 13s-1.5-.67-1.5-1.5S8.17 10 9 10zm6 0c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-3 7c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z"/>
+    <path d="M4.5 4L2 8.5V18c0 1.66 1.34 3 3 3h14c1.66 0 3-1.34 3-3V8.5L19.5 4l-4.5 3h-6L4.5 4zm4 8a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm-3.5 3.5c1.2 0 2.2.6 2.7 1.5h-5.4c.5-.9 1.5-1.5 2.7-1.5z"/>
   </svg>
 );

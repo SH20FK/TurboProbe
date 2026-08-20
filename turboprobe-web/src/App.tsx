@@ -164,51 +164,42 @@ export default function App() {
     });
   }, [allNodes, selectedServices, selectedCountry, selectedProto, maxPing, minHealth]);
 
-  // 5. Subscription URL Generation
+  // 5. Subscription URL Generation (Dynamic Worker URL)
   const subUrl = useMemo(() => {
-    // 1. Preset specific mappings
-    if (activePreset === 'anti-tspu') return `${CDN_BASE}/anti-whitelist.txt`;
-    if (activePreset === 'ai') return `${CDN_BASE}/services/ai-bundle.txt`;
-    if (activePreset === 'youtube') return `${CDN_BASE}/services/youtube.txt`;
-    if (activePreset === 'de') return `${CDN_BASE}/countries/de.txt`;
-    if (activePreset === 'nl') return `${CDN_BASE}/countries/nl.txt`;
+    // 1. If custom dynamic filtering is active
+    const params = new URLSearchParams();
 
-    // 2. Service-driven selection
     if (selectedServices.length > 0) {
-      if (selectedServices.length === 1) {
-        const s = selectedServices[0];
-        return `${CDN_BASE}/services/${s}.txt`;
-      }
-      // If multiple AI services picked (e.g. Claude + Gemini, ChatGPT + Claude, etc.)
-      const isAiOnly = selectedServices.every((s) =>
-        ['chatgpt', 'claude', 'gemini', 'perplexity'].includes(s)
-      );
-      if (isAiOnly) {
-        return `${CDN_BASE}/services/ai-bundle.txt`;
-      }
-      if (selectedServices.includes('youtube') && selectedServices.includes('discord')) {
-        return `${CDN_BASE}/services/youtube.txt`;
-      }
-      if (selectedServices.includes('claude') || selectedServices.includes('gemini')) {
-        return `${CDN_BASE}/services/ai-bundle.txt`;
-      }
-      return `${CDN_BASE}/services/${selectedServices[0]}.txt`;
+      params.set('services', selectedServices.join(','));
     }
-
-    // 3. Country-driven selection
     if (selectedCountry && selectedCountry !== 'all') {
-      return `${CDN_BASE}/countries/${selectedCountry.toLowerCase()}.txt`;
+      params.set('country', selectedCountry.toLowerCase());
+    }
+    if (selectedProto && selectedProto !== 'all') {
+      params.set('proto', selectedProto.toLowerCase());
+    }
+    if (maxPing > 0) {
+      params.set('max_ping', maxPing.toString());
+    }
+    if (minHealth > 0) {
+      params.set('min_health', minHealth.toString());
     }
 
-    // 4. Protocol-driven selection
-    if (selectedProto === 'reality') return `${CDN_BASE}/reality.txt`;
-    if (selectedProto === 'trojan') return `${CDN_BASE}/trojan.txt`;
-    if (selectedProto === 'hy2') return `${CDN_BASE}/hysteria2.txt`;
-    if (selectedProto === 'ss') return `${CDN_BASE}/shadowsocks.txt`;
+    const queryStr = params.toString();
+    if (queryStr) {
+      return `https://turboprobe.workers.dev/sub?${queryStr}`;
+    }
 
-    // 5. Default
-    return `${CDN_BASE}/top50.txt`;
-  }, [activePreset, selectedServices, selectedCountry, selectedProto]);
+    // 2. Preset REST endpoints
+    if (activePreset === 'anti-tspu') return 'https://turboprobe.workers.dev/sub/anti-tspu';
+    if (activePreset === 'ai') return 'https://turboprobe.workers.dev/sub/ai';
+    if (activePreset === 'youtube') return 'https://turboprobe.workers.dev/sub/youtube';
+    if (activePreset === 'de') return 'https://turboprobe.workers.dev/sub/de';
+    if (activePreset === 'nl') return 'https://turboprobe.workers.dev/sub/nl';
+
+    // 3. Default top live subscription
+    return 'https://turboprobe.workers.dev/sub';
+  }, [activePreset, selectedServices, selectedCountry, selectedProto, maxPing, minHealth]);
 
   const allFilteredKeys = useMemo(() => {
     return filteredNodes.map((n) => n.uri);
