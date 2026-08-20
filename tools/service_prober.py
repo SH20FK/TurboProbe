@@ -68,9 +68,9 @@ BIN_DIR = os.path.join(TOOLS_DIR, "bin")
 SUB_DIR = os.path.join(ROOT_DIR, "sub")
 SERVICES_DIR = os.path.join(SUB_DIR, "services")
 
-DEFAULT_PROBE_LIMIT = 400   # Deep-probe top N lowest ping nodes
-BATCH_SIZE = 25             # Parallel nodes per Xray instance
-PROBE_TIMEOUT = 4.0         # Seconds per HTTP request
+DEFAULT_PROBE_LIMIT = 0     # 0 = probe 100% of all harvested candidate nodes
+BATCH_SIZE = 50             # Parallel nodes per Xray instance
+PROBE_TIMEOUT = 2.5         # Seconds per HTTP request
 BASE_SOCKS_PORT = 10900     # Starting port for multi-inbound testing
 
 TARGET_SERVICES = {
@@ -622,8 +622,13 @@ def main():
         return
 
     # Select candidate pool
+    if probe_limit and probe_limit > 0:
+        candidates_to_probe = candidates[:probe_limit]
+    else:
+        candidates_to_probe = candidates
+
     probe_pool = []
-    for i, uri in enumerate(candidates[:probe_limit]):
+    for i, uri in enumerate(candidates_to_probe):
         proto = uri.split("://")[0].lower() if "://" in uri else "vless"
         probe_pool.append((i, uri, 50.0, "GLOBAL", proto))
 
@@ -636,7 +641,7 @@ def main():
         print(f"  🧪 Testing batch {b + 1}/{num_batches} ({len(batch)} nodes)...", flush=True)
         results = run_batch_probe(xray_bin, batch)
         verified_alive_nodes.extend(results)
-        print(f"    -> {len(results)} nodes confirmed 100% ONLINE with real GeoIP", flush=True)
+        print(f"    -> {len(results)} nodes confirmed 100% ONLINE (total alive so far: {len(verified_alive_nodes)})", flush=True)
 
     print(f"\n🏆 Total genuinely alive & verified nodes: {len(verified_alive_nodes)}", flush=True)
 
