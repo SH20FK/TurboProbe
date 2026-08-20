@@ -6,7 +6,7 @@ import { ExportPanel } from './components/ExportPanel';
 import { NodePreviewList } from './components/NodePreviewList';
 import { QrModal } from './components/QrModal';
 import Globe from './components/ui/Globe';
-import type { NodeItem, StatsData, PresetItem } from './types';
+import type { NodeItem, PresetItem } from './types';
 
 const CDN_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
 const JSDELIVR_BASE = 'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub';
@@ -33,7 +33,6 @@ export default function App() {
   const [minHealth, setMinHealth] = useState<number>(0);
 
   const [allNodes, setAllNodes] = useState<NodeItem[]>([]);
-  const [stats, setStats] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isQrOpen, setIsQrOpen] = useState<boolean>(false);
 
@@ -93,15 +92,6 @@ export default function App() {
       } finally {
         if (isMounted) setIsLoading(false);
       }
-
-      // Fetch stats
-      try {
-        const sRes = await fetch(`${JSDELIVR_BASE}/stats.json`);
-        if (sRes.ok) {
-          const sData = await sRes.json();
-          if (isMounted) setStats(sData);
-        }
-      } catch (_) {}
     }
 
     loadData();
@@ -283,8 +273,8 @@ export default function App() {
 
       {/* Main Content Layer */}
       <div className="relative z-10">
-        {/* Header with MetalFx & Pop-in Metrics */}
-        <Header stats={stats} totalFilteredNodes={allNodes.length || 45000} />
+        {/* Minimal Header */}
+        <Header />
 
         <main className="pb-16 space-y-2">
           {/* Preset Selector with BorderBeam */}
