@@ -400,11 +400,22 @@ def main():
             existing = {}
             metadata = {}
 
+    DEAD_URL_TTL = 36 * 3600  # 36 hours TTL for dead URLs
+    now_ts = time.time()
+
     scanned_repos_cache = metadata.get("scanned_repos", {})
-    dead_urls_set = set(metadata.get("dead_urls", []))
+    raw_dead = metadata.get("dead_urls", {})
+    if isinstance(raw_dead, list):
+        dead_urls_map = {u: now_ts for u in raw_dead}
+    else:
+        dead_urls_map = raw_dead
+
+    # Clean up expired dead URLs (> 36 hours) so they can be re-checked if revived
+    active_dead_urls = {u: ts for u, ts in dead_urls_map.items() if now_ts - ts < DEAD_URL_TTL}
+    dead_urls_set = set(active_dead_urls.keys())
 
     known_sources = set(SOURCES) | set(existing.keys()) | dead_urls_set
-    print(f"📚 Known baseline sources: {len(known_sources)} URLs ({len(dead_urls_set)} cached dead)", flush=True)
+    print(f"📚 Known baseline sources: {len(known_sources)} URLs ({len(dead_urls_set)} blacklisted for 36h)", flush=True)
 
     # 2. Run All Crawlers Concurrently
     candidate_urls = set()
@@ -448,13 +459,13 @@ def main():
                     new_confirmed += 1
                     print(f"  ✅ [VALID NEW SOURCE] ({count:4d} keys): {url}", flush=True)
                 else:
-                    dead_urls_set.add(url)
+                    active_dead_urls[url] = now_ts
             except Exception:
-                dead_urls_set.add(url)
+                active_dead_urls[url] = now_ts
 
     # 3. Save updated database & metadata
     metadata["scanned_repos"] = scanned_repos_cache
-    metadata["dead_urls"] = list(dead_urls_set)[-5000:]  # Cap to last 5000 dead URLs
+    metadata["dead_urls"] = active_dead_urls
     existing["_metadata"] = metadata
 
     with open(DISCOVERED_PATH, "w", encoding="utf-8") as f:
