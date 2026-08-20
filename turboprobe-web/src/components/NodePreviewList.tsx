@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThinkingOrb } from 'thinking-orbs';
-import { ChevronDown, ChevronUp, Copy, Check, ShieldCheck, Zap } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Check, ShieldCheck, Radio } from 'lucide-react';
 import type { NodeItem } from '../types';
 
 interface NodePreviewListProps {
@@ -46,25 +46,25 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
   return (
     <section className="w-full max-w-5xl mx-auto px-4 py-4">
-      <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.07]">
+      <div className="p-5 rounded-2xl bg-zinc-900/40 border border-white/[0.07]">
         {/* Section Header with Toggle */}
         <div
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center justify-between cursor-pointer select-none py-1"
         >
           <div className="flex items-center gap-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-neutral-300 font-mono flex items-center gap-2">
-              <Zap className="w-4 h-4 text-green-400" />
-              Живой срез серверов (Top-50)
+            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-2">
+              <Radio className="w-4 h-4 text-zinc-300" />
+              Живой пул серверов (Top-50)
             </span>
-            <span className="text-xs px-2 py-0.5 rounded font-mono bg-white/[0.06] text-neutral-400 border border-white/[0.08]">
+            <span className="text-xs px-2 py-0.5 rounded font-mono bg-zinc-800 text-zinc-400 border border-white/10">
               {nodes.length} из {totalAvailable}
             </span>
           </div>
 
           <motion.div
             whileTap={{ scale: 0.9 }}
-            className="p-1 rounded-lg bg-white/[0.04] text-neutral-400 hover:text-white"
+            className="p-1 rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
           >
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </motion.div>
@@ -84,8 +84,8 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                 {/* 1. Loading State */}
                 {isLoading && (
                   <div className="flex flex-col items-center justify-center py-12 gap-3">
-                    <ThinkingOrb state="searching" size={20} />
-                    <span className="text-xs text-neutral-400 font-mono">
+                    <ThinkingOrb state="searching" size={20} theme="dark" />
+                    <span className="text-xs text-zinc-400 font-mono">
                       Загрузка и верификация серверов из репозитория...
                     </span>
                   </div>
@@ -94,12 +94,12 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                 {/* 2. Empty State */}
                 {!isLoading && nodes.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-12 gap-4">
-                    <ThinkingOrb state="solving" size={64} />
+                    <ThinkingOrb state="solving" size={64} theme="dark" />
                     <div className="text-center">
-                      <p className="text-sm font-semibold text-neutral-300 m-0">
+                      <p className="text-sm font-semibold text-zinc-200 m-0">
                         По выбранным критериям узлы не найдены
                       </p>
-                      <p className="text-xs text-neutral-500 mt-1 m-0">
+                      <p className="text-xs text-zinc-400 mt-1 m-0">
                         Попробуйте расширить лимит пинга или выбрать другие сервисы
                       </p>
                     </div>
@@ -119,19 +119,19 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                     return (
                       <div
                         key={index}
-                        className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.06] transition-colors"
+                        className="flex items-center justify-between gap-3 p-3 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/[0.06] transition-all"
                       >
                         <div className="flex items-center gap-3 overflow-hidden">
                           {/* Country Flag & Protocol Badge */}
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="text-base">{flag}</span>
-                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/[0.06] text-neutral-300 border border-white/[0.08]">
+                            <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/10">
                               {proto.toUpperCase()}
                             </span>
                           </div>
 
                           {/* Node Remark / Purpose */}
-                          <span className="text-xs font-mono text-neutral-300 truncate max-w-[200px] sm:max-w-md">
+                          <span className="text-xs font-mono text-zinc-300 truncate max-w-[200px] sm:max-w-md">
                             {remark}
                           </span>
                         </div>
@@ -139,19 +139,13 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                         {/* Ping, Health & Copy Action */}
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {/* Health Score Badge */}
-                          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                            <ShieldCheck className="w-3 h-3" />
+                          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/10">
+                            <ShieldCheck className="w-3 h-3 text-zinc-400" />
                             {health}%
                           </span>
 
                           {/* Ping Badge */}
-                          <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded ${
-                            ping < 70
-                              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                              : ping < 150
-                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                          }`}>
+                          <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-white/10">
                             {ping} ms
                           </span>
 
@@ -160,10 +154,10 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                             whileTap={{ scale: 0.9 }}
                             onClick={() => handleCopyNode(node.uri, index)}
                             type="button"
-                            className="p-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 text-neutral-300 hover:text-white cursor-pointer transition-colors"
+                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-zinc-300 hover:text-white cursor-pointer transition-colors"
                           >
                             {isCopied ? (
-                              <Check className="w-3.5 h-3.5 text-green-400" />
+                              <Check className="w-3.5 h-3.5 text-white" />
                             ) : (
                               <Copy className="w-3.5 h-3.5" />
                             )}
