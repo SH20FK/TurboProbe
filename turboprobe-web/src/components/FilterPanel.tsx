@@ -55,26 +55,6 @@ export const PRESETS: PresetItem[] = [
     proto: 'all',
     maxPing: 100,
   },
-  {
-    id: 'de',
-    name: 'Германия (DE)',
-    desc: 'Frankfurt Tier-1',
-    icon: 'de',
-    services: [],
-    country: 'de',
-    proto: 'all',
-    maxPing: 80,
-  },
-  {
-    id: 'nl',
-    name: 'Нидерланды (NL)',
-    desc: 'Amsterdam Direct',
-    icon: 'nl',
-    services: [],
-    country: 'nl',
-    proto: 'all',
-    maxPing: 70,
-  },
 ];
 
 interface FilterPanelProps {
@@ -158,7 +138,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           <div className="flex flex-wrap items-center justify-center gap-2">
             {PRESETS.map((preset) => {
               const isActive = activePreset === preset.id;
-              const isCountry = preset.id === 'de' || preset.id === 'nl';
 
               return (
                 <motion.button
@@ -177,7 +156,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   {preset.id === 'anti-tspu' && <Shield className="w-3.5 h-3.5" />}
                   {preset.id === 'ai' && <Sparkles className="w-3.5 h-3.5" />}
                   {preset.id === 'youtube' && <Tv className="w-3.5 h-3.5" />}
-                  {isCountry && <CountryFlag countryCode={preset.id} className="w-3.5 h-2.5 rounded-[1px] shadow-sm flex-shrink-0" />}
+                  {preset.id === 'dev' && <GitHubIcon className="w-3.5 h-3.5" />}
+                  {preset.id === 'vip' && <Zap className="w-3.5 h-3.5" />}
                   <span>{preset.name}</span>
                 </motion.button>
               );

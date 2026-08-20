@@ -196,8 +196,6 @@ export default function App() {
     if (activePreset === 'anti-tspu') return `${baseUrl}/anti-tspu`;
     if (activePreset === 'ai') return `${baseUrl}/ai`;
     if (activePreset === 'youtube') return `${baseUrl}/youtube`;
-    if (activePreset === 'de') return `${baseUrl}/de`;
-    if (activePreset === 'nl') return `${baseUrl}/nl`;
 
     // 3. Default top live subscription
     return baseUrl;
