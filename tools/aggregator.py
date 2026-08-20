@@ -514,6 +514,7 @@ def main():
     parser.add_argument("--limit", type=int, default=0, help="Max candidates to test")
     args = parser.parse_args()
 
+    extra_sources = []
     if args.fast:
         all_sources = SOURCES[:35]
         print(f"⚡ [TurboProbe Fast Mode] Crawling only {len(all_sources)} Tier-1 high-yield sources (under 30s)...", flush=True)
