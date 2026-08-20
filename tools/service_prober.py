@@ -69,9 +69,11 @@ SUB_DIR = os.path.join(ROOT_DIR, "sub")
 SERVICES_DIR = os.path.join(SUB_DIR, "services")
 
 DEFAULT_PROBE_LIMIT = 0     # 0 = probe 100% of all harvested candidate nodes
-BATCH_SIZE = 150            # Parallel nodes per Xray instance (3x higher throughput)
-PROBE_TIMEOUT = 1.8         # Seconds per HTTP request (fast cutoff for dead nodes)
+BATCH_SIZE = 250            # Nodes per Xray instance
+NUM_XRAY_WORKERS = 4        # Concurrent Xray processes across 4 CPU cores (1000 nodes parallel)
 BASE_SOCKS_PORT = 10900     # Starting port for multi-inbound testing
+PORT_STEP = 300             # Port range per worker (Worker 0: 10900, Worker 1: 11200, etc.)
+PROBE_TIMEOUT = 1.8         # Seconds per HTTP request (fast cutoff for dead nodes)
 
 TARGET_SERVICES = {
     "chatgpt": {
@@ -449,7 +451,7 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
 # =============================================================================
 # 🧪 BATCH RUNNER
 # =============================================================================
-def run_batch_probe(xray_bin: str, batch: list) -> list:
+def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT) -> list:
     """Runs a batch of nodes through Xray multi-inbound proxy."""
     inbounds = []
     outbounds = []
@@ -457,7 +459,7 @@ def run_batch_probe(xray_bin: str, batch: list) -> list:
     active_slots = []
 
     for i, (idx, uri, ping_ms, country, proto) in enumerate(batch):
-        port = BASE_SOCKS_PORT + i
+        port = base_port + i
         in_tag = f"in_{i}"
         out_tag = f"out_{i}"
         outbound = uri_to_xray_outbound(uri, out_tag)
@@ -483,7 +485,7 @@ def run_batch_probe(xray_bin: str, batch: list) -> list:
         return []
 
     cfg = {
-        "log": {"loglevel": "error"},
+        "log": {"loglevel": "none"},
         "inbounds": inbounds,
         "outbounds": outbounds,
         "routing": {"rules": rules},
@@ -498,7 +500,7 @@ def run_batch_probe(xray_bin: str, batch: list) -> list:
     results = []
     try:
         proc = subprocess.Popen([xray_bin, "run", "-c", cfg_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(0.8)  # Wait for Xray to bind inbounds
+        time.sleep(0.4)  # Wait for Xray to bind inbounds
 
         with ThreadPoolExecutor(max_workers=len(active_slots)) as pool:
             futures = {
@@ -525,7 +527,7 @@ def run_batch_probe(xray_bin: str, batch: list) -> list:
         if proc:
             try:
                 proc.terminate()
-                proc.wait(timeout=2)
+                proc.wait(timeout=1.5)
             except Exception:
                 try:
                     proc.kill()
@@ -686,9 +688,9 @@ def main():
         except Exception:
             return False
 
-    print(f"⚡ Pre-filtering {len(probe_pool)} candidate endpoints with 500 parallel TCP threads (under 20s)...", flush=True)
+    print(f"⚡ Pre-filtering {len(probe_pool)} candidate endpoints with 1500 parallel TCP threads (under 5s)...", flush=True)
     t_start = time.perf_counter()
-    with ThreadPoolExecutor(max_workers=500) as pre_pool:
+    with ThreadPoolExecutor(max_workers=1500) as pre_pool:
         reach_futs = {pre_pool.submit(check_candidate_reachability, item): item for item in probe_pool}
         reachable_pool = []
         for rf in as_completed(reach_futs):
@@ -704,16 +706,28 @@ def main():
     if len(reachable_pool) >= 20:
         probe_pool = reachable_pool
 
-    print(f"⚡ Deep probing {len(probe_pool)} reachable nodes with real HTTP requests (batches of {batch_size})...", flush=True)
+    num_batches = (len(probe_pool) + batch_size - 1) // batch_size
+    all_batches = [probe_pool[b * batch_size : (b + 1) * batch_size] for b in range(num_batches)]
+
+    print(f"🚀 Launching Parallel Multi-Core Xray Cluster ({NUM_XRAY_WORKERS} concurrent Xray instances, {batch_size * NUM_XRAY_WORKERS} parallel nodes)...", flush=True)
 
     verified_alive_nodes = []
-    num_batches = (len(probe_pool) + batch_size - 1) // batch_size
-    for b in range(num_batches):
-        batch = probe_pool[b * batch_size : (b + 1) * batch_size]
-        print(f"  🧪 Testing batch {b + 1}/{num_batches} ({len(batch)} nodes)...", flush=True)
-        results = run_batch_probe(xray_bin, batch)
-        verified_alive_nodes.extend(results)
-        print(f"    -> {len(results)} nodes confirmed 100% ONLINE (total alive so far: {len(verified_alive_nodes)})", flush=True)
+    
+    def process_batch_worker(b_idx: int, batch: list) -> tuple:
+        worker_slot = b_idx % NUM_XRAY_WORKERS
+        worker_base_port = BASE_SOCKS_PORT + (worker_slot * PORT_STEP)
+        res = run_batch_probe(xray_bin, batch, base_port=worker_base_port)
+        return b_idx, len(batch), res
+
+    with ThreadPoolExecutor(max_workers=NUM_XRAY_WORKERS) as batch_pool:
+        batch_futs = {
+            batch_pool.submit(process_batch_worker, b, all_batches[b]): b
+            for b in range(num_batches)
+        }
+        for bf in as_completed(batch_futs):
+            b_idx, batch_len, results = bf.result()
+            verified_alive_nodes.extend(results)
+            print(f"  🧪 Batch {b_idx + 1}/{num_batches} ({batch_len} nodes) -> {len(results)} confirmed ONLINE (total alive: {len(verified_alive_nodes)})", flush=True)
 
     print(f"\n🏆 Total genuinely alive & verified nodes: {len(verified_alive_nodes)}", flush=True)
 
