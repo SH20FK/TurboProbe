@@ -45,6 +45,7 @@ import subprocess
 import urllib.parse
 import urllib.request
 import socket
+import asyncio
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -713,6 +714,38 @@ def main():
         proto = uri.split("://")[0].lower() if "://" in uri else "vless"
         probe_pool.append((i, uri, 50.0, "GLOBAL", proto))
 
+    async def async_probe_candidate_socket(sem: asyncio.Semaphore, item: tuple, timeout: float = 0.20):
+        _, uri, _, _, proto = item
+        if proto in ["hy2", "hysteria2", "tuic", "wireguard"]:
+            return item
+        try:
+            parsed = urllib.parse.urlparse(uri)
+            netloc = parsed.netloc
+            host_port = netloc.split('@')[-1] if '@' in netloc else netloc
+            if ':' in host_port:
+                host, port_str = host_port.split(':', 1)
+                port = int(port_str.split('?')[0].split('/')[0].split('#')[0])
+            else:
+                host = host_port
+                port = 443
+            async with sem:
+                conn = asyncio.open_connection(host, port)
+                reader, writer = await asyncio.wait_for(conn, timeout=timeout)
+                writer.close()
+                try:
+                    await writer.wait_closed()
+                except Exception:
+                    pass
+                return item
+        except Exception:
+            return None
+
+    async def run_async_syn_prefilter(pool: list, concurrency: int = 4000) -> list:
+        sem = asyncio.Semaphore(concurrency)
+        tasks = [async_probe_candidate_socket(sem, item, timeout=0.20) for item in pool]
+        res = await asyncio.gather(*tasks, return_exceptions=True)
+        return [r for r in res if r and not isinstance(r, Exception)]
+
     def check_candidate_reachability(item: tuple) -> bool:
         _, uri, _, _, proto = item
         if proto in ["hy2", "hysteria2", "tuic", "wireguard"]:
@@ -728,28 +761,31 @@ def main():
                 host = host_port
                 port = 443
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.25)
+            sock.settimeout(0.20)
             res = sock.connect_ex((host, port))
             sock.close()
             return res == 0
         except Exception:
             return False
 
-    print(f"⚡ Pre-filtering {len(probe_pool)} candidate endpoints with 3000 parallel TCP threads (under 2s)...", flush=True)
+    print(f"⚡ [AsyncIO SYN-Scanner] Ultra-speed asynchronous port pre-filter across {len(probe_pool)} endpoints (4000 connections, under 1s)...", flush=True)
     t_start = time.perf_counter()
-    with ThreadPoolExecutor(max_workers=3000) as pre_pool:
-        reach_futs = {pre_pool.submit(check_candidate_reachability, item): item for item in probe_pool}
-        reachable_pool = []
-        for rf in as_completed(reach_futs):
-            item = reach_futs[rf]
-            try:
-                if rf.result():
-                    reachable_pool.append(item)
-            except Exception:
-                pass
-    
-    elapsed_pre = round(time.perf_counter() - t_start, 1)
-    print(f"✨ Port pre-filter finished in {elapsed_pre}s: {len(reachable_pool)} reachable nodes selected ({len(probe_pool) - len(reachable_pool)} dead filtered out)", flush=True)
+    try:
+        reachable_pool = asyncio.run(run_async_syn_prefilter(probe_pool, concurrency=4000))
+    except Exception:
+        with ThreadPoolExecutor(max_workers=3000) as pre_pool:
+            reach_futs = {pre_pool.submit(check_candidate_reachability, item): item for item in probe_pool}
+            reachable_pool = []
+            for rf in as_completed(reach_futs):
+                item = reach_futs[rf]
+                try:
+                    if rf.result():
+                        reachable_pool.append(item)
+                except Exception:
+                    pass
+
+    elapsed_pre = round(time.perf_counter() - t_start, 2)
+    print(f"✨ AsyncIO SYN-Filter finished in {elapsed_pre}s: {len(reachable_pool)} reachable nodes selected ({len(probe_pool) - len(reachable_pool)} dead filtered out)", flush=True)
     if len(reachable_pool) >= 20:
         probe_pool = reachable_pool
 
