@@ -17,10 +17,16 @@ import time
 import socket
 import base64
 import json
+import asyncio
 import urllib.request
 import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
+
+try:
+    import httpx
+except Exception:
+    httpx = None
 
 try:
     import orjson
@@ -521,6 +527,66 @@ def load_discovered_sources() -> list:
     except Exception:
         return []
 
+async def async_fetch_single_url(client: httpx.AsyncClient, url: str, timeout: float = 5.0) -> tuple:
+    try:
+        resp = await client.get(url, timeout=timeout, follow_redirects=True)
+        if resp.status_code == 200:
+            return url, resp.text
+    except Exception:
+        pass
+    return url, None
+
+async def async_fetch_sources_pool(sources: list, concurrency: int = 500) -> tuple:
+    limits = httpx.Limits(max_keepalive_connections=concurrency, max_connections=concurrency)
+    timeout = httpx.Timeout(6.0, connect=3.0)
+    async with httpx.AsyncClient(limits=limits, timeout=timeout, verify=False, http2=True) as client:
+        tasks = [async_fetch_single_url(client, u) for u in sources]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        all_uris = []
+        direct_ru_fetched = {}
+        fetched_count = 0
+        for r in results:
+            if isinstance(r, tuple) and r[1]:
+                url, content = r
+                extracted = extract_uris_from_content(content)
+                if extracted:
+                    fetched_count += 1
+                    all_uris.extend(extracted)
+                    if url in RU_DIRECT_SOURCES:
+                        direct_ru_fetched[url] = extracted
+        return all_uris, direct_ru_fetched, fetched_count
+
+async def async_check_node_ping(sem: asyncio.Semaphore, node: str, timeout: float = 0.25) -> tuple:
+    try:
+        parsed = urllib.parse.urlparse(node)
+        netloc = parsed.netloc
+        host_port = netloc.split('@')[-1] if '@' in netloc else netloc
+        if ':' in host_port:
+            host, port_str = host_port.split(':', 1)
+            port = int(port_str.split('?')[0].split('/')[0].split('#')[0])
+        else:
+            host = host_port
+            port = 443
+        async with sem:
+            t0 = time.perf_counter()
+            conn = asyncio.open_connection(host, port)
+            reader, writer = await asyncio.wait_for(conn, timeout=timeout)
+            rtt = round((time.perf_counter() - t0) * 1000.0, 1)
+            writer.close()
+            try:
+                await writer.wait_closed()
+            except Exception:
+                pass
+            return node, rtt
+    except Exception:
+        return node, 999.0
+
+async def async_run_latency_benchmark(candidate_uris: list, concurrency: int = 5000) -> list:
+    sem = asyncio.Semaphore(concurrency)
+    tasks = [async_check_node_ping(sem, node, timeout=0.25) for node in candidate_uris]
+    return await asyncio.gather(*tasks, return_exceptions=True)
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="TurboProbe VPN Aggregator")
@@ -542,22 +608,38 @@ def main():
     all_uris = []
     direct_ru_fetched = {}
 
-    # 1. Concurrent Fetching (500 workers)
-    with ThreadPoolExecutor(max_workers=500) as executor:
-        future_to_url = {executor.submit(fetch_url, url): url for url in all_sources}
-        for future in as_completed(future_to_url):
-            url = future_to_url[future]
-            try:
-                content = future.result()
-                if content:
-                    extracted = extract_uris_from_content(content)
-                    if extracted:
-                        fetched_count += 1
-                        all_uris.extend(extracted)
-                        if url in RU_DIRECT_SOURCES:
-                            direct_ru_fetched[url] = extracted
-            except Exception:
-                pass
+    # 1. ⚡ Ultra-Speed AsyncIO / HTTP/2 Fetching
+    t_fetch_start = time.perf_counter()
+    if httpx:
+        try:
+            print(f"⚡ [AsyncIO HTTP/2 Engine] Fetching {len(all_sources)} sources concurrently (500 connections)...", flush=True)
+            all_uris, direct_ru_fetched, fetched_count = asyncio.run(async_fetch_sources_pool(all_sources, concurrency=500))
+        except Exception:
+            httpx_failed = True
+        else:
+            httpx_failed = False
+    else:
+        httpx_failed = True
+
+    if httpx_failed:
+        with ThreadPoolExecutor(max_workers=500) as executor:
+            future_to_url = {executor.submit(fetch_url, url): url for url in all_sources}
+            for future in as_completed(future_to_url):
+                url = future_to_url[future]
+                try:
+                    content = future.result()
+                    if content:
+                        extracted = extract_uris_from_content(content)
+                        if extracted:
+                            fetched_count += 1
+                            all_uris.extend(extracted)
+                            if url in RU_DIRECT_SOURCES:
+                                direct_ru_fetched[url] = extracted
+                except Exception:
+                    pass
+
+    elapsed_fetch = round(time.perf_counter() - t_fetch_start, 2)
+    print(f"✨ Source harvesting complete in {elapsed_fetch}s ({len(all_uris)} raw keys from {fetched_count} active sources)", flush=True)
 
     # 1b. Load Direct Telegram Feed (if harvested by discovery bot)
     tg_feed_path = os.path.join(TOOLS_DIR, "telegram_feed.txt")
@@ -605,46 +687,54 @@ def main():
     elif args.limit > 0:
         candidate_uris = candidate_uris[:args.limit]
 
-    # 3. ⚡ High-Speed Turbo Multi-Threaded Latency Benchmark (3500 workers)
-    print(f"🩺 Starting ultra-speed latency benchmark across {len(candidate_uris)} nodes (timeout: 0.25s, 3500 threads)...", flush=True)
+    # 3. ⚡ Ultra-Speed AsyncIO SYN / Latency Benchmark (5000 concurrent sockets)
+    print(f"🩺 [AsyncIO Latency Engine] Benchmarking {len(candidate_uris)} nodes (timeout: 0.25s, 5000 async sockets)...", flush=True)
+    t_bench_start = time.perf_counter()
     alive_tuples = []  # list of (formatted_uri, ping_ms, raw_key, health)
-    checked_count = 0
-    total_candidates = len(candidate_uris)
     
-    with ThreadPoolExecutor(max_workers=3500) as checker:
-        future_to_node = {checker.submit(check_node_ping, node, 0.25): node for node in candidate_uris}
-        for future in as_completed(future_to_node):
-            checked_count += 1
-            if checked_count % 50000 == 0 or checked_count == total_candidates:
-                print(f"  ⚡ Benchmarked {checked_count}/{total_candidates} nodes ({len(alive_tuples)} alive so far)...", flush=True)
-            try:
-                uri, ping_ms = future.result()
-                k = get_node_key(uri)
-                
-                h_rec = history_map.get(k, {
-                    "total_checks": 0,
-                    "success_checks": 0,
-                    "first_seen": datetime.now(timezone.utc).isoformat()
-                })
-                h_rec["total_checks"] = h_rec.get("total_checks", 0) + 1
-                
-                if ping_ms < 900.0:
-                    h_rec["success_checks"] = h_rec.get("success_checks", 0) + 1
-                    h_rec["last_seen_alive"] = datetime.now(timezone.utc).isoformat()
-                    health = round((h_rec["success_checks"] / max(h_rec["total_checks"], 1)) * 100, 1)
-                    formatted_uri = sanitize_node_remark(uri, ping_ms)
-                    alive_tuples.append((formatted_uri, ping_ms, k, health))
-                    if k in dead_map:
-                        del dead_map[k]
-                else:
-                    rec = dead_map.get(k, {"fail_count": 0})
-                    rec["fail_count"] = rec.get("fail_count", 0) + 1
-                    rec["last_seen"] = datetime.now(timezone.utc).isoformat()
-                    dead_map[k] = rec
-                
-                history_map[k] = h_rec
-            except Exception:
-                pass
+    try:
+        bench_results = asyncio.run(async_run_latency_benchmark(candidate_uris, concurrency=5000))
+    except Exception:
+        bench_results = []
+        with ThreadPoolExecutor(max_workers=3500) as checker:
+            future_to_node = {checker.submit(check_node_ping, node, 0.25): node for node in candidate_uris}
+            for future in as_completed(future_to_node):
+                try:
+                    bench_results.append(future.result())
+                except Exception:
+                    pass
+
+    for r in bench_results:
+        if not isinstance(r, tuple):
+            continue
+        uri, ping_ms = r
+        k = get_node_key(uri)
+        
+        h_rec = history_map.get(k, {
+            "total_checks": 0,
+            "success_checks": 0,
+            "first_seen": datetime.now(timezone.utc).isoformat()
+        })
+        h_rec["total_checks"] = h_rec.get("total_checks", 0) + 1
+        
+        if ping_ms < 900.0:
+            h_rec["success_checks"] = h_rec.get("success_checks", 0) + 1
+            h_rec["last_seen_alive"] = datetime.now(timezone.utc).isoformat()
+            health = round((h_rec["success_checks"] / max(h_rec["total_checks"], 1)) * 100, 1)
+            formatted_uri = sanitize_node_remark(uri, ping_ms)
+            alive_tuples.append((formatted_uri, ping_ms, k, health))
+            if k in dead_map:
+                del dead_map[k]
+        else:
+            rec = dead_map.get(k, {"fail_count": 0})
+            rec["fail_count"] = rec.get("fail_count", 0) + 1
+            rec["last_seen"] = datetime.now(timezone.utc).isoformat()
+            dead_map[k] = rec
+        
+        history_map[k] = h_rec
+
+    elapsed_bench = round(time.perf_counter() - t_bench_start, 2)
+    print(f"✨ Latency Benchmark finished in {elapsed_bench}s: {len(alive_tuples)} confirmed alive out of {len(candidate_uris)} candidates.", flush=True)
 
     # Save updated dead nodes blacklist & cumulative history
     save_dead_nodes(dead_map)
