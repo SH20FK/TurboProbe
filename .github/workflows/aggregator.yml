@@ -42,8 +42,8 @@ jobs:
       - name: Commit and push updated subscriptions
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add sub/ tools/discovered_sources.json
+          git add -f sub/
+          git add -f tools/discovered_sources.json || true
           if git diff --staged --quiet; then
             echo "No subscription updates detected."
           else
