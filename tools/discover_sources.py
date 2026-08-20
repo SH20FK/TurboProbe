@@ -282,11 +282,9 @@ def discover_all_github_repositories() -> set:
             except Exception:
                 break
 
-    print(f"  📦 Total active repositories discovered: {len(discovered_repos)} repos!", flush=True)
-
-    # Crawl all discovered repositories concurrently
+    # Crawl all discovered repositories concurrently (100 workers)
     all_repo_candidates = set()
-    with ThreadPoolExecutor(max_workers=20) as pool:
+    with ThreadPoolExecutor(max_workers=100) as pool:
         future_map = {pool.submit(crawl_single_repository, r[0], r[1]): r[0] for r in discovered_repos}
         for fut in as_completed(future_map):
             try:
@@ -323,8 +321,8 @@ def discover_from_telegram() -> tuple:
     all_direct_keys = []
     found_sub_urls = set()
 
-    print(f"  📡 Crawling {len(TELEGRAM_CHANNELS)} public Telegram channels...", flush=True)
-    with ThreadPoolExecutor(max_workers=12) as pool:
+    print(f"  📡 Crawling {len(TELEGRAM_CHANNELS)} public Telegram channels (50 parallel workers)...", flush=True)
+    with ThreadPoolExecutor(max_workers=50) as pool:
         future_map = {pool.submit(scrape_telegram_channel, ch): ch for ch in TELEGRAM_CHANNELS}
         for fut in as_completed(future_map):
             ch = future_map[fut]
@@ -400,7 +398,7 @@ def main():
     print(f"\n🧪 Validating {len(new_candidates)} new candidate subscription URLs concurrently...", flush=True)
 
     new_confirmed = 0
-    with ThreadPoolExecutor(max_workers=25) as pool:
+    with ThreadPoolExecutor(max_workers=150) as pool:
         future_map = {pool.submit(validate_source, u): u for u in new_candidates}
         for fut in as_completed(future_map):
             url = future_map[fut]
