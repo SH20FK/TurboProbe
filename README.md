@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/SH20FK/TurboProbe/main/docs/logo.png" width="96" height="96" alt="TurboProbe Logo" />
+  <img src="https://raw.githubusercontent.com/SH20FK/TurboProbe/main/docs/logo.svg" width="96" height="96" alt="TurboProbe Logo" />
   <h1>TurboProbe</h1>
   <p><b>Бесплатный VPN — быстро, без регистрации и ограничений</b></p>
   <p>Автономный агрегатор и интеллектуальный генератор суверенных VLESS & Reality подписок с глубокой Xray-верификацией</p>
