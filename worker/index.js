@@ -48,13 +48,23 @@ export default {
     }
 
     try {
-      // 3. Extract Filters from Query and Path
-      let services = [];
-      let country = (url.searchParams.get('country') || url.searchParams.get('cc') || 'all').toLowerCase();
-      let proto = (url.searchParams.get('proto') || 'all').toLowerCase();
+      // Multi-Country parsing (e.g. ?country=de,nl,kz)
+      let countries = [];
+      const countryParam = url.searchParams.get('country') || url.searchParams.get('cc');
+      if (countryParam && countryParam !== 'all') {
+        countries = countryParam.split(',').map(c => c.trim().toLowerCase()).filter(Boolean);
+      }
+
+      // Multi-Protocol parsing (e.g. ?proto=reality,hy2)
+      let protos = [];
+      const protoParam = url.searchParams.get('proto');
+      if (protoParam && protoParam !== 'all') {
+        protos = protoParam.split(',').map(p => p.trim().toLowerCase()).filter(Boolean);
+      }
+
       let maxPing = parseInt(url.searchParams.get('max_ping') || url.searchParams.get('ping') || '0', 10);
       let minHealth = parseInt(url.searchParams.get('min_health') || url.searchParams.get('health') || '0', 10);
-      let limit = parseInt(url.searchParams.get('limit') || '50', 10);
+      let limit = parseInt(url.searchParams.get('limit') || '100', 10);
       let format = (url.searchParams.get('format') || 'plain').toLowerCase();
 
       // Direct query parameters (e.g. ?services=chatgpt,gemini OR ?chatgpt,gemini)
@@ -65,8 +75,8 @@ export default {
         // Support shorthand ?chatgpt,gemini or ?de
         for (const [key, val] of url.searchParams.entries()) {
           if (val === '' && key) {
-            if (['de', 'nl', 'kz', 'fi', 'tr', 'ru', 'se', 'us', 'sg'].includes(key.toLowerCase())) {
-              country = key.toLowerCase();
+            if (['de', 'nl', 'kz', 'fi', 'tr', 'ru', 'se', 'us', 'sg', 'gb', 'fr', 'jp'].includes(key.toLowerCase())) {
+              countries.push(key.toLowerCase());
             } else {
               services.push(key.toLowerCase());
             }
@@ -82,11 +92,11 @@ export default {
         } else if (cleanPath === 'youtube') {
           services = ['youtube', 'discord'];
         } else if (cleanPath === 'anti-tspu' || cleanPath === 'reality') {
-          proto = 'reality';
+          protos = ['reality'];
         } else if (cleanPath === 'clash' || cleanPath === 'meta') {
           format = 'clash';
         } else if (['de', 'nl', 'kz', 'fi', 'tr', 'ru', 'se', 'us', 'sg'].includes(cleanPath)) {
-          country = cleanPath;
+          countries = [cleanPath];
         } else if (cleanPath.includes('+') || cleanPath.includes(',')) {
           services = cleanPath.split(/[+,]/).map(s => s.trim().toLowerCase()).filter(Boolean);
         } else {
@@ -128,26 +138,33 @@ export default {
 
       // 5. Filter Nodes dynamically on edge
       let matching = allNodes.filter(node => {
-        // Filter by services
+        // Filter by services (multi-select match)
         if (services.length > 0) {
           if (!node.services) return false;
-          // Match if node supports ANY of the selected services
           const hasAny = services.some(s => Boolean(node.services[s]));
           if (!hasAny) return false;
         }
 
-        // Filter by country
-        if (country !== 'all') {
+        // Filter by countries (multi-select match)
+        if (countries.length > 0) {
           const nCountry = (node.country || '').toLowerCase();
-          const nUri = (node.uri || '').toLowerCase();
-          if (!nCountry.includes(country) && !nUri.includes(country)) return false;
+          const matchCountry = countries.some(c => nCountry === c || nCountry.includes(c));
+          if (!matchCountry) return false;
         }
 
-        // Filter by protocol
-        if (proto !== 'all') {
+        // Filter by protocols (multi-select match)
+        if (protos.length > 0) {
           const nProto = (node.protocol || '').toLowerCase();
           const nUri = (node.uri || '').toLowerCase();
-          if (!nProto.includes(proto) && !nUri.startsWith(proto)) return false;
+          const matchProto = protos.some(p => {
+            if (p === 'reality') return nUri.includes('pbk=') || nProto.includes('reality');
+            if (p === 'hy2' || p === 'hysteria2') return nProto.includes('hy2') || nProto.includes('hysteria2') || nUri.startsWith('hy2://') || nUri.startsWith('hysteria2://');
+            if (p === 'trojan') return nProto.includes('trojan') || nUri.startsWith('trojan://');
+            if (p === 'ss' || p === 'shadowsocks') return nProto.includes('ss') || nProto.includes('shadowsocks') || nUri.startsWith('ss://');
+            if (p === 'vless') return nProto.includes('vless') || nUri.startsWith('vless://');
+            return nProto.includes(p) || nUri.startsWith(p);
+          });
+          if (!matchProto) return false;
         }
 
         // Filter by max ping

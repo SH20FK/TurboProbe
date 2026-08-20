@@ -13,8 +13,8 @@ const JSDELIVR_BASE = 'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub';
 export default function App() {
   const [activePreset, setActivePreset] = useState<string>('all');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<string>('all');
-  const [selectedProto, setSelectedProto] = useState<string>('all');
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [selectedProtos, setSelectedProtos] = useState<string[]>([]);
   const [maxPing, setMaxPing] = useState<number>(0);
   const [minHealth, setMinHealth] = useState<number>(0);
 
@@ -89,13 +89,46 @@ export default function App() {
   // 2. Preset Selection Handler
   const handleSelectPreset = useCallback((preset: PresetItem) => {
     setActivePreset(preset.id);
-    setSelectedServices(preset.services);
-    setSelectedCountry(preset.country);
-    setSelectedProto(preset.proto);
-    setMaxPing(preset.maxPing);
+    if (preset.id === 'all') {
+      setSelectedServices([]);
+      setSelectedCountries([]);
+      setSelectedProtos([]);
+      setMaxPing(0);
+    } else {
+      if (preset.services.length > 0) setSelectedServices(preset.services);
+      if (preset.country && preset.country !== 'all') setSelectedCountries([preset.country.toLowerCase()]);
+      if (preset.proto && preset.proto !== 'all') setSelectedProtos([preset.proto.toLowerCase()]);
+      if (preset.maxPing > 0) setMaxPing(preset.maxPing);
+    }
   }, []);
 
-  // 3. Manual Filters Handlers
+  // 3. Dynamic Counts Calculation
+  const countryCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    allNodes.forEach((n) => {
+      const c = (n.country || '').toLowerCase();
+      if (c && c !== 'global') {
+        map[c] = (map[c] || 0) + 1;
+      }
+    });
+    return map;
+  }, [allNodes]);
+
+  const protoCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    allNodes.forEach((n) => {
+      const p = (n.protocol || '').toLowerCase();
+      const uri = n.uri.toLowerCase();
+      if (uri.includes('pbk=') || p.includes('reality')) map['reality'] = (map['reality'] || 0) + 1;
+      else if (p.includes('hy2') || p.includes('hysteria2') || uri.startsWith('hy2://')) map['hy2'] = (map['hy2'] || 0) + 1;
+      else if (p.includes('trojan') || uri.startsWith('trojan://')) map['trojan'] = (map['trojan'] || 0) + 1;
+      else if (p.includes('ss') || uri.startsWith('ss://')) map['ss'] = (map['ss'] || 0) + 1;
+      else if (p.includes('vless') || uri.startsWith('vless://')) map['vless'] = (map['vless'] || 0) + 1;
+    });
+    return map;
+  }, [allNodes]);
+
+  // 4. Manual Filters Handlers
   const handleToggleService = useCallback((serviceId: string) => {
     setActivePreset('custom');
     setSelectedServices((prev) =>
@@ -103,14 +136,28 @@ export default function App() {
     );
   }, []);
 
-  const handleSelectCountry = useCallback((countryCode: string) => {
+  const handleToggleCountry = useCallback((countryCode: string) => {
     setActivePreset('custom');
-    setSelectedCountry(countryCode);
+    setSelectedCountries((prev) =>
+      prev.includes(countryCode) ? prev.filter((c) => c !== countryCode) : [...prev, countryCode]
+    );
   }, []);
 
-  const handleSelectProto = useCallback((proto: string) => {
+  const handleClearCountries = useCallback(() => {
     setActivePreset('custom');
-    setSelectedProto(proto);
+    setSelectedCountries([]);
+  }, []);
+
+  const handleToggleProto = useCallback((proto: string) => {
+    setActivePreset('custom');
+    setSelectedProtos((prev) =>
+      prev.includes(proto) ? prev.filter((p) => p !== proto) : [...prev, proto]
+    );
+  }, []);
+
+  const handleClearProtos = useCallback(() => {
+    setActivePreset('custom');
+    setSelectedProtos([]);
   }, []);
 
   const handleChangeMaxPing = useCallback((val: number) => {
@@ -123,10 +170,10 @@ export default function App() {
     setMinHealth(val);
   }, []);
 
-  // 4. Reactive Client-Side Filtering
+  // 5. Reactive Client-Side Filtering
   const filteredNodes = useMemo(() => {
     return allNodes.filter((node) => {
-      // Service filter
+      // Service filter (Multi-select)
       if (selectedServices.length > 0) {
         const matchesServices = selectedServices.some(
           (s) => node.services && Boolean(node.services[s])
@@ -134,20 +181,27 @@ export default function App() {
         if (!matchesServices) return false;
       }
 
-      // Country filter
-      if (selectedCountry !== 'all') {
-        const c = selectedCountry.toLowerCase();
+      // Country filter (Multi-select)
+      if (selectedCountries.length > 0) {
         const nCountry = (node.country || '').toLowerCase();
         const nUri = node.uri.toLowerCase();
-        if (!nCountry.includes(c) && !nUri.includes(c)) return false;
+        const matchCountry = selectedCountries.some((c) => nCountry === c || nUri.includes(c));
+        if (!matchCountry) return false;
       }
 
-      // Protocol filter
-      if (selectedProto !== 'all') {
-        const p = selectedProto.toLowerCase();
+      // Protocol filter (Multi-select)
+      if (selectedProtos.length > 0) {
         const nProto = (node.protocol || '').toLowerCase();
         const nUri = node.uri.toLowerCase();
-        if (!nProto.includes(p) && !nUri.startsWith(p)) return false;
+        const matchProto = selectedProtos.some((p) => {
+          if (p === 'reality') return nUri.includes('pbk=') || nProto.includes('reality');
+          if (p === 'hy2') return nProto.includes('hy2') || nProto.includes('hysteria2') || nUri.startsWith('hy2://');
+          if (p === 'trojan') return nProto.includes('trojan') || nUri.startsWith('trojan://');
+          if (p === 'ss') return nProto.includes('ss') || nUri.startsWith('ss://');
+          if (p === 'vless') return nProto.includes('vless') || nUri.startsWith('vless://');
+          return nProto.includes(p) || nUri.startsWith(p);
+        });
+        if (!matchProto) return false;
       }
 
       // Max Ping filter
@@ -162,9 +216,9 @@ export default function App() {
 
       return true;
     });
-  }, [allNodes, selectedServices, selectedCountry, selectedProto, maxPing, minHealth]);
+  }, [allNodes, selectedServices, selectedCountries, selectedProtos, maxPing, minHealth]);
 
-  // 5. Subscription URL Generation (Dynamic Worker URL)
+  // 6. Subscription URL Generation (Dynamic Worker URL)
   const subUrl = useMemo(() => {
     const baseUrl = 'https://sub.turboprobe.workers.dev/sub';
 
@@ -174,11 +228,11 @@ export default function App() {
     if (selectedServices.length > 0) {
       params.set('services', selectedServices.join(','));
     }
-    if (selectedCountry && selectedCountry !== 'all') {
-      params.set('country', selectedCountry.toLowerCase());
+    if (selectedCountries.length > 0) {
+      params.set('country', selectedCountries.join(','));
     }
-    if (selectedProto && selectedProto !== 'all') {
-      params.set('proto', selectedProto.toLowerCase());
+    if (selectedProtos.length > 0) {
+      params.set('proto', selectedProtos.join(','));
     }
     if (maxPing > 0) {
       params.set('max_ping', maxPing.toString());
@@ -199,7 +253,7 @@ export default function App() {
 
     // 3. Default top live subscription
     return baseUrl;
-  }, [activePreset, selectedServices, selectedCountry, selectedProto, maxPing, minHealth]);
+  }, [activePreset, selectedServices, selectedCountries, selectedProtos, maxPing, minHealth]);
 
   const allFilteredKeys = useMemo(() => {
     return filteredNodes.map((n) => n.uri);
@@ -211,30 +265,19 @@ export default function App() {
       let cleanName = `TurboProbe-${String(i + 1).padStart(3, '0')}`;
       if (n.uri.includes('#')) {
         try {
-          cleanName = decodeURIComponent(n.uri.split('#')[1]).replace(/[:"'\[\]]/g, '').slice(0, 45);
+          cleanName = decodeURIComponent(n.uri.split('#')[1]).trim();
         } catch (_) {}
       }
-      const uniqueName = `${cleanName} #${String(i + 1).padStart(3, '0')}`;
-      proxyNames.push(uniqueName);
-      return `  - name: "${uniqueName}"\n    type: vless\n    server: 1.1.1.1\n    port: 443\n    uuid: 00000000-0000-0000-0000-000000000000\n    udp: true`;
+      proxyNames.push(cleanName);
+      return `  - {name: "${cleanName}", type: ${n.protocol || 'vless'}, server: ...}`;
     });
 
-    const yaml = [
-      'port: 7890',
-      'socks-port: 7891',
-      'mode: rule',
-      'proxies:',
-      ...proxies,
-      '\nproxy-groups:\n  - name: "⚡ AUTO-BEST"\n    type: url-test\n    url: http://cp.cloudflare.com/generate_204\n    proxies:',
-      ...proxyNames.map((pName) => `      - "${pName}"`),
-      '\nrules:\n  - DOMAIN-SUFFIX,openai.com,⚡ AUTO-BEST\n  - DOMAIN-SUFFIX,youtube.com,⚡ AUTO-BEST\n  - GEOIP,RU,DIRECT\n  - MATCH,⚡ AUTO-BEST',
-    ].join('\n');
-
-    const blob = new Blob([yaml], { type: 'text/yaml;charset=utf-8' });
+    const yaml = `# TurboProbe Clash Configuration\nproxies:\n${proxies.join('\n')}\n`;
+    const blob = new Blob([yaml], { type: 'text/yaml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `turboprobe-clash.yaml`;
+    a.download = 'turboprobe-clash.yaml';
     a.click();
     URL.revokeObjectURL(url);
   }, [filteredNodes]);
@@ -262,10 +305,14 @@ export default function App() {
             onSelectPreset={handleSelectPreset}
             selectedServices={selectedServices}
             onToggleService={handleToggleService}
-            selectedCountry={selectedCountry}
-            onSelectCountry={handleSelectCountry}
-            selectedProto={selectedProto}
-            onSelectProto={handleSelectProto}
+            selectedCountries={selectedCountries}
+            onToggleCountry={handleToggleCountry}
+            onClearCountries={handleClearCountries}
+            selectedProtos={selectedProtos}
+            onToggleProto={handleToggleProto}
+            onClearProtos={handleClearProtos}
+            countryCounts={countryCounts}
+            protoCounts={protoCounts}
             maxPing={maxPing}
             onChangeMaxPing={handleChangeMaxPing}
             minHealth={minHealth}
