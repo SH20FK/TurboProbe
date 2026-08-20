@@ -81,13 +81,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f sub/ docs/sub/
-          git add -f tools/discovered_sources.json || true
+          git add -f sub/ docs/sub/ tools/discovered_sources.json tools/dead_nodes.json tools/node_history.json tools/telegram_feed.txt || true
           if git diff --staged --quiet; then
             echo "No subscription updates detected."
           else
             git commit -m "chore(sub): auto-update VPN subscriptions [$(date -u +'%Y-%m-%d %H:%M UTC')]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+            git checkout -- . || true
             git fetch origin main
-            git rebase -X theirs origin/main || git rebase --abort || true
-            git push origin main
+            git push origin HEAD:main || (git pull --rebase -X theirs origin main && git push origin HEAD:main) || git push -f origin HEAD:main
           fi
