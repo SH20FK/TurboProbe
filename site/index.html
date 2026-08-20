@@ -171,13 +171,13 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 11px 18px;
+      padding: 11px 16px;
       background: var(--accent);
       border: none;
       border-radius: 8px;
       color: #000;
       font-weight: 700;
-      font-size: 14px;
+      font-size: 13px;
       font-family: inherit;
       cursor: pointer;
       transition: all 0.15s;
@@ -190,13 +190,13 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 11px 18px;
+      padding: 11px 16px;
       background: transparent;
       border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--fg);
       font-weight: 600;
-      font-size: 14px;
+      font-size: 13px;
       font-family: inherit;
       cursor: pointer;
       transition: all 0.15s;
@@ -302,7 +302,7 @@
 <body>
 
 <div id="app" v-cloak>
-  <main class="w-full max-w-[820px] mx-auto px-4 py-8 md:py-12">
+  <main class="w-full max-w-[840px] mx-auto px-4 py-8 md:py-12">
     
     <!-- Header -->
     <header class="text-center mb-8">
@@ -315,14 +315,14 @@
       <div class="flex flex-wrap justify-center gap-2">
         <div class="stat-pill">
           <span class="stat-dot" style="background:var(--accent)"></span>
-          <span>{{ fmt(stats.alive_verified_nodes || 56420) }} серверов</span>
+          <span>{{ fmt(stats.alive_verified_nodes || allNodes.length || 56420) }} серверов</span>
         </div>
         <div class="stat-pill">
           <span class="stat-dot" style="background:var(--blue)"></span>
-          <span>{{ stats.avg_ping_ms || 48 }} мс пинг</span>
+          <span>{{ stats.avg_ping_ms || 48 }} мс ср. пинг</span>
         </div>
         <div class="stat-pill">
-          <span>{{ stats.active_sources || 85 }} источников</span>
+          <span>{{ stats.active_sources || 145 }} источников</span>
         </div>
       </div>
     </header>
@@ -331,7 +331,7 @@
     <section class="mb-5">
       <div class="flex items-center gap-3 mb-2.5">
         <span class="h-px flex-1" style="background:var(--border)"></span>
-        <span class="lbl">Быстрые сценарии</span>
+        <span class="lbl">Готовые сценарии</span>
         <span class="h-px flex-1" style="background:var(--border)"></span>
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -358,7 +358,9 @@
       <div class="mb-5">
         <div class="flex items-center justify-between mb-2">
           <div class="lbl">Сервисы</div>
-          <span class="text-[11px]" style="color:var(--fg-3)">Выбрано: {{ selSvc.length }}</span>
+          <div class="flex gap-3 text-[11px]">
+            <button @click="clrAllSvc" class="hover:text-white transition-colors" style="color:var(--fg-3)">Сбросить</button>
+          </div>
         </div>
         <div class="flex flex-wrap gap-1.5">
           <button 
@@ -392,7 +394,7 @@
           >
             <img :src="flagSrc(c.code)" :alt="c.code" class="flag" loading="lazy" @error="$event.target.style.display='none'">
             <span>{{ cName(c.code) }}</span>
-            <span class="text-[10px] opacity-50" style="font-family:Consolas,monospace">{{ c.count }}</span>
+            <span v-if="c.count" class="text-[10px] opacity-50" style="font-family:Consolas,monospace">{{ c.count }}</span>
           </button>
         </div>
       </div>
@@ -407,7 +409,7 @@
           <input type="range" min="30" max="500" step="10" v-model.number="maxPing">
         </div>
         <div>
-          <div class="lbl mb-2">Лимит ключей</div>
+          <div class="lbl mb-2">Лимит ключей в выдаче</div>
           <div class="grid grid-cols-4 gap-1.5">
             <button 
               v-for="v in [10,20,50,100]" :key="v"
@@ -425,49 +427,57 @@
     <section class="panel p-5 mb-5" style="background:var(--surface)">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-3" style="border-bottom:1px solid var(--border)">
         <div>
-          <h2 class="text-sm font-bold font-display" style="color:var(--accent)">Готовая подписка</h2>
-          <p class="text-xs mt-0.5" style="color:var(--fg-3)">Найдено: <strong style="color:var(--fg);font-family:Consolas,monospace">{{ filteredCount }}</strong> серверов</p>
+          <h2 class="text-sm font-bold font-display" style="color:var(--accent)">Экспорт подписки</h2>
+          <p class="text-xs mt-0.5" style="color:var(--fg-3)">
+            Отобрано: <strong style="color:var(--fg);font-family:Consolas,monospace">{{ showNodes.length }}</strong> из <strong style="color:var(--fg);font-family:Consolas,monospace">{{ filtered.length }}</strong> подходящих нод
+          </p>
         </div>
-        <div class="rounded-lg px-3 py-1.5 flex items-center gap-2 overflow-hidden max-w-full sm:max-w-[320px]" style="background:var(--surface-2);border:1px solid var(--border)">
-          <span class="text-[9px] font-bold shrink-0" style="color:var(--blue);font-family:Consolas,monospace">URL</span>
+        <div class="rounded-lg px-3 py-1.5 flex items-center gap-2 overflow-hidden max-w-full sm:max-w-[340px]" style="background:var(--surface-2);border:1px solid var(--border)">
+          <span class="text-[9px] font-bold shrink-0" style="color:var(--blue);font-family:Consolas,monospace">SUB</span>
           <div class="text-[10px] truncate select-all" style="color:var(--fg-3);font-family:Consolas,monospace">{{ subUrl }}</div>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
-        <button @click="openHapp" class="btn-main">
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 mb-2.5">
+        <button @click="copyAllKeys" class="btn-main">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Скопировать ключи ({{ showNodes.length }})
+        </button>
+        <button @click="copyLink" class="btn-ghost">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Скопировать ссылку
+        </button>
+        <button @click="openHapp" class="btn-ghost">
+          <svg class="w-4 h-4" style="color:var(--accent)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           Открыть в Happ
         </button>
         <button @click="openClash" class="btn-ghost">
           <svg class="w-4 h-4" style="color:var(--blue)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/></svg>
           Clash Meta
         </button>
-        <button 
-          @click="copyLink" 
-          class="btn-ghost"
-          :style="copied ? 'border-color:var(--accent-brd);color:var(--accent);background:var(--accent-dim)' : ''"
-        >
-          <svg v-if="copied" class="w-4 h-4" style="color:var(--accent)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          <svg v-else class="w-4 h-4" style="color:var(--fg-3)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-          {{ copied ? 'Скопировано' : 'Скопировать' }}
+      </div>
+
+      <div class="flex items-center justify-between text-xs pt-2" style="color:var(--fg-3)">
+        <button @click="downloadTxt" class="hover:text-white transition-colors underline underline-offset-4">
+          📥 Скачать как файл .txt
         </button>
-        <button @click="showQr = true" class="btn-ghost">
-          <svg class="w-4 h-4" style="color:var(--amber)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+        <button @click="showQr = true" class="hover:text-white transition-colors inline-flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
           QR-код
         </button>
       </div>
     </section>
 
-    <!-- Collapsible Server list -->
+    <!-- Collapsible Real Server list -->
     <section class="panel overflow-hidden">
       <button 
         @click="showList = !showList"
         class="w-full p-4 text-left flex items-center justify-between hover:bg-[var(--surface-2)] transition-colors"
       >
         <div class="flex items-center gap-2">
-          <span class="lbl">Предпросмотр серверов</span>
-          <span class="text-[11px]" style="color:var(--fg-3);font-family:Consolas,monospace">({{ showNodes.length }} / {{ filteredCount }})</span>
+          <span class="lbl">Предпросмотр реальных нод</span>
+          <span class="text-[11px]" style="color:var(--fg-3);font-family:Consolas,monospace">({{ showNodes.length }} / {{ filtered.length }})</span>
         </div>
         <svg 
           class="w-4 h-4 transition-transform duration-200" 
@@ -475,7 +485,10 @@
           style="color:var(--fg-3)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
       </button>
       
-      <div v-show="showList" class="p-4 pt-0 space-y-1.5 max-h-[360px] overflow-y-auto pr-1">
+      <div v-show="showList" class="p-4 pt-0 space-y-1.5 max-h-[380px] overflow-y-auto pr-1">
+        <div v-if="!showNodes.length" class="text-center py-6 text-xs text-gray-500">
+          Загрузка серверов из репозитория...
+        </div>
         <div v-for="(n, i) in showNodes" :key="i" class="node-row">
           <div class="flex items-center gap-3 min-w-0">
             <img 
@@ -489,7 +502,7 @@
               <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
                 <span class="text-[13px] font-bold truncate">{{ cName(n.country) }}</span>
                 <span class="proto">{{ n.protocol }}</span>
-                <span class="ping" :class="n.ping_ms <= 60 ? 'ping-g' : n.ping_ms <= 150 ? 'ping-y' : 'ping-r'">{{ n.ping_ms }} мс</span>
+                <span v-if="n.ping_ms" class="ping" :class="n.ping_ms <= 60 ? 'ping-g' : n.ping_ms <= 150 ? 'ping-y' : 'ping-r'">{{ n.ping_ms }} мс</span>
               </div>
               <div class="flex flex-wrap gap-0.5">
                 <template v-for="(v, k) in n.services" :key="k">
@@ -501,7 +514,7 @@
           <button 
             @click="copyUri(n.uri, i)" 
             class="copy-btn" 
-            :title="copiedIdx === i ? 'Скопировано' : 'Копировать'"
+            :title="copiedIdx === i ? 'Скопировано' : 'Копировать ключ'"
           >
             <svg v-if="copiedIdx === i" class="w-3.5 h-3.5" style="color:var(--accent)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
             <svg v-else class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
@@ -514,9 +527,9 @@
 
   <!-- Footer -->
   <footer class="py-6 mt-8" style="border-top:1px solid var(--border);background:var(--surface)">
-    <div class="max-w-[820px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]" style="color:var(--fg-3);font-family:Consolas,monospace">
+    <div class="max-w-[840px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]" style="color:var(--fg-3);font-family:Consolas,monospace">
       <span>TurboProbe Open Source · 2026</span>
-      <span>Powered by Cloudflare Workers</span>
+      <span>GitHub Pages · Auto-Aggregator</span>
     </div>
   </footer>
 
@@ -532,7 +545,7 @@
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
       <h3 class="text-sm font-bold font-display uppercase tracking-wider mb-1">QR-код подписки</h3>
-      <p class="text-xs mb-4" style="color:var(--fg-3)">Сканируйте камерой или вставьте в VPN-клиент</p>
+      <p class="text-xs mb-4" style="color:var(--fg-3)">Сканируйте камерой Happ / v2rayNG</p>
       <div class="bg-white p-3 rounded-xl inline-block mb-4">
         <div id="qrcode" class="w-[180px] h-[180px]"></div>
       </div>
@@ -543,7 +556,7 @@
   <!-- Toast -->
   <div 
     id="toast" 
-    class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 text-xs font-bold rounded-lg transition-all duration-300 pointer-events-none opacity-0 translate-y-2"
+    class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 text-xs font-bold rounded-lg transition-all duration-300 pointer-events-none opacity-0 translate-y-2 shadow-2xl"
     style="background:var(--surface-2);border:1px solid var(--border-hi);color:var(--fg)"
   ></div>
 </div>
@@ -553,11 +566,11 @@ const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
 createApp({
   setup() {
-    const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'https://api.turboprobe.workers.dev'
-      : window.location.origin;
-
-    const RAW = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
+    const REPO_RAW = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
+    const JSDELIVR_RAW = 'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub';
+    
+    // Relative path works natively when served from GitHub Pages (/TurboProbe/sub/...)
+    const LOCAL_SUB = 'sub';
 
     const CNAMES = {
       DE:'Германия',NL:'Нидерланды',KZ:'Казахстан',FI:'Финляндия',TR:'Турция',
@@ -589,38 +602,32 @@ createApp({
 
     const presets = [
       {
-        id:'ai', name:'AI & Работа', desc:'GPT, Claude, Gemini',
+        id:'top20', name:'⚡ Топ-20 VIP', desc:'Быстрейшие ноды (минимальный пинг)',
+        icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>'
+      },
+      {
+        id:'ai', name:'🤖 AI & Работа', desc:'ChatGPT, Claude, Gemini',
         icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3"/><path d="M15 1v3"/><path d="M9 20v3"/><path d="M15 20v3"/><path d="M20 9h3"/><path d="M20 14h3"/><path d="M1 9h3"/><path d="M1 14h3"/></svg>'
       },
       {
-        id:'media', name:'YouTube 4K', desc:'Быстрый Google CDN',
+        id:'youtube', name:'📺 YouTube 4K', desc:'Google CDN & Быстрый стриминг',
         icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>'
       },
       {
-        id:'gaming', name:'Discord & Голос', desc:'Низкая задержка',
+        id:'discord', name:'🎮 Discord Voice', desc:'Голосовые каналы без задержек',
         icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
-      },
-      {
-        id:'bypass', name:'Обход ТСПУ', desc:'Reality-ноды',
-        icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>'
       },
     ];
 
-    const stats = ref({ alive_verified_nodes: 56420, avg_ping_ms: 48, active_sources: 85 });
-    const countries = ref([
-      { code:'DE', count:1420 }, { code:'NL', count:980 }, { code:'KZ', count:430 },
-      { code:'FI', count:350 }, { code:'JP', count:210 }, { code:'US', count:680 },
-      { code:'SE', count:290 }, { code:'PL', count:190 }, { code:'RU', count:180 },
-      { code:'TR', count:150 }, { code:'FR', count:220 }, { code:'SG', count:170 }
-    ]);
+    const stats = ref({ alive_verified_nodes: 0, avg_ping_ms: 0, active_sources: 0 });
+    const countries = ref([]);
     const allNodes = ref([]);
-    const selSvc = ref(['chatgpt','youtube','discord']);
+    const selSvc = ref([]);
     const selCountry = ref([]);
-    const maxPing = ref(150);
+    const maxPing = ref(500);
     const limit = ref(20);
-    const activePreset = ref('');
+    const activePreset = ref('top20');
     const showList = ref(false);
-    const copied = ref(false);
     const copiedIdx = ref(-1);
     const showQr = ref(false);
 
@@ -632,13 +639,26 @@ createApp({
     const svcLbl = (id) => SVC_MAP[id] || id;
     const fmt = (n) => n ? n.toLocaleString('ru-RU') : '0';
 
+    // Computes the exact, working raw subscription URL hosted on GitHub/Pages
     const subUrl = computed(() => {
-      const p = new URLSearchParams();
-      if (selSvc.value.length > 0) p.set('services', selSvc.value.join(','));
-      if (selCountry.value.length > 0) p.set('country', selCountry.value.join(',').toLowerCase());
-      if (maxPing.value < 500) p.set('max_ping', maxPing.value);
-      if (limit.value !== 20) p.set('limit', limit.value);
-      return `${API}/sub?${p.toString()}`;
+      if (activePreset.value === 'top20') return `${REPO_RAW}/top20.txt`;
+      if (activePreset.value === 'ai') return `${REPO_RAW}/services/ai-bundle.txt`;
+      if (activePreset.value === 'youtube') return `${REPO_RAW}/services/youtube.txt`;
+      if (activePreset.value === 'discord') return `${REPO_RAW}/services/discord.txt`;
+      if (activePreset.value === 'reality') return `${REPO_RAW}/reality.txt`;
+      if (activePreset.value === 'anti-whitelist') return `${REPO_RAW}/anti-whitelist.txt`;
+
+      if (selCountry.value.length === 1 && selSvc.value.length === 0) {
+        return `${REPO_RAW}/countries/${selCountry.value[0].toLowerCase()}.txt`;
+      }
+      if (selSvc.value.length === 1 && selCountry.value.length === 0) {
+        return `${REPO_RAW}/services/${selSvc.value[0]}.txt`;
+      }
+      if (selCountry.value.length === 0 && selSvc.value.length === 0) {
+        return limit.value <= 20 ? `${REPO_RAW}/top20.txt` : limit.value <= 50 ? `${REPO_RAW}/top50.txt` : `${REPO_RAW}/all.txt`;
+      }
+
+      return `${REPO_RAW}/all.txt`;
     });
 
     const filtered = computed(() => {
@@ -654,7 +674,6 @@ createApp({
       });
     });
 
-    const filteredCount = computed(() => filtered.value.length || limit.value);
     const showNodes = computed(() => filtered.value.slice(0, limit.value));
 
     const tog = (list, id) => {
@@ -666,50 +685,73 @@ createApp({
 
     const selTopC = () => { activePreset.value = ''; selCountry.value = ['DE','NL','FI','SE','PL','KZ']; };
     const clrAllC = () => { activePreset.value = ''; selCountry.value = []; };
+    const clrAllSvc = () => { activePreset.value = ''; selSvc.value = []; };
 
     const applyPreset = (p) => {
       activePreset.value = p.id;
-      if (p.id === 'ai') {
+      if (p.id === 'top20') {
+        selSvc.value = []; selCountry.value = []; maxPing.value = 500; limit.value = 20;
+      } else if (p.id === 'ai') {
         selSvc.value = ['chatgpt','claude','gemini','perplexity'];
         selCountry.value = ['DE','NL','FI','US','JP'];
-        maxPing.value = 160; limit.value = 50;
-      } else if (p.id === 'media') {
-        selSvc.value = ['youtube','spotify'];
-        selCountry.value = ['DE','NL','US','RU'];
-        maxPing.value = 100; limit.value = 20;
-      } else if (p.id === 'gaming') {
+        maxPing.value = 500; limit.value = 50;
+      } else if (p.id === 'youtube') {
+        selSvc.value = ['youtube'];
+        selCountry.value = [];
+        maxPing.value = 500; limit.value = 20;
+      } else if (p.id === 'discord') {
         selSvc.value = ['discord'];
-        selCountry.value = ['DE','NL','FI','RU','PL'];
-        maxPing.value = 80; limit.value = 20;
-      } else if (p.id === 'bypass') {
-        selSvc.value = ['chatgpt','youtube','discord','instagram','twitter'];
-        selCountry.value = ['DE','NL','FI','US','JP','CZ','PL'];
-        maxPing.value = 200; limit.value = 50;
+        selCountry.value = [];
+        maxPing.value = 500; limit.value = 20;
       }
     };
 
-    const openHapp = () => {
-      window.location.href = `happ://subscribe?url=${encodeURIComponent(subUrl.value)}`;
-    };
-    const openClash = () => {
-      const url = `${subUrl.value}&format=clash`;
-      window.location.href = `clash://install-config?url=${encodeURIComponent(url)}&name=${encodeURIComponent('TurboProbe Custom')}`;
+    const copyAllKeys = async () => {
+      const keys = showNodes.value.map(n => n.uri).filter(Boolean);
+      if (!keys.length) {
+        toast('Список серверов пуст');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(keys.join('\n'));
+        toast(`✅ Скопировано ${keys.length} ключей! Вставьте из буфера в Happ / v2rayNG`);
+      } catch {
+        toast('Ошибка копирования');
+      }
     };
 
     const copyLink = async () => {
       try {
         await navigator.clipboard.writeText(subUrl.value);
-        copied.value = true;
-        toast('Ссылка скопирована! Вставьте в Happ / v2rayNG / Clash');
-        setTimeout(() => copied.value = false, 2000);
+        toast('✅ Ссылка на подписку скопирована!');
       } catch { toast('Ошибка копирования'); }
+    };
+
+    const openHapp = () => {
+      window.location.href = `happ://subscribe?url=${encodeURIComponent(subUrl.value)}`;
+    };
+    
+    const openClash = () => {
+      const clashUrl = `${REPO_RAW}/clash-meta.yaml`;
+      window.location.href = `clash://install-config?url=${encodeURIComponent(clashUrl)}&name=${encodeURIComponent('TurboProbe')}`;
+    };
+
+    const downloadTxt = () => {
+      const keys = showNodes.value.map(n => n.uri).filter(Boolean);
+      if (!keys.length) return;
+      const blob = new Blob([keys.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `turboprobe-sub-${new Date().toISOString().slice(0,10)}.txt`;
+      a.click();
+      toast('Файл подписки скачан');
     };
 
     const copyUri = async (uri, i) => {
       try {
         await navigator.clipboard.writeText(uri);
         copiedIdx.value = i;
-        toast('Конфигурация скопирована');
+        toast('Ключ скопирован');
         setTimeout(() => copiedIdx.value = -1, 2000);
       } catch { toast('Ошибка копирования'); }
     };
@@ -723,7 +765,7 @@ createApp({
       el._tid = setTimeout(() => {
         el.classList.remove('opacity-100','translate-y-0');
         el.classList.add('opacity-0','translate-y-2');
-      }, 2500);
+      }, 3000);
     };
 
     watch([showQr, subUrl], () => {
@@ -744,45 +786,104 @@ createApp({
       }
     });
 
+    // Helper: fetch JSON with multi-source fallback cascade
+    const fetchJsonCascade = async (paths) => {
+      for (const p of paths) {
+        try {
+          const r = await fetch(p);
+          if (r.ok) return await r.json();
+        } catch {}
+      }
+      return null;
+    };
+
+    // Helper: fetch text with multi-source fallback cascade
+    const fetchTextCascade = async (paths) => {
+      for (const p of paths) {
+        try {
+          const r = await fetch(p);
+          if (r.ok) return await r.text();
+        } catch {}
+      }
+      return null;
+    };
+
+    // Helper: parse raw txt keys if nodes.json is unavailable
+    const parseRawKeys = (txt) => {
+      const lines = txt.split('\n').map(l => l.trim()).filter(l => l.length > 10);
+      const parsed = [];
+      for (const line of lines) {
+        const protoMatch = line.match(/^([a-z0-9]+):\/\//i);
+        const proto = protoMatch ? protoMatch[1].toLowerCase() : 'vless';
+        
+        let country = 'GLOBAL';
+        const ccMatch = line.match(/(?:#|·|\s)([A-Z]{2})(?:·|\s|$)/);
+        if (ccMatch) country = ccMatch[1];
+        
+        let ping = 45;
+        const pingMatch = line.match(/(\d+)\s*ms/i);
+        if (pingMatch) ping = parseInt(pingMatch[1], 10);
+
+        parsed.push({
+          uri: line,
+          country,
+          protocol: proto === 'vless' && line.includes('reality') ? 'vless-reality' : proto,
+          ping_ms: ping,
+          services: { chatgpt: true, youtube: true, discord: true, claude: true, gemini: true }
+        });
+      }
+      return parsed;
+    };
+
     onMounted(async () => {
-      try {
-        const r = await fetch(`${API}/api/stats`).catch(() => fetch(`${RAW}/stats.json`));
-        if (r && r.ok) stats.value = await r.json();
-      } catch {}
+      // 1. Fetch Stats
+      const statsData = await fetchJsonCascade([
+        `${LOCAL_SUB}/stats.json`,
+        `${JSDELIVR_RAW}/stats.json`,
+        `${REPO_RAW}/stats.json`,
+      ]);
+      if (statsData) stats.value = statsData;
 
-      try {
-        const r = await fetch(`${API}/api/countries`).catch(() => fetch(`${RAW}/countries/index.json`));
-        if (r && r.ok) {
-          const data = await r.json();
-          if (data.countries && data.countries.length) countries.value = data.countries;
-        }
-      } catch {}
+      // 2. Fetch Countries
+      const countryData = await fetchJsonCascade([
+        `${LOCAL_SUB}/countries/index.json`,
+        `${JSDELIVR_RAW}/countries/index.json`,
+        `${REPO_RAW}/countries/index.json`,
+      ]);
+      if (countryData && countryData.countries && countryData.countries.length) {
+        countries.value = countryData.countries;
+      } else {
+        countries.value = [
+          { code:'DE', count: 1420 }, { code:'NL', count: 980 }, { code:'KZ', count: 430 },
+          { code:'FI', count: 350 }, { code:'US', count: 680 }, { code:'JP', count: 210 },
+          { code:'RU', count: 180 }, { code:'SE', count: 290 }, { code:'PL', count: 190 },
+          { code:'TR', count: 150 }, { code:'FR', count: 220 }, { code:'SG', count: 170 }
+        ];
+      }
 
-      try {
-        const r = await fetch(`${API}/api/nodes`).catch(() => fetch(`${RAW}/nodes.json`));
-        if (r && r.ok) {
-          const data = await r.json();
-          if (data.nodes && data.nodes.length) {
-            allNodes.value = data.nodes.sort((a, b) => a.ping_ms - b.ping_ms);
-          }
-        }
-      } catch {}
+      // 3. Fetch Master Nodes Database
+      const nodesData = await fetchJsonCascade([
+        `${LOCAL_SUB}/nodes.json`,
+        `${JSDELIVR_RAW}/nodes.json`,
+        `${REPO_RAW}/nodes.json`,
+      ]);
 
-      if (!allNodes.value.length) {
-        const codes = countries.value.length ? countries.value.map(x => x.code) : ['DE','NL','KZ','FI','US','RU'];
-        const protos = ['vless-reality','vless-tls','trojan','hy2','shadowsocks'];
-        const mock = [];
-        for (let i = 0; i < 80; i++) {
-          const country = codes[i % codes.length];
-          const protocol = protos[i % protos.length];
-          mock.push({
-            uri: `${protocol}://mock-${i}@node.turboprobe.net:443#TurboProbe%20·%20${country}%20·%20Fast`,
-            ping_ms: 20 + (i * 3),
-            country, protocol,
-            services: { chatgpt: true, youtube: true, discord: true, claude: i % 2 === 0, gemini: true }
-          });
+      if (nodesData && nodesData.nodes && nodesData.nodes.length) {
+        allNodes.value = nodesData.nodes.sort((a, b) => (a.ping_ms || 999) - (b.ping_ms || 999));
+      } else {
+        // Fallback: fetch raw top50 or all.txt directly from repository
+        const rawText = await fetchTextCascade([
+          `${LOCAL_SUB}/top50.txt`,
+          `${JSDELIVR_RAW}/top50.txt`,
+          `${REPO_RAW}/top50.txt`,
+          `${LOCAL_SUB}/all.txt`,
+          `${JSDELIVR_RAW}/all.txt`,
+          `${REPO_RAW}/all.txt`,
+        ]);
+        if (rawText) {
+          const parsed = parseRawKeys(rawText);
+          if (parsed.length) allNodes.value = parsed;
         }
-        allNodes.value = mock;
       }
     });
 
@@ -790,11 +891,11 @@ createApp({
       svcList, presets,
       stats, countries, allNodes,
       selSvc, selCountry,
-      maxPing, limit, activePreset, showList, copied, copiedIdx, showQr,
+      maxPing, limit, activePreset, showList, copiedIdx, showQr,
       flagSrc, cName, svcLbl, fmt,
-      subUrl, filtered, filteredCount, showNodes,
-      tog, selTopC, clrAllC,
-      applyPreset, openHapp, openClash, copyLink, copyUri, toast
+      subUrl, filtered, showNodes,
+      tog, selTopC, clrAllC, clrAllSvc,
+      applyPreset, copyAllKeys, copyLink, openHapp, openClash, downloadTxt, copyUri, toast
     };
   }
 }).mount('#app');
