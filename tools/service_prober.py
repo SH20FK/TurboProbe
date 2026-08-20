@@ -729,6 +729,23 @@ def main():
                 "services": fallback_heuristic_probe(uri, ping_ms),
             })
 
+    # Load cumulative health score history
+    history_file = os.path.join(TOOLS_DIR, "node_history.json")
+    history_map = {}
+    if os.path.isfile(history_file):
+        try:
+            with open(history_file, "r", encoding="utf-8") as f:
+                history_map = json.load(f)
+        except Exception:
+            pass
+
+    for n in verified_nodes:
+        raw_key = n["uri"].split('#')[0].split('?')[0].strip().lower()
+        h_rec = history_map.get(raw_key, {})
+        tot = h_rec.get("total_checks", 1)
+        succ = h_rec.get("success_checks", 1)
+        n["health"] = round((succ / max(tot, 1)) * 100, 1)
+
     # Sort verified database by ascending ping
     verified_nodes.sort(key=lambda n: n["ping_ms"])
 

@@ -30,10 +30,31 @@ except Exception:
 SUB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sub")
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 DISCOVERED_SOURCES_PATH = os.path.join(TOOLS_DIR, "discovered_sources.json")
-DEAD_NODES_PATH = os.path.join(TOOLS_DIR, "dead_nodes.json")
+NODE_HISTORY_PATH = os.path.join(TOOLS_DIR, "node_history.json")
 
 # Size of each paginated "sub/chunks/chunk-XXX.txt" file (ordered by ascending ping)
 CHUNK_SIZE = 500
+
+def load_node_history() -> dict:
+    """Loads persistent cumulative history and check counters for all nodes."""
+    if os.path.isfile(NODE_HISTORY_PATH):
+        try:
+            with open(NODE_HISTORY_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_node_history(history_map: dict):
+    """Saves node check history (capped at 50,000 active nodes)."""
+    if len(history_map) > 50000:
+        items = sorted(history_map.items(), key=lambda x: x[1].get("total_checks", 0), reverse=True)[:50000]
+        history_map = dict(items)
+    try:
+        with open(NODE_HISTORY_PATH, "w", encoding="utf-8") as f:
+            json.dump(history_map, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"⚠️ Failed to save node_history.json: {e}")
 
 def load_dead_nodes() -> dict:
     """Loads persistent blacklisted dead nodes to skip dead keys on future crawls."""
@@ -527,11 +548,12 @@ def main():
     
     # 2b. 🚫 Purge known persistent dead keys from blacklist
     dead_map = load_dead_nodes()
+    history_map = load_node_history()
     candidate_uris = []
     skipped_dead = 0
     for uri in unique_uris:
         k = get_node_key(uri)
-        if k in dead_map and dead_map[k].get("fail_count", 0) >= 2:
+        if k in dead_map and dead_map[k].get("fail_count", 0) >= 3:
             skipped_dead += 1
             continue
         candidate_uris.append(uri)
@@ -540,7 +562,7 @@ def main():
 
     # 3. ⚡ High-Speed Turbo Multi-Threaded Latency Benchmark (1000 workers)
     print(f"🩺 Starting ultra-speed latency benchmark across {len(candidate_uris)} nodes (timeout: 0.40s, 1000 threads)...", flush=True)
-    alive_tuples = []  # list of (formatted_uri, ping_ms, raw_key)
+    alive_tuples = []  # list of (formatted_uri, ping_ms, raw_key, health)
     checked_count = 0
     total_candidates = len(candidate_uris)
     
@@ -553,9 +575,20 @@ def main():
             try:
                 uri, ping_ms = future.result()
                 k = get_node_key(uri)
+                
+                h_rec = history_map.get(k, {
+                    "total_checks": 0,
+                    "success_checks": 0,
+                    "first_seen": datetime.now(timezone.utc).isoformat()
+                })
+                h_rec["total_checks"] = h_rec.get("total_checks", 0) + 1
+                
                 if ping_ms < 900.0:
+                    h_rec["success_checks"] = h_rec.get("success_checks", 0) + 1
+                    h_rec["last_seen_alive"] = datetime.now(timezone.utc).isoformat()
+                    health = round((h_rec["success_checks"] / max(h_rec["total_checks"], 1)) * 100, 1)
                     formatted_uri = sanitize_node_remark(uri, ping_ms)
-                    alive_tuples.append((formatted_uri, ping_ms, k))
+                    alive_tuples.append((formatted_uri, ping_ms, k, health))
                     if k in dead_map:
                         del dead_map[k]
                 else:
@@ -563,11 +596,14 @@ def main():
                     rec["fail_count"] = rec.get("fail_count", 0) + 1
                     rec["last_seen"] = datetime.now(timezone.utc).isoformat()
                     dead_map[k] = rec
+                
+                history_map[k] = h_rec
             except Exception:
                 pass
 
-    # Save updated dead nodes blacklist
+    # Save updated dead nodes blacklist & cumulative history
     save_dead_nodes(dead_map)
+    save_node_history(history_map)
 
     # 4. 🥇 STRICT SORT BY LOWEST PING (Ascending: 10ms -> 30ms -> 50ms)
     alive_tuples.sort(key=lambda item: item[1])
