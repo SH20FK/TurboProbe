@@ -92,11 +92,11 @@ SUB_DIR = os.path.join(ROOT_DIR, "sub")
 SERVICES_DIR = os.path.join(SUB_DIR, "services")
 
 DEFAULT_PROBE_LIMIT = 0     # 0 = probe 100% of all harvested candidate nodes
-BATCH_SIZE = 250            # Nodes per Xray instance
-NUM_XRAY_WORKERS = 8        # 8 Concurrent Xray processes (2000 parallel live tunnels simultaneously)
+BATCH_SIZE = 100            # Nodes per Xray instance (100 = rock solid stability)
+NUM_XRAY_WORKERS = 6        # 6 Concurrent Xray processes (600 parallel live tunnels)
 BASE_SOCKS_PORT = 10900     # Starting port for multi-inbound testing
-PORT_STEP = 300             # Port range per worker (Worker 0: 10900, Worker 1: 11200, ... Worker 7: 13000)
-PROBE_TIMEOUT = 1.5         # Seconds per HTTP request (fast cutoff for dead nodes)
+PORT_STEP = 200             # Port range per worker (Worker 0: 10900, Worker 1: 11100, ... Worker 5: 11900)
+PROBE_TIMEOUT = 3.5         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
 
 TARGET_SERVICES = {
     "chatgpt": {
@@ -474,18 +474,18 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
 # =============================================================================
 # 🧪 BATCH RUNNER
 # =============================================================================
-def wait_for_port_ready(port: int, max_wait: float = 1.2) -> bool:
-    """Actively polls until Xray binds and opens the inbound port (typically 5-15ms)."""
+def wait_for_port_ready(port: int, max_wait: float = 3.0) -> bool:
+    """Actively polls until Xray binds and opens the inbound port."""
     t0 = time.perf_counter()
     while time.perf_counter() - t0 < max_wait:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(0.04)
+                s.settimeout(0.05)
                 if s.connect_ex(("127.0.0.1", port)) == 0:
                     return True
         except Exception:
             pass
-        time.sleep(0.01)
+        time.sleep(0.02)
     return False
 
 def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT) -> list:
@@ -536,8 +536,13 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
     proc = None
     results = []
     try:
-        proc = subprocess.Popen([xray_bin, "run", "-c", cfg_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        wait_for_port_ready(base_port)  # Deterministic active port readiness check (5-15ms)
+        proc = subprocess.Popen([xray_bin, "run", "-c", cfg_file], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        ready = wait_for_port_ready(base_port, max_wait=3.0)
+        if not ready:
+            err_msg = ""
+            if proc.poll() is not None and proc.stderr:
+                err_msg = proc.stderr.read().decode('utf-8', errors='ignore')
+            print(f"  ⚠️ [Xray Warning] Port {base_port} did not answer in 3s: {err_msg[:200]}", flush=True)
 
         with ThreadPoolExecutor(max_workers=len(active_slots)) as pool:
             futures = {
@@ -610,7 +615,7 @@ def main():
     candidates = []
     
     # 1a. Check local sub/
-    for candidate_file in ["anti-whitelist.txt", "reality.txt", "hysteria2.txt", "top50.txt", "top20.txt", "all.txt"]:
+    for candidate_file in ["all.txt", "top50.txt", "top20.txt", "reality.txt", "anti-whitelist.txt", "hysteria2.txt"]:
         f_path = os.path.join(SUB_DIR, candidate_file)
         if os.path.isfile(f_path):
             with open(f_path, "r", encoding="utf-8") as f:
@@ -622,7 +627,7 @@ def main():
     # 1b. Check docs/sub/
     if not candidates:
         docs_sub = os.path.join(ROOT_DIR, "docs", "sub")
-        for candidate_file in ["anti-whitelist.txt", "reality.txt", "hysteria2.txt", "top50.txt", "top20.txt", "all.txt"]:
+        for candidate_file in ["all.txt", "top50.txt", "top20.txt", "reality.txt", "anti-whitelist.txt", "hysteria2.txt"]:
             f_path = os.path.join(docs_sub, candidate_file)
             if os.path.isfile(f_path):
                 with open(f_path, "r", encoding="utf-8") as f:
