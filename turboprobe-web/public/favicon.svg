@@ -1,34 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
   <defs>
-    <radialGradient id="bgGrad" cx="50%" cy="0%" r="90%">
-      <stop offset="0%" stop-color="#1f1f23"/>
-      <stop offset="100%" stop-color="#09090b"/>
+    <radialGradient id="neonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="50%" stop-color="#22c55e"/>
-      <stop offset="100%" stop-color="#10b981"/>
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6ee7b7"/>
+      <stop offset="40%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
     </linearGradient>
-    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.3)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0.05)"/>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#181a24"/>
+      <stop offset="100%" stop-color="#0f1017"/>
     </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="16" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
   </defs>
 
-  <!-- Background Base -->
-  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
-  <rect x="4" y="4" width="504" height="504" rx="124" stroke="url(#borderGrad)" stroke-width="8"/>
-
-  <!-- Radar Pulse Rings -->
-  <circle cx="256" cy="256" r="160" stroke="rgba(255,255,255,0.06)" stroke-width="6" stroke-dasharray="12 12"/>
-  <circle cx="256" cy="256" r="100" stroke="rgba(34,197,94,0.15)" stroke-width="4"/>
-
-  <!-- Center Metallic Probe Lightning Symbol -->
-  <g filter="url(#glow)">
-    <path d="M280 96L144 280h104l-32 136 152-192h-112l24-128z" fill="url(#neonGrad)"/>
-  </g>
+  <rect x="2" y="2" width="96" height="96" rx="26" fill="url(#bgGrad)" stroke="#272a38" stroke-width="2"/>
+  <circle cx="50" cy="50" r="32" fill="none" stroke="#252a38" stroke-width="1.5" stroke-dasharray="3 3"/>
+  <circle cx="50" cy="50" r="22" fill="none" stroke="#10b981" stroke-width="1" stroke-opacity="0.3"/>
+  <circle cx="50" cy="50" r="24" fill="url(#neonGlow)"/>
+  <polygon points="53 18 28 54 48 54 45 82 72 46 52 46 53 18" fill="url(#boltGrad)" filter="drop-shadow(0 0 8px rgba(16, 185, 129, 0.7))"/>
 </svg>
