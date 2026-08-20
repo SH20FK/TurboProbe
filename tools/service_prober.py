@@ -537,6 +537,8 @@ def main():
 
     # 1. Read input nodes prioritizing high-quality anti-censor & reality sources
     candidates = []
+    
+    # 1a. Check local sub/
     for candidate_file in ["anti-whitelist.txt", "reality.txt", "hysteria2.txt", "top50.txt", "top20.txt", "all.txt"]:
         f_path = os.path.join(SUB_DIR, candidate_file)
         if os.path.isfile(f_path):
@@ -546,8 +548,47 @@ def main():
                     if u and u not in candidates:
                         candidates.append(u)
 
+    # 1b. Check docs/sub/
     if not candidates:
-        print("⚠️ No candidate nodes found. Run tools/aggregator.py first.", flush=True)
+        docs_sub = os.path.join(ROOT_DIR, "docs", "sub")
+        for candidate_file in ["anti-whitelist.txt", "reality.txt", "hysteria2.txt", "top50.txt", "top20.txt", "all.txt"]:
+            f_path = os.path.join(docs_sub, candidate_file)
+            if os.path.isfile(f_path):
+                with open(f_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        u = line.strip()
+                        if u and u not in candidates:
+                            candidates.append(u)
+
+    # 1c. Check tools/node_history.json
+    if not candidates:
+        hist_path = os.path.join(TOOLS_DIR, "node_history.json")
+        if os.path.isfile(hist_path):
+            try:
+                with open(hist_path, "r", encoding="utf-8") as f:
+                    hist_data = json.load(f)
+                for k in hist_data.keys():
+                    if "://" in k and k not in candidates:
+                        candidates.append(k)
+            except Exception:
+                pass
+
+    # 1d. Auto-run aggregator --fast if still no candidates
+    if not candidates:
+        print("⚡ No local candidates found. Auto-running fast harvester (10s)...", flush=True)
+        agg_script = os.path.join(TOOLS_DIR, "aggregator.py")
+        subprocess.run([sys.executable, agg_script, "--fast"], check=False)
+        for candidate_file in ["anti-whitelist.txt", "reality.txt", "top50.txt", "all.txt"]:
+            f_path = os.path.join(SUB_DIR, candidate_file)
+            if os.path.isfile(f_path):
+                with open(f_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        u = line.strip()
+                        if u and u not in candidates:
+                            candidates.append(u)
+
+    if not candidates:
+        print("⚠️ No candidate nodes could be harvested.", flush=True)
         return
 
     print(f"📖 Loaded {len(candidates)} candidate nodes from aggregator output", flush=True)
