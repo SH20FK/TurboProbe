@@ -69,8 +69,8 @@ SUB_DIR = os.path.join(ROOT_DIR, "sub")
 SERVICES_DIR = os.path.join(SUB_DIR, "services")
 
 DEFAULT_PROBE_LIMIT = 0     # 0 = probe 100% of all harvested candidate nodes
-BATCH_SIZE = 50             # Parallel nodes per Xray instance
-PROBE_TIMEOUT = 2.5         # Seconds per HTTP request
+BATCH_SIZE = 150            # Parallel nodes per Xray instance (3x higher throughput)
+PROBE_TIMEOUT = 1.8         # Seconds per HTTP request (fast cutoff for dead nodes)
 BASE_SOCKS_PORT = 10900     # Starting port for multi-inbound testing
 
 TARGET_SERVICES = {
@@ -429,14 +429,20 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
     if not real_country:
         real_country = "GLOBAL"
 
-    # Step 3: Test target services through confirmed alive tunnel
+    # Step 3: Test target services concurrently through confirmed alive tunnel
     services = {}
-    for s_key, s_info in TARGET_SERVICES.items():
+    def check_single_service(s_key, s_info):
         try:
             r = session.get(s_info["url"], timeout=PROBE_TIMEOUT, verify=False, allow_redirects=True)
-            services[s_key] = r.status_code in s_info["valid_status"]
+            return s_key, r.status_code in s_info["valid_status"]
         except Exception:
-            services[s_key] = False
+            return s_key, False
+
+    with ThreadPoolExecutor(max_workers=len(TARGET_SERVICES)) as s_pool:
+        s_futs = [s_pool.submit(check_single_service, k, v) for k, v in TARGET_SERVICES.items()]
+        for sf in as_completed(s_futs):
+            sk, ok = sf.result()
+            services[sk] = ok
 
     return (True, real_country, real_ping_ms, services)
 
@@ -658,7 +664,47 @@ def main():
         proto = uri.split("://")[0].lower() if "://" in uri else "vless"
         probe_pool.append((i, uri, 50.0, "GLOBAL", proto))
 
-    print(f"⚡ Deep probing {len(probe_pool)} nodes with real HTTP requests (batches of {batch_size})...", flush=True)
+    def check_candidate_reachability(item: tuple) -> bool:
+        _, uri, _, _, proto = item
+        if proto in ["hy2", "hysteria2", "tuic", "wireguard"]:
+            return True
+        try:
+            parsed = urllib.parse.urlparse(uri)
+            netloc = parsed.netloc
+            host_port = netloc.split('@')[-1] if '@' in netloc else netloc
+            if ':' in host_port:
+                host, port_str = host_port.split(':', 1)
+                port = int(port_str.split('?')[0].split('/')[0].split('#')[0])
+            else:
+                host = host_port
+                port = 443
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.40)
+            res = sock.connect_ex((host, port))
+            sock.close()
+            return res == 0
+        except Exception:
+            return False
+
+    print(f"⚡ Pre-filtering {len(probe_pool)} candidate endpoints with 500 parallel TCP threads (under 20s)...", flush=True)
+    t_start = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=500) as pre_pool:
+        reach_futs = {pre_pool.submit(check_candidate_reachability, item): item for item in probe_pool}
+        reachable_pool = []
+        for rf in as_completed(reach_futs):
+            item = reach_futs[rf]
+            try:
+                if rf.result():
+                    reachable_pool.append(item)
+            except Exception:
+                pass
+    
+    elapsed_pre = round(time.perf_counter() - t_start, 1)
+    print(f"✨ Port pre-filter finished in {elapsed_pre}s: {len(reachable_pool)} reachable nodes selected ({len(probe_pool) - len(reachable_pool)} dead filtered out)", flush=True)
+    if len(reachable_pool) >= 20:
+        probe_pool = reachable_pool
+
+    print(f"⚡ Deep probing {len(probe_pool)} reachable nodes with real HTTP requests (batches of {batch_size})...", flush=True)
 
     verified_alive_nodes = []
     num_batches = (len(probe_pool) + batch_size - 1) // batch_size
