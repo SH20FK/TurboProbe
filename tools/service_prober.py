@@ -651,9 +651,25 @@ def main():
     if len(filtered_candidates) >= 50:
         candidates = filtered_candidates
 
+    # Load previously verified nodes from preview.json for instant Tier-0 priority
+    prev_verified_set = set()
+    prev_preview_path = os.path.join(SUB_DIR, "preview.json")
+    if os.path.isfile(prev_preview_path):
+        try:
+            with open(prev_preview_path, "r", encoding="utf-8") as f:
+                prev_data = json.load(f)
+                prev_nodes = prev_data if isinstance(prev_data, list) else prev_data.get("nodes", [])
+                for pn in prev_nodes:
+                    if isinstance(pn, dict) and pn.get("uri"):
+                        prev_verified_set.add(pn["uri"].split('#')[0])
+        except Exception:
+            pass
+
     def candidate_priority_score(u: str) -> int:
         low = u.lower()
         score = 0
+        base_u = u.split('#')[0]
+        if base_u in prev_verified_set: score += 200  # Tier-0: Previously confirmed active nodes
         if "security=reality" in low or "pbk=" in low: score += 100
         if "hy2://" in low or "hysteria2://" in low or "tuic://" in low: score += 90
         if any(w in low for w in ["gosuslugi", "sber", "vk.com", "yandex", "tinkoff", "tbank", "ozon", ".ru"]): score += 80
