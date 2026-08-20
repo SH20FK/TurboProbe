@@ -724,7 +724,7 @@ def main():
 
     async def run_async_syn_prefilter(pool: list, concurrency: int = 4000) -> list:
         sem = asyncio.Semaphore(concurrency)
-        tasks = [async_probe_candidate_socket(sem, item, timeout=0.20) for item in pool]
+        tasks = [async_probe_candidate_socket(sem, item, timeout=0.85) for item in pool]
         res = await asyncio.gather(*tasks, return_exceptions=True)
         return [r for r in res if r and not isinstance(r, Exception)]
 
@@ -743,7 +743,7 @@ def main():
                 host = host_port
                 port = 443
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.20)
+            sock.settimeout(0.85)
             res = sock.connect_ex((host, port))
             sock.close()
             return res == 0
