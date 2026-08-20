@@ -11,18 +11,19 @@ bin/
 *.zip
 *.tar.gz
 
-# Go
-core/turboprobe-core*
-core/vendor/
-
 # Flutter / Dart
-app/.dart_tool/
-app/.flutter-plugins
-app/.flutter-plugins-dependencies
-app/.packages
-app/build/
-app/android/.gradle
-app/android/local.properties
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+**/build/
+**/.gradle/
+**/local.properties
+**/.dart_tool/
+
+# Python
+__pycache__/
+*.pyc
 
 # IDE & OS
 .idea/

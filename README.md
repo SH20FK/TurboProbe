@@ -1,33 +1,53 @@
 <p align="center">
-  <img src="app/assets/icon.png" width="108" alt="TurboProbe Logo" /><br>
-  <b><font size="6">TurboProbe</font></b><br>
-  <i>Суверенный VPN-клиент и сверхбыстрый чекер прокси для обхода ТСПУ и белых списков</i>
+  <b><font size="6">⚡ TurboProbe Web & Subscriptions Hub</font></b><br>
+  <i>Суверенный Web-Чекер, конструктор подписок и высокоскоростной агрегатор 24/7</i>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Android-APK%20Ready-brightgreen?style=flat-square&logo=android" />
-  <img src="https://img.shields.io/badge/Windows-PC%20Proxy-blue?style=flat-square&logo=windows" />
-  <img src="https://img.shields.io/badge/Проверено%20живых-29%20000%2B-orange?style=flat-square" />
-  <img src="https://img.shields.io/badge/Анти--Белые%20списки-3%20200%2B-success?style=flat-square" />
+  <img src="https://img.shields.io/badge/GitHub%20Pages-Live%20Hub-brightgreen?style=flat-square&logo=github" />
+  <img src="https://img.shields.io/badge/Cloudflare-Worker%20v6.0-orange?style=flat-square&logo=cloudflare" />
+  <img src="https://img.shields.io/badge/Проверено%20живых-12%20000%2B-blue?style=flat-square" />
+  <img src="https://img.shields.io/badge/Анти--Белые%20списки-1%20900%2B-success?style=flat-square" />
   <img src="https://img.shields.io/badge/Лицензия-MIT-lightgrey?style=flat-square" />
 </p>
 
 ---
 
-## 📡 24/7 Авто-подписки (Агрегатор с пре-чекером)
+### 🌐 Официальный Web-Хаб (Доступен в РФ без VPN):
+👉 **[https://sh20fk.github.io/TurboProbe/](https://sh20fk.github.io/TurboProbe/)**
 
-Бот каждые 6 часов собирает ключи из 115+ источников, **проверяет каждый сокетом на доступность** (отсекая все мёртвые серверы) и публикует 100% рабочие сабки:
+* ⚡ **Живой Web-Чекер в браузере**: параллельный тест 100+ нод за 2 секунды с замером пинга.
+* 🛠️ **Индивидуальный Конструктор Сабок**: фильтрация по странам (🇰🇿 KZ, 🇩🇪 DE, 🇳🇱 NL, 🇫🇮 FI, 🇷🇺 RU) и протоколам (Reality, Trojan, Hy2).
+* 📱 **Мгновенный QR-импорт**: наведите камеру в Happ, v2rayNG, Hiddify или Streisand для мгновенного подключения.
 
-| Сабка | Ссылка | Для чего |
+---
+
+## 📡 24/7 Авто-подписки (Сортировка по минимальному пингу)
+
+Парсер каждые 6 часов собирает ключи из 115+ источников, **проверяет каждый сокетом на доступность** (отсекая все мёртвые серверы) и публикует сабки, отсортированные **от самых быстрых к медленным**:
+
+| Сабка | Ссылка | Описание |
 | :--- | :--- | :--- |
-| 🛡️ **Анти-Белые списки** | [`sub/anti-whitelist.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/anti-whitelist.txt) | **Только работающие ключи на доменах `.ru`, Госуслуг, Сбера и VK (3 200+ шт)** |
-| ⚡ **VLESS Reality** | [`sub/reality.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/reality.txt) | Проверенные Reality-ноды против глушения SNI (6 000+ шт) |
-| 🌐 **Все протоколы** | [`sub/all.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/all.txt) | Полный глобальный пул 100% живых нод со всего мира (29 000+ шт) |
-| 🚀 **Hysteria 2 / TUIC** | [`sub/hysteria2.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/hysteria2.txt) | Скоростные UDP-протоколы (220+ шт) |
-| 🔒 **Trojan TLS** | [`sub/trojan.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/trojan.txt) | Зашифрованные Trojan ноды (2 900+ шт) |
-| 🗝️ **Shadowsocks** | [`sub/shadowsocks.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/shadowsocks.txt) | Классический Shadowsocks (5 000+ шт) |
-| ⚡ **Clash Meta** | [`sub/clash-meta.yaml`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/clash-meta.yaml) | Готовый конфиг для Mihomo / Clash Verge |
-| 📦 **Base64** | [`sub/base64.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/base64.txt) | Универсальный формат подписки |
+| ⚡ **ТОП-20 Сверхнизкий пинг** | [`sub/top20.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/top20.txt) | **20 абсолютных лидеров по скорости (10–35 ms)** |
+| 🛡️ **Анти-Белые списки РФ** | [`sub/anti-whitelist.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/anti-whitelist.txt) | **Работающие ключи на доменах `.ru`, Госуслуг, Сбера и VK для обхода ТСПУ** |
+| ⚡ **VLESS Reality** | [`sub/reality.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/reality.txt) | Неблокируемые Reality-ноды |
+| 🌐 **Все протоколы** | [`sub/all.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/all.txt) | Полный глобальный пул 100% живых проверенных нод |
+| 🤖 **AI Clean IP** | [`sub/clean-ip.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/clean-ip.txt) | Чистые жилые IP без Cloudflare капч для ChatGPT и Claude |
+| 🎬 **YouTube & Discord 4K** | [`sub/youtube-discord.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/youtube-discord.txt) | Максимальная пропускная способность для 4K 60FPS стриминга |
+| 🚀 **Hysteria 2 / TUIC** | [`sub/hysteria2.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/hysteria2.txt) | Скоростные UDP-протоколы |
+| 🔒 **Trojan TLS** | [`sub/trojan.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/trojan.txt) | Зашифрованные Trojan ноды |
+| 🗝️ **Shadowsocks** | [`sub/shadowsocks.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/shadowsocks.txt) | Классический Shadowsocks |
+| ⚡ **Clash Meta** | [`sub/clash-meta.yaml`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/clash-meta.yaml) | Готовый конфиг для Mihomo / Clash Verge (Auto-select) |
+| 📦 **Base64** | [`sub/base64.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/base64.txt) | Универсальный Base64 формат подписки |
+
+### 🌍 Выборки по странам:
+* 🇰🇿 **Казахстан**: [`sub/kz.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/kz.txt)
+* 🇩🇪 **Германия**: [`sub/de.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/de.txt)
+* 🇳🇱 **Нидерланды**: [`sub/nl.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/nl.txt)
+* 🇫🇮 **Финляндия**: [`sub/fi.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/fi.txt)
+* 🇹🇷 **Турция**: [`sub/tr.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/tr.txt)
+* 🇷🇺 **Россия (.RU)**: [`sub/ru.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/ru.txt)
+* 🇺🇸 **США**: [`sub/us.txt`](https://github.com/SH20FK/TurboProbe/raw/refs/heads/main/sub/us.txt)
 
 ---
 
@@ -36,97 +56,36 @@
 В репозиторий встроен готовый бесплатный **Edge-сервер на Cloudflare Workers** для динамической раздачи подписок с 0ms задержкой:
 * **Авто-конвертация формата (User-Agent Sniffing)**:
   * Запрос от **Clash / Mihomo** ➔ автоматически отдаёт чистый `Clash Meta YAML`.
-  * Запрос от **Happ / v2rayNG / Hiddify** ➔ отдаёт оптимизированный список сабок с заголовками папок.
-  * Запрос из **Браузера** ➔ открывает веб-дашборд с генератором QR-кодов для камеры.
-* **Динамические эндпоинты**:
-  * `GET /sub/top20` — мгновенная выборка 20 самых быстрых нод.
-  * `GET /sub/anti-whitelist` — только российские белые списки.
-  * `GET /api/stats` — JSON-телеметрия пула.
+  * Запрос от **Happ / v2rayNG / Hiddify** ➔ отдаёт оптимизированный список сабок.
+  * Запрос из **Браузера** ➔ открывает веб-дашборд с генератором QR-кодов.
 
 ```bash
-# Развернуть свой бесплатный Edge Worker за 10 секунд:
+# Развернуть свой бесплатный Edge Worker:
 cd worker
 npx wrangler deploy
 ```
 
 ---
 
-## 🧠 Как устроена маршрутизация (Ghost-Matrix)
+## 📁 Структура проекта
 
-Приложение само распределяет трафик так, чтобы ничего не тормозило и не ломалось:
-
-```mermaid
-flowchart TD
-    Device["📱 Ваше устройство"] --> Splitter{"Маршрутизатор"}
-    
-    Splitter -->|"🇷🇺 Банки, Госуслуги, VK, Ozon, .RU"| Direct["Прямое соединение (0ms / Без VPN)"]
-    Splitter -->|"🎬 YouTube 4K, Стримы"| FastProxy["Высокоскоростная нода"]
-    Splitter -->|"💬 Discord, Онлайн-игры"| LowPing["Нода с минимальным пингом"]
-    Splitter -->|"🤖 ChatGPT, Instagram, Заблокированные сайты"| StealthProxy["Reality / Anti-DPI туннель"]
-    
-    Direct --> Web["🌐 Интернет"]
-    FastProxy --> Web
-    LowPing --> Web
-    StealthProxy --> Web
+```
+TurboProbe/
+├── docs/                 # Standalone Web Hub для GitHub Pages (доступен в РФ без VPN)
+│   └── index.html
+├── tools/                # Сверхбыстрый парсер & сокет-чекер v5.0 (250 потоков)
+│   └── aggregator.py
+├── sub/                  # Все автоматически генерируемые сабки (отсортированы по пингу)
+│   ├── top20.txt
+│   ├── anti-whitelist.txt
+│   ├── reality.txt
+│   └── ...
+├── worker/               # Cloudflare Worker v6.0 Anycast Edge Hub
+│   └── index.js
+└── deprecated/           # Архив старых нативных клиентов Flutter/Go (app & core)
 ```
 
 ---
 
-## 📱 Возможности приложения
-
-### 1. ⚡ VPN-клиент (Android + Windows)
-* **Минималистичный дизайн в стиле WireGuard / 1.1.1.1**: один большой тумблер включения с плавной пульсирующей анимацией.
-* **Авто-выбор локации**: умный подбор самой быстрой ноды из проверенных.
-* **Спидометр в реальном времени**: точный замер скорости загрузки и отдачи прямо в интерфейсе.
-* **Модули защиты**:
-  * `Ghost-Matrix AI` — раздельная маршрутизация для приложений.
-  * `HUD Маршрута` — просмотр DoH 1.1.1.1, IPv6 защиты и статуса DPI.
-  * `Anti-DPI Щит` — микро-фрагментация пакетов TLS (1-3B) против замедлений ТСПУ.
-  * `Smart RU Direct` — российские сайты открываются напрямую без потери скорости.
-
-### 2. 🧪 Турбо-Чекер
-* **Параллельный тест сотен ключей** за пару секунд (TCP + TLS Handshake + Egress CDN Trace).
-* **3-уровневое определение страны (99.9% точность)**:
-  * Показывает не только страну, но и город с хостинг-провайдером: `🇩🇪 Германия (Франкфурт) · Hetzner`, `🇳🇱 Нидерланды (Амстердам) · DigitalOcean`.
-* **Быстрый фильтр**: сортировка по пингу, отбор `ТОП-20`, `YouTube 4K`, `Discord`, `Reality`.
-
-### 3. 📷 QR-код в 1 клик
-* Нажмите кнопку **`[ 📱 QR ]`** на любом сервере или в окне экспорта.
-* Наведите камеру в **Happ, Incy, v2rayNG, Hiddify, Streisand** или на **Android TV** — и конфиг импортируется моментально.
-
----
-
-## 🚀 Установка
-
-### Android
-Скачайте готовый `.apk` из раздела [Releases](https://github.com/SH20FK/TurboProbe/releases) и установите на телефон.
-
-### Windows
-Склонируйте репозиторий и запустите:
-```bash
-cd app
-flutter run -d windows
-```
-*На Windows при нажатии «Подключить» автоматически настраивается системный системный прокси `127.0.0.1:10808` с прямым доступом для всех `.ru` сайтов.*
-
----
-
-## 🛠️ Сборка из исходников
-
-```bash
-# Клонировать репо
-git clone https://github.com/SH20FK/TurboProbe.git
-cd TurboProbe/app
-
-# Установить зависимости Flutter
-flutter pub get
-
-# Собрать релизный APK
-flutter build apk --release
-```
-
----
-
-<p align="center">
-  Делитесь сабками и пользуйтесь свободным интернетом! ⚡
-</p>
+## 📄 Лицензия
+Распространяется под лицензией **MIT**.
