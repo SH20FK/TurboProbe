@@ -591,7 +591,30 @@ def main():
         print("⚠️ No candidate nodes could be harvested.", flush=True)
         return
 
-    print(f"📖 Loaded {len(candidates)} candidate nodes from aggregator output", flush=True)
+    # 1e. Filter out TSPU-blocked spam domains (workers.dev, .ir, .cn) and prioritize Reality / Hy2 / RU Whitelist
+    blocked_keywords = [
+        "workers.dev", "pages.dev", ".ir/", ".ir?", ".ir#", "zula.ir", "telewebion",
+        "speedtest.net", "divar.ir", ".cn/", ".cn?", "freefire", "pubg"
+    ]
+    filtered_candidates = [
+        u for u in candidates
+        if not any(b in u.lower() for b in blocked_keywords)
+    ]
+    if len(filtered_candidates) >= 50:
+        candidates = filtered_candidates
+
+    def candidate_priority_score(u: str) -> int:
+        low = u.lower()
+        score = 0
+        if "security=reality" in low or "pbk=" in low: score += 100
+        if "hy2://" in low or "hysteria2://" in low or "tuic://" in low: score += 90
+        if any(w in low for w in ["gosuslugi", "sber", "vk.com", "yandex", "tinkoff", "tbank", "ozon", ".ru"]): score += 80
+        if "trojan://" in low: score += 60
+        if "vless://" in low: score += 40
+        return score
+
+    candidates.sort(key=candidate_priority_score, reverse=True)
+    print(f"📖 Loaded {len(candidates)} high-priority anti-censor candidate nodes", flush=True)
 
     xray_bin = get_xray_binary_path()
     if not xray_bin:

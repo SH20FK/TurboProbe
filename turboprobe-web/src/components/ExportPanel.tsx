@@ -34,7 +34,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
     try {
       await navigator.clipboard.writeText(subUrl);
       setCopiedHapp(true);
-      setTimeout(() => setCopiedHapp(false), 2000);
+      setTimeout(() => setCopiedHapp(false), 2500);
+      // Launch Happ app via dedicated deep link
+      window.location.href = `happ://add/${encodeURIComponent(subUrl)}`;
     } catch (_) {}
   };
 
@@ -42,7 +44,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
     try {
       await navigator.clipboard.writeText(subUrl);
       setCopiedFlclash(true);
-      setTimeout(() => setCopiedFlclash(false), 2000);
+      setTimeout(() => setCopiedFlclash(false), 2500);
+      // Launch FlClash app via official flclash:// scheme (does NOT open Hiddify)
+      window.location.href = `flclash://install-config?url=${encodeURIComponent(subUrl)}&name=TurboProbe`;
     } catch (_) {}
   };
 
@@ -131,12 +135,12 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             {copiedHapp ? (
               <>
                 <Check className="w-4 h-4 text-white" />
-                <span>Ссылка для Happ скопирована!</span>
+                <span>Импортировано в Happ!</span>
               </>
             ) : (
               <>
                 <HappIcon className="w-4 h-4 text-zinc-200" />
-                <span>Скопировать в Happ</span>
+                <span>Открыть в Happ</span>
               </>
             )}
           </motion.button>
@@ -152,12 +156,12 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             {copiedFlclash ? (
               <>
                 <Check className="w-4 h-4 text-white" />
-                <span>Ссылка для FlClash скопирована!</span>
+                <span>Импортировано в FlClash!</span>
               </>
             ) : (
               <>
                 <FlClashIcon className="w-4 h-4 text-zinc-200" />
-                <span>Скопировать в FlClash</span>
+                <span>Открыть в FlClash</span>
               </>
             )}
           </motion.button>
