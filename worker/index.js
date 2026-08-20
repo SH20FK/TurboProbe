@@ -324,15 +324,10 @@ async function handleDynamicCustomSub(request, url, userAgent, clientCountry, en
   const maxPingParam = parseFloat(params.get("max_ping") || params.get("ping") || "0");
   const minHealthParam = parseFloat(params.get("min_health") || params.get("health") || "0");
   const liveParam = params.get("live") === "true" || params.get("live") === "1";
-  const tokenParam = params.get("token") || params.get("key") || "";
 
-  // 1. Quota Enforcement via Token
-  const apiSecret = env?.API_SECRET || "turboprobe-secret-key-2026";
-  const isVip = await verifyAuthToken(tokenParam, apiSecret);
-  const requestedLimit = parseInt(params.get("limit") || params.get("n") || (isVip ? "20" : "5"), 10);
-  
-  // Free Anonymous Tier: max 5 nodes. Valid Token Tier: up to 100 nodes.
-  const limit = isVip ? Math.min(requestedLimit, 100) : Math.min(requestedLimit, 5);
+  // 1. Limit & Pagination (Full open access for all users, default 30, max 200)
+  const requestedLimit = parseInt(params.get("limit") || params.get("n") || "30", 10);
+  const limit = Math.min(Math.max(requestedLimit, 1), 200);
 
   let candidateNodes = []; // holds either node objects or string URIs
 
@@ -411,7 +406,7 @@ async function handleDynamicCustomSub(request, url, userAgent, clientCountry, en
         ...corsHeaders,
         "Content-Type": "text/yaml; charset=utf-8",
         "profile-update-interval": "6",
-        "Subscription-Userinfo": `upload=0; download=1048576; total=${isVip ? '1073741824000' : '52428800'}; expire=2030-01-01`,
+        "Subscription-Userinfo": "upload=0; download=1073741824; total=1073741824000; expire=2030-01-01",
       },
     });
   }
@@ -424,8 +419,7 @@ async function handleDynamicCustomSub(request, url, userAgent, clientCountry, en
     });
   }
 
-  const titlePrefix = isVip ? "⚡ TurboProbe VIP" : "⚡ TurboProbe Free (5 nodes)";
-  const encodedTitle = btoa(unescape(encodeURIComponent(`${titlePrefix} · ${rawUris.length} nodes`)));
+  const encodedTitle = btoa(unescape(encodeURIComponent(`⚡ TurboProbe Custom · ${rawUris.length} nodes`)));
 
   return new Response(rawUris.join("\n"), {
     headers: {
@@ -433,7 +427,7 @@ async function handleDynamicCustomSub(request, url, userAgent, clientCountry, en
       "Content-Type": "text/plain; charset=utf-8",
       "profile-title": `base64:${encodedTitle}`,
       "profile-update-interval": "6",
-      "Subscription-Userinfo": `upload=0; download=1048576; total=${isVip ? '1073741824000' : '52428800'}; expire=2030-01-01`,
+      "Subscription-Userinfo": "upload=0; download=1073741824; total=1073741824000; expire=2030-01-01",
     },
   });
 }
