@@ -102,18 +102,17 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                 {!isLoading &&
                   nodes.map((node, index) => {
                     const ping = node.ping_ms ? Math.round(node.ping_ms) : 35 + index * 2;
-                    const remark = extractRemark(node.uri);
-                    let countryCode = (node.country || 'all').toLowerCase();
-
-                    // Match 2-letter country code from remark badge (e.g. "TurboProbe · 🇩🇪 DE · ..." or "TurboProbe · DE · ...")
-                    const ccMatch = remark.match(/·\s*(?:[^\w\s]{1,4}\s*)?([A-Za-z]{2})\b/);
-                    if (ccMatch && ccMatch[1] && ccMatch[1].toLowerCase() !== 'vi') {
-                      countryCode = ccMatch[1].toLowerCase();
-                    }
-
-                    const proto = node.protocol || (node.uri.split('://')[0] || 'vless').toUpperCase();
+                    const countryCode = (node.country || 'all').toLowerCase();
+                    const proto = (node.protocol || (node.uri.split('://')[0] || 'vless')).toUpperCase();
                     const health = node.health ?? 100;
                     const isCopied = copiedIndex === index;
+
+                    // Strictly synchronize title with real verified GeoIP country
+                    let displayTitle = extractRemark(node.uri);
+                    if (node.country && node.country !== 'GLOBAL' && node.country !== 'all') {
+                      const cc = node.country.toUpperCase();
+                      displayTitle = displayTitle.replace(/·\s*(?:[^\w\s]{1,4}\s*)?[A-Za-z]{2}(?:\s+[A-Za-z]{2})?\b/g, `· ${cc}`);
+                    }
 
                     return (
                       <div
@@ -121,17 +120,17 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                         className="flex items-center justify-between gap-3 p-3 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/[0.06] transition-all"
                       >
                         <div className="flex items-center gap-3 overflow-hidden">
-                          {/* Country Flag & Protocol Badge */}
+                          {/* Real Verified Country Flag & Protocol Badge */}
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <CountryFlag countryCode={countryCode} className="w-4 h-2.5 rounded-[1px] shadow-sm flex-shrink-0" />
                             <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/10">
-                              {proto.toUpperCase()}
+                              {proto}
                             </span>
                           </div>
 
                           {/* Node Remark / Purpose */}
                           <span className="text-xs font-mono text-zinc-300 truncate max-w-[200px] sm:max-w-md">
-                            {remark}
+                            {displayTitle}
                           </span>
                         </div>
 
