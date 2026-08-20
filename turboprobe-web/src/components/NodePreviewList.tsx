@@ -47,7 +47,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-2">
               <Radio className="w-4 h-4 text-zinc-300" />
-              Живой пул серверов (Top-50)
+              Подходящие серверы
             </span>
             <span className="text-xs px-2 py-0.5 rounded font-mono bg-zinc-800 text-zinc-400 border border-white/10">
               {nodes.length} из {totalAvailable}
