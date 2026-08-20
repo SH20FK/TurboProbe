@@ -104,36 +104,58 @@ export default {
         }
       }
 
-      // 4. Fetch Cached preview.json from GitHub
-      const cacheKey = new Request(GITHUB_PREVIEW_URL);
-      const cache = caches.default;
-      let resp = await cache.match(cacheKey);
+      // 4. Fetch Cached preview.json / nodes.json with multiple fallback mirrors
+      const mirrors = [
+        'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/preview.json',
+        'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/docs/sub/preview.json',
+        'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub/preview.json',
+        'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/docs/sub/preview.json',
+      ];
 
-      if (!resp) {
-        resp = await fetch(GITHUB_PREVIEW_URL, {
-          headers: { 'User-Agent': 'TurboProbe-EdgeWorker/1.0' },
-          cf: { cacheTtl: 60, cacheEverything: true }
-        });
-        if (resp.ok) {
-          ctx.waitUntil(cache.put(cacheKey, resp.clone()));
-        }
-      }
-
-      if (!resp.ok) {
-        // Fallback to static raw file if preview.json is unreachable
-        const fallback = await fetch(GITHUB_FALLBACK_SUB);
-        return new Response(await fallback.text(), {
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'Access-Control-Allow-Origin': '*',
-            'Profile-Update-Interval': '6'
+      let allNodes = [];
+      for (const mirror of mirrors) {
+        try {
+          const res = await fetch(mirror, {
+            headers: { 'User-Agent': 'TurboProbe-EdgeWorker/2.0' },
+            cf: { cacheTtl: 60, cacheEverything: true }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : (data.nodes || []);
+            if (Array.isArray(list) && list.length > 0) {
+              allNodes = list;
+              break;
+            }
           }
-        });
+        } catch (_) {}
       }
 
-      const data = await resp.json();
-      const allNodes = Array.isArray(data) ? data : (data.nodes || []);
-      if (!Array.isArray(allNodes) || allNodes.length === 0) {
+      // If all JSON mirrors fail, fallback to raw top50.txt / anti-whitelist.txt
+      if (allNodes.length === 0) {
+        const textMirrors = [
+          'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/top50.txt',
+          'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub/top50.txt',
+          'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/anti-whitelist.txt',
+        ];
+        for (const tUrl of textMirrors) {
+          try {
+            const res = await fetch(tUrl, { headers: { 'User-Agent': 'TurboProbe-EdgeWorker/2.0' } });
+            if (res.ok) {
+              const text = await res.text();
+              const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+              if (lines.length > 0) {
+                return new Response(lines.join('\n'), {
+                  headers: {
+                    'Content-Type': 'text/plain; charset=utf-8',
+                    'Content-Disposition': 'inline; filename="TurboProbe_Sub.txt"',
+                    'Access-Control-Allow-Origin': '*',
+                    'Profile-Update-Interval': '6',
+                  }
+                });
+              }
+            }
+          } catch (_) {}
+        }
         return new Response('No active nodes available.', { status: 503 });
       }
 
