@@ -70,10 +70,10 @@ SERVICES_DIR = os.path.join(SUB_DIR, "services")
 
 DEFAULT_PROBE_LIMIT = 0     # 0 = probe 100% of all harvested candidate nodes
 BATCH_SIZE = 250            # Nodes per Xray instance
-NUM_XRAY_WORKERS = 4        # Concurrent Xray processes across 4 CPU cores (1000 nodes parallel)
+NUM_XRAY_WORKERS = 8        # 8 Concurrent Xray processes (2000 parallel live tunnels simultaneously)
 BASE_SOCKS_PORT = 10900     # Starting port for multi-inbound testing
-PORT_STEP = 300             # Port range per worker (Worker 0: 10900, Worker 1: 11200, etc.)
-PROBE_TIMEOUT = 1.8         # Seconds per HTTP request (fast cutoff for dead nodes)
+PORT_STEP = 300             # Port range per worker (Worker 0: 10900, Worker 1: 11200, ... Worker 7: 13000)
+PROBE_TIMEOUT = 1.5         # Seconds per HTTP request (fast cutoff for dead nodes)
 
 TARGET_SERVICES = {
     "chatgpt": {
@@ -500,7 +500,7 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
     results = []
     try:
         proc = subprocess.Popen([xray_bin, "run", "-c", cfg_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(0.4)  # Wait for Xray to bind inbounds
+        time.sleep(0.15)  # Fast async bind
 
         with ThreadPoolExecutor(max_workers=len(active_slots)) as pool:
             futures = {
@@ -681,16 +681,16 @@ def main():
                 host = host_port
                 port = 443
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.40)
+            sock.settimeout(0.25)
             res = sock.connect_ex((host, port))
             sock.close()
             return res == 0
         except Exception:
             return False
 
-    print(f"⚡ Pre-filtering {len(probe_pool)} candidate endpoints with 1500 parallel TCP threads (under 5s)...", flush=True)
+    print(f"⚡ Pre-filtering {len(probe_pool)} candidate endpoints with 3000 parallel TCP threads (under 2s)...", flush=True)
     t_start = time.perf_counter()
-    with ThreadPoolExecutor(max_workers=1500) as pre_pool:
+    with ThreadPoolExecutor(max_workers=3000) as pre_pool:
         reach_futs = {pre_pool.submit(check_candidate_reachability, item): item for item in probe_pool}
         reachable_pool = []
         for rf in as_completed(reach_futs):

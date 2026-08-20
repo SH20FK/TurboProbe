@@ -528,8 +528,8 @@ def main():
     all_uris = []
     direct_ru_fetched = {}
 
-    # 1. Concurrent Fetching (250 workers)
-    with ThreadPoolExecutor(max_workers=250) as executor:
+    # 1. Concurrent Fetching (500 workers)
+    with ThreadPoolExecutor(max_workers=500) as executor:
         future_to_url = {executor.submit(fetch_url, url): url for url in all_sources}
         for future in as_completed(future_to_url):
             url = future_to_url[future]
@@ -591,14 +591,14 @@ def main():
     elif args.limit > 0:
         candidate_uris = candidate_uris[:args.limit]
 
-    # 3. ⚡ High-Speed Turbo Multi-Threaded Latency Benchmark (2000 workers)
-    print(f"🩺 Starting ultra-speed latency benchmark across {len(candidate_uris)} nodes (timeout: 0.40s, 2000 threads)...", flush=True)
+    # 3. ⚡ High-Speed Turbo Multi-Threaded Latency Benchmark (3500 workers)
+    print(f"🩺 Starting ultra-speed latency benchmark across {len(candidate_uris)} nodes (timeout: 0.25s, 3500 threads)...", flush=True)
     alive_tuples = []  # list of (formatted_uri, ping_ms, raw_key, health)
     checked_count = 0
     total_candidates = len(candidate_uris)
     
-    with ThreadPoolExecutor(max_workers=2000) as checker:
-        future_to_node = {checker.submit(check_node_ping, node, 0.40): node for node in candidate_uris}
+    with ThreadPoolExecutor(max_workers=3500) as checker:
+        future_to_node = {checker.submit(check_node_ping, node, 0.25): node for node in candidate_uris}
         for future in as_completed(future_to_node):
             checked_count += 1
             if checked_count % 50000 == 0 or checked_count == total_candidates:
