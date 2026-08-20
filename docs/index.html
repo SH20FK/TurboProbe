@@ -835,24 +835,72 @@ createApp({
       return parsed;
     };
 
+    // Ultra-fast fetch with 2.5-second timeout
+    const fetchWithTimeout = async (url, timeoutMs = 2500) => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const resp = await fetch(url, { signal: controller.signal });
+        clearTimeout(id);
+        if (resp.ok) return resp;
+      } catch {}
+      return null;
+    };
+
+    // Parallel multi-mirror fetch: returns the fastest responding mirror
+    const fetchFastestJson = async (urls) => {
+      const promises = urls.map(async (u) => {
+        const r = await fetchWithTimeout(u, 3000);
+        if (r) {
+          try {
+            return await r.json();
+          } catch {}
+        }
+        throw new Error('failed');
+      });
+      try {
+        return await Promise.any(promises);
+      } catch {
+        return null;
+      }
+    };
+
+    const fetchFastestText = async (urls) => {
+      const promises = urls.map(async (u) => {
+        const r = await fetchWithTimeout(u, 3000);
+        if (r) {
+          try {
+            return await r.text();
+          } catch {}
+        }
+        throw new Error('failed');
+      });
+      try {
+        return await Promise.any(promises);
+      } catch {
+        return null;
+      }
+    };
+
     onMounted(async () => {
-      // 1. Fetch Stats
-      const statsData = await fetchJsonCascade([
+      // 1. Fetch Stats (Parallel across mirrors)
+      fetchFastestJson([
         `${LOCAL_SUB}/stats.json`,
         `${JSDELIVR_RAW}/stats.json`,
         `${REPO_RAW}/stats.json`,
-      ]);
-      if (statsData) stats.value = statsData;
+      ]).then(data => { if (data) stats.value = data; });
 
-      // 2. Fetch Countries
-      const countryData = await fetchJsonCascade([
+      // 2. Fetch Countries (Parallel across mirrors)
+      fetchFastestJson([
         `${LOCAL_SUB}/countries/index.json`,
         `${JSDELIVR_RAW}/countries/index.json`,
         `${REPO_RAW}/countries/index.json`,
-      ]);
-      if (countryData && countryData.countries && countryData.countries.length) {
-        countries.value = countryData.countries;
-      } else {
+      ]).then(data => {
+        if (data && data.countries && data.countries.length) countries.value = data.countries;
+      });
+
+      // Default countries fallback for instant render
+      if (!countries.value.length) {
         countries.value = [
           { code:'DE', count: 1420 }, { code:'NL', count: 980 }, { code:'KZ', count: 430 },
           { code:'FI', count: 350 }, { code:'US', count: 680 }, { code:'JP', count: 210 },
@@ -861,24 +909,22 @@ createApp({
         ];
       }
 
-      // 3. Fetch Master Nodes Database
-      const nodesData = await fetchJsonCascade([
-        `${LOCAL_SUB}/nodes.json`,
-        `${JSDELIVR_RAW}/nodes.json`,
-        `${REPO_RAW}/nodes.json`,
+      // 3. Fetch Ultra-Fast Lightweight Nodes Preview (< 30 KB)
+      const previewData = await fetchFastestJson([
+        `${LOCAL_SUB}/preview.json`,
+        `${JSDELIVR_RAW}/preview.json`,
+        `${REPO_RAW}/preview.json`,
       ]);
 
-      if (nodesData && nodesData.nodes && nodesData.nodes.length) {
-        allNodes.value = nodesData.nodes.sort((a, b) => (a.ping_ms || 999) - (b.ping_ms || 999));
+      if (previewData && previewData.nodes && previewData.nodes.length) {
+        allNodes.value = previewData.nodes.sort((a, b) => (a.ping_ms || 999) - (b.ping_ms || 999));
       } else {
-        // Fallback: fetch raw top50 or all.txt directly from repository
-        const rawText = await fetchTextCascade([
+        // Fallback: fetch raw top50.txt (only 26 KB)
+        const rawText = await fetchFastestText([
           `${LOCAL_SUB}/top50.txt`,
           `${JSDELIVR_RAW}/top50.txt`,
           `${REPO_RAW}/top50.txt`,
           `${LOCAL_SUB}/all.txt`,
-          `${JSDELIVR_RAW}/all.txt`,
-          `${REPO_RAW}/all.txt`,
         ]);
         if (rawText) {
           const parsed = parseRawKeys(rawText);

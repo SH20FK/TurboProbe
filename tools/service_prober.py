@@ -745,6 +745,17 @@ def main():
         }, f, indent=2, ensure_ascii=False)
     print(f"\n💾 Saved structured master database -> sub/nodes.json ({len(verified_nodes)} nodes)", flush=True)
 
+    # Ultra-lightweight preview for instant website rendering (< 30 KB)
+    preview_json_path = os.path.join(SUB_DIR, "preview.json")
+    with open(preview_json_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "version": "1.0",
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "total_nodes": len(verified_nodes),
+            "nodes": verified_nodes[:100],
+        }, f, indent=2, ensure_ascii=False)
+    print(f"💾 Saved lightweight preview database -> sub/preview.json ({min(100, len(verified_nodes))} nodes)", flush=True)
+
     # =========================================================================
     # 🎯 GENERATE SERVICE-SPECIFIC SUBSCRIPTIONS
     # =========================================================================
