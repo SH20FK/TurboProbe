@@ -18,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -54,6 +54,7 @@ jobs:
             echo "No subscription updates detected."
           else
             git commit -m "chore(sub): auto-update VPN subscriptions [$(date -u +'%Y-%m-%d %H:%M UTC')]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
-            git pull --rebase origin main || true
+            git fetch origin main
+            git rebase -X theirs origin/main || git rebase --abort || true
             git push origin main
           fi
