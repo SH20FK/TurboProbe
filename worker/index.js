@@ -131,7 +131,8 @@ export default {
         });
       }
 
-      const allNodes = await resp.json();
+      const data = await resp.json();
+      const allNodes = Array.isArray(data) ? data : (data.nodes || []);
       if (!Array.isArray(allNodes) || allNodes.length === 0) {
         return new Response('No active nodes available.', { status: 503 });
       }
@@ -147,8 +148,16 @@ export default {
 
         // Filter by countries (multi-select match)
         if (countries.length > 0) {
-          const nCountry = (node.country || '').toLowerCase();
-          const matchCountry = countries.some(c => nCountry === c || nCountry.includes(c));
+          const nCountry = (node.country || '').toLowerCase().trim();
+          const matchCountry = countries.some(c => {
+            const target = c.toLowerCase().trim();
+            if (nCountry === target) return true;
+            if (node.uri && node.uri.includes('#')) {
+              const tag = node.uri.split('#')[1].toLowerCase();
+              return tag.includes(`[${target}]`) || tag.includes(`(${target})`) || tag.includes(`-${target}-`) || tag.includes(` ${target} `);
+            }
+            return false;
+          });
           if (!matchCountry) return false;
         }
 

@@ -183,9 +183,16 @@ export default function App() {
 
       // Country filter (Multi-select)
       if (selectedCountries.length > 0) {
-        const nCountry = (node.country || '').toLowerCase();
-        const nUri = node.uri.toLowerCase();
-        const matchCountry = selectedCountries.some((c) => nCountry === c || nUri.includes(c));
+        const nCountry = (node.country || '').toLowerCase().trim();
+        const matchCountry = selectedCountries.some((c) => {
+          const target = c.toLowerCase().trim();
+          if (nCountry === target) return true;
+          if (node.uri.includes('#')) {
+            const tag = node.uri.split('#')[1].toLowerCase();
+            return tag.includes(`[${target}]`) || tag.includes(`(${target})`) || tag.includes(`-${target}-`) || tag.includes(` ${target} `);
+          }
+          return false;
+        });
         if (!matchCountry) return false;
       }
 

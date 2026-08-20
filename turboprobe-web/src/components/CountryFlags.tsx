@@ -343,6 +343,185 @@ export const CountryFlag: React.FC<FlagProps> = ({ countryCode = 'all', classNam
         </svg>
       );
 
+    case 'co': // Colombia 🇨🇴
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="3" height="1" fill="#FCD116"/>
+          <rect width="3" height="0.5" y="1" fill="#003893"/>
+          <rect width="3" height="0.5" y="1.5" fill="#CE1126"/>
+        </svg>
+      );
+
+    case 'mx': // Mexico 🇲🇽
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="1" height="2" fill="#006847"/>
+          <rect width="1" height="2" x="1" fill="#ffffff"/>
+          <rect width="1" height="2" x="2" fill="#CE1126"/>
+          <circle cx="1.5" cy="1" r="0.25" fill="#8B4513"/>
+        </svg>
+      );
+
+    case 'ar': // Argentina 🇦🇷
+      return (
+        <svg className={className} viewBox="0 0 9 6">
+          <rect width="9" height="2" fill="#74ACDF"/>
+          <rect width="9" height="2" y="2" fill="#ffffff"/>
+          <rect width="9" height="2" y="4" fill="#74ACDF"/>
+          <circle cx="4.5" cy="3" r="0.6" fill="#F6B40E"/>
+        </svg>
+      );
+
+    case 'cl': // Chile 🇨🇱
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="3" height="1" y="1" fill="#D52B1E"/>
+          <rect width="3" height="1" fill="#ffffff"/>
+          <rect width="1" height="1" fill="#0039A6"/>
+          <polygon points="0.5,0.2 0.6,0.5 0.9,0.5 0.65,0.7 0.75,1 0.5,0.8 0.25,1 0.35,0.7 0.1,0.5 0.4,0.5" fill="#ffffff"/>
+        </svg>
+      );
+
+    case 'id': // Indonesia 🇮🇩
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="3" height="1" fill="#FF0000"/>
+          <rect width="3" height="1" y="1" fill="#ffffff"/>
+        </svg>
+      );
+
+    case 'th': // Thailand 🇹🇭
+      return (
+        <svg className={className} viewBox="0 0 6 4">
+          <rect width="6" height="4" fill="#A51931"/>
+          <rect width="6" height="2.66" y="0.67" fill="#F4F5F8"/>
+          <rect width="6" height="1.34" y="1.33" fill="#2D2A4A"/>
+        </svg>
+      );
+
+    case 'my': // Malaysia 🇲🇾
+      return (
+        <svg className={className} viewBox="0 0 14 7">
+          <rect width="14" height="7" fill="#CC0000"/>
+          <rect width="14" height="0.5" y="0.5" fill="#ffffff"/>
+          <rect width="14" height="0.5" y="1.5" fill="#ffffff"/>
+          <rect width="14" height="0.5" y="2.5" fill="#ffffff"/>
+          <rect width="14" height="0.5" y="3.5" fill="#ffffff"/>
+          <rect width="14" height="0.5" y="4.5" fill="#ffffff"/>
+          <rect width="14" height="0.5" y="5.5" fill="#ffffff"/>
+          <rect width="7" height="4" fill="#000066"/>
+          <circle cx="3.5" cy="2" r="1.2" fill="#FFCC00"/>
+          <circle cx="3.8" cy="2" r="1" fill="#000066"/>
+        </svg>
+      );
+
+    case 'vn': // Vietnam 🇻🇳
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="3" height="2" fill="#DA251D"/>
+          <polygon points="1.5,0.4 1.65,0.9 2.15,0.9 1.75,1.2 1.9,1.7 1.5,1.4 1.1,1.7 1.25,1.2 0.85,0.9 1.35,0.9" fill="#FFFF00"/>
+        </svg>
+      );
+
+    case 'tw': // Taiwan 🇹🇼
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="3" height="2" fill="#FE0000"/>
+          <rect width="1.5" height="1" fill="#000095"/>
+          <circle cx="0.75" cy="0.5" r="0.3" fill="#ffffff"/>
+        </svg>
+      );
+
+    case 'ge': // Georgia 🇬🇪
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="3" height="2" fill="#ffffff"/>
+          <rect width="3" height="0.4" y="0.8" fill="#FF0000"/>
+          <rect width="0.4" height="2" x="1.3" fill="#FF0000"/>
+        </svg>
+      );
+
+    case 'md': // Moldova 🇲🇩
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="1" height="2" fill="#002B7F"/>
+          <rect width="1" height="2" x="1" fill="#CC092F"/>
+          <rect width="1" height="2" x="2" fill="#CC092F"/>
+        </svg>
+      );
+
+    case 'uz': // Uzbekistan 🇺🇿
+      return (
+        <svg className={className} viewBox="0 0 5 3">
+          <rect width="5" height="1" fill="#0099B5"/>
+          <rect width="5" height="1" y="1" fill="#ffffff"/>
+          <rect width="5" height="1" y="2" fill="#1EB53A"/>
+        </svg>
+      );
+
+    case 'pt': // Portugal 🇵🇹
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="1.2" height="2" fill="#046A38"/>
+          <rect width="1.8" height="2" x="1.2" fill="#DA291C"/>
+          <circle cx="1.2" cy="1" r="0.4" fill="#FED100"/>
+        </svg>
+      );
+
+    case 'hu': // Hungary 🇭🇺
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="3" height="0.67" fill="#CE2939"/>
+          <rect width="3" height="0.67" y="0.67" fill="#ffffff"/>
+          <rect width="3" height="0.67" y="1.33" fill="#477050"/>
+        </svg>
+      );
+
+    case 'ie': // Ireland 🇮🇪
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="1" height="2" fill="#169B62"/>
+          <rect width="1" height="2" x="1" fill="#ffffff"/>
+          <rect width="1" height="2" x="2" fill="#FF883E"/>
+        </svg>
+      );
+
+    case 'is': // Iceland 🇮🇸
+      return (
+        <svg className={className} viewBox="0 0 25 18">
+          <rect width="25" height="18" fill="#02529C"/>
+          <rect width="4" height="18" x="7" fill="#ffffff"/>
+          <rect width="25" height="4" y="7" fill="#ffffff"/>
+          <rect width="2" height="18" x="8" fill="#DC1E35"/>
+          <rect width="25" height="2" y="8" fill="#DC1E35"/>
+        </svg>
+      );
+
+    case 'cy': // Cyprus 🇨🇾
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="3" height="2" fill="#ffffff"/>
+          <circle cx="1.5" cy="0.9" r="0.5" fill="#D57800"/>
+        </svg>
+      );
+
+    case 'mt': // Malta 🇲🇹
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="1.5" height="2" fill="#ffffff"/>
+          <rect width="1.5" height="2" x="1.5" fill="#C8102E"/>
+        </svg>
+      );
+
+    case 'za': // South Africa 🇿🇦
+      return (
+        <svg className={className} viewBox="0 0 3 2">
+          <rect width="3" height="1" fill="#E03C31"/>
+          <rect width="3" height="1" y="1" fill="#001489"/>
+          <polygon points="0,0 1.2,1 0,2" fill="#007749"/>
+        </svg>
+      );
+
     default: // Global / All 🌐
       return (
         <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
