@@ -5,7 +5,7 @@
   <p>Автономный агрегатор и интеллектуальный генератор суверенных VLESS & Reality подписок с глубокой Xray-верификацией</p>
 
   <p>
-    <a href="https://sh20fk.github.io/TurboProbe/"><b>🌐 Открыть веб-сайт TurboProbe</b></a>
+    <a href="https://sh20fk.github.io/TurboProbe/"><img src="https://img.shields.io/badge/ВЕБ--САЙТ_TURBOPROBE-22272e?style=for-the-badge&logo=safari&logoColor=white&labelColor=0d1117" alt="Website" /></a>
   </p>
 </div>
 
