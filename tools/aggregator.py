@@ -33,7 +33,7 @@ DISCOVERED_SOURCES_PATH = os.path.join(TOOLS_DIR, "discovered_sources.json")
 DEAD_NODES_PATH = os.path.join(TOOLS_DIR, "dead_nodes.json")
 
 # Size of each paginated "sub/chunks/chunk-XXX.txt" file (ordered by ascending ping)
-CHUNK_SIZE = 20
+CHUNK_SIZE = 500
 
 def load_dead_nodes() -> dict:
     """Loads persistent blacklisted dead nodes to skip dead keys on future crawls."""
