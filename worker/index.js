@@ -48,6 +48,9 @@ export default {
     }
 
     try {
+      // Multi-Service parsing (e.g. ?services=chatgpt,gemini)
+      let services = [];
+
       // Multi-Country parsing (e.g. ?country=de,nl,kz)
       let countries = [];
       const countryParam = url.searchParams.get('country') || url.searchParams.get('cc');
@@ -219,6 +222,25 @@ export default {
       // Cap to requested limit
       const finalNodes = matching.slice(0, limit);
 
+      // Check if Clash YAML format is requested (by param, path, or client User-Agent)
+      const userAgent = (request.headers.get('User-Agent') || '').toLowerCase();
+      const isClashClient = format === 'clash' || format === 'meta' || format === 'yaml' ||
+                            path.includes('/clash') || path.includes('/meta') ||
+                            userAgent.includes('clash') || userAgent.includes('mihomo') || userAgent.includes('flclash');
+
+      if (isClashClient) {
+        const clashYaml = generateClashMetaYaml(finalNodes);
+        return new Response(clashYaml, {
+          headers: {
+            'Content-Type': 'text/yaml; charset=utf-8',
+            'Content-Disposition': 'inline; filename="TurboProbe_Clash.yaml"',
+            'Access-Control-Allow-Origin': '*',
+            'Profile-Update-Interval': '6',
+            'Subscription-Userinfo': 'upload=0; download=0; total=1073741824000; expire=0'
+          }
+        });
+      }
+
       // Plain/Base64 URI List
       const lines = finalNodes.map(n => n.uri).filter(Boolean);
       const outputText = lines.join('\n');
@@ -238,3 +260,116 @@ export default {
     }
   }
 };
+
+function generateClashMetaYaml(nodes) {
+  const proxies = [];
+  const proxyNames = [];
+  const seenNames = new Set();
+
+  nodes.forEach((node, idx) => {
+    try {
+      const uri = node.uri;
+      if (!uri) return;
+      const urlObj = new URL(uri);
+      const proto = urlObj.protocol.replace(':', '').toLowerCase();
+
+      let cleanName = `TurboProbe-${String(idx + 1).padStart(3, '0')}`;
+      if (uri.includes('#')) {
+        try {
+          const rawTag = decodeURIComponent(uri.split('#')[1]).trim();
+          if (rawTag) cleanName = rawTag.replace(/[:"'\[\]]/g, '').trim().slice(0, 40);
+        } catch (_) {}
+      }
+      let name = `${cleanName} #${idx + 1}`;
+      if (seenNames.has(name)) name = `${name}-${idx + 1}`;
+      seenNames.add(name);
+
+      const host = urlObj.hostname;
+      const port = parseInt(urlObj.port || '443', 10);
+      const user = urlObj.username;
+
+      if (proto === 'vless') {
+        const security = urlObj.searchParams.get('security') || 'none';
+        const sni = urlObj.searchParams.get('sni') || host;
+        const pbk = urlObj.searchParams.get('pbk') || '';
+        const sid = urlObj.searchParams.get('sid') || '';
+        const fp = urlObj.searchParams.get('fp') || 'chrome';
+        const type = urlObj.searchParams.get('type') || 'tcp';
+
+        const p = [
+          `  - name: "${name}"`,
+          `    type: vless`,
+          `    server: ${host}`,
+          `    port: ${port}`,
+          `    uuid: ${user}`,
+          `    udp: true`,
+          `    tls: ${security === 'tls' || security === 'reality'}`,
+          `    servername: ${sni}`,
+          `    client-fingerprint: ${fp}`,
+          `    network: ${type}`
+        ];
+        if (security === 'reality' && pbk) {
+          p.push('    reality-opts:');
+          p.push(`      public-key: ${pbk}`);
+          if (sid) p.push(`      short-id: ${sid}`);
+        }
+        proxies.push(p.join('\n'));
+        proxyNames.push(name);
+      } else if (proto === 'trojan') {
+        const sni = urlObj.searchParams.get('sni') || host;
+        const p = [
+          `  - name: "${name}"`,
+          `    type: trojan`,
+          `    server: ${host}`,
+          `    port: ${port}`,
+          `    password: ${user}`,
+          `    udp: true`,
+          `    sni: ${sni}`
+        ];
+        proxies.push(p.join('\n'));
+        proxyNames.push(name);
+      }
+    } catch (_) {}
+  });
+
+  if (proxies.length === 0) {
+    return 'proxies:\n  - {name: "TurboProbe-Fallback", type: vless, server: 1.1.1.1, port: 443, uuid: 00000000-0000-0000-0000-000000000000, udp: true}\n';
+  }
+
+  const groupMembers = proxyNames.map(n => `      - "${n}"`).join('\n');
+
+  return [
+    'port: 7890',
+    'socks-port: 7891',
+    'allow-lan: false',
+    'mode: rule',
+    'log-level: info',
+    'proxies:',
+    proxies.join('\n'),
+    '',
+    'proxy-groups:',
+    '  - name: "⚡ TURBOPROBE-AUTO"',
+    '    type: url-test',
+    '    url: http://cp.cloudflare.com/generate_204',
+    '    interval: 300',
+    '    tolerance: 50',
+    '    proxies:',
+    groupMembers,
+    '  - name: "🚀 SELECT"',
+    '    type: select',
+    '    proxies:',
+    '      - "⚡ TURBOPROBE-AUTO"',
+    groupMembers,
+    '',
+    'rules:',
+    '  - DOMAIN-SUFFIX,openai.com,⚡ TURBOPROBE-AUTO',
+    '  - DOMAIN-SUFFIX,claude.ai,⚡ TURBOPROBE-AUTO',
+    '  - DOMAIN-SUFFIX,youtube.com,⚡ TURBOPROBE-AUTO',
+    '  - DOMAIN-SUFFIX,discord.com,⚡ TURBOPROBE-AUTO',
+    '  - DOMAIN-SUFFIX,instagram.com,⚡ TURBOPROBE-AUTO',
+    '  - DOMAIN-SUFFIX,x.com,⚡ TURBOPROBE-AUTO',
+    '  - DOMAIN-SUFFIX,twitter.com,⚡ TURBOPROBE-AUTO',
+    '  - GEOIP,RU,DIRECT',
+    '  - MATCH,⚡ TURBOPROBE-AUTO'
+  ].join('\n');
+}

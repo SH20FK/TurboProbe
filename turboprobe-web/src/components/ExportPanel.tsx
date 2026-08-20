@@ -42,11 +42,12 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
 
   const handleCopyFlclash = async () => {
     try {
-      await navigator.clipboard.writeText(subUrl);
+      const clashSubUrl = `${subUrl}${subUrl.includes('?') ? '&' : '?'}format=clash`;
+      await navigator.clipboard.writeText(clashSubUrl);
       setCopiedFlclash(true);
       setTimeout(() => setCopiedFlclash(false), 2500);
-      // Launch FlClash app via official flclash:// scheme (does NOT open Hiddify)
-      window.location.href = `flclash://install-config?url=${encodeURIComponent(subUrl)}&name=TurboProbe`;
+      // Launch FlClash app via official flclash:// scheme with format=clash
+      window.location.href = `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`;
     } catch (_) {}
   };
 
