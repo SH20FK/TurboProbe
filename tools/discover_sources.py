@@ -259,32 +259,44 @@ def crawl_single_repository(full_name: str, branch: str = "main") -> set:
 
     return candidates
 
+def search_single_query(q: str) -> list:
+    results = []
+    q_enc = urllib.parse.quote(q)
+    for page in range(1, 3):
+        api_url = f"{GITHUB_API}/search/repositories?q={q_enc}&per_page=30&page={page}"
+        try:
+            data = gh_api_get(api_url)
+            items = data.get("items", [])
+            if not items:
+                break
+            for repo in items:
+                full_name = repo.get("full_name", "")
+                default_branch = repo.get("default_branch", "main")
+                if full_name:
+                    results.append((full_name, default_branch))
+        except Exception:
+            break
+    return results
+
 def discover_all_github_repositories() -> set:
-    """Dynamically searches ALL GitHub repositories matching proxy queries."""
+    """Dynamically searches ALL GitHub repositories matching proxy queries in parallel."""
     discovered_repos = set(SEED_REPOSITORIES)
 
-    print(f"  🔍 Dynamically querying GitHub Search API across {len(DYNAMIC_REPO_QUERIES)} query patterns...", flush=True)
-    for q in DYNAMIC_REPO_QUERIES:
-        q_enc = urllib.parse.quote(q)
-        for page in range(1, 3):  # 2 pages per query
-            api_url = f"{GITHUB_API}/search/repositories?q={q_enc}&per_page=30&page={page}"
+    print(f"  🔍 Dynamically querying GitHub Search API in parallel across {len(DYNAMIC_REPO_QUERIES)} queries...", flush=True)
+    with ThreadPoolExecutor(max_workers=len(DYNAMIC_REPO_QUERIES)) as q_pool:
+        q_futs = [q_pool.submit(search_single_query, q) for q in DYNAMIC_REPO_QUERIES]
+        for qf in as_completed(q_futs):
             try:
-                data = gh_api_get(api_url)
-                items = data.get("items", [])
-                if not items:
-                    break
-                for repo in items:
-                    full_name = repo.get("full_name", "")
-                    default_branch = repo.get("default_branch", "main")
-                    if full_name:
-                        discovered_repos.add((full_name, default_branch))
-                time.sleep(REQUEST_PAUSE)
+                for item in qf.result():
+                    discovered_repos.add(item)
             except Exception:
-                break
+                pass
 
-    # Crawl all discovered repositories concurrently (100 workers)
+    print(f"  📦 Total active repositories discovered: {len(discovered_repos)} repos!", flush=True)
+
+    # Crawl all discovered repositories concurrently (200 workers)
     all_repo_candidates = set()
-    with ThreadPoolExecutor(max_workers=100) as pool:
+    with ThreadPoolExecutor(max_workers=200) as pool:
         future_map = {pool.submit(crawl_single_repository, r[0], r[1]): r[0] for r in discovered_repos}
         for fut in as_completed(future_map):
             try:
@@ -302,7 +314,7 @@ def discover_all_github_repositories() -> set:
 def scrape_telegram_channel(channel: str) -> tuple:
     """Scrapes public telegram channel web preview for live keys and sub links."""
     url = f"https://t.me/s/{channel}"
-    html = fetch_url(url, timeout=6)
+    html = fetch_url(url, timeout=5)
     if not html:
         return ([], [])
 
@@ -321,8 +333,8 @@ def discover_from_telegram() -> tuple:
     all_direct_keys = []
     found_sub_urls = set()
 
-    print(f"  📡 Crawling {len(TELEGRAM_CHANNELS)} public Telegram channels (50 parallel workers)...", flush=True)
-    with ThreadPoolExecutor(max_workers=50) as pool:
+    print(f"  📡 Crawling {len(TELEGRAM_CHANNELS)} public Telegram channels (100 parallel workers)...", flush=True)
+    with ThreadPoolExecutor(max_workers=100) as pool:
         future_map = {pool.submit(scrape_telegram_channel, ch): ch for ch in TELEGRAM_CHANNELS}
         for fut in as_completed(future_map):
             ch = future_map[fut]
@@ -398,7 +410,7 @@ def main():
     print(f"\n🧪 Validating {len(new_candidates)} new candidate subscription URLs concurrently...", flush=True)
 
     new_confirmed = 0
-    with ThreadPoolExecutor(max_workers=150) as pool:
+    with ThreadPoolExecutor(max_workers=300) as pool:
         future_map = {pool.submit(validate_source, u): u for u in new_candidates}
         for fut in as_completed(future_map):
             url = future_map[fut]

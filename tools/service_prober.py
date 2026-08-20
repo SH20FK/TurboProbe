@@ -451,6 +451,20 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
 # =============================================================================
 # 🧪 BATCH RUNNER
 # =============================================================================
+def wait_for_port_ready(port: int, max_wait: float = 1.2) -> bool:
+    """Actively polls until Xray binds and opens the inbound port (typically 5-15ms)."""
+    t0 = time.perf_counter()
+    while time.perf_counter() - t0 < max_wait:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(0.04)
+                if s.connect_ex(("127.0.0.1", port)) == 0:
+                    return True
+        except Exception:
+            pass
+        time.sleep(0.01)
+    return False
+
 def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT) -> list:
     """Runs a batch of nodes through Xray multi-inbound proxy."""
     inbounds = []
@@ -500,7 +514,7 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
     results = []
     try:
         proc = subprocess.Popen([xray_bin, "run", "-c", cfg_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(0.15)  # Fast async bind
+        wait_for_port_ready(base_port)  # Deterministic active port readiness check (5-15ms)
 
         with ThreadPoolExecutor(max_workers=len(active_slots)) as pool:
             futures = {
