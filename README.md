@@ -3,12 +3,6 @@
   <h1>TurboProbe</h1>
   <p><b>Бесплатный VPN — быстро, без регистрации и ограничений</b></p>
   <p>Автономный агрегатор и интеллектуальный генератор суверенных VLESS & Reality подписок с глубокой Xray-верификацией</p>
-
-  <p>
-    <a href="https://sh20fk.github.io/TurboProbe/"><img src="https://img.shields.io/badge/🌐_Web_Приложение-sh20fk.github.io%2FTurboProbe-white?style=for-the-badge" alt="Web App" /></a>
-    <a href="https://sub.turboprobe.workers.dev/sub"><img src="https://img.shields.io/badge/⚡_Edge_Подписка-sub.turboprobe.workers.dev-orange?style=for-the-badge&logo=cloudflare" alt="Worker" /></a>
-    <a href="https://github.com/SH20FK/TurboProbe/actions"><img src="https://img.shields.io/badge/🔄_Обновление-Каждые_6_часов-brightgreen?style=for-the-badge&logo=githubactions" alt="Auto-Update" /></a>
-  </p>
 </div>
 
 ---
