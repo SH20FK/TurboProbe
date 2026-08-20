@@ -613,7 +613,7 @@ def main():
     
     avg_ping = round(sum(item[1] for item in alive_tuples) / max(len(alive_tuples), 1), 1)
     best_ping = alive_tuples[0][1] if alive_tuples else 0.0
-    ping_by_uri = {formatted_uri: ping_ms for formatted_uri, ping_ms, rk in alive_tuples}
+    ping_by_uri = {item[0]: item[1] for item in alive_tuples}
     
     print(f"✅ Benchmark finished: {len(alive_nodes)} nodes ONLINE! 🏆 Best Ping: {best_ping}ms | ⚡ Avg Ping: {avg_ping}ms", flush=True)
     
@@ -631,7 +631,8 @@ def main():
             if get_node_key(k) in alive_keys_set:
                 anti_whitelist_pool.append(k)
 
-    for uri, ping_ms, rk in alive_tuples:
+    for item in alive_tuples:
+        uri = item[0]
         low = uri.lower()
         if low.startswith("vless://"):
             vless_nodes.append(uri)
@@ -664,7 +665,8 @@ def main():
     countries_dir = os.path.join(SUB_DIR, "countries")
     os.makedirs(countries_dir, exist_ok=True)
 
-    for uri, ping_ms, rk in alive_tuples:
+    for item in alive_tuples:
+        uri = item[0]
         cc = detect_country_code(uri)
         if cc != "GLOBAL":
             country_pools[cc].append(uri)
