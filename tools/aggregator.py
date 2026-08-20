@@ -497,11 +497,22 @@ def main():
                         all_uris.extend(extracted)
                         if url in RU_DIRECT_SOURCES:
                             direct_ru_fetched[url] = extracted
-                        print(f"  [+] Fetched {len(extracted):4d} keys from: {url[:60]}...")
             except Exception:
                 pass
-                
-    print(f"\n📊 Total raw keys collected: {len(all_uris)} across {fetched_count}/{len(SOURCES)} active sources.")
+
+    # 1b. Load Direct Telegram Feed (if harvested by discovery bot)
+    tg_feed_path = os.path.join(TOOLS_DIR, "telegram_feed.txt")
+    if os.path.isfile(tg_feed_path):
+        try:
+            with open(tg_feed_path, "r", encoding="utf-8") as f:
+                tg_lines = [l.strip() for l in f if l.strip()]
+            if tg_lines:
+                all_uris.extend(tg_lines)
+                print(f"  📢 Loaded {len(tg_lines)} fresh direct keys from Telegram feed")
+        except Exception:
+            pass
+
+    print(f"\n📊 Total raw keys collected: {len(all_uris)} across {fetched_count} active sources.")
     
     # 2. Deduplication
     unique_map = {}
