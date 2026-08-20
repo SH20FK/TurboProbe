@@ -113,9 +113,28 @@ export default {
       }
     }
 
+    if (path === "/api/countries" || path === "/countries") {
+      const countryIndex = await fetchFromGitHub("countries/index.json", ctx);
+      if (countryIndex) {
+        return new Response(countryIndex, {
+          headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "countries not ready" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     // 3. Dynamic Sub Constructor (/sub?...)
     if (path === "/sub" || path === "/sub/" || path.startsWith("/sub/custom")) {
       return handleDynamicCustomSub(request, url, userAgent, clientCountry, ctx);
+    }
+
+    // 3b. Direct Country Subscriptions (/sub/country/de, /sub/country/jp, etc.)
+    if (path.startsWith("/sub/country/") || path.startsWith("/sub/countries/")) {
+      const cc = path.split("/").pop().replace(".txt", "").toLowerCase();
+      return handleSub(`countries/${cc}.txt`, ctx, `⚡ TurboProbe Country ${cc.toUpperCase()}`);
     }
 
     // 4. Target Service Specific Subscriptions
@@ -137,8 +156,17 @@ export default {
     if (path === "/sub/service/discord" || path === "/sub/services/discord" || path === "/sub/discord") {
       return handleSub("services/discord.txt", ctx, "🎮 TurboProbe Discord Direct");
     }
-    if (path === "/sub/service/instagram" || path === "/sub/services/instagram" || path === "/sub/instagram") {
-      return handleSub("services/instagram.txt", ctx, "📸 TurboProbe Instagram & Meta");
+    if (path === "/sub/service/perplexity" || path === "/sub/services/perplexity" || path === "/sub/perplexity") {
+      return handleSub("services/perplexity.txt", ctx, "🔮 TurboProbe Perplexity AI");
+    }
+    if (path === "/sub/service/twitter" || path === "/sub/services/twitter" || path === "/sub/twitter" || path === "/sub/x") {
+      return handleSub("services/twitter.txt", ctx, "🐦 TurboProbe Twitter / X");
+    }
+    if (path === "/sub/service/spotify" || path === "/sub/services/spotify" || path === "/sub/spotify") {
+      return handleSub("services/spotify.txt", ctx, "🎵 TurboProbe Spotify Music");
+    }
+    if (path === "/sub/service/github" || path === "/sub/services/github" || path === "/sub/github") {
+      return handleSub("services/github.txt", ctx, "🐙 TurboProbe GitHub Dev");
     }
 
     // 5. General Subscriptions
@@ -300,9 +328,9 @@ function generateClashYaml(nodes) {
   const sb = ["port: 7890", "socks-port: 7891", "mode: rule", "proxies:"];
   const names = [];
   nodes.slice(0, 100).forEach((uri, i) => {
-    let name = `Node-${i + 1}`;
+    let name = `TurboProbe-${i + 1}`;
     if (uri.includes("#")) {
-      try { name = decodeURIComponent(uri.split("#")[1]).replace(/[:"\'\[\]]/g, "").slice(0, 24); } catch (_) {}
+      try { name = decodeURIComponent(uri.split("#")[1]).replace(/[:"\'\[\]]/g, "").slice(0, 60); } catch (_) {}
     }
     names.push(name);
     sb.push(`  - name: "${name}"\n    type: vless\n    server: 1.1.1.1\n    port: 443\n    uuid: 00000000-0000-0000-0000-000000000000\n    udp: true`);

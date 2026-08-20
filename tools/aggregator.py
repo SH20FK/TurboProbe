@@ -30,9 +30,31 @@ except Exception:
 SUB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sub")
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 DISCOVERED_SOURCES_PATH = os.path.join(TOOLS_DIR, "discovered_sources.json")
+DEAD_NODES_PATH = os.path.join(TOOLS_DIR, "dead_nodes.json")
 
 # Size of each paginated "sub/chunks/chunk-XXX.txt" file (ordered by ascending ping)
 CHUNK_SIZE = 20
+
+def load_dead_nodes() -> dict:
+    """Loads persistent blacklisted dead nodes to skip dead keys on future crawls."""
+    if os.path.isfile(DEAD_NODES_PATH):
+        try:
+            with open(DEAD_NODES_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_dead_nodes(dead_map: dict):
+    """Saves dead nodes with fail counters."""
+    if len(dead_map) > 10000:
+        items = sorted(dead_map.items(), key=lambda x: x[1].get("fail_count", 0), reverse=True)[:10000]
+        dead_map = dict(items)
+    try:
+        with open(DEAD_NODES_PATH, "w", encoding="utf-8") as f:
+            json.dump(dead_map, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"⚠️ Failed to save dead_nodes.json: {e}")
 
 # =============================================================================
 # 🏛️ GENUINE RUSSIAN DOMESTIC WHITELIST SNIS & KEYWORDS
@@ -241,31 +263,121 @@ def check_node_ping(uri: str, timeout: float = 0.45) -> tuple:
     except Exception:
         return (uri, 9999.0)
 
-def sanitize_node_remark(uri: str, ping_ms: float) -> str:
-    """Cleans spam from remarks and formats country badge + protocol + measured latency."""
+# =============================================================================
+# 🌍 UNIVERSAL WORLDWIDE COUNTRY KEYWORD MAP (ISO 3166-1 ALPHA-2)
+# =============================================================================
+GLOBAL_COUNTRY_KEYWORDS = [
+    ("KZ", ["kz", "kazakhstan", ".kz", "almaty", "astana", "shymkent", "ala", "ast"]),
+    ("DE", ["de", "germany", ".de", "frankfurt", "berlin", "munich", "fra"]),
+    ("NL", ["nl", "netherlands", ".nl", "amsterdam", "rotterdam", "ams"]),
+    ("FI", ["fi", "finland", ".fi", "helsinki", "hel"]),
+    ("TR", ["tr", "turkey", ".tr", "istanbul", "ankara", "izmir", "ist"]),
+    ("RU", [".ru", "russia", "moscow", "spb", "petersburg", "novosibirsk", "mow"]),
+    ("US", ["us", "usa", ".us", "united states", "los angeles", "new york", "miami", "dallas", "chicago", "ashburn", "seattle", "silicon"]),
+    ("GB", ["gb", "uk", ".uk", "united kingdom", "london", "manchester"]),
+    ("FR", ["fr", "france", ".fr", "paris", "marseille", "lyon"]),
+    ("SE", ["se", "sweden", ".se", "stockholm", "sto"]),
+    ("SG", ["sg", "singapore", ".sg", "sin"]),
+    ("JP", ["jp", "japan", ".jp", "tokyo", "osaka", "tyyo"]),
+    ("HK", ["hk", "hong kong", ".hk", "hkg"]),
+    ("KR", ["kr", "korea", ".kr", "seoul", "icn"]),
+    ("CA", ["ca", "canada", ".ca", "toronto", "montreal", "vancouver"]),
+    ("AU", ["au", "australia", ".au", "sydney", "melbourne"]),
+    ("PL", ["pl", "poland", ".pl", "warsaw", "waw", "krakow"]),
+    ("AT", ["at", "austria", ".at", "vienna", "vie"]),
+    ("CH", ["ch", "switzerland", ".ch", "zurich", "geneva", "zrh"]),
+    ("IT", ["it", "italy", ".it", "milan", "rome", "mxp"]),
+    ("ES", ["es", "spain", ".es", "madrid", "barcelona"]),
+    ("CZ", ["cz", "czech", ".cz", "prague", "prg"]),
+    ("NO", ["no", "norway", ".no", "oslo"]),
+    ("DK", ["dk", "denmark", ".dk", "copenhagen"]),
+    ("RO", ["ro", "romania", ".ro", "bucharest"]),
+    ("BG", ["bg", "bulgaria", ".bg", "sofia"]),
+    ("UA", ["ua", "ukraine", ".ua", "kyiv", "kiev", "lviv", "odesa"]),
+    ("MD", ["md", "moldova", ".md", "chisinau"]),
+    ("GE", ["ge", "georgia", ".ge", "tbilisi"]),
+    ("AM", ["am", "armenia", ".am", "yerevan"]),
+    ("UZ", ["uz", "uzbekistan", ".uz", "tashkent"]),
+    ("AE", ["ae", "uae", ".ae", "dubai", "emirates", "dxb"]),
+    ("IL", ["il", "israel", ".il", "tel aviv", "tlv"]),
+    ("IN", ["in", "india", ".in", "mumbai", "delhi", "bangalore"]),
+    ("BR", ["br", "brazil", ".br", "sao paulo", "rio"]),
+    ("ID", ["id", "indonesia", ".id", "jakarta"]),
+    ("TH", ["th", "thailand", ".th", "bangkok"]),
+    ("MY", ["my", "malaysia", ".my", "kuala lumpur"]),
+    ("VN", ["vn", "vietnam", ".vn", "hanoi", "saigon"]),
+    ("TW", ["tw", "taiwan", ".tw", "taipei"]),
+    ("EE", ["ee", "estonia", ".ee", "tallinn"]),
+    ("LV", ["lv", "latvia", ".lv", "riga"]),
+    ("LT", ["lt", "lithuania", ".lt", "vilnius"]),
+    ("RS", ["rs", "serbia", ".rs", "belgrade"]),
+    ("GR", ["gr", "greece", ".gr", "athens"]),
+    ("PT", ["pt", "portugal", ".pt", "lisbon"]),
+    ("HU", ["hu", "hungary", ".hu", "budapest"]),
+    ("IE", ["ie", "ireland", ".ie", "dublin"]),
+    ("NZ", ["nz", "new zealand", ".nz", "auckland"]),
+    ("ZA", ["za", "south africa", ".za", "johannesburg", "cape town"]),
+    ("MX", ["mx", "mexico", ".mx", "mexico city"]),
+    ("AR", ["ar", "argentina", ".ar", "buenos aires"]),
+    ("CL", ["cl", "chile", ".cl", "santiago"]),
+    ("CO", ["co", "colombia", ".co", "bogota"]),
+    ("IS", ["is", "iceland", ".is", "reykjavik"]),
+    ("CY", ["cy", "cyprus", ".cy", "nicosia"]),
+    ("MT", ["mt", "malta", ".mt"]),
+]
+
+def country_code_to_flag(code: str) -> str:
+    """Dynamically converts any 2-letter ISO country code into emoji flag."""
+    code = code.upper()
+    if len(code) == 2 and code.isalpha():
+        return chr(127397 + ord(code[0])) + chr(127397 + ord(code[1]))
+    return "🌐"
+
+def detect_country_code(uri: str) -> str:
+    """Detects 2-letter ISO country code from URL, SNI, remark or host with boundary check."""
+    low = uri.lower()
+    for code, kws in GLOBAL_COUNTRY_KEYWORDS:
+        for kw in kws:
+            if len(kw) <= 2:
+                if f".{kw}" in low or re.search(r'(?:^|[^a-z0-9])' + re.escape(kw) + r'(?:[^a-z0-9]|$)', low):
+                    return code
+            else:
+                if kw in low:
+                    return code
+    return "GLOBAL"
+
+def get_country_badge(code: str) -> str:
+    if code == "GLOBAL":
+        return "🌐 Global"
+    flag = country_code_to_flag(code)
+    return f"{flag} {code}"
+
+def sanitize_node_remark(uri: str, ping_ms: float = 0.0, purpose: str = None) -> str:
+    """Cleans spam from remarks and formats: TurboProbe · [Flag] [Country] · [Purpose]"""
     base_uri = uri.split('#')[0]
     low = uri.lower()
     
-    # Country detection
-    country = "🌐 Fast"
-    if "kz" in low or "kazakhstan" in low or ".kz" in low: country = "🇰🇿 KZ"
-    elif "de" in low or "germany" in low or "fra" in low: country = "🇩🇪 DE"
-    elif "nl" in low or "netherlands" in low or "ams" in low: country = "🇳🇱 NL"
-    elif "fi" in low or "finland" in low or "hel" in low: country = "🇫🇮 FI"
-    elif "tr" in low or "turkey" in low or "ist" in low: country = "🇹🇷 TR"
-    elif ".ru" in low or "russia" in low or "mow" in low: country = "🇷🇺 RU"
-    elif "us" in low or "usa" in low: country = "🇺🇸 US"
-    elif "se" in low or "sweden" in low: country = "🇸🇪 SE"
+    # 🌍 Universal Country detection
+    cc = detect_country_code(uri)
+    country_badge = get_country_badge(cc)
     
-    # Protocol detection
-    ptype = "VLESS"
-    if "trojan://" in low: ptype = "Trojan"
-    elif "hy2://" in low or "hysteria2://" in low: ptype = "Hy2"
-    elif "ss://" in low: ptype = "SS"
-    elif "security=reality" in low or "pbk=" in low: ptype = "Reality"
+    # 🎯 Purpose detection
+    if not purpose:
+        if any(kw in low for kw in WHITELIST_SNI_KEYWORDS): purpose = "Anti-Censor"
+        elif "security=reality" in low or "pbk=" in low: purpose = "Reality"
+        elif "hy2://" in low or "hysteria2://" in low: purpose = "Hy2-Speed"
+        elif "tuic://" in low: purpose = "TUIC"
+        elif "trojan://" in low: purpose = "Trojan"
+        elif "ss://" in low: purpose = "Shadowsocks"
+        elif "vmess://" in low: purpose = "VMess"
+        else: purpose = "Ultra-Fast"
     
-    remark = f"⚡ {country} {ptype} · {int(ping_ms)}ms"
+    remark = f"TurboProbe · {country_badge} · {purpose}"
     return f"{base_uri}#{urllib.parse.quote(remark)}"
+
+def relabel_pool_with_purpose(nodes: list, purpose: str) -> list:
+    """Re-labels an entire pool of URIs with a specific purpose remark."""
+    return [sanitize_node_remark(uri, purpose=purpose) for uri in nodes]
 
 def generate_clash_meta_yaml(nodes: list) -> str:
     sb = ["port: 7890", "socks-port: 7891", "allow-lan: false", "mode: rule", "log-level: info", "proxies:"]
@@ -274,15 +386,15 @@ def generate_clash_meta_yaml(nodes: list) -> str:
     for idx, uri in enumerate(nodes[:500], start=1):
         try:
             parsed = urllib.parse.urlparse(uri)
-            name = f"Node-{idx}"
+            name = f"TurboProbe-{idx:03d}"
             if '#' in uri:
                 raw_name = urllib.parse.unquote(uri.split('#')[-1]).strip()
                 if raw_name:
-                    name = f"[{idx:03d}] {raw_name[:28]}"
+                    name = raw_name[:55]
                     
             name = re.sub(r'[:"\'\[\]]', '', name).strip()
             if not name:
-                name = f"TurboProbe-{idx}"
+                name = f"TurboProbe-{idx:03d}"
             proxy_names.append(name)
             
             proto = parsed.scheme.lower()
@@ -404,20 +516,44 @@ def main():
     unique_uris = list(unique_map.values())
     print(f"✨ Deduplication complete: {len(unique_uris)} unique nodes.")
     
+    # 2b. 🚫 Purge known persistent dead keys from blacklist
+    dead_map = load_dead_nodes()
+    candidate_uris = []
+    skipped_dead = 0
+    for uri in unique_uris:
+        k = get_node_key(uri)
+        if k in dead_map and dead_map[k].get("fail_count", 0) >= 2:
+            skipped_dead += 1
+            continue
+        candidate_uris.append(uri)
+    if skipped_dead:
+        print(f"  🚫 Purged {skipped_dead} persistent dead keys from crawl pool.")
+
     # 3. ⚡ High-Speed Multi-Threaded Latency Benchmark & Dead-Node Purge (250 workers)
-    print(f"🩺 Starting concurrent latency benchmark across {len(unique_uris)} nodes (timeout: 0.45s, 250 threads)...", flush=True)
+    print(f"🩺 Starting concurrent latency benchmark across {len(candidate_uris)} nodes (timeout: 0.45s, 250 threads)...", flush=True)
     alive_tuples = []  # list of (formatted_uri, ping_ms, raw_key)
     
     with ThreadPoolExecutor(max_workers=250) as checker:
-        future_to_node = {checker.submit(check_node_ping, node, 0.45): node for node in unique_uris}
+        future_to_node = {checker.submit(check_node_ping, node, 0.45): node for node in candidate_uris}
         for future in as_completed(future_to_node):
             try:
                 uri, ping_ms = future.result()
+                k = get_node_key(uri)
                 if ping_ms < 900.0:
                     formatted_uri = sanitize_node_remark(uri, ping_ms)
-                    alive_tuples.append((formatted_uri, ping_ms, get_node_key(uri)))
+                    alive_tuples.append((formatted_uri, ping_ms, k))
+                    if k in dead_map:
+                        del dead_map[k]
+                else:
+                    rec = dead_map.get(k, {"fail_count": 0})
+                    rec["fail_count"] = rec.get("fail_count", 0) + 1
+                    rec["last_seen"] = datetime.now(timezone.utc).isoformat()
+                    dead_map[k] = rec
             except Exception:
                 pass
+
+    # Save updated dead nodes blacklist
+    save_dead_nodes(dead_map)
 
     # 4. 🥇 STRICT SORT BY LOWEST PING (Ascending: 10ms -> 30ms -> 50ms)
     alive_tuples.sort(key=lambda item: item[1])
@@ -441,12 +577,8 @@ def main():
     # Russian direct sources check
     for url, keys in direct_ru_fetched.items():
         for k in keys:
-            k_key = get_node_key(k)
-            if k_key in alive_keys_set:
-                for formatted_uri, p, rk in alive_tuples:
-                    if rk == k_key:
-                        anti_whitelist_pool.append(formatted_uri)
-                        break
+            if get_node_key(k) in alive_keys_set:
+                anti_whitelist_pool.append(k)
 
     for uri, ping_ms, rk in alive_tuples:
         low = uri.lower()
@@ -475,25 +607,16 @@ def main():
             seen_aw.add(k)
             anti_wl_sorted.append(u)
 
-    # 🌍 Country Classification (All sorted by lowest ping)
-    country_pools = {
-        "de.txt": [],
-        "nl.txt": [],
-        "kz.txt": [],
-        "fi.txt": [],
-        "tr.txt": [],
-        "ru.txt": [],
-        "us.txt": [],
-    }
+    # 🌍 Universal Worldwide Country Classification (Dynamic for ALL detected countries)
+    from collections import defaultdict
+    country_pools = defaultdict(list)
+    countries_dir = os.path.join(SUB_DIR, "countries")
+    os.makedirs(countries_dir, exist_ok=True)
+
     for uri, ping_ms, rk in alive_tuples:
-        low = uri.lower()
-        if "de" in low or "germany" in low or "fra" in low: country_pools["de.txt"].append(uri)
-        if "nl" in low or "netherlands" in low or "ams" in low: country_pools["nl.txt"].append(uri)
-        if "kz" in low or "kazakhstan" in low or "ala" in low or "ast" in low or ".kz" in low: country_pools["kz.txt"].append(uri)
-        if "fi" in low or "finland" in low or "hel" in low: country_pools["fi.txt"].append(uri)
-        if "tr" in low or "turkey" in low or "ist" in low: country_pools["tr.txt"].append(uri)
-        if ".ru" in low or "russia" in low or "mow" in low: country_pools["ru.txt"].append(uri)
-        if "us" in low or "usa" in low: country_pools["us.txt"].append(uri)
+        cc = detect_country_code(uri)
+        if cc != "GLOBAL":
+            country_pools[cc].append(uri)
 
     # VIP Curated Pools (Top-20, Top-50, Clean AI IP, YouTube 4K Stream)
     top20_pool = alive_nodes[:20]
@@ -504,14 +627,12 @@ def main():
     # 6. File Writer
     def write_sub(filename: str, nodes: list):
         path = os.path.join(SUB_DIR, filename)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(nodes))
-        print(f"  💾 sub/{filename:20s} -> {len(nodes):5d} ultra-low ping keys", flush=True)
+        print(f"  💾 sub/{filename:25s} -> {len(nodes):5d} keys", flush=True)
 
     # 6b. 📦 Paginate the FULL ascending-ping pool into fixed-size chunk files.
-    #     chunk-001.txt holds the 20 lowest-ping keys, chunk-002.txt the next 20
-    #     (all with a higher ping than every key in chunk-001), and so on —
-    #     the whole pool split into ascending-ping pages instead of one giant file.
     def write_ping_chunks(nodes: list, ping_lookup: dict, size: int = CHUNK_SIZE):
         chunk_dir = os.path.join(SUB_DIR, "chunks")
         os.makedirs(chunk_dir, exist_ok=True)
@@ -544,20 +665,39 @@ def main():
     write_sub("all.txt", alive_nodes)
     print(f"\n📦 Splitting {len(alive_nodes)} ascending-ping keys into {CHUNK_SIZE}-key chunk files:", flush=True)
     write_ping_chunks(alive_nodes, ping_by_uri, CHUNK_SIZE)
-    write_sub("top20.txt", top20_pool)
-    write_sub("top50.txt", top50_pool)
-    write_sub("anti-whitelist.txt", anti_wl_sorted)
-    write_sub("reality.txt", reality_nodes)
-    write_sub("trojan.txt", trojan_nodes)
-    write_sub("hysteria2.txt", hy2_nodes)
-    write_sub("shadowsocks.txt", ss_nodes)
-    write_sub("clean-ip.txt", clean_ip_pool)
-    write_sub("youtube-discord.txt", youtube_discord_pool)
+    write_sub("top20.txt", relabel_pool_with_purpose(top20_pool, "VIP-Top20"))
+    write_sub("top50.txt", relabel_pool_with_purpose(top50_pool, "VIP-Top50"))
+    write_sub("anti-whitelist.txt", relabel_pool_with_purpose(anti_wl_sorted, "Anti-Censor"))
+    write_sub("reality.txt", relabel_pool_with_purpose(reality_nodes, "Reality"))
+    write_sub("trojan.txt", relabel_pool_with_purpose(trojan_nodes, "Trojan"))
+    write_sub("hysteria2.txt", relabel_pool_with_purpose(hy2_nodes, "Hy2-Speed"))
+    write_sub("shadowsocks.txt", relabel_pool_with_purpose(ss_nodes, "Shadowsocks"))
+    write_sub("clean-ip.txt", relabel_pool_with_purpose(clean_ip_pool, "Clean-IP"))
+    write_sub("youtube-discord.txt", relabel_pool_with_purpose(youtube_discord_pool, "YouTube & Discord"))
 
-    # Country sub files
-    for cfile, cnodes in country_pools.items():
-        if cnodes:
-            write_sub(cfile, cnodes)
+    # Dynamic Worldwide Country sub files
+    country_manifest = []
+    print(f"\n🌍 Saving dynamic country feeds across {len(country_pools)} active world countries:", flush=True)
+    for cc, cnodes in sorted(country_pools.items(), key=lambda x: -len(x[1])):
+        fname = f"{cc.lower()}.txt"
+        flag = country_code_to_flag(cc)
+        write_sub(os.path.join("countries", fname), cnodes)
+        country_manifest.append({
+            "code": cc,
+            "flag": flag,
+            "count": len(cnodes),
+            "file": f"countries/{fname}"
+        })
+        # Legacy root files for top popular countries
+        if cc in ["DE", "NL", "KZ", "FI", "TR", "RU", "US", "SE", "GB", "FR", "JP", "SG", "HK", "CA", "PL"]:
+            write_sub(fname, cnodes)
+
+    with open(os.path.join(countries_dir, "index.json"), "w", encoding="utf-8") as f:
+        json.dump({
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "total_countries": len(country_manifest),
+            "countries": country_manifest
+        }, f, indent=2, ensure_ascii=False)
     
     # Clash Meta Config
     clash_yaml = generate_clash_meta_yaml(alive_nodes)
@@ -580,6 +720,7 @@ def main():
         "active_sources": fetched_count,
         "raw_fetched": len(all_uris),
         "unique_nodes": len(unique_uris),
+        "purged_dead_blacklist": skipped_dead,
         "alive_verified_nodes": len(alive_nodes),
         "best_ping_ms": best_ping,
         "avg_ping_ms": avg_ping,

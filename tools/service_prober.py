@@ -78,6 +78,12 @@ TARGET_SERVICES = {
         "method": "GET",
         "valid_status": [200, 400, 404, 403, 405],
     },
+    "perplexity": {
+        "name": "Perplexity AI",
+        "url": "https://www.perplexity.ai/",
+        "method": "GET",
+        "valid_status": [200, 301, 302],
+    },
     "youtube": {
         "name": "YouTube",
         "url": "https://www.youtube.com/generate_204",
@@ -88,11 +94,29 @@ TARGET_SERVICES = {
         "name": "Discord",
         "url": "https://discord.com/api/v9/experiments",
         "method": "GET",
-        "valid_status": [200, 401, 403],  # 401/200 = gateway reachable
+        "valid_status": [200, 401, 403],
     },
     "instagram": {
         "name": "Instagram",
         "url": "https://www.instagram.com/",
+        "method": "GET",
+        "valid_status": [200, 301, 302],
+    },
+    "twitter": {
+        "name": "Twitter / X",
+        "url": "https://x.com",
+        "method": "GET",
+        "valid_status": [200, 301, 302],
+    },
+    "spotify": {
+        "name": "Spotify",
+        "url": "https://open.spotify.com",
+        "method": "GET",
+        "valid_status": [200, 301, 302],
+    },
+    "github": {
+        "name": "GitHub",
+        "url": "https://github.com",
         "method": "GET",
         "valid_status": [200, 301, 302],
     },
@@ -538,33 +562,91 @@ def run_batch_probe(xray_bin: str, batch: list) -> list:
 # =============================================================================
 # 🌍 COUNTRY & PROTOCOL HELPER
 # =============================================================================
+GLOBAL_COUNTRY_KEYWORDS = [
+    ("KZ", ["kz", "kazakhstan", ".kz", "almaty", "astana", "shymkent", "ala", "ast"]),
+    ("DE", ["de", "germany", ".de", "frankfurt", "berlin", "munich", "fra"]),
+    ("NL", ["nl", "netherlands", ".nl", "amsterdam", "rotterdam", "ams"]),
+    ("FI", ["fi", "finland", ".fi", "helsinki", "hel"]),
+    ("TR", ["tr", "turkey", ".tr", "istanbul", "ankara", "izmir", "ist"]),
+    ("RU", [".ru", "russia", "moscow", "spb", "petersburg", "novosibirsk", "mow"]),
+    ("US", ["us", "usa", ".us", "united states", "los angeles", "new york", "miami", "dallas", "chicago", "ashburn", "seattle", "silicon"]),
+    ("GB", ["gb", "uk", ".uk", "united kingdom", "london", "manchester"]),
+    ("FR", ["fr", "france", ".fr", "paris", "marseille", "lyon"]),
+    ("SE", ["se", "sweden", ".se", "stockholm", "sto"]),
+    ("SG", ["sg", "singapore", ".sg", "sin"]),
+    ("JP", ["jp", "japan", ".jp", "tokyo", "osaka", "tyyo"]),
+    ("HK", ["hk", "hong kong", ".hk", "hkg"]),
+    ("KR", ["kr", "korea", ".kr", "seoul", "icn"]),
+    ("CA", ["ca", "canada", ".ca", "toronto", "montreal", "vancouver"]),
+    ("AU", ["au", "australia", ".au", "sydney", "melbourne"]),
+    ("PL", ["pl", "poland", ".pl", "warsaw", "waw", "krakow"]),
+    ("AT", ["at", "austria", ".at", "vienna", "vie"]),
+    ("CH", ["ch", "switzerland", ".ch", "zurich", "geneva", "zrh"]),
+    ("IT", ["it", "italy", ".it", "milan", "rome", "mxp"]),
+    ("ES", ["es", "spain", ".es", "madrid", "barcelona"]),
+    ("CZ", ["cz", "czech", ".cz", "prague", "prg"]),
+    ("NO", ["no", "norway", ".no", "oslo"]),
+    ("DK", ["dk", "denmark", ".dk", "copenhagen"]),
+    ("RO", ["ro", "romania", ".ro", "bucharest"]),
+    ("BG", ["bg", "bulgaria", ".bg", "sofia"]),
+    ("UA", ["ua", "ukraine", ".ua", "kyiv", "kiev", "lviv", "odesa"]),
+    ("MD", ["md", "moldova", ".md", "chisinau"]),
+    ("GE", ["ge", "georgia", ".ge", "tbilisi"]),
+    ("AM", ["am", "armenia", ".am", "yerevan"]),
+    ("UZ", ["uz", "uzbekistan", ".uz", "tashkent"]),
+    ("AE", ["ae", "uae", ".ae", "dubai", "emirates", "dxb"]),
+    ("IL", ["il", "israel", ".il", "tel aviv", "tlv"]),
+    ("IN", ["in", "india", ".in", "mumbai", "delhi", "bangalore"]),
+    ("BR", ["br", "brazil", ".br", "sao paulo", "rio"]),
+    ("ID", ["id", "indonesia", ".id", "jakarta"]),
+    ("TH", ["th", "thailand", ".th", "bangkok"]),
+    ("MY", ["my", "malaysia", ".my", "kuala lumpur"]),
+    ("VN", ["vn", "vietnam", ".vn", "hanoi", "saigon"]),
+    ("TW", ["tw", "taiwan", ".tw", "taipei"]),
+    ("EE", ["ee", "estonia", ".ee", "tallinn"]),
+    ("LV", ["lv", "latvia", ".lv", "riga"]),
+    ("LT", ["lt", "lithuania", ".lt", "vilnius"]),
+    ("RS", ["rs", "serbia", ".rs", "belgrade"]),
+    ("GR", ["gr", "greece", ".gr", "athens"]),
+    ("PT", ["pt", "portugal", ".pt", "lisbon"]),
+    ("HU", ["hu", "hungary", ".hu", "budapest"]),
+    ("IE", ["ie", "ireland", ".ie", "dublin"]),
+    ("NZ", ["nz", "new zealand", ".nz", "auckland"]),
+    ("ZA", ["za", "south africa", ".za", "johannesburg", "cape town"]),
+    ("MX", ["mx", "mexico", ".mx", "mexico city"]),
+    ("AR", ["ar", "argentina", ".ar", "buenos aires"]),
+    ("CL", ["cl", "chile", ".cl", "santiago"]),
+    ("CO", ["co", "colombia", ".co", "bogota"]),
+    ("IS", ["is", "iceland", ".is", "reykjavik"]),
+    ("CY", ["cy", "cyprus", ".cy", "nicosia"]),
+    ("MT", ["mt", "malta", ".mt"]),
+]
+
+def country_code_to_flag(code: str) -> str:
+    code = code.upper()
+    if len(code) == 2 and code.isalpha():
+        return chr(127397 + ord(code[0])) + chr(127397 + ord(code[1]))
+    return "🌐"
+
 def detect_country(uri: str) -> str:
+    """Detects 2-letter ISO country code from URL, SNI, remark or host with boundary check."""
     low = uri.lower()
-    if "de" in low or "germany" in low or "fra" in low: return "DE"
-    if "nl" in low or "netherlands" in low or "ams" in low: return "NL"
-    if "kz" in low or "kazakhstan" in low or "ala" in low or ".kz" in low: return "KZ"
-    if "fi" in low or "finland" in low or "hel" in low: return "FI"
-    if "tr" in low or "turkey" in low or "ist" in low: return "TR"
-    if ".ru" in low or "russia" in low or "mow" in low: return "RU"
-    if "us" in low or "usa" in low: return "US"
-    if "sg" in low or "singapore" in low: return "SG"
-    if "jp" in low or "japan" in low or "tokyo" in low: return "JP"
-    if "gb" in low or "uk" in low or "london" in low: return "GB"
-    if "fr" in low or "france" in low or "paris" in low: return "FR"
+    for code, kws in GLOBAL_COUNTRY_KEYWORDS:
+        for kw in kws:
+            if len(kw) <= 2:
+                if f".{kw}" in low or re.search(r'(?:^|[^a-z0-9])' + re.escape(kw) + r'(?:[^a-z0-9]|$)', low):
+                    return code
+            else:
+                if kw in low:
+                    return code
     return "GLOBAL"
 
-def detect_protocol(uri: str) -> str:
-    low = uri.lower()
-    if low.startswith("vless://"):
-        if "security=reality" in low or "pbk=" in low: return "vless-reality"
-        if "security=tls" in low: return "vless-tls"
-        return "vless"
-    if low.startswith("trojan://"): return "trojan"
-    if low.startswith("hy2://") or low.startswith("hysteria2://"): return "hysteria2"
-    if low.startswith("tuic://"): return "tuic"
-    if low.startswith("ss://"): return "shadowsocks"
-    if low.startswith("vmess://"): return "vmess"
-    return "other"
+def format_turboprobe_remark(uri: str, country_code: str, purpose: str) -> str:
+    flag = country_code_to_flag(country_code) if country_code != "GLOBAL" else "🌐"
+    badge = f"{flag} {country_code}" if country_code != "GLOBAL" else "🌐 Global"
+    remark = f"TurboProbe · {badge} · {purpose}"
+    base = uri.split('#')[0]
+    return f"{base}#{urllib.parse.quote(remark)}"
 
 # =============================================================================
 # 🚀 MAIN PIPELINE
@@ -654,14 +736,49 @@ def main():
     # 🎯 GENERATE SERVICE-SPECIFIC SUBSCRIPTIONS
     # =========================================================================
     service_pools = {
-        "chatgpt.txt": [n["uri"] for n in verified_nodes if n["services"].get("chatgpt")],
-        "claude.txt": [n["uri"] for n in verified_nodes if n["services"].get("claude")],
-        "gemini.txt": [n["uri"] for n in verified_nodes if n["services"].get("gemini")],
-        "youtube.txt": [n["uri"] for n in verified_nodes if n["services"].get("youtube")],
-        "discord.txt": [n["uri"] for n in verified_nodes if n["services"].get("discord")],
-        "instagram.txt": [n["uri"] for n in verified_nodes if n["services"].get("instagram")],
+        "chatgpt.txt": [
+            format_turboprobe_remark(n["uri"], n["country"], "ChatGPT")
+            for n in verified_nodes if n["services"].get("chatgpt")
+        ],
+        "claude.txt": [
+            format_turboprobe_remark(n["uri"], n["country"], "Claude")
+            for n in verified_nodes if n["services"].get("claude")
+        ],
+        "gemini.txt": [
+            format_turboprobe_remark(n["uri"], n["country"], "Gemini")
+            for n in verified_nodes if n["services"].get("gemini")
+        ],
+        "perplexity.txt": [
+            format_turboprobe_remark(n["uri"], n["country"], "Perplexity")
+            for n in verified_nodes if n["services"].get("perplexity")
+        ],
+        "youtube.txt": [
+            format_turboprobe_remark(n["uri"], n["country"], "YouTube 4K")
+            for n in verified_nodes if n["services"].get("youtube")
+        ],
+        "discord.txt": [
+            format_turboprobe_remark(n["uri"], n["country"], "Discord")
+            for n in verified_nodes if n["services"].get("discord")
+        ],
+        "instagram.txt": [
+            format_turboprobe_remark(n["uri"], n["country"], "Instagram")
+            for n in verified_nodes if n["services"].get("instagram")
+        ],
+        "twitter.txt": [
+            format_turboprobe_remark(n["uri"], n["country"], "Twitter / X")
+            for n in verified_nodes if n["services"].get("twitter")
+        ],
+        "spotify.txt": [
+            format_turboprobe_remark(n["uri"], n["country"], "Spotify")
+            for n in verified_nodes if n["services"].get("spotify")
+        ],
+        "github.txt": [
+            format_turboprobe_remark(n["uri"], n["country"], "GitHub")
+            for n in verified_nodes if n["services"].get("github")
+        ],
         "ai-bundle.txt": [
-            n["uri"] for n in verified_nodes 
+            format_turboprobe_remark(n["uri"], n["country"], "All-AI")
+            for n in verified_nodes 
             if n["services"].get("chatgpt") and (n["services"].get("claude") or n["services"].get("gemini"))
         ],
     }
