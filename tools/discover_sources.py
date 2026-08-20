@@ -414,7 +414,7 @@ def main():
                         "status": "active"
                     }
                     new_confirmed += 1
-                    print(f"  ✅ [VALID NEW SOURCE] ({count:4d} keys): {url[:80]}", flush=True)
+                    print(f"  ✅ [VALID NEW SOURCE] ({count:4d} keys): {url}", flush=True)
             except Exception:
                 pass
 
