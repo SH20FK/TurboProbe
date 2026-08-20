@@ -374,8 +374,8 @@ def get_country_badge(code: str) -> str:
     flag = country_code_to_flag(code)
     return f"{flag} {code}"
 
-def sanitize_node_remark(uri: str, ping_ms: float = 0.0, purpose: str = None) -> str:
-    """Cleans spam from remarks and formats: TurboProbe · [Flag] [Country] · [Purpose]"""
+def sanitize_node_remark(uri: str, ping_ms: float = 0.0, purpose: str = None, idx: int = None) -> str:
+    """Cleans spam from remarks and formats: TurboProbe · [Flag] [Country] · [Purpose] #[Index]"""
     base_uri = uri.split('#')[0]
     low = uri.lower()
     
@@ -394,29 +394,32 @@ def sanitize_node_remark(uri: str, ping_ms: float = 0.0, purpose: str = None) ->
         elif "vmess://" in low: purpose = "VMess"
         else: purpose = "Ultra-Fast"
     
-    remark = f"TurboProbe · {country_badge} · {purpose}"
-    return f"{base_uri}#{urllib.parse.quote(remark)}"
+    suffix = f" #{idx:02d}" if idx is not None else ""
+    remark = f"TurboProbe · {country_badge} · {purpose}{suffix}"
+    return f"{base_uri}#{remark}"
 
 def relabel_pool_with_purpose(nodes: list, purpose: str) -> list:
-    """Re-labels an entire pool of URIs with a specific purpose remark."""
-    return [sanitize_node_remark(uri, purpose=purpose) for uri in nodes]
+    """Re-labels an entire pool of URIs with a specific purpose remark and unique index numbers."""
+    return [sanitize_node_remark(uri, purpose=purpose, idx=i+1) for i, uri in enumerate(nodes)]
 
 def generate_clash_meta_yaml(nodes: list) -> str:
     sb = ["port: 7890", "socks-port: 7891", "allow-lan: false", "mode: rule", "log-level: info", "proxies:"]
     proxy_names = []
+    seen_names = set()
     
     for idx, uri in enumerate(nodes[:500], start=1):
         try:
             parsed = urllib.parse.urlparse(uri)
-            name = f"TurboProbe-{idx:03d}"
+            clean_name = f"TurboProbe-{idx:03d}"
             if '#' in uri:
                 raw_name = urllib.parse.unquote(uri.split('#')[-1]).strip()
                 if raw_name:
-                    name = raw_name[:55]
+                    clean_name = re.sub(r'[:"\'\[\]]', '', raw_name).strip()[:48]
                     
-            name = re.sub(r'[:"\'\[\]]', '', name).strip()
-            if not name:
-                name = f"TurboProbe-{idx:03d}"
+            name = f"{clean_name} #{idx:03d}"
+            if name in seen_names:
+                name = f"{name}-{idx}"
+            seen_names.add(name)
             proxy_names.append(name)
             
             proto = parsed.scheme.lower()

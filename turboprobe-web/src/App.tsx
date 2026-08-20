@@ -194,14 +194,17 @@ export default function App() {
   }, [filteredNodes]);
 
   const handleDownloadClash = useCallback(() => {
+    const proxyNames: string[] = [];
     const proxies = filteredNodes.slice(0, 100).map((n, i) => {
-      let name = `TurboProbe-${String(i + 1).padStart(3, '0')}`;
+      let cleanName = `TurboProbe-${String(i + 1).padStart(3, '0')}`;
       if (n.uri.includes('#')) {
         try {
-          name = decodeURIComponent(n.uri.split('#')[1]).replace(/[:"'\[\]]/g, '').slice(0, 50);
+          cleanName = decodeURIComponent(n.uri.split('#')[1]).replace(/[:"'\[\]]/g, '').slice(0, 45);
         } catch (_) {}
       }
-      return `  - name: "${name}"\n    type: vless\n    server: 1.1.1.1\n    port: 443\n    uuid: 00000000-0000-0000-0000-000000000000\n    udp: true`;
+      const uniqueName = `${cleanName} #${String(i + 1).padStart(3, '0')}`;
+      proxyNames.push(uniqueName);
+      return `  - name: "${uniqueName}"\n    type: vless\n    server: 1.1.1.1\n    port: 443\n    uuid: 00000000-0000-0000-0000-000000000000\n    udp: true`;
     });
 
     const yaml = [
@@ -211,7 +214,7 @@ export default function App() {
       'proxies:',
       ...proxies,
       '\nproxy-groups:\n  - name: "⚡ AUTO-BEST"\n    type: url-test\n    url: http://cp.cloudflare.com/generate_204\n    proxies:',
-      ...filteredNodes.slice(0, 100).map((_, i) => `      - "TurboProbe-${String(i + 1).padStart(3, '0')}"`),
+      ...proxyNames.map((pName) => `      - "${pName}"`),
       '\nrules:\n  - DOMAIN-SUFFIX,openai.com,⚡ AUTO-BEST\n  - DOMAIN-SUFFIX,youtube.com,⚡ AUTO-BEST\n  - GEOIP,RU,DIRECT\n  - MATCH,⚡ AUTO-BEST',
     ].join('\n');
 
