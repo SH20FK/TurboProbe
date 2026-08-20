@@ -256,8 +256,8 @@ def get_node_key(uri: str) -> str:
     except Exception:
         return uri.strip().lower()
 
-def check_node_ping(uri: str, timeout: float = 0.45) -> tuple:
-    """Ultra-speed socket health and RTT latency benchmark. Returns (uri, ping_ms) or (uri, 9999.0)."""
+def check_node_ping(uri: str, timeout: float = 0.50) -> tuple:
+    """Socket & TLS handshake benchmark. Tests real server responsiveness."""
     try:
         parsed = urllib.parse.urlparse(uri)
         netloc = parsed.netloc
@@ -272,16 +272,28 @@ def check_node_ping(uri: str, timeout: float = 0.45) -> tuple:
             host = netloc.strip('[]')
             port = 443
             
+        low = uri.lower()
+        query = urllib.parse.parse_qs(parsed.query)
+        sni = query.get("sni", [""])[0] or host
+        is_tls = ("security=tls" in low or "trojan://" in low or port == 443) and not ("security=reality" in low or "pbk=" in low)
+        
         start_t = time.perf_counter()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
-        res = sock.connect_ex((host, port))
-        sock.close()
+        sock.connect((host, port))
         
-        if res == 0:
-            elapsed_ms = (time.perf_counter() - start_t) * 1000.0
-            return (uri, round(elapsed_ms, 1))
-        return (uri, 9999.0)
+        if is_tls:
+            # Perform real TLS Handshake to verify server accepts TLS connection
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            ssock = ctx.wrap_socket(sock, server_hostname=sni)
+            ssock.close()
+        else:
+            sock.close()
+            
+        elapsed_ms = (time.perf_counter() - start_t) * 1000.0
+        return (uri, round(elapsed_ms, 1))
     except Exception:
         return (uri, 9999.0)
 

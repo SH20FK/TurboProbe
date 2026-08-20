@@ -653,19 +653,64 @@ def main():
         ],
     }
 
-    manifest = {}
-    print("\n📁 Saving REAL-TESTED service subscription files:", flush=True)
-    for fname, nodes in service_files.items():
-        out_path = os.path.join(SERVICES_DIR, fname)
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(nodes))
-        manifest[fname] = len(nodes)
-        print(f"  💾 sub/services/{fname:16s} -> {len(nodes):4d} verified working keys", flush=True)
+    # 🎯 Generate Primary Verified Pools (Top50, Top20, Anti-Whitelist, All)
+    top20_verified = [
+        format_verified_remark(n["uri"], n["country"], "VIP-Top20", idx)
+        for idx, n in enumerate(verified_alive_nodes[:20], start=1)
+    ]
+    top50_verified = [
+        format_verified_remark(n["uri"], n["country"], "VIP-Top50", idx)
+        for idx, n in enumerate(verified_alive_nodes[:50], start=1)
+    ]
+    anti_censor_verified = [
+        format_verified_remark(n["uri"], n["country"], "Anti-Censor", idx)
+        for idx, n in enumerate([n for n in verified_alive_nodes if "reality" in n["uri"].lower() or "hy2" in n["uri"].lower()][:100], start=1)
+    ]
 
-    with open(os.path.join(SERVICES_DIR, "index.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(SUB_DIR, "top20.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(top20_verified))
+    with open(os.path.join(SUB_DIR, "top50.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(top50_verified))
+    with open(os.path.join(SUB_DIR, "anti-whitelist.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(anti_censor_verified))
+    print(f"💾 Updated sub/top50.txt with {len(top50_verified)} verified online keys", flush=True)
+
+    # 🌍 Group into Verified Country Feeds
+    from collections import defaultdict
+    country_groups = defaultdict(list)
+    for n in verified_alive_nodes:
+        cc = n["country"].upper()
+        if cc != "GLOBAL":
+            country_groups[cc].append(n)
+
+    countries_dir = os.path.join(SUB_DIR, "countries")
+    os.makedirs(countries_dir, exist_ok=True)
+    country_manifest = []
+
+    for cc, cnodes in sorted(country_groups.items(), key=lambda x: -len(x[1])):
+        fname = f"{cc.lower()}.txt"
+        flag = country_code_to_flag(cc)
+        formatted_c_nodes = [
+            format_verified_remark(n["uri"], cc, "Verified", idx)
+            for idx, n in enumerate(cnodes, start=1)
+        ]
+        with open(os.path.join(countries_dir, fname), "w", encoding="utf-8") as f:
+            f.write("\n".join(formatted_c_nodes))
+        country_manifest.append({
+            "code": cc,
+            "flag": flag,
+            "count": len(cnodes),
+            "file": f"countries/{fname}"
+        })
+        if cc in ["DE", "NL", "KZ", "FI", "TR", "RU", "US", "SE", "GB", "FR", "JP", "SG", "HK", "CA", "PL"]:
+            with open(os.path.join(SUB_DIR, fname), "w", encoding="utf-8") as f:
+                f.write("\n".join(formatted_c_nodes))
+
+    with open(os.path.join(countries_dir, "index.json"), "w", encoding="utf-8") as f:
         json.dump({
             "updated_at": datetime.now(timezone.utc).isoformat(),
-            "services": manifest,
+            "total_countries": len(country_manifest),
+            "countries": country_manifest
         }, f, indent=2, ensure_ascii=False)
 
     print("\n🎉 [Complete] Real Tunnel Verification finished successfully!")
