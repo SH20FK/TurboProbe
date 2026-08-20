@@ -722,7 +722,15 @@ def main():
         ],
     }
 
-    # 🎯 Generate Primary Verified Pools (Top50, Top20, Anti-Whitelist, All)
+    # 🎯 Save Service-Specific Subscriptions with GENUINE working nodes ONLY
+    os.makedirs(SERVICES_DIR, exist_ok=True)
+    print("🎯 Saving dedicated verified service feeds across target channels:", flush=True)
+    for s_fname, s_keys in service_files.items():
+        with open(os.path.join(SERVICES_DIR, s_fname), "w", encoding="utf-8") as f:
+            f.write("\n".join(s_keys))
+        print(f"  💾 sub/services/{s_fname:<15} -> {len(s_keys):>5} verified keys", flush=True)
+
+    # 🎯 Generate Primary Verified Pools (Top20, Top50, Anti-Whitelist, All)
     top20_verified = [
         format_verified_remark(n["uri"], n["country"], "VIP-Top20", idx)
         for idx, n in enumerate(verified_alive_nodes[:20], start=1)
@@ -733,7 +741,11 @@ def main():
     ]
     anti_censor_verified = [
         format_verified_remark(n["uri"], n["country"], "Anti-Censor", idx)
-        for idx, n in enumerate([n for n in verified_alive_nodes if "reality" in n["uri"].lower() or "hy2" in n["uri"].lower()][:100], start=1)
+        for idx, n in enumerate([n for n in verified_alive_nodes if "reality" in n["uri"].lower() or "hy2" in n["uri"].lower()], start=1)
+    ]
+    all_verified = [
+        format_verified_remark(n["uri"], n["country"], "Verified", idx)
+        for idx, n in enumerate(verified_alive_nodes, start=1)
     ]
 
     with open(os.path.join(SUB_DIR, "top20.txt"), "w", encoding="utf-8") as f:
@@ -742,7 +754,32 @@ def main():
         f.write("\n".join(top50_verified))
     with open(os.path.join(SUB_DIR, "anti-whitelist.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(anti_censor_verified))
-    print(f"💾 Updated sub/top50.txt with {len(top50_verified)} verified online keys", flush=True)
+    with open(os.path.join(SUB_DIR, "all.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(all_verified))
+
+    # 🛡️ Protocol Specific Verified Feeds
+    proto_reality = [format_verified_remark(n["uri"], n["country"], "Reality", idx) for idx, n in enumerate([n for n in verified_alive_nodes if "pbk=" in n["uri"].lower() or "reality" in n.get("protocol", "").lower()], start=1)]
+    proto_hy2 = [format_verified_remark(n["uri"], n["country"], "Hy2", idx) for idx, n in enumerate([n for n in verified_alive_nodes if n["uri"].startswith("hy2://") or "hy2" in n.get("protocol", "").lower()], start=1)]
+    proto_trojan = [format_verified_remark(n["uri"], n["country"], "Trojan", idx) for idx, n in enumerate([n for n in verified_alive_nodes if n["uri"].startswith("trojan://") or "trojan" in n.get("protocol", "").lower()], start=1)]
+    proto_ss = [format_verified_remark(n["uri"], n["country"], "SS", idx) for idx, n in enumerate([n for n in verified_alive_nodes if n["uri"].startswith("ss://") or "ss" in n.get("protocol", "").lower()], start=1)]
+
+    with open(os.path.join(SUB_DIR, "reality.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(proto_reality))
+    with open(os.path.join(SUB_DIR, "hysteria2.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(proto_hy2))
+    with open(os.path.join(SUB_DIR, "trojan.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(proto_trojan))
+    with open(os.path.join(SUB_DIR, "shadowsocks.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(proto_ss))
+
+    # Base64 export
+    import base64
+    b64_content = base64.b64encode("\n".join([n["uri"] for n in verified_alive_nodes]).encode("utf-8")).decode("utf-8")
+    with open(os.path.join(SUB_DIR, "base64.txt"), "w", encoding="utf-8") as f:
+        f.write(b64_content)
+
+    print(f"💾 Updated sub/top50.txt ({len(top50_verified)} keys), sub/top20.txt ({len(top20_verified)} keys), sub/all.txt ({len(all_verified)} keys)", flush=True)
+
 
     # 🌍 Group into Verified Country Feeds
     from collections import defaultdict
