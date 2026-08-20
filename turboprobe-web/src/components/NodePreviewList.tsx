@@ -103,7 +103,14 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                   nodes.map((node, index) => {
                     const ping = node.ping_ms ? Math.round(node.ping_ms) : 35 + index * 2;
                     const remark = extractRemark(node.uri);
-                    const countryCode = (node.country || 'all').toLowerCase();
+                    let countryCode = (node.country || 'all').toLowerCase();
+
+                    // Match 2-letter country code from remark badge (e.g. "TurboProbe · 🇩🇪 DE · ..." or "TurboProbe · DE · ...")
+                    const ccMatch = remark.match(/·\s*(?:[^\w\s]{1,4}\s*)?([A-Za-z]{2})\b/);
+                    if (ccMatch && ccMatch[1] && ccMatch[1].toLowerCase() !== 'vi') {
+                      countryCode = ccMatch[1].toLowerCase();
+                    }
+
                     const proto = node.protocol || (node.uri.split('://')[0] || 'vless').toUpperCase();
                     const health = node.health ?? 100;
                     const isCopied = copiedIndex === index;

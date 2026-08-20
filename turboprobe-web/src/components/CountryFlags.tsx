@@ -9,25 +9,25 @@ export const CountryFlag: React.FC<FlagProps> = ({ countryCode = 'all', classNam
   const code = (countryCode || '').toLowerCase();
 
   switch (code) {
-    case 'de': // Germany
+    case 'de': // Germany 🇩🇪
       return (
         <svg className={className} viewBox="0 0 5 3">
-          <rect id="black_stripe" width="5" height="3" y="0" x="0" fill="#000"/>
-          <rect id="red_stripe" width="5" height="2" y="1" x="0" fill="#D00"/>
-          <rect id="gold_stripe" width="5" height="1" y="2" x="0" fill="#FFCE00"/>
+          <rect width="5" height="1" y="0" fill="#000000"/>
+          <rect width="5" height="1" y="1" fill="#DD0000"/>
+          <rect width="5" height="1" y="2" fill="#FFCE00"/>
         </svg>
       );
 
-    case 'nl': // Netherlands
+    case 'nl': // Netherlands 🇳🇱
       return (
         <svg className={className} viewBox="0 0 9 6">
-          <rect fill="#21468B" width="9" height="6"/>
-          <rect fill="#FFF" width="9" height="4"/>
           <rect fill="#AE1C28" width="9" height="2"/>
+          <rect fill="#FFFFFF" y="2" width="9" height="2"/>
+          <rect fill="#21468B" y="4" width="9" height="2"/>
         </svg>
       );
 
-    case 'kz': // Kazakhstan
+    case 'kz': // Kazakhstan 🇰🇿
       return (
         <svg className={className} viewBox="0 0 1000 500">
           <rect width="1000" height="500" fill="#00afca"/>
@@ -38,7 +38,7 @@ export const CountryFlag: React.FC<FlagProps> = ({ countryCode = 'all', classNam
         </svg>
       );
 
-    case 'fi': // Finland
+    case 'fi': // Finland 🇫🇮
       return (
         <svg className={className} viewBox="0 0 18 11">
           <rect width="18" height="11" fill="#fff"/>
@@ -47,7 +47,7 @@ export const CountryFlag: React.FC<FlagProps> = ({ countryCode = 'all', classNam
         </svg>
       );
 
-    case 'tr': // Turkey
+    case 'tr': // Turkey 🇹🇷
       return (
         <svg className={className} viewBox="0 0 1200 800">
           <rect width="1200" height="800" fill="#E30A17"/>
@@ -57,16 +57,16 @@ export const CountryFlag: React.FC<FlagProps> = ({ countryCode = 'all', classNam
         </svg>
       );
 
-    case 'ru': // Russia
+    case 'ru': // Russia 🇷🇺
       return (
         <svg className={className} viewBox="0 0 9 6">
-          <rect fill="#fff" width="9" height="6"/>
-          <rect fill="#0039A6" y="2" width="9" height="4"/>
+          <rect fill="#fff" width="9" height="2"/>
+          <rect fill="#0039A6" y="2" width="9" height="2"/>
           <rect fill="#D52B1E" y="4" width="9" height="2"/>
         </svg>
       );
 
-    case 'se': // Sweden
+    case 'se': // Sweden 🇸🇪
       return (
         <svg className={className} viewBox="0 0 16 10">
           <rect width="16" height="10" fill="#006aa7"/>
@@ -75,7 +75,7 @@ export const CountryFlag: React.FC<FlagProps> = ({ countryCode = 'all', classNam
         </svg>
       );
 
-    case 'us': // USA
+    case 'us': // USA 🇺🇸
       return (
         <svg className={className} viewBox="0 0 7410 3900">
           <rect width="7410" height="3900" fill="#b22234"/>
@@ -85,7 +85,32 @@ export const CountryFlag: React.FC<FlagProps> = ({ countryCode = 'all', classNam
         </svg>
       );
 
-    case 'sg': // Singapore
+    case 'gb': // UK 🇬🇧
+    case 'uk':
+      return (
+        <svg className={className} viewBox="0 0 60 30">
+          <clipPath id="s"><path d="M0,0 v30 h60 v-30 z"/></clipPath>
+          <clipPath id="t"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath>
+          <g clipPath="url(#s)">
+            <path d="M0,0 v30 h60 v-30 z" fill="#012169"/>
+            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6"/>
+            <path d="M0,0 L60,30 M60,0 L0,30" clipPath="url(#t)" stroke="#C8102E" strokeWidth="4"/>
+            <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10"/>
+            <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" strokeWidth="6"/>
+          </g>
+        </svg>
+      );
+
+    case 'fr': // France 🇫🇷
+      return (
+        <svg className={className} viewBox="0 0 9 6">
+          <rect width="3" height="6" fill="#002654"/>
+          <rect x="3" width="3" height="6" fill="#ffffff"/>
+          <rect x="6" width="3" height="6" fill="#ce1126"/>
+        </svg>
+      );
+
+    case 'sg': // Singapore 🇸🇬
       return (
         <svg className={className} viewBox="0 0 9 6">
           <rect width="9" height="3" fill="#ED2939"/>
@@ -95,7 +120,33 @@ export const CountryFlag: React.FC<FlagProps> = ({ countryCode = 'all', classNam
         </svg>
       );
 
-    default: // Global / All
+    case 'jp': // Japan 🇯🇵
+      return (
+        <svg className={className} viewBox="0 0 9 6">
+          <rect width="9" height="6" fill="#ffffff"/>
+          <circle cx="4.5" cy="3" r="1.8" fill="#bc002d"/>
+        </svg>
+      );
+
+    case 'pl': // Poland 🇵🇱
+      return (
+        <svg className={className} viewBox="0 0 8 5">
+          <rect width="8" height="2.5" fill="#ffffff"/>
+          <rect y="2.5" width="8" height="2.5" fill="#dc143c"/>
+        </svg>
+      );
+
+    case 'ca': // Canada 🇨🇦
+      return (
+        <svg className={className} viewBox="0 0 12 6">
+          <rect width="3" height="6" fill="#ff0000"/>
+          <rect x="3" width="6" height="6" fill="#ffffff"/>
+          <rect x="9" width="3" height="6" fill="#ff0000"/>
+          <circle cx="6" cy="3" r="1.2" fill="#ff0000"/>
+        </svg>
+      );
+
+    default: // Global / All 🌐
       return (
         <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="10" />

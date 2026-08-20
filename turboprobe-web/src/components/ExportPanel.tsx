@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, QrCode, ShieldCheck, Zap, Layers } from 'lucide-react';
+import { Copy, Check, QrCode, ShieldCheck } from 'lucide-react';
+import { HappIcon, FlClashIcon } from './ServiceIcons';
 
 interface ExportPanelProps {
   subUrl: string;
@@ -34,9 +35,6 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
       await navigator.clipboard.writeText(subUrl);
       setCopiedHapp(true);
       setTimeout(() => setCopiedHapp(false), 2000);
-      // Try opening Happ protocol
-      const happLink = `happ://add/${encodeURIComponent(subUrl)}`;
-      window.location.href = happLink;
     } catch (_) {}
   };
 
@@ -45,9 +43,6 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
       await navigator.clipboard.writeText(subUrl);
       setCopiedFlclash(true);
       setTimeout(() => setCopiedFlclash(false), 2000);
-      // Try opening Clash / FlClash protocol
-      const clashLink = `clash://install-config?url=${encodeURIComponent(subUrl)}&name=TurboProbe`;
-      window.location.href = clashLink;
     } catch (_) {}
   };
 
@@ -136,11 +131,11 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             {copiedHapp ? (
               <>
                 <Check className="w-4 h-4 text-white" />
-                <span>Скопировано в Happ!</span>
+                <span>Ссылка для Happ скопирована!</span>
               </>
             ) : (
               <>
-                <Zap className="w-4 h-4 text-zinc-300" />
+                <HappIcon className="w-4 h-4 text-zinc-200" />
                 <span>Скопировать в Happ</span>
               </>
             )}
@@ -157,11 +152,11 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             {copiedFlclash ? (
               <>
                 <Check className="w-4 h-4 text-white" />
-                <span>Скопировано в FlClash!</span>
+                <span>Ссылка для FlClash скопирована!</span>
               </>
             ) : (
               <>
-                <Layers className="w-4 h-4 text-zinc-300" />
+                <FlClashIcon className="w-4 h-4 text-zinc-200" />
                 <span>Скопировать в FlClash</span>
               </>
             )}
