@@ -35,6 +35,10 @@ jobs:
         run: |
           python tools/aggregator.py
 
+      - name: Run Deep Service Prober (AI & Media Verifier)
+        run: |
+          python tools/service_prober.py
+
       - name: Commit and push updated subscriptions
         run: |
           git config --global user.name "github-actions[bot]"

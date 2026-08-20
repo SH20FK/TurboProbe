@@ -67,7 +67,7 @@ export default {
       });
     }
 
-    // 2. Stats Endpoint
+    // 2. Stats & Node Database Endpoints (For Website & API)
     if (path === "/api/stats" || path === "/stats") {
       const stats = await fetchFromGitHub("stats.json", ctx);
       return new Response(stats, {
@@ -75,12 +75,73 @@ export default {
       });
     }
 
+    if (path === "/api/nodes" || path === "/nodes" || path === "/api/services") {
+      const nodesData = await fetchFromGitHub("nodes.json", ctx);
+      if (!nodesData) {
+        return new Response(JSON.stringify({ error: "nodes.json not ready" }), {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+      try {
+        const parsed = JSON.parse(nodesData);
+        let list = parsed.nodes || [];
+        const servicesParam = (url.searchParams.get("services") || url.searchParams.get("service") || "").toLowerCase();
+        const countryParam = (url.searchParams.get("country") || url.searchParams.get("c") || "").toLowerCase();
+        const maxPing = parseFloat(url.searchParams.get("max_ping") || url.searchParams.get("ping") || "0");
+        
+        if (servicesParam) {
+          const reqServices = servicesParam.split(",").map(s => s.trim()).filter(Boolean);
+          list = list.filter(n => reqServices.every(s => n.services && n.services[s]));
+        }
+        if (countryParam && countryParam !== "all") {
+          const countries = countryParam.split(",").map(c => c.trim().toLowerCase());
+          list = list.filter(n => countries.includes((n.country || "").toLowerCase()));
+        }
+        if (maxPing > 0) {
+          list = list.filter(n => (n.ping_ms || 999) <= maxPing);
+        }
+        return new Response(JSON.stringify({
+          updated_at: parsed.updated_at,
+          total_matching: list.length,
+          nodes: list
+        }, null, 2), {
+          headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" }
+        });
+      } catch (e) {
+        return new Response(nodesData, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
     // 3. Dynamic Sub Constructor (/sub?...)
     if (path === "/sub" || path === "/sub/" || path.startsWith("/sub/custom")) {
       return handleDynamicCustomSub(request, url, userAgent, clientCountry, ctx);
     }
 
-    // 4. Specific Subscriptions
+    // 4. Target Service Specific Subscriptions
+    if (path === "/sub/service/chatgpt" || path === "/sub/services/chatgpt" || path === "/sub/chatgpt") {
+      return handleSub("services/chatgpt.txt", ctx, "🤖 TurboProbe ChatGPT Clean");
+    }
+    if (path === "/sub/service/claude" || path === "/sub/services/claude" || path === "/sub/claude") {
+      return handleSub("services/claude.txt", ctx, "🧠 TurboProbe Claude AI");
+    }
+    if (path === "/sub/service/gemini" || path === "/sub/services/gemini" || path === "/sub/gemini") {
+      return handleSub("services/gemini.txt", ctx, "♊ TurboProbe Google Gemini");
+    }
+    if (path === "/sub/service/ai" || path === "/sub/services/ai" || path === "/sub/ai-bundle") {
+      return handleSub("services/ai-bundle.txt", ctx, "✨ TurboProbe All-in-One AI");
+    }
+    if (path === "/sub/service/youtube" || path === "/sub/services/youtube" || path === "/sub/youtube-direct") {
+      return handleSub("services/youtube.txt", ctx, "📺 TurboProbe YouTube 4K");
+    }
+    if (path === "/sub/service/discord" || path === "/sub/services/discord" || path === "/sub/discord") {
+      return handleSub("services/discord.txt", ctx, "🎮 TurboProbe Discord Direct");
+    }
+    if (path === "/sub/service/instagram" || path === "/sub/services/instagram" || path === "/sub/instagram") {
+      return handleSub("services/instagram.txt", ctx, "📸 TurboProbe Instagram & Meta");
+    }
+
+    // 5. General Subscriptions
     if (path === "/sub/all" || path === "/sub/all.txt") {
       return handleSub("all.txt", ctx, "⚡ TurboProbe All Protocols");
     }
@@ -125,7 +186,7 @@ export default {
       });
     }
 
-    // 5. Interactive Claude Pastel Web Dashboard
+    // 6. Interactive Web Dashboard
     if (path === "/" || !path.startsWith("/sub")) {
       return handleWebDashboard(request, url, clientCountry, clientCity);
     }
@@ -136,42 +197,76 @@ export default {
 
 async function handleDynamicCustomSub(request, url, userAgent, clientCountry, ctx) {
   const params = url.searchParams;
+  const servicesParam = (params.get("services") || params.get("service") || "").toLowerCase();
   const countryParam = (params.get("country") || params.get("c") || "").toLowerCase();
   const protoParam = (params.get("proto") || params.get("p") || "").toLowerCase();
   const formatParam = (params.get("format") || params.get("f") || "").toLowerCase();
+  const maxPingParam = parseFloat(params.get("max_ping") || params.get("ping") || "0");
   const limitParam = parseInt(params.get("limit") || params.get("n") || "30", 10);
   const smartGeo = params.get("geo") !== "0";
 
-  let baseFile = "all.txt";
-  if (protoParam === "reality" || protoParam === "vless") baseFile = "reality.txt";
-  else if (protoParam === "white" || protoParam === "ru") baseFile = "anti-whitelist.txt";
-  else if (protoParam === "trojan") baseFile = "trojan.txt";
-  else if (protoParam === "hy2") baseFile = "hysteria2.txt";
-  else if (protoParam === "ss") baseFile = "shadowsocks.txt";
+  let nodes = [];
 
-  const allText = await fetchFromGitHub(baseFile, ctx);
-  let nodes = allText.split("\n").map(l => l.trim()).filter(Boolean);
-
-  if (countryParam && countryParam !== "all") {
-    nodes = nodes.filter(n => {
-      const lower = n.toLowerCase();
-      if (countryParam === "de") return lower.includes("de") || lower.includes("germany") || lower.includes("fra");
-      if (countryParam === "nl") return lower.includes("nl") || lower.includes("netherlands") || lower.includes("ams");
-      if (countryParam === "kz") return lower.includes("kz") || lower.includes("kazakhstan") || lower.includes("ala");
-      if (countryParam === "fi") return lower.includes("fi") || lower.includes("finland") || lower.includes("hel");
-      if (countryParam === "tr") return lower.includes("tr") || lower.includes("turkey") || lower.includes("ist");
-      if (countryParam === "ru") return lower.includes(".ru") || lower.includes("russia") || lower.includes("mow");
-      return lower.includes(countryParam);
-    });
+  // Deep services filtering using sub/nodes.json if requested
+  if (servicesParam) {
+    const reqServices = servicesParam.split(",").map(s => s.trim()).filter(Boolean);
+    const nodesData = await fetchFromGitHub("nodes.json", ctx);
+    if (nodesData) {
+      try {
+        const parsed = JSON.parse(nodesData);
+        let list = parsed.nodes || [];
+        list = list.filter(n => reqServices.every(s => n.services && n.services[s]));
+        if (countryParam && countryParam !== "all") {
+          const countries = countryParam.split(",").map(c => c.trim().toLowerCase());
+          list = list.filter(n => countries.includes((n.country || "").toLowerCase()) || countries.some(c => n.uri.toLowerCase().includes(c)));
+        }
+        if (maxPingParam > 0) {
+          list = list.filter(n => (n.ping_ms || 999) <= maxPingParam);
+        }
+        if (protoParam && protoParam !== "all") {
+          list = list.filter(n => (n.protocol || "").toLowerCase().includes(protoParam) || n.uri.toLowerCase().startsWith(protoParam));
+        }
+        nodes = list.map(n => n.uri);
+      } catch (_) {}
+    }
   }
 
-  if (smartGeo && !countryParam) {
-    const preferred = ["kz", "fi", "de", "nl", "tr", "se"];
-    nodes.sort((a, b) => {
-      const aScore = preferred.findIndex(c => a.toLowerCase().includes(c));
-      const bScore = preferred.findIndex(c => b.toLowerCase().includes(c));
-      return (aScore === -1 ? 99 : aScore) - (bScore === -1 ? 99 : bScore);
-    });
+  // Fallback to static lists if no service filter or nodes.json unavailable
+  if (nodes.length === 0 && !servicesParam) {
+    let baseFile = "all.txt";
+    if (protoParam === "reality" || protoParam === "vless") baseFile = "reality.txt";
+    else if (protoParam === "white" || protoParam === "ru") baseFile = "anti-whitelist.txt";
+    else if (protoParam === "trojan") baseFile = "trojan.txt";
+    else if (protoParam === "hy2") baseFile = "hysteria2.txt";
+    else if (protoParam === "ss") baseFile = "shadowsocks.txt";
+
+    const allText = await fetchFromGitHub(baseFile, ctx);
+    nodes = allText.split("\n").map(l => l.trim()).filter(Boolean);
+
+    if (countryParam && countryParam !== "all") {
+      const countries = countryParam.split(",").map(c => c.trim().toLowerCase());
+      nodes = nodes.filter(n => {
+        const lower = n.toLowerCase();
+        return countries.some(c => {
+          if (c === "de") return lower.includes("de") || lower.includes("germany") || lower.includes("fra");
+          if (c === "nl") return lower.includes("nl") || lower.includes("netherlands") || lower.includes("ams");
+          if (c === "kz") return lower.includes("kz") || lower.includes("kazakhstan") || lower.includes("ala");
+          if (c === "fi") return lower.includes("fi") || lower.includes("finland") || lower.includes("hel");
+          if (c === "tr") return lower.includes("tr") || lower.includes("turkey") || lower.includes("ist");
+          if (c === "ru") return lower.includes(".ru") || lower.includes("russia") || lower.includes("mow");
+          return lower.includes(c);
+        });
+      });
+    }
+
+    if (smartGeo && !countryParam) {
+      const preferred = ["kz", "fi", "de", "nl", "tr", "se"];
+      nodes.sort((a, b) => {
+        const aScore = preferred.findIndex(c => a.toLowerCase().includes(c));
+        const bScore = preferred.findIndex(c => b.toLowerCase().includes(c));
+        return (aScore === -1 ? 99 : aScore) - (bScore === -1 ? 99 : bScore);
+      });
+    }
   }
 
   const resultNodes = nodes.slice(0, Math.min(limitParam, 300));
