@@ -166,26 +166,47 @@ export default function App() {
 
   // 5. Subscription URL Generation
   const subUrl = useMemo(() => {
-    if (activePreset === 'ai' || (selectedServices.includes('chatgpt') && selectedServices.includes('claude'))) {
-      return `${CDN_BASE}/services/ai-bundle.txt`;
-    }
-    if (activePreset === 'youtube' || selectedServices.includes('youtube')) {
-      return `${CDN_BASE}/services/youtube.txt`;
-    }
-    if (activePreset === 'anti-tspu' || selectedProto === 'reality') {
-      return `${CDN_BASE}/anti-whitelist.txt`;
-    }
-    if (selectedCountry === 'de') return `${CDN_BASE}/countries/de.txt`;
-    if (selectedCountry === 'nl') return `${CDN_BASE}/countries/nl.txt`;
-    if (selectedCountry === 'kz') return `${CDN_BASE}/countries/kz.txt`;
-    if (selectedCountry === 'fi') return `${CDN_BASE}/countries/fi.txt`;
-    if (selectedCountry === 'tr') return `${CDN_BASE}/countries/tr.txt`;
-    if (selectedCountry === 'ru') return `${CDN_BASE}/countries/ru.txt`;
+    // 1. Preset specific mappings
+    if (activePreset === 'anti-tspu') return `${CDN_BASE}/anti-whitelist.txt`;
+    if (activePreset === 'ai') return `${CDN_BASE}/services/ai-bundle.txt`;
+    if (activePreset === 'youtube') return `${CDN_BASE}/services/youtube.txt`;
+    if (activePreset === 'de') return `${CDN_BASE}/countries/de.txt`;
+    if (activePreset === 'nl') return `${CDN_BASE}/countries/nl.txt`;
 
-    if (selectedServices.length === 1) {
+    // 2. Service-driven selection
+    if (selectedServices.length > 0) {
+      if (selectedServices.length === 1) {
+        const s = selectedServices[0];
+        return `${CDN_BASE}/services/${s}.txt`;
+      }
+      // If multiple AI services picked (e.g. Claude + Gemini, ChatGPT + Claude, etc.)
+      const isAiOnly = selectedServices.every((s) =>
+        ['chatgpt', 'claude', 'gemini', 'perplexity'].includes(s)
+      );
+      if (isAiOnly) {
+        return `${CDN_BASE}/services/ai-bundle.txt`;
+      }
+      if (selectedServices.includes('youtube') && selectedServices.includes('discord')) {
+        return `${CDN_BASE}/services/youtube.txt`;
+      }
+      if (selectedServices.includes('claude') || selectedServices.includes('gemini')) {
+        return `${CDN_BASE}/services/ai-bundle.txt`;
+      }
       return `${CDN_BASE}/services/${selectedServices[0]}.txt`;
     }
 
+    // 3. Country-driven selection
+    if (selectedCountry && selectedCountry !== 'all') {
+      return `${CDN_BASE}/countries/${selectedCountry.toLowerCase()}.txt`;
+    }
+
+    // 4. Protocol-driven selection
+    if (selectedProto === 'reality') return `${CDN_BASE}/reality.txt`;
+    if (selectedProto === 'trojan') return `${CDN_BASE}/trojan.txt`;
+    if (selectedProto === 'hy2') return `${CDN_BASE}/hysteria2.txt`;
+    if (selectedProto === 'ss') return `${CDN_BASE}/shadowsocks.txt`;
+
+    // 5. Default
     return `${CDN_BASE}/top50.txt`;
   }, [activePreset, selectedServices, selectedCountry, selectedProto]);
 

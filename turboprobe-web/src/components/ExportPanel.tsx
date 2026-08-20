@@ -97,10 +97,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             {copiedUrl ? (
               <motion.div
                 key="check"
-                initial={{ opacity: 0, filter: 'blur(4px)', scale: 0.8, rotate: -180 }}
-                animate={{ opacity: 1, filter: 'blur(0px)', scale: 1, rotate: 0 }}
-                exit={{ opacity: 0, filter: 'blur(4px)', scale: 0.8 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
                 className="flex items-center gap-2 font-bold"
               >
                 <Check className="w-5 h-5 stroke-[3]" />
@@ -109,10 +109,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             ) : (
               <motion.div
                 key="copy"
-                initial={{ opacity: 0, filter: 'blur(4px)', scale: 0.8, rotate: 180 }}
-                animate={{ opacity: 1, filter: 'blur(0px)', scale: 1, rotate: 0 }}
-                exit={{ opacity: 0, filter: 'blur(4px)', scale: 0.8 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
                 className="flex items-center gap-2 font-bold"
               >
                 <Copy className="w-5 h-5" />
