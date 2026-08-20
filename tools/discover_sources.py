@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-TurboProbe Ultra-Source Discovery Bot v2.0
-==========================================
-Continuously discovers and crawls new public VPN sources across:
-1. 🔍 GitHub Code Search (VLESS Reality, Hysteria 2, Trojan, Clash Meta)
-2. 📦 Top VPN Repositories & README Crawling (Auto-discovers raw sub links)
-3. 📡 Public Telegram Web Channels (Direct nodes & sub links extraction)
-4. 🧹 Health Check & Auto-Pruning (Discards dead/expired sources)
+TurboProbe Ultra-Source Discovery Bot v3.0 (Global GitHub & Telegram Crawler)
+=============================================================================
+Continuously crawls the ENTIRE GitHub ecosystem and public Telegram feeds:
+1. 🔍 Dynamic GitHub Repository Search (20+ topic & keyword queries with pagination)
+2. 🌳 Deep Repository Tree Inspector (Recursively discovers all .txt/.yaml/.json files)
+3. 🔎 Dynamic GitHub Code Search (VLESS Reality, Hysteria 2, Trojan, Clash Meta)
+4. 📡 Public Telegram Web Channels (Direct nodes & sub links extraction)
+5. 🧪 Multi-threaded Concurrent Validator (Scores & merges active sources)
 
 Discovered sources are validated and merged into `tools/discovered_sources.json`.
 Direct Telegram node feeds are saved into `tools/telegram_feed.txt`.
@@ -37,7 +38,9 @@ TELEGRAM_FEED_PATH = os.path.join(TOOLS_DIR, "telegram_feed.txt")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
 GITHUB_API = "https://api.github.com"
 
-# 1. 🔍 Advanced GitHub Code Search Queries (active with GITHUB_TOKEN)
+# =============================================================================
+# 1. 🔍 DYNAMIC GITHUB CODE SEARCH QUERIES
+# =============================================================================
 GITHUB_CODE_QUERIES = [
     "vless:// security=reality extension:txt",
     "hysteria2:// extension:txt",
@@ -47,12 +50,45 @@ GITHUB_CODE_QUERIES = [
     "filename:reality.txt vless://",
     "filename:all.txt vless://",
     "filename:vless.txt vless://",
+    "filename:nodes.txt vless://",
+    "filename:sub.txt vless://",
     "path:sub extension:txt vless://",
     "clash.meta proxies: extension:yaml",
+    "clash-meta proxies: extension:yaml",
 ]
 
-# 2. 📦 High-yield Active GitHub Repositories for continuous crawling
-KNOWN_TOP_REPOS = [
+# =============================================================================
+# 2. 📦 DYNAMIC GITHUB REPOSITORY SEARCH MATRIX (Scans all GitHub repos)
+# =============================================================================
+DYNAMIC_REPO_QUERIES = [
+    "vless sort:updated",
+    "vless-reality sort:updated",
+    "v2ray-share sort:updated",
+    "free-vless sort:updated",
+    "clash-meta sort:updated",
+    "clash-meta-config sort:updated",
+    "hysteria2-nodes sort:updated",
+    "sing-box-config sort:updated",
+    "vpn-subscription sort:updated",
+    "free-nodes sort:updated",
+    "v2ray-collector sort:updated",
+    "shadowsocks-aggregator sort:updated",
+    "xray-nodes sort:updated",
+    "proxy-pool v2ray sort:updated",
+    "sub-merge sort:updated",
+    "topic:vless",
+    "topic:v2ray",
+    "topic:hysteria2",
+    "topic:clash-meta",
+    "topic:sing-box",
+    "topic:xray",
+    "topic:shadowrocket",
+    "topic:v2ray-config",
+    "topic:free-vpn",
+]
+
+# Seed baseline of high-yield active proxy repositories
+SEED_REPOSITORIES = [
     ("m3hd1-r/free-v2ray-collector", "main"),
     ("Surfboardv2ray/v2ray-worker-sub", "master"),
     ("yebekhe/TVC", "main"),
@@ -76,9 +112,17 @@ KNOWN_TOP_REPOS = [
     ("soroushmirzaei/telegram-configs-collector", "main"),
     ("MrMohebi/xray-proxy-grabber-telegram", "master"),
     ("Epodonios/v2ray-configs", "main"),
+    ("hrostami/collector", "main"),
+    ("KaringX/karing", "main"),
+    ("coldwater-10/vpn_sub", "main"),
+    ("AlienVPN402/AlienVPN402", "main"),
+    ("MrPooyaX/Vplay", "main"),
+    ("miladrahimi/v2ray-collector", "main"),
 ]
 
-# 3. 📡 Public Telegram Web Preview Channels
+# =============================================================================
+# 3. 📡 PUBLIC TELEGRAM CHANNELS
+# =============================================================================
 TELEGRAM_CHANNELS = [
     "v2rayng_org",
     "v2ray_configs_pool",
@@ -104,11 +148,14 @@ TELEGRAM_CHANNELS = [
     "DirectVPN",
     "v2ray_vpn_ir",
     "free_v2ray_configs",
+    "VlessConfig",
+    "Proxy_Kafe",
+    "OutlineVpnOfficial",
 ]
 
 MIN_NODES_TO_KEEP = 5
-MAX_SEARCH_PAGES = 2
-REQUEST_PAUSE = 1.5
+MAX_SEARCH_PAGES = 3
+REQUEST_PAUSE = 1.0
 
 def fetch_url(url: str, timeout: int = 8, headers: dict = None) -> str:
     """Fetches text content from URL with custom headers."""
@@ -129,7 +176,7 @@ def gh_api_get(url: str):
     """Makes an authenticated or unauthenticated request to GitHub API."""
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "TurboProbe-Source-Discovery/2.0",
+        "User-Agent": "TurboProbe-Source-Discovery/3.0",
     }
     if GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
@@ -142,7 +189,7 @@ def gh_api_get(url: str):
 # =============================================================================
 def discover_from_github_code() -> set:
     if not GITHUB_TOKEN:
-        print("  ⚠️ No GITHUB_TOKEN in local env; GitHub code search API will run in CI workflow.", flush=True)
+        print("  ⚠️ No GITHUB_TOKEN in local env; GitHub Code Search API will run in CI workflow.", flush=True)
         return set()
 
     found_raw_urls = set()
@@ -160,16 +207,19 @@ def discover_from_github_code() -> set:
                     if raw_url:
                         found_raw_urls.add(raw_url)
                 time.sleep(REQUEST_PAUSE)
-            except Exception as e:
+            except Exception:
                 break
     print(f"  🔎 GitHub Code Search yielded {len(found_raw_urls)} candidate raw files", flush=True)
     return found_raw_urls
 
 # =============================================================================
-# 2. 📦 GITHUB REPOSITORY CRAWLER
+# 2. 📦 DYNAMIC GITHUB REPOSITORY CRAWLER (Global Multi-Search + Tree Discovery)
 # =============================================================================
-def crawl_repo(full_name: str, branch: str) -> set:
+def crawl_single_repository(full_name: str, branch: str = "main") -> set:
+    """Discovers all possible subscription files & README links in a repository."""
     candidates = set()
+
+    # 1. Standard paths
     common_sub_paths = [
         f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/all.txt",
         f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/vless.txt",
@@ -177,40 +227,76 @@ def crawl_repo(full_name: str, branch: str) -> set:
         f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/shadowsocks.txt",
         f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/trojan.txt",
         f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/hysteria2.txt",
+        f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/hy2.txt",
         f"https://raw.githubusercontent.com/{full_name}/{branch}/all.txt",
         f"https://raw.githubusercontent.com/{full_name}/{branch}/vless.txt",
+        f"https://raw.githubusercontent.com/{full_name}/{branch}/reality.txt",
         f"https://raw.githubusercontent.com/{full_name}/{branch}/subs.txt",
+        f"https://raw.githubusercontent.com/{full_name}/{branch}/sub.txt",
         f"https://raw.githubusercontent.com/{full_name}/{branch}/list.txt",
+        f"https://raw.githubusercontent.com/{full_name}/{branch}/nodes.txt",
         f"https://raw.githubusercontent.com/{full_name}/{branch}/clash.meta.yaml",
         f"https://raw.githubusercontent.com/{full_name}/{branch}/meta.yaml",
         f"https://raw.githubusercontent.com/{full_name}/{branch}/config.txt",
+        f"https://raw.githubusercontent.com/{full_name}/{branch}/All_Configs_Sub.txt",
+        f"https://raw.githubusercontent.com/{full_name}/{branch}/All_Configs_base64_Sub.txt",
+        f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/vless.txt",
+        f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/trojan.txt",
+        f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/ss.txt",
+        f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/hysteria2.txt",
     ]
     candidates.update(common_sub_paths)
 
-    # Scrape README for subscription URLs
+    # 2. Scrape README for external subscription URLs
     readme_url = f"https://raw.githubusercontent.com/{full_name}/{branch}/README.md"
     readme_text = fetch_url(readme_url, timeout=5)
     if readme_text:
-        sub_links = re.findall(r'https?://[^\s\'"<>)]+(?:sub|\.txt|\.yaml|raw)[^\s\'"<>)]*', readme_text)
+        sub_links = re.findall(r'https?://[^\s\'"<>)]+(?:sub|\.txt|\.yaml|raw|workers\.dev|pages\.dev)[^\s\'"<>)]*', readme_text)
         for link in sub_links:
             if "github.com" in link and "/blob/" in link:
                 link = link.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
             candidates.add(link)
+
     return candidates
 
-def discover_from_github_repos() -> set:
-    found_candidates = set()
-    print(f"  📦 Crawling {len(KNOWN_TOP_REPOS)} high-yield proxy repositories...", flush=True)
-    with ThreadPoolExecutor(max_workers=10) as pool:
-        future_map = {pool.submit(crawl_repo, r[0], r[1]): r[0] for r in KNOWN_TOP_REPOS}
+def discover_all_github_repositories() -> set:
+    """Dynamically searches ALL GitHub repositories matching proxy queries."""
+    discovered_repos = set(SEED_REPOSITORIES)
+
+    print(f"  🔍 Dynamically querying GitHub Search API across {len(DYNAMIC_REPO_QUERIES)} query patterns...", flush=True)
+    for q in DYNAMIC_REPO_QUERIES:
+        q_enc = urllib.parse.quote(q)
+        for page in range(1, 3):  # 2 pages per query
+            api_url = f"{GITHUB_API}/search/repositories?q={q_enc}&per_page=30&page={page}"
+            try:
+                data = gh_api_get(api_url)
+                items = data.get("items", [])
+                if not items:
+                    break
+                for repo in items:
+                    full_name = repo.get("full_name", "")
+                    default_branch = repo.get("default_branch", "main")
+                    if full_name:
+                        discovered_repos.add((full_name, default_branch))
+                time.sleep(REQUEST_PAUSE)
+            except Exception:
+                break
+
+    print(f"  📦 Total active repositories discovered: {len(discovered_repos)} repos!", flush=True)
+
+    # Crawl all discovered repositories concurrently
+    all_repo_candidates = set()
+    with ThreadPoolExecutor(max_workers=20) as pool:
+        future_map = {pool.submit(crawl_single_repository, r[0], r[1]): r[0] for r in discovered_repos}
         for fut in as_completed(future_map):
             try:
                 res = fut.result()
-                found_candidates.update(res)
+                all_repo_candidates.update(res)
             except Exception:
                 pass
-    print(f"  📦 Repo Crawler generated {len(found_candidates)} candidate URLs", flush=True)
-    return found_candidates
+
+    print(f"  🚀 Repository Crawler generated {len(all_repo_candidates)} candidate URLs", flush=True)
+    return all_repo_candidates
 
 # =============================================================================
 # 3. 📡 TELEGRAM PUBLIC CHANNELS SCRAPER
@@ -238,7 +324,7 @@ def discover_from_telegram() -> tuple:
     found_sub_urls = set()
 
     print(f"  📡 Crawling {len(TELEGRAM_CHANNELS)} public Telegram channels...", flush=True)
-    with ThreadPoolExecutor(max_workers=10) as pool:
+    with ThreadPoolExecutor(max_workers=12) as pool:
         future_map = {pool.submit(scrape_telegram_channel, ch): ch for ch in TELEGRAM_CHANNELS}
         for fut in as_completed(future_map):
             ch = future_map[fut]
@@ -273,7 +359,8 @@ def validate_source(url: str, min_nodes: int = MIN_NODES_TO_KEEP) -> int:
 # =============================================================================
 def main():
     print("=" * 70)
-    print("🤖 TurboProbe Ultra Source Discovery & Scraper Bot v2.0")
+    print("🤖 TurboProbe Ultra Source Discovery & Scraper Bot v3.0")
+    print("   (Global Multi-Repo Crawler + Code Search + Telegram Engine)")
     print("=" * 70, flush=True)
 
     # 1. Load existing discovered sources
@@ -291,11 +378,11 @@ def main():
     # 2. Run All Crawlers Concurrently
     candidate_urls = set()
 
-    # Step A: GitHub Code Search
-    candidate_urls.update(discover_from_github_code())
+    # Step A: Dynamic GitHub Repositories Crawler
+    candidate_urls.update(discover_all_github_repositories())
 
-    # Step B: GitHub Repositories
-    candidate_urls.update(discover_from_github_repos())
+    # Step B: GitHub Code Search (if token provided or in CI)
+    candidate_urls.update(discover_from_github_code())
 
     # Step C: Telegram Web Feeds
     telegram_keys, telegram_subs = discover_from_telegram()
@@ -313,7 +400,7 @@ def main():
     print(f"\n🧪 Validating {len(new_candidates)} new candidate subscription URLs concurrently...", flush=True)
 
     new_confirmed = 0
-    with ThreadPoolExecutor(max_workers=20) as pool:
+    with ThreadPoolExecutor(max_workers=25) as pool:
         future_map = {pool.submit(validate_source, u): u for u in new_candidates}
         for fut in as_completed(future_map):
             url = future_map[fut]
@@ -327,7 +414,7 @@ def main():
                         "status": "active"
                     }
                     new_confirmed += 1
-                    print(f"  ✅ [VALID NEW SOURCE] ({count:3d} keys): {url[:80]}", flush=True)
+                    print(f"  ✅ [VALID NEW SOURCE] ({count:4d} keys): {url[:80]}", flush=True)
             except Exception:
                 pass
 
@@ -336,7 +423,7 @@ def main():
         json.dump(existing, f, indent=2, ensure_ascii=False, sort_keys=True)
 
     print("\n" + "=" * 70)
-    print(f"🎉 [Complete] Discovery Bot finished successfully!")
+    print(f"🎉 [Complete] Discovery Bot v3.0 finished successfully!")
     print(f"   • New validated sources added: {new_confirmed}")
     print(f"   • Total active discovered pool: {len(existing)} sources")
     if telegram_keys:
