@@ -592,7 +592,7 @@ async def async_check_node_ping(sem: asyncio.Semaphore, node: str, timeout: floa
 
 async def async_run_latency_benchmark(candidate_uris: list, concurrency: int = 5000) -> list:
     sem = asyncio.Semaphore(concurrency)
-    tasks = [async_check_node_ping(sem, node, timeout=0.25) for node in candidate_uris]
+    tasks = [async_check_node_ping(sem, node, timeout=0.85) for node in candidate_uris]
     return await asyncio.gather(*tasks, return_exceptions=True)
 
 def main():
@@ -696,7 +696,7 @@ def main():
         candidate_uris = candidate_uris[:args.limit]
 
     # 3. ⚡ Ultra-Speed AsyncIO SYN / Latency Benchmark (5000 concurrent sockets)
-    print(f"🩺 [AsyncIO Latency Engine] Benchmarking {len(candidate_uris)} nodes (timeout: 0.25s, 5000 async sockets)...", flush=True)
+    print(f"🩺 [AsyncIO Latency Engine] Benchmarking {len(candidate_uris)} nodes (timeout: 0.85s, 5000 async sockets)...", flush=True)
     t_bench_start = time.perf_counter()
     alive_tuples = []  # list of (formatted_uri, ping_ms, raw_key, health)
     
@@ -705,7 +705,7 @@ def main():
     except Exception:
         bench_results = []
         with ThreadPoolExecutor(max_workers=3500) as checker:
-            future_to_node = {checker.submit(check_node_ping, node, 0.25): node for node in candidate_uris}
+            future_to_node = {checker.submit(check_node_ping, node, 0.85): node for node in candidate_uris}
             for future in as_completed(future_to_node):
                 try:
                     bench_results.append(future.result())
