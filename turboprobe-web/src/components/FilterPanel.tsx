@@ -145,7 +145,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08] space-y-5">
         {/* Top: Quick 1-Click Presets */}
         <div>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-zinc-300" />
               Быстрые пресеты (1 клик)
@@ -155,7 +155,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {PRESETS.map((preset) => {
               const isActive = activePreset === preset.id;
               const isCountry = preset.id === 'de' || preset.id === 'nl';
@@ -167,9 +167,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                   onClick={() => onSelectPreset(preset)}
                   type="button"
-                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none ${
+                  className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none ${
                     isActive
-                      ? 'bg-white text-zinc-950 border-white shadow-lg'
+                      ? 'bg-white text-zinc-950 border-white shadow-lg shadow-white/10'
                       : 'bg-zinc-800/60 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
                   }`}
                 >
@@ -190,7 +190,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
         {/* Bottom: Target Services Selection */}
         <div>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-zinc-300" />
               Выбор сервисов (Мультивыбор)
@@ -202,7 +202,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {SERVICES.map((srv) => {
               const isSelected = selectedServices.includes(srv.id);
               const Icon = srv.icon;
@@ -214,7 +214,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                   onClick={() => onToggleService(srv.id)}
                   type="button"
-                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium border transition-all cursor-pointer select-none ${
+                  className={`inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium border transition-all cursor-pointer select-none ${
                     isSelected
                       ? 'bg-zinc-100 text-zinc-950 font-bold border-white shadow-md'
                       : 'bg-zinc-900/80 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
@@ -229,7 +229,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         </div>
       </div>
 
-      {/* 3. Country & Protocol Selection */}
+      {/* 2. Country & Protocol Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Country */}
         <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
@@ -238,7 +238,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             Локация серверов
           </span>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {COUNTRIES.map((c) => {
               const isSelected = selectedCountry === c.code;
 
@@ -249,7 +249,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                   onClick={() => onSelectCountry(c.code)}
                   type="button"
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
+                  className={`inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
                     isSelected
                       ? 'bg-zinc-100 text-zinc-950 font-bold border-white'
                       : 'bg-zinc-900/80 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
@@ -270,7 +270,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             Протокол шифрования
           </span>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             {PROTOCOLS.map((p) => {
               const isSelected = selectedProto === p.id;
 
@@ -281,7 +281,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                   onClick={() => onSelectProto(p.id)}
                   type="button"
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
+                  className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
                     isSelected
                       ? 'bg-zinc-100 text-zinc-950 font-bold border-white'
                       : 'bg-zinc-900/80 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
