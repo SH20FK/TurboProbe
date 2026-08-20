@@ -1,19 +1,5 @@
 import * as React from "react"
 import { useEffect, useRef } from "react"
-import { animate, motionValue } from "framer-motion"
-
-type Motion = {
-    type?: "spring" | "tween" | "keyframes" | "inertia"
-    duration?: number
-    ease?: [number, number, number, number]
-    delay?: number
-    stiffness?: number
-    damping?: number
-    mass?: number
-    bounce?: number
-    restSpeed?: number
-    restDelta?: number
-}
 
 const FIELD_W = 3600
 const FIELD_D = 7000
@@ -31,7 +17,6 @@ const CAM_Y_FULL = 550
 const CAM_REF_AREA = 1200 * 800
 const CAM_SCALE_MIN = 0.5
 const CAM_SCALE_MAX = 2.5
-const CURSOR_FOLLOW = 7
 
 const VERT = `
 precision highp float;
@@ -56,10 +41,6 @@ uniform float uDot;
 uniform float uColorCount;
 uniform vec2  uJit;
 uniform vec3  uColors[8];
-uniform vec3  uCursor;
-uniform float uCurR;
-uniform float uCurS;
-uniform float uHover;
 
 varying vec3  vCol;
 varying float vA;
@@ -87,12 +68,6 @@ void main() {
     float h3 = fract(sin(dot(aSeed, vec2(91.37, 47.13))) * 12345.678);
     float h = surf(w * uFreq - uDir * uTime) * uAmp + (h3 - 0.5) * uScatter;
 
-    float cd = length(w - uCursor.xy);
-    float g = exp(-(cd * cd) / (uCurR * uCurR)) * uCursor.z;
-    h += g * uCurS;
-
-    float g2 = g * g; g2 = g2 * g2; g2 = g2 * g2;
-
     vec3 p = vec3(w.x, h - uCamY, w.y - uCamZ);
     float c = cos(uPitch);
     float s = sin(uPitch);
@@ -118,7 +93,7 @@ void main() {
     gl_Position = vec4(sx / (uRes.x * 0.5), sy / (uRes.y * 0.5), 0.0, 1.0);
 
     float rad = max(uDot * uFocal / rz, 0.55);
-    gl_PointSize = clamp(rad * 2.0 * (1.0 + g2 * uHover * 0.20), 1.0, 220.0);
+    gl_PointSize = clamp(rad * 2.0, 1.0, 220.0);
 
     float bri = 0.28 + h3 * 0.72;
     vec2 bq = w * vec2(0.0040, 0.0032) - uDir * uTime * 0.30;
@@ -127,12 +102,12 @@ void main() {
 
     vCol = pickColor(sel);
     float lum = dot(vCol, vec3(0.299, 0.587, 0.114));
-    vHot = (0.25 + 0.75 * lum) * bri * bri * 0.7 + g2 * uHover * 0.55;
+    vHot = (0.25 + 0.75 * lum) * bri * bri * 0.7;
 
     float fog = (1.0 - smoothstep(2800.0, 6400.0, rz))
               * smoothstep(70.0, 240.0, rz);
 
-    vA = bri * fog * (1.0 + g2 * uHover * 0.55);
+    vA = bri * fog;
 }
 `
 
@@ -202,11 +177,6 @@ interface TiltGroup {
     tiltStart: number
     rollStart: number
 }
-interface CursorGroup {
-    cursorRadius: number
-    cursorLift: number
-    hoverGlow?: number
-}
 
 interface Props {
     background?: string
@@ -217,45 +187,32 @@ interface Props {
     cameraHeight?: number
     wave?: Partial<WaveGroup>
     tilt?: Partial<TiltGroup>
-    cursor?: Partial<CursorGroup>
-    transition?: Motion
     flowSpeed?: number
     className?: string
     style?: React.CSSProperties
 }
 
 const FLOW_PER_WAVE = 260 / 160
-const GLOW_PER_LIFT = 100 / 45
 
 function ScrollWaveFieldBase(props: Props) {
     const {
         background = "transparent",
         colors: colorsProp,
         density = 160,
-        dotSize = 2.5,
+        dotSize = 2.2,
         scatter = 240,
         cameraHeight = 55,
         wave = { waveSpeed: 80, waveHeight: 160, waveLength: 3500 },
         tilt = { rollStart: 0, tiltStart: 7 },
-        cursor = { cursorLift: 45, cursorRadius: 80 },
-        transition = { mass: 1, type: "spring", delay: 0, damping: 60, stiffness: 800 },
         flowSpeed: flowSpeedLegacy,
         className,
         style,
     } = props
 
-    const hoverMV = useRef(motionValue(0)).current
-    const pressMV = useRef(motionValue(0)).current
-    const transitionRef = useRef(transition)
-    transitionRef.current = transition
-
     const { waveHeight = 160, waveLength = 3500, waveSpeed = 80 } = wave
     const colors = colorsProp ?? DEFAULT_COLORS
     const { tiltStart = 7, rollStart = 0 } = tilt
-    const { cursorRadius = 80, cursorLift = 45, hoverGlow: hoverGlowLegacy } = cursor
-
     const flowSpeed = flowSpeedLegacy ?? waveSpeed * FLOW_PER_WAVE
-    const hoverGlow = hoverGlowLegacy ?? Math.min(400, Math.abs(cursorLift) * GLOW_PER_LIFT)
 
     const hostRef = useRef<HTMLDivElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -272,9 +229,6 @@ function ScrollWaveFieldBase(props: Props) {
         tiltStart,
         rollStart,
         cameraHeight,
-        cursorRadius,
-        cursorLift,
-        hoverGlow,
     })
     live.current = {
         colors,
@@ -288,21 +242,7 @@ function ScrollWaveFieldBase(props: Props) {
         tiltStart,
         rollStart,
         cameraHeight,
-        cursorRadius,
-        cursorLift,
-        hoverGlow,
     }
-
-    const pointer = useRef({
-        x: 0,
-        y: 0,
-        sx: 0,
-        sy: 0,
-        active: 0,
-        target: 0,
-        press: 0,
-        pressTarget: 0,
-    })
 
     useEffect(() => {
         const host = hostRef.current
@@ -348,10 +288,6 @@ function ScrollWaveFieldBase(props: Props) {
             colorCount: U("uColorCount"),
             jit: U("uJit"),
             colors: U("uColors[0]"),
-            cursor: U("uCursor"),
-            curR: U("uCurR"),
-            curS: U("uCurS"),
-            hover: U("uHover"),
         }
 
         const gridBuf = gl.createBuffer()!
@@ -424,75 +360,10 @@ function ScrollWaveFieldBase(props: Props) {
         const ro = new ResizeObserver(resize)
         ro.observe(canvas)
 
-        let hoverAnim: { stop: () => void } | null = null
-        let pressAnim: { stop: () => void } | null = null
-        const gateHover = (to: number) => {
-            if (pointer.current.target === to) return
-            pointer.current.target = to
-            hoverAnim?.stop()
-            hoverAnim = animate(hoverMV, to, transitionRef.current)
-        }
-        const gatePress = (to: number) => {
-            if (pointer.current.pressTarget === to) return
-            pointer.current.pressTarget = to
-            pressAnim?.stop()
-            pressAnim = animate(pressMV, to, transitionRef.current)
-        }
-        const onMove = (e: PointerEvent) => {
-            const r = host.getBoundingClientRect()
-            const zx = r.width > 0 ? host.clientWidth / r.width : 1
-            const zy = r.height > 0 ? host.clientHeight / r.height : 1
-            pointer.current.x = (e.clientX - r.left) * zx
-            pointer.current.y = (e.clientY - r.top) * zy
-            gateHover(1)
-        }
-        const onLeave = () => {
-            gateHover(0)
-            gatePress(0)
-        }
-        const onDown = () => gatePress(1)
-        const onUp = () => gatePress(0)
-
-        window.addEventListener("pointermove", onMove)
-        window.addEventListener("pointerleave", onLeave)
-        window.addEventListener("pointerdown", onDown)
-        window.addEventListener("pointercancel", onUp)
-        window.addEventListener("pointerup", onUp)
-
         let raf = 0
         let last = performance.now()
         let phase = 0
         let flow = 0
-        let hitX = 0
-        let hitZ = -1e6
-
-        const groundHit = (
-            mx: number,
-            my: number,
-            wDev: number,
-            hDev: number,
-            focal: number,
-            pitch: number,
-            roll: number,
-            camY: number,
-            camZ: number
-        ) => {
-            const px = mx * dpr - wDev / 2
-            const py = -(my * dpr - hDev / 2)
-            const cr = Math.cos(roll)
-            const sr = Math.sin(roll)
-            const sx = px * cr + py * sr
-            const sy = -px * sr + py * cr
-            const dx = sx / focal
-            const dy = sy / focal
-            const c = Math.cos(pitch)
-            const s = Math.sin(pitch)
-            const wy = dy * c - s
-            const wz = dy * s + c
-            if (wy > -1e-4) return null
-            const t = -camY / wy
-            return { x: dx * t, z: camZ + wz * t }
-        }
 
         const frame = (now: number) => {
             raf = requestAnimationFrame(frame)
@@ -508,22 +379,8 @@ function ScrollWaveFieldBase(props: Props) {
             if (L.density !== builtDensity) buildGrid(L.density)
             if (count === 0) return
 
-            const p = pointer.current
-            p.active = hoverMV.get()
-            p.press = pressMV.get()
-            const speedMul = 1 + p.press
-
-            if (p.active < 0.002) {
-                p.sx = p.x
-                p.sy = p.y
-            } else {
-                const k = 1 - Math.exp(-dt * CURSOR_FOLLOW)
-                p.sx += (p.x - p.sx) * k
-                p.sy += (p.y - p.sy) * k
-            }
-
-            phase += dt * (L.waveSpeed / 100) * speedMul
-            flow = (flow + dt * L.flowSpeed * speedMul) % FIELD_D
+            phase += dt * (L.waveSpeed / 100)
+            flow = (flow + dt * L.flowSpeed) % FIELD_D
 
             const pitch = (L.tiltStart * Math.PI) / 180
             const roll = (-L.rollStart * Math.PI) / 180
@@ -536,32 +393,6 @@ function ScrollWaveFieldBase(props: Props) {
             const wDev = canvas.width
             const hDev = canvas.height
             const focal = hDev / (2 * Math.tan(((FOV / 2) * Math.PI) / 180))
-
-            if (p.active <= 0.001) {
-                hitX = 0
-                hitZ = -1e6
-            } else {
-                const hit = groundHit(
-                    p.sx,
-                    p.sy,
-                    wDev,
-                    hDev,
-                    focal,
-                    pitch,
-                    roll,
-                    camY,
-                    camZ
-                )
-                if (hit) {
-                    hitX = hit.x
-                    hitZ = hit.z
-                } else if (hitZ === -1e6) {
-                    hitX = 0
-                    hitZ = FIELD_D
-                }
-            }
-            const hx = hitX
-            const hz = hitZ
 
             const pal =
                 Array.isArray(L.colors) && L.colors.length > 0
@@ -591,13 +422,6 @@ function ScrollWaveFieldBase(props: Props) {
             gl.uniform1f(u.colorCount, pal.length)
             gl.uniform2f(u.jit, spacingX * 0.25, spacingZ * 0.7)
             gl.uniform3fv(u.colors, palBuf)
-            gl.uniform3f(u.cursor, hx, hz, p.active)
-            gl.uniform1f(
-                u.curR,
-                Math.max(1, (L.cursorRadius / 100) * (FIELD_W / 2))
-            )
-            gl.uniform1f(u.curS, L.cursorLift)
-            gl.uniform1f(u.hover, L.hoverGlow / 100)
 
             gl.bindBuffer(gl.ARRAY_BUFFER, gridBuf)
             gl.enableVertexAttribArray(aGrid)
@@ -615,13 +439,6 @@ function ScrollWaveFieldBase(props: Props) {
         return () => {
             cancelAnimationFrame(raf)
             ro.disconnect()
-            hoverAnim?.stop()
-            pressAnim?.stop()
-            window.removeEventListener("pointermove", onMove)
-            window.removeEventListener("pointerleave", onLeave)
-            window.removeEventListener("pointerdown", onDown)
-            window.removeEventListener("pointercancel", onUp)
-            window.removeEventListener("pointerup", onUp)
         }
     }, [])
 
@@ -673,17 +490,6 @@ const __originkitPresetProps: Props = {
     rollStart: 0,
     tiltStart: 7
   },
-  cursor: {
-    cursorLift: 45,
-    cursorRadius: 100
-  },
-  transition: {
-    type: "spring",
-    stiffness: 800,
-    damping: 60,
-    mass: 1,
-    delay: 0
-  }
 };
 
 export const ScrollWaveField = React.memo(function ScrollWaveField(props: Props) {
