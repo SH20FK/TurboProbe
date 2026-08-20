@@ -43,8 +43,25 @@ import platform
 import tempfile
 import subprocess
 import urllib.parse
+import urllib.request
+import socket
+import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
+
+try:
+    import orjson
+    def fast_json_dumps(obj, indent=True) -> str:
+        opt = orjson.OPT_INDENT_2 if indent else 0
+        return orjson.dumps(obj, option=opt).decode('utf-8')
+    def fast_json_loads(s):
+        if isinstance(s, (bytes, bytearray)): return orjson.loads(s)
+        return orjson.loads(s.encode('utf-8'))
+except Exception:
+    def fast_json_dumps(obj, indent=True) -> str:
+        return json.dumps(obj, indent=2 if indent else None, ensure_ascii=False)
+    def fast_json_loads(s):
+        return json.loads(s)
 
 try:
     import requests
@@ -773,21 +790,33 @@ def main():
         n["health"] = 99.0
 
     # 💾 Save sub/nodes.json & sub/preview.json
+    nodes_payload = {
+        "version": "2.0",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "total_nodes": len(verified_alive_nodes),
+        "nodes": verified_alive_nodes,
+    }
+    preview_payload = {
+        "version": "2.0",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "total_nodes": len(verified_alive_nodes),
+        "nodes": verified_alive_nodes[:100],
+    }
+
     with open(os.path.join(SUB_DIR, "nodes.json"), "w", encoding="utf-8") as f:
-        json.dump({
-            "version": "2.0",
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "total_nodes": len(verified_alive_nodes),
-            "nodes": verified_alive_nodes,
-        }, f, indent=2, ensure_ascii=False)
+        f.write(fast_json_dumps(nodes_payload))
 
     with open(os.path.join(SUB_DIR, "preview.json"), "w", encoding="utf-8") as f:
-        json.dump({
-            "version": "2.0",
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "total_nodes": len(verified_alive_nodes),
-            "nodes": verified_alive_nodes[:100],
-        }, f, indent=2, ensure_ascii=False)
+        f.write(fast_json_dumps(preview_payload))
+
+    # Also sync docs/sub/preview.json for GitHub Pages
+    docs_sub_dir = os.path.join(ROOT_DIR, "docs", "sub")
+    os.makedirs(docs_sub_dir, exist_ok=True)
+    with open(os.path.join(docs_sub_dir, "preview.json"), "w", encoding="utf-8") as f:
+        f.write(fast_json_dumps(preview_payload))
+    with open(os.path.join(docs_sub_dir, "nodes.json"), "w", encoding="utf-8") as f:
+        f.write(fast_json_dumps(nodes_payload))
+
     print("💾 Saved sub/nodes.json and sub/preview.json with genuine verified flags", flush=True)
 
     # 🎯 Generate Service-Specific Subscriptions with GENUINE working nodes ONLY

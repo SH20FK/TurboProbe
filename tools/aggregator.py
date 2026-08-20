@@ -23,6 +23,20 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 try:
+    import orjson
+    def fast_json_dumps(obj, indent=True) -> str:
+        opt = orjson.OPT_INDENT_2 if indent else 0
+        return orjson.dumps(obj, option=opt).decode('utf-8')
+    def fast_json_loads(s):
+        if isinstance(s, (bytes, bytearray)): return orjson.loads(s)
+        return orjson.loads(s.encode('utf-8'))
+except Exception:
+    def fast_json_dumps(obj, indent=True) -> str:
+        return json.dumps(obj, indent=2 if indent else None, ensure_ascii=False)
+    def fast_json_loads(s):
+        return json.loads(s)
+
+try:
     sys.stdout.reconfigure(encoding='utf-8')
 except Exception:
     pass
@@ -40,8 +54,8 @@ def load_node_history() -> dict:
     """Loads persistent cumulative history and check counters for all nodes."""
     if os.path.isfile(NODE_HISTORY_PATH):
         try:
-            with open(NODE_HISTORY_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
+            with open(NODE_HISTORY_PATH, "rb") as f:
+                return fast_json_loads(f.read())
         except Exception:
             return {}
     return {}
@@ -53,7 +67,7 @@ def save_node_history(history_map: dict):
         history_map = dict(items)
     try:
         with open(NODE_HISTORY_PATH, "w", encoding="utf-8") as f:
-            json.dump(history_map, f, indent=2, ensure_ascii=False)
+            f.write(fast_json_dumps(history_map))
     except Exception as e:
         print(f"⚠️ Failed to save node_history.json: {e}")
 
@@ -61,8 +75,8 @@ def load_dead_nodes() -> dict:
     """Loads persistent blacklisted dead nodes to skip dead keys on future crawls."""
     if os.path.isfile(DEAD_NODES_PATH):
         try:
-            with open(DEAD_NODES_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
+            with open(DEAD_NODES_PATH, "rb") as f:
+                return fast_json_loads(f.read())
         except Exception:
             return {}
     return {}
