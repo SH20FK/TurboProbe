@@ -477,14 +477,12 @@ def main():
 
     print(f"🚀 [TurboProbe Ultra-Speed Engine v5.0] Crawling from {len(all_sources)} verified sources "
           f"({len(SOURCES)} seed + {len(extra_sources)} auto-discovered)...")
-    os.makedirs(SUB_DIR, exist_ok=True)
-    
     fetched_count = 0
     all_uris = []
     direct_ru_fetched = {}
 
-    # 1. Concurrent Fetching (50 workers)
-    with ThreadPoolExecutor(max_workers=50) as executor:
+    # 1. Concurrent Fetching (100 workers)
+    with ThreadPoolExecutor(max_workers=100) as executor:
         future_to_url = {executor.submit(fetch_url, url): url for url in all_sources}
         for future in as_completed(future_to_url):
             url = future_to_url[future]
@@ -540,13 +538,18 @@ def main():
     if skipped_dead:
         print(f"  🚫 Purged {skipped_dead} persistent dead keys from crawl pool.")
 
-    # 3. ⚡ High-Speed Multi-Threaded Latency Benchmark & Dead-Node Purge (250 workers)
-    print(f"🩺 Starting concurrent latency benchmark across {len(candidate_uris)} nodes (timeout: 0.45s, 250 threads)...", flush=True)
+    # 3. ⚡ High-Speed Turbo Multi-Threaded Latency Benchmark (1000 workers)
+    print(f"🩺 Starting ultra-speed latency benchmark across {len(candidate_uris)} nodes (timeout: 0.40s, 1000 threads)...", flush=True)
     alive_tuples = []  # list of (formatted_uri, ping_ms, raw_key)
+    checked_count = 0
+    total_candidates = len(candidate_uris)
     
-    with ThreadPoolExecutor(max_workers=250) as checker:
-        future_to_node = {checker.submit(check_node_ping, node, 0.45): node for node in candidate_uris}
+    with ThreadPoolExecutor(max_workers=1000) as checker:
+        future_to_node = {checker.submit(check_node_ping, node, 0.40): node for node in candidate_uris}
         for future in as_completed(future_to_node):
+            checked_count += 1
+            if checked_count % 50000 == 0 or checked_count == total_candidates:
+                print(f"  ⚡ Benchmarked {checked_count}/{total_candidates} nodes ({len(alive_tuples)} alive so far)...", flush=True)
             try:
                 uri, ping_ms = future.result()
                 k = get_node_key(uri)
