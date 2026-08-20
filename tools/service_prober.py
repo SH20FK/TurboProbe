@@ -389,26 +389,7 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
     })
 
-    # Step 1: Additional HTTP GET Probe (Low-latency 204 connectivity test)
-    http_get_ok = False
-    http_get_ping_ms = 999.0
-    try:
-        t0 = time.perf_counter()
-        resp_http = session.get("http://cp.cloudflare.com/generate_204", timeout=PROBE_TIMEOUT, verify=False)
-        if resp_http.status_code in [200, 204]:
-            http_get_ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
-            http_get_ok = True
-    except Exception:
-        try:
-            t0 = time.perf_counter()
-            resp_http = session.get("http://connectivitycheck.gstatic.com/generate_204", timeout=PROBE_TIMEOUT, verify=False)
-            if resp_http.status_code in [200, 204]:
-                http_get_ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
-                http_get_ok = True
-        except Exception:
-            pass
-
-    # Step 2: Real HTTPS Liveness & Real GeoIP check
+    # Step 1: Real HTTPS Liveness & Real GeoIP check (Cloudflare Trace)
     real_country = None
     real_ping_ms = 999.0
     is_alive = False
@@ -426,28 +407,19 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
     except Exception:
         pass
 
-    # Fallback GeoIP check if Cloudflare trace didn't respond
+    # Step 2: Fallback to HTTP 204 if HTTPS failed
     if not is_alive:
         try:
             t0 = time.perf_counter()
-            resp = session.get("http://ip-api.com/json", timeout=PROBE_TIMEOUT)
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get("status") == "success":
-                    real_ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
-                    is_alive = True
-                    real_country = data.get("countryCode", "GLOBAL").upper()
+            resp_http = session.get("http://cp.cloudflare.com/generate_204", timeout=PROBE_TIMEOUT, verify=False)
+            if resp_http.status_code in [200, 204]:
+                real_ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
+                is_alive = True
+                real_country = "GLOBAL"
         except Exception:
             pass
 
-    # Merge HTTP GET and HTTPS results: Pick best latency
-    if is_alive and http_get_ok:
-        real_ping_ms = min(real_ping_ms, http_get_ping_ms)
-    elif http_get_ok and not is_alive:
-        is_alive = True
-        real_ping_ms = http_get_ping_ms
-
-    # If the tunnel cannot even connect to GeoIP/Cloudflare/HTTP-204, it is DEAD.
+    # If the tunnel cannot connect to Cloudflare, it is DEAD.
     if not is_alive:
         return (False, "GLOBAL", 9999.0, {})
 
