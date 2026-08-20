@@ -166,6 +166,8 @@ export default function App() {
 
   // 5. Subscription URL Generation (Dynamic Worker URL)
   const subUrl = useMemo(() => {
+    const baseUrl = 'https://sub.turboprobe.workers.dev/sub';
+
     // 1. If custom dynamic filtering is active
     const params = new URLSearchParams();
 
@@ -187,18 +189,18 @@ export default function App() {
 
     const queryStr = params.toString();
     if (queryStr) {
-      return `https://turboprobe.workers.dev/sub?${queryStr}`;
+      return `${baseUrl}?${queryStr}`;
     }
 
     // 2. Preset REST endpoints
-    if (activePreset === 'anti-tspu') return 'https://turboprobe.workers.dev/sub/anti-tspu';
-    if (activePreset === 'ai') return 'https://turboprobe.workers.dev/sub/ai';
-    if (activePreset === 'youtube') return 'https://turboprobe.workers.dev/sub/youtube';
-    if (activePreset === 'de') return 'https://turboprobe.workers.dev/sub/de';
-    if (activePreset === 'nl') return 'https://turboprobe.workers.dev/sub/nl';
+    if (activePreset === 'anti-tspu') return `${baseUrl}/anti-tspu`;
+    if (activePreset === 'ai') return `${baseUrl}/ai`;
+    if (activePreset === 'youtube') return `${baseUrl}/youtube`;
+    if (activePreset === 'de') return `${baseUrl}/de`;
+    if (activePreset === 'nl') return `${baseUrl}/nl`;
 
     // 3. Default top live subscription
-    return 'https://turboprobe.workers.dev/sub';
+    return baseUrl;
   }, [activePreset, selectedServices, selectedCountry, selectedProto, maxPing, minHealth]);
 
   const allFilteredKeys = useMemo(() => {

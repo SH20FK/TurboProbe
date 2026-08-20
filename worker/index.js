@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ⚡ TurboProbe Dynamic Subscription Worker
  * Multi-service on-the-fly proxy aggregator & filter
  *
@@ -30,23 +30,13 @@ export default {
       });
     }
 
-    // 2. Health check / Root endpoint
-    if (path === '/' || path === '/health') {
+    // 2. Health check endpoint (explicitly /health only)
+    if (path === '/health') {
       return new Response(
         JSON.stringify({
           status: 'ok',
           project: 'TurboProbe Dynamic Subscription Generator',
-          usage: '/sub?services=chatgpt,gemini&country=de',
-          endpoints: [
-            '/sub',
-            '/sub/ai',
-            '/sub/youtube',
-            '/sub/anti-tspu',
-            '/sub/chatgpt+gemini',
-            '/sub/de',
-            '/sub/nl',
-            '/sub/clash'
-          ]
+          usage: '/?services=chatgpt,gemini&country=de'
         }, null, 2),
         {
           headers: {
@@ -67,29 +57,40 @@ export default {
       let limit = parseInt(url.searchParams.get('limit') || '50', 10);
       let format = (url.searchParams.get('format') || 'plain').toLowerCase();
 
-      // Query param services
+      // Direct query parameters (e.g. ?services=chatgpt,gemini OR ?chatgpt,gemini)
       const servicesParam = url.searchParams.get('services') || url.searchParams.get('service') || url.searchParams.get('srv');
       if (servicesParam) {
         services = servicesParam.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      } else {
+        // Support shorthand ?chatgpt,gemini or ?de
+        for (const [key, val] of url.searchParams.entries()) {
+          if (val === '' && key) {
+            if (['de', 'nl', 'kz', 'fi', 'tr', 'ru', 'se', 'us', 'sg'].includes(key.toLowerCase())) {
+              country = key.toLowerCase();
+            } else {
+              services.push(key.toLowerCase());
+            }
+          }
+        }
       }
 
-      // RESTful path parsing (e.g. /sub/ai, /sub/chatgpt+gemini, /sub/de)
-      if (path.startsWith('/sub/')) {
-        const subPath = path.replace('/sub/', '').trim();
-        if (subPath === 'ai' || subPath === 'ai-bundle') {
+      // RESTful path parsing (e.g. /ai, /chatgpt+gemini, /de, /sub/ai)
+      const cleanPath = path.replace(/^\/sub\/?/, '/').replace(/^\//, '').trim();
+      if (cleanPath) {
+        if (cleanPath === 'ai' || cleanPath === 'ai-bundle') {
           services = ['chatgpt', 'claude', 'gemini'];
-        } else if (subPath === 'youtube') {
+        } else if (cleanPath === 'youtube') {
           services = ['youtube', 'discord'];
-        } else if (subPath === 'anti-tspu' || subPath === 'reality') {
+        } else if (cleanPath === 'anti-tspu' || cleanPath === 'reality') {
           proto = 'reality';
-        } else if (subPath === 'clash' || subPath === 'meta') {
+        } else if (cleanPath === 'clash' || cleanPath === 'meta') {
           format = 'clash';
-        } else if (['de', 'nl', 'kz', 'fi', 'tr', 'ru', 'se', 'us', 'sg'].includes(subPath)) {
-          country = subPath;
-        } else if (subPath.includes('+') || subPath.includes(',')) {
-          services = subPath.split(/[+,]/).map(s => s.trim().toLowerCase()).filter(Boolean);
-        } else if (subPath) {
-          services = [subPath];
+        } else if (['de', 'nl', 'kz', 'fi', 'tr', 'ru', 'se', 'us', 'sg'].includes(cleanPath)) {
+          country = cleanPath;
+        } else if (cleanPath.includes('+') || cleanPath.includes(',')) {
+          services = cleanPath.split(/[+,]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+        } else {
+          services = [cleanPath];
         }
       }
 
