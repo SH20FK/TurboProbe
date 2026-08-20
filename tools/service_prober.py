@@ -535,9 +535,9 @@ def main():
     os.makedirs(SUB_DIR, exist_ok=True)
     os.makedirs(SERVICES_DIR, exist_ok=True)
 
-    # 1. Read input nodes from sub/all.txt or top pools
+    # 1. Read input nodes prioritizing high-quality anti-censor & reality sources
     candidates = []
-    for candidate_file in ["top50.txt", "anti-whitelist.txt", "reality.txt", "all.txt"]:
+    for candidate_file in ["anti-whitelist.txt", "reality.txt", "hysteria2.txt", "top50.txt", "top20.txt", "all.txt"]:
         f_path = os.path.join(SUB_DIR, candidate_file)
         if os.path.isfile(f_path):
             with open(f_path, "r", encoding="utf-8") as f:
