@@ -125,7 +125,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                   className="flex items-center gap-2 font-bold"
                 >
                   <Copy className="w-4 h-4" />
-                  <span>Скопировать все ключи сразу ({filteredCount})</span>
+                  <span>{filteredCount > 0 ? `Скопировать все ключи сразу (${filteredCount})` : 'Скопировать ссылку на подписку'}</span>
                 </motion.div>
               )}
             </AnimatePresence>
