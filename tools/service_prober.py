@@ -628,6 +628,19 @@ def country_code_to_flag(code: str) -> str:
         return chr(127397 + ord(code[0])) + chr(127397 + ord(code[1]))
     return "🌐"
 
+def detect_protocol(uri: str) -> str:
+    low = uri.lower()
+    if low.startswith("vless://"):
+        if "security=reality" in low or "pbk=" in low: return "vless-reality"
+        if "security=tls" in low: return "vless-tls"
+        return "vless"
+    if low.startswith("trojan://"): return "trojan"
+    if low.startswith("hy2://") or low.startswith("hysteria2://"): return "hysteria2"
+    if low.startswith("tuic://"): return "tuic"
+    if low.startswith("ss://"): return "shadowsocks"
+    if low.startswith("vmess://"): return "vmess"
+    return "other"
+
 def detect_country(uri: str) -> str:
     """Detects 2-letter ISO country code from URL, SNI, remark or host with boundary check."""
     low = uri.lower()
