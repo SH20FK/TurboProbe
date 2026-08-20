@@ -1,0 +1,139 @@
+diff --git a/.github/workflows/aggregator.yml b/.github/workflows/aggregator.yml
+index 3dd1bd9..868a479 100644
+--- a/.github/workflows/aggregator.yml
++++ b/.github/workflows/aggregator.yml
+@@ -25,6 +25,12 @@ jobs:
+         with:
+           python-version: '3.11'
+ 
++      - name: Discover new subscription sources
++        env:
++          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
++        run: |
++          python tools/discover_sources.py
++
+       - name: Run VPN Auto-Aggregator
+         run: |
+           python tools/aggregator.py
+@@ -33,7 +39,7 @@ jobs:
+         run: |
+           git config --global user.name "github-actions[bot]"
+           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+-          git add sub/
++          git add sub/ tools/discovered_sources.json
+           if git diff --staged --quiet; then
+             echo "No subscription updates detected."
+           else
+diff --git a/tools/aggregator.py b/tools/aggregator.py
+index ef726da..3b8bc69 100644
+--- a/tools/aggregator.py
++++ b/tools/aggregator.py
+@@ -28,6 +28,11 @@ except Exception:
+     pass
+ 
+ SUB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sub")
++TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
++DISCOVERED_SOURCES_PATH = os.path.join(TOOLS_DIR, "discovered_sources.json")
++
++# Size of each paginated "sub/chunks/chunk-XXX.txt" file (ordered by ascending ping)
++CHUNK_SIZE = 20
+ 
+ # =============================================================================
+ # 🏛️ GENUINE RUSSIAN DOMESTIC WHITELIST SNIS & KEYWORDS
+@@ -342,8 +347,24 @@ def generate_clash_meta_yaml(nodes: list) -> str:
+     sb.append("  - MATCH,DIRECT")
+     return "\n".join(sb)
+ 
++def load_discovered_sources() -> list:
++    """Loads source URLs auto-confirmed by tools/discover_sources.py, if any."""
++    if not os.path.exists(DISCOVERED_SOURCES_PATH):
++        return []
++    try:
++        with open(DISCOVERED_SOURCES_PATH, "r", encoding="utf-8") as f:
++            data = json.load(f)
++        return list(data.keys())
++    except Exception:
++        return []
++
+ def main():
+-    print(f"🚀 [TurboProbe Ultra-Speed Engine v5.0] Crawling from {len(SOURCES)} verified sources...")
++    extra_sources = load_discovered_sources()
++    # Static seed list + anything the discovery bot has confirmed on past runs
++    all_sources = list(dict.fromkeys(SOURCES + extra_sources))
++
++    print(f"🚀 [TurboProbe Ultra-Speed Engine v5.0] Crawling from {len(all_sources)} verified sources "
++          f"({len(SOURCES)} seed + {len(extra_sources)} auto-discovered)...")
+     os.makedirs(SUB_DIR, exist_ok=True)
+     
+     fetched_count = 0
+@@ -352,7 +373,7 @@ def main():
+ 
+     # 1. Concurrent Fetching (50 workers)
+     with ThreadPoolExecutor(max_workers=50) as executor:
+-        future_to_url = {executor.submit(fetch_url, url): url for url in SOURCES}
++        future_to_url = {executor.submit(fetch_url, url): url for url in all_sources}
+         for future in as_completed(future_to_url):
+             url = future_to_url[future]
+             try:
+@@ -405,6 +426,7 @@ def main():
+     
+     avg_ping = round(sum(item[1] for item in alive_tuples) / max(len(alive_tuples), 1), 1)
+     best_ping = alive_tuples[0][1] if alive_tuples else 0.0
++    ping_by_uri = {formatted_uri: ping_ms for formatted_uri, ping_ms, rk in alive_tuples}
+     
+     print(f"✅ Benchmark finished: {len(alive_nodes)} nodes ONLINE! 🏆 Best Ping: {best_ping}ms | ⚡ Avg Ping: {avg_ping}ms", flush=True)
+     
+@@ -486,8 +508,42 @@ def main():
+             f.write("\n".join(nodes))
+         print(f"  💾 sub/{filename:20s} -> {len(nodes):5d} ultra-low ping keys", flush=True)
+ 
++    # 6b. 📦 Paginate the FULL ascending-ping pool into fixed-size chunk files.
++    #     chunk-001.txt holds the 20 lowest-ping keys, chunk-002.txt the next 20
++    #     (all with a higher ping than every key in chunk-001), and so on —
++    #     the whole pool split into ascending-ping pages instead of one giant file.
++    def write_ping_chunks(nodes: list, ping_lookup: dict, size: int = CHUNK_SIZE):
++        chunk_dir = os.path.join(SUB_DIR, "chunks")
++        os.makedirs(chunk_dir, exist_ok=True)
++
++        # Wipe stale chunk files first so a shrinking pool doesn't leave orphans
++        for existing_f in os.listdir(chunk_dir):
++            if existing_f.startswith("chunk-") and existing_f.endswith(".txt"):
++                os.remove(os.path.join(chunk_dir, existing_f))
++
++        manifest = []
++        num_chunks = (len(nodes) + size - 1) // size
++        for i in range(num_chunks):
++            part = nodes[i * size:(i + 1) * size]
++            fname = f"chunk-{i + 1:03d}.txt"
++            with open(os.path.join(chunk_dir, fname), "w", encoding="utf-8") as f:
++                f.write("\n".join(part))
++            lo = ping_lookup.get(part[0], 0.0)
++            hi = ping_lookup.get(part[-1], 0.0)
++            manifest.append({
++                "file": f"chunks/{fname}", "count": len(part),
++                "ping_min_ms": lo, "ping_max_ms": hi,
++            })
++            print(f"  💾 sub/chunks/{fname} -> {len(part):3d} keys (ping {lo:.0f}ms .. {hi:.0f}ms)", flush=True)
++
++        with open(os.path.join(chunk_dir, "index.json"), "w", encoding="utf-8") as f:
++            json.dump({"chunk_size": size, "total_nodes": len(nodes), "chunks": manifest}, f, indent=2, ensure_ascii=False)
++        return num_chunks
++
+     print("\n📁 Saving curated, lowest-latency subscription files:", flush=True)
+     write_sub("all.txt", alive_nodes)
++    print(f"\n📦 Splitting {len(alive_nodes)} ascending-ping keys into {CHUNK_SIZE}-key chunk files:", flush=True)
++    write_ping_chunks(alive_nodes, ping_by_uri, CHUNK_SIZE)
+     write_sub("top20.txt", top20_pool)
+     write_sub("top50.txt", top50_pool)
+     write_sub("anti-whitelist.txt", anti_wl_sorted)
+@@ -518,7 +574,9 @@ def main():
+     # Stats metadata
+     stats = {
+         "updated_at": datetime.now(timezone.utc).isoformat(),
+-        "total_sources": len(SOURCES),
++        "total_sources": len(all_sources),
++        "seed_sources": len(SOURCES),
++        "discovered_sources": len(extra_sources),
+         "active_sources": fetched_count,
+         "raw_fetched": len(all_uris),
+         "unique_nodes": len(unique_uris),

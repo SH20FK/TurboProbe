@@ -25,6 +25,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Discover new subscription sources
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python tools/discover_sources.py
+
       - name: Run VPN Auto-Aggregator
         run: |
           python tools/aggregator.py
@@ -33,7 +39,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add sub/
+          git add sub/ tools/discovered_sources.json
           if git diff --staged --quiet; then
             echo "No subscription updates detected."
           else
