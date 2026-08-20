@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Globe2, Sliders, ShieldCheck, Sparkles } from 'lucide-react';
+import { Globe2, Sliders, ShieldCheck, Sparkles, Zap, Shield, Tv, Layers } from 'lucide-react';
 import {
   ChatGptIcon,
   ClaudeIcon,
@@ -12,8 +12,74 @@ import {
   GitHubIcon,
 } from './ServiceIcons';
 import { CountryFlag } from './CountryFlags';
+import type { PresetItem } from '../types';
+
+export const PRESETS: PresetItem[] = [
+  {
+    id: 'all',
+    name: 'Все протоколы',
+    desc: 'Полный срез',
+    icon: 'layers',
+    services: [],
+    country: 'all',
+    proto: 'all',
+    maxPing: 0,
+  },
+  {
+    id: 'anti-tspu',
+    name: 'Анти-ТСПУ (РКН)',
+    desc: 'VLESS Reality',
+    icon: 'shield',
+    services: [],
+    country: 'all',
+    proto: 'reality',
+    maxPing: 120,
+  },
+  {
+    id: 'ai',
+    name: 'AI & Нейросети',
+    desc: 'ChatGPT, Claude, Gemini',
+    icon: 'sparkles',
+    services: ['chatgpt', 'claude', 'gemini'],
+    country: 'all',
+    proto: 'all',
+    maxPing: 150,
+  },
+  {
+    id: 'youtube',
+    name: 'YouTube 4K',
+    desc: 'Hysteria 2 + Reality',
+    icon: 'tv',
+    services: ['youtube', 'discord'],
+    country: 'all',
+    proto: 'all',
+    maxPing: 100,
+  },
+  {
+    id: 'de',
+    name: 'Германия (DE)',
+    desc: 'Frankfurt Tier-1',
+    icon: 'de',
+    services: [],
+    country: 'de',
+    proto: 'all',
+    maxPing: 80,
+  },
+  {
+    id: 'nl',
+    name: 'Нидерланды (NL)',
+    desc: 'Amsterdam Direct',
+    icon: 'nl',
+    services: [],
+    country: 'nl',
+    proto: 'all',
+    maxPing: 70,
+  },
+];
 
 interface FilterPanelProps {
+  activePreset: string;
+  onSelectPreset: (preset: PresetItem) => void;
   selectedServices: string[];
   onToggleService: (serviceId: string) => void;
   selectedCountry: string;
@@ -59,6 +125,8 @@ const PROTOCOLS = [
 ];
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({
+  activePreset,
+  onSelectPreset,
   selectedServices,
   onToggleService,
   selectedCountry,
@@ -71,13 +139,56 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   onChangeMinHealth,
 }) => {
   return (
-    <section className="w-full max-w-5xl mx-auto px-4 py-4 space-y-4">
-      {/* 1. Services Selection with Official SVG Logos */}
+    <section className="w-full max-w-5xl mx-auto px-4 py-2 space-y-4">
+      
+      {/* 1. Quick 1-Click Presets Bar (Compact) */}
+      <div className="p-4 rounded-2xl bg-zinc-900/60 backdrop-blur-sm border border-white/[0.08]">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5 text-zinc-300" />
+            Быстрые пресеты (1 клик)
+          </span>
+          <span className="text-[11px] text-zinc-500 font-mono hidden sm:inline">
+            Автоматическая конфигурация
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {PRESETS.map((preset) => {
+            const isActive = activePreset === preset.id;
+            const isCountry = preset.id === 'de' || preset.id === 'nl';
+
+            return (
+              <motion.button
+                key={preset.id}
+                whileTap={{ scale: 0.96 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                onClick={() => onSelectPreset(preset)}
+                type="button"
+                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none ${
+                  isActive
+                    ? 'bg-white text-zinc-950 border-white shadow-lg'
+                    : 'bg-zinc-800/60 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
+                }`}
+              >
+                {preset.id === 'all' && <Layers className="w-3.5 h-3.5" />}
+                {preset.id === 'anti-tspu' && <Shield className="w-3.5 h-3.5" />}
+                {preset.id === 'ai' && <Sparkles className="w-3.5 h-3.5" />}
+                {preset.id === 'youtube' && <Tv className="w-3.5 h-3.5" />}
+                {isCountry && <CountryFlag countryCode={preset.id} className="w-3.5 h-2.5 rounded-[1px] shadow-sm flex-shrink-0" />}
+                <span>{preset.name}</span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2. Services Selection with Official SVG Logos */}
       <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3.5">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-zinc-300" />
-            1. Выбор сервисов (Официальные шлюзы)
+            Выбор сервисов (Мультивыбор)
           </span>
           {selectedServices.length > 0 && (
             <span className="text-xs text-zinc-200 font-mono bg-zinc-800 px-2 py-0.5 rounded border border-white/10">
@@ -112,13 +223,13 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         </div>
       </div>
 
-      {/* 2. Country & Protocol Selection */}
+      {/* 3. Country & Protocol Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Country */}
         <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-2 mb-3.5">
             <Globe2 className="w-4 h-4 text-zinc-300" />
-            2. Локация серверов
+            Локация серверов
           </span>
 
           <div className="flex flex-wrap gap-2">
@@ -150,7 +261,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-2 mb-3.5">
             <Sliders className="w-4 h-4 text-zinc-300" />
-            3. Протокол шифрования
+            Протокол шифрования
           </span>
 
           <div className="flex flex-wrap gap-2">
@@ -178,7 +289,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         </div>
       </div>
 
-      {/* 3. Sliders: Max Ping & Min Health Score */}
+      {/* 4. Sliders: Max Ping & Min Health Score */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Ping Slider */}
         <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">

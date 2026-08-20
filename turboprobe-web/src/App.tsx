@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Header } from './components/Header';
-import { PresetSelector } from './components/PresetSelector';
 import { FilterPanel } from './components/FilterPanel';
 import { ExportPanel } from './components/ExportPanel';
 import { NodePreviewList } from './components/NodePreviewList';
@@ -253,11 +252,10 @@ export default function App() {
         <Header />
 
         <main className="pb-16 space-y-2">
-          {/* Preset Selector with BorderBeam */}
-          <PresetSelector activePreset={activePreset} onSelectPreset={handleSelectPreset} />
-
-          {/* Filter Panel with Spring Physics */}
+          {/* Unified Filter Panel with Integrated Presets */}
           <FilterPanel
+            activePreset={activePreset}
+            onSelectPreset={handleSelectPreset}
             selectedServices={selectedServices}
             onToggleService={handleToggleService}
             selectedCountry={selectedCountry}
