@@ -46,13 +46,13 @@ jobs:
 
       - name: Commit and push updated subscriptions
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f sub/ docs/sub/
           git add -f tools/discovered_sources.json || true
           if git diff --staged --quiet; then
             echo "No subscription updates detected."
           else
-            git commit -m "chore(sub): auto-update VPN subscriptions [$(date -u +'%Y-%m-%d %H:%M UTC')]"
+            git commit -m "chore(sub): auto-update VPN subscriptions [$(date -u +'%Y-%m-%d %H:%M UTC')]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
             git push
           fi
