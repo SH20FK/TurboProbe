@@ -530,12 +530,24 @@ function parseShadowsocksUri(uri) {
       }
     }
 
-    if (host && password) {
-      return { method, password, host, port, tag };
+    if (host && password && method) {
+      const cleanMethod = method.trim().toLowerCase();
+      if (VALID_SS_CIPHERS.has(cleanMethod)) {
+        return { method: cleanMethod, password, host, port, tag };
+      }
     }
   } catch (_) {}
   return null;
 }
+
+const VALID_SS_CIPHERS = new Set([
+  'aes-128-gcm', 'aes-192-gcm', 'aes-256-gcm',
+  'chacha20-ietf-poly1305', 'xchacha20-ietf-poly1305',
+  '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm', '2022-blake3-chacha20-poly1305',
+  'aes-128-ctr', 'aes-192-ctr', 'aes-256-ctr',
+  'aes-128-cfb', 'aes-192-cfb', 'aes-256-cfb',
+  'rc4-md5', 'chacha20-ietf', 'dummy', 'none'
+]);
 
 /**
  * Generates Clash Meta / Mihomo YAML subscription configuration.
@@ -562,8 +574,13 @@ function generateClashMetaYaml(nodes) {
 
   nodes.forEach((node, idx) => {
     try {
-      const uri = typeof node === 'string' ? node : (node && node.uri);
+      let uri = typeof node === 'string' ? node : (node && node.uri);
       if (!uri) return;
+
+      // Auto-correct mislabeled ss:// links that are actually VLESS Reality
+      if (uri.startsWith('ss://') && (uri.includes('security=reality') || uri.includes('pbk=') || uri.includes('flow=xtls'))) {
+        uri = 'vless://' + uri.slice(5);
+      }
 
       let cleanName = `TurboProbe-${String(idx + 1).padStart(3, '0')}`;
       if (uri.includes('#')) {
@@ -583,7 +600,7 @@ function generateClashMetaYaml(nodes) {
 
       if (uri.startsWith('ss://')) {
         const ss = parseShadowsocksUri(uri);
-        if (ss && ss.host && ss.password) {
+        if (ss && ss.host && ss.password && ss.method && VALID_SS_CIPHERS.has(ss.method)) {
           const p = [
             `  - name: "${escapeYaml(name)}"`,
             `    type: ss`,

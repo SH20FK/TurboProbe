@@ -688,6 +688,15 @@ def _escape_yaml_val(val: str) -> str:
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned.replace('\\', '\\\\').replace('"', '\\"')
 
+VALID_SS_CIPHERS = {
+    'aes-128-gcm', 'aes-192-gcm', 'aes-256-gcm',
+    'chacha20-ietf-poly1305', 'xchacha20-ietf-poly1305',
+    '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm', '2022-blake3-chacha20-poly1305',
+    'aes-128-ctr', 'aes-192-ctr', 'aes-256-ctr',
+    'aes-128-cfb', 'aes-192-cfb', 'aes-256-cfb',
+    'rc4-md5', 'chacha20-ietf', 'dummy', 'none'
+}
+
 def generate_clash_meta_yaml(nodes: list) -> str:
     sb = ["port: 7890", "socks-port: 7891", "allow-lan: false", "mode: rule", "log-level: info", "proxies:"]
     proxy_names = []
@@ -695,6 +704,10 @@ def generate_clash_meta_yaml(nodes: list) -> str:
     
     for idx, uri in enumerate(nodes[:500], start=1):
         try:
+            # Auto-correct mislabeled ss:// links that are actually VLESS Reality
+            if uri.startswith("ss://") and ("security=reality" in uri or "pbk=" in uri or "flow=xtls" in uri):
+                uri = "vless://" + uri[5:]
+
             parsed = urllib.parse.urlparse(uri)
             clean_name = f"TurboProbe-{idx:03d}"
             if '#' in uri:
@@ -779,6 +792,8 @@ def generate_clash_meta_yaml(nodes: list) -> str:
                     sb.append(f"      grpc-service-name: \"{_escape_yaml_val(s_name)}\"")
                 proxy_names.append(name)
             elif proto in ["ss", "shadowsocks"]:
+                cipher = ""
+                password = ""
                 if "@" in uri:
                     raw_userinfo = uri.split("://", 1)[1].split("#", 1)[0].split("@", 1)[0]
                     if ":" in raw_userinfo:
@@ -788,14 +803,20 @@ def generate_clash_meta_yaml(nodes: list) -> str:
                         pad = (4 - (len(normalized) % 4)) % 4
                         normalized += "=" * pad
                         dec = base64.b64decode(normalized).decode("utf-8", errors="ignore")
-                        cipher, password = dec.split(":", 1)
+                        if ":" in dec:
+                            cipher, password = dec.split(":", 1)
                 else:
                     cipher, password = "aes-256-gcm", user_info
+
+                cipher = cipher.strip().lower()
+                if not cipher or cipher not in VALID_SS_CIPHERS:
+                    continue
+
                 sb.append(f"  - name: \"{_escape_yaml_val(name)}\"")
                 sb.append("    type: ss")
                 sb.append(f"    server: \"{_escape_yaml_val(host)}\"")
                 sb.append(f"    port: {port}")
-                sb.append(f"    cipher: {cipher}")
+                sb.append(f"    cipher: \"{_escape_yaml_val(cipher)}\"")
                 sb.append(f"    password: \"{_escape_yaml_val(password)}\"")
                 sb.append("    udp: true")
                 proxy_names.append(name)

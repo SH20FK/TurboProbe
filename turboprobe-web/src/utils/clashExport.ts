@@ -62,9 +62,14 @@ export function parseProxyUriToClashProxy(uri: string, index: number, fallbackNa
     }
   }
 
-  const protoEnd = rawWithoutHash.indexOf('://');
-  const protocol = rawWithoutHash.slice(0, protoEnd).toLowerCase();
-  const rest = rawWithoutHash.slice(protoEnd + 3);
+  let protoEnd = rawWithoutHash.indexOf('://');
+  let protocol = rawWithoutHash.slice(0, protoEnd).toLowerCase();
+  let rest = rawWithoutHash.slice(protoEnd + 3);
+
+  // Auto-correct mislabeled ss:// links that are actually VLESS Reality
+  if (protocol === 'ss' && (rawWithoutHash.includes('security=reality') || rawWithoutHash.includes('pbk=') || rawWithoutHash.includes('flow=xtls'))) {
+    protocol = 'vless';
+  }
 
   // 1. VMess (Base64 JSON or standard URI)
   if (protocol === 'vmess') {
@@ -140,8 +145,21 @@ export function parseProxyUriToClashProxy(uri: string, index: number, fallbackNa
 
       if (userinfo.includes(':') && hostPort) {
         const colonIdx = userinfo.indexOf(':');
-        const cipher = userinfo.slice(0, colonIdx);
+        const cipher = userinfo.slice(0, colonIdx).trim().toLowerCase();
         const password = userinfo.slice(colonIdx + 1);
+
+        const VALID_SS_CIPHERS = new Set([
+          'aes-128-gcm', 'aes-192-gcm', 'aes-256-gcm',
+          'chacha20-ietf-poly1305', 'xchacha20-ietf-poly1305',
+          '2022-blake3-aes-128-gcm', '2022-blake3-aes-256-gcm', '2022-blake3-chacha20-poly1305',
+          'aes-128-ctr', 'aes-192-ctr', 'aes-256-ctr',
+          'aes-128-cfb', 'aes-192-cfb', 'aes-256-cfb',
+          'rc4-md5', 'chacha20-ietf', 'dummy', 'none'
+        ]);
+
+        if (!VALID_SS_CIPHERS.has(cipher)) {
+          return null;
+        }
 
         let host = hostPort;
         let port = 8388;
