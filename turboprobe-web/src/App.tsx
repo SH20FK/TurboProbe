@@ -338,53 +338,50 @@ export default function App() {
         {/* Sleek Top Bar */}
         <Header />
 
-        {/* 2-Column Grid Dashboard Layout (Zero-Scroll on Desktop) */}
-        <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-2 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start flex-1">
-          {/* Left Column: Filter Controls (Col-span 7) */}
-          <div className="lg:col-span-7 space-y-3">
-            <FilterPanel
-              activePreset={activePreset}
-              onSelectPreset={handleSelectPreset}
-              selectedServices={selectedServices}
-              onToggleService={handleToggleService}
-              selectedCountries={selectedCountries}
-              onToggleCountry={handleToggleCountry}
-              onClearCountries={handleClearCountries}
-              selectedProtos={selectedProtos}
-              onToggleProto={handleToggleProto}
-              onClearProtos={handleClearProtos}
-              countryCounts={countryCounts}
-              protoCounts={protoCounts}
-              maxPing={maxPing}
-              onChangeMaxPing={handleChangeMaxPing}
-              minHealth={minHealth}
-              onChangeMinHealth={handleChangeMinHealth}
-            />
-          </div>
+        {/* Main Application Feed (Sleek Centered Design) */}
+        <main className="w-full max-w-4xl mx-auto px-4 py-3 space-y-3.5 flex-1">
+          {/* 1. Hero Mode Cards & Collapsible Fine-Tuning */}
+          <FilterPanel
+            activePreset={activePreset}
+            onSelectPreset={handleSelectPreset}
+            selectedServices={selectedServices}
+            onToggleService={handleToggleService}
+            selectedCountries={selectedCountries}
+            onToggleCountry={handleToggleCountry}
+            onClearCountries={handleClearCountries}
+            selectedProtos={selectedProtos}
+            onToggleProto={handleToggleProto}
+            onClearProtos={handleClearProtos}
+            countryCounts={countryCounts}
+            protoCounts={protoCounts}
+            maxPing={maxPing}
+            onChangeMaxPing={handleChangeMaxPing}
+            minHealth={minHealth}
+            onChangeMinHealth={handleChangeMinHealth}
+          />
 
-          {/* Right Column: Export Panel & Live Node Preview (Col-span 5) */}
-          <div className="lg:col-span-5 space-y-3">
-            <ExportPanel
-              subUrl={subUrl}
-              filteredCount={filteredNodes.length}
-              allFilteredKeys={allFilteredKeys}
-              onOpenQr={() => setIsQrOpen(true)}
-              onDownloadClash={handleDownloadClash}
-            />
+          {/* 2. Subscription Generation & Quick Import */}
+          <ExportPanel
+            subUrl={subUrl}
+            filteredCount={filteredNodes.length}
+            allFilteredKeys={allFilteredKeys}
+            onOpenQr={() => setIsQrOpen(true)}
+            onDownloadClash={handleDownloadClash}
+          />
 
-            <NodePreviewList
-              nodes={filteredNodes}
-              isLoading={isLoading}
-              totalAvailable={filteredNodes.length}
-            />
-          </div>
+          {/* 3. Live Verified Nodes Feed */}
+          <NodePreviewList
+            nodes={filteredNodes}
+            isLoading={isLoading}
+            totalAvailable={filteredNodes.length}
+          />
         </main>
 
         {/* QR Code Modal */}
         <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
 
         {/* Minimal Compact Footer */}
-        <footer className="w-full max-w-7xl mx-auto py-2.5 px-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between text-[11px] text-zinc-500 font-mono">
+        <footer className="w-full max-w-4xl mx-auto py-3 px-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between text-[11px] text-zinc-500 font-mono">
           <p className="m-0">
             TurboProbe · Суверенный и автономный VPN-агрегатор
           </p>
