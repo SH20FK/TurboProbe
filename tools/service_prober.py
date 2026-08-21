@@ -1385,25 +1385,28 @@ def main():
 
     # 🛡️ Protocol Specific Verified Feeds
     proto_reality = [format_verified_remark(n["uri"], n["country"], "Reality", idx) for idx, n in enumerate([n for n in verified_alive_nodes if "pbk=" in n["uri"].lower() or "reality" in n.get("protocol", "").lower()], start=1)]
-    proto_hy2 = [format_verified_remark(n["uri"], n["country"], "Hy2", idx) for idx, n in enumerate([n for n in verified_alive_nodes if n["uri"].startswith("hy2://") or "hy2" in n.get("protocol", "").lower()], start=1)]
-    proto_trojan = [format_verified_remark(n["uri"], n["country"], "Trojan", idx) for idx, n in enumerate([n for n in verified_alive_nodes if n["uri"].startswith("trojan://") or "trojan" in n.get("protocol", "").lower()], start=1)]
-    proto_ss = [format_verified_remark(n["uri"], n["country"], "SS", idx) for idx, n in enumerate([n for n in verified_alive_nodes if n["uri"].startswith("ss://") or "ss" in n.get("protocol", "").lower()], start=1)]
+    proto_hy2 = [format_verified_remark(n["uri"], n["country"], "Hy2", idx) for idx, n in enumerate([n for n in verified_alive_nodes if n["uri"].lower().startswith(("hy2://", "hysteria2://", "hysteria://", "tuic://")) or any(k in n.get("protocol", "").lower() for k in ("hy2", "hysteria2", "hysteria", "tuic"))], start=1)]
+    proto_trojan = [format_verified_remark(n["uri"], n["country"], "Trojan", idx) for idx, n in enumerate([n for n in verified_alive_nodes if n["uri"].lower().startswith("trojan://") or "trojan" in n.get("protocol", "").lower()], start=1)]
+    proto_ss = [format_verified_remark(n["uri"], n["country"], "SS", idx) for idx, n in enumerate([n for n in verified_alive_nodes if n["uri"].lower().startswith("ss://") or "ss" in n.get("protocol", "").lower()], start=1)]
 
-    with open(os.path.join(SUB_DIR, "reality.txt"), "w", encoding="utf-8") as f:
-        f.write("\n".join(proto_reality))
-    with open(os.path.join(SUB_DIR, "hysteria2.txt"), "w", encoding="utf-8") as f:
-        f.write("\n".join(proto_hy2))
-    with open(os.path.join(SUB_DIR, "trojan.txt"), "w", encoding="utf-8") as f:
-        f.write("\n".join(proto_trojan))
-    with open(os.path.join(SUB_DIR, "shadowsocks.txt"), "w", encoding="utf-8") as f:
-        f.write("\n".join(proto_ss))
+    for fname, p_nodes in [("reality.txt", proto_reality), ("hysteria2.txt", proto_hy2), ("trojan.txt", proto_trojan), ("shadowsocks.txt", proto_ss)]:
+        with open(os.path.join(SUB_DIR, fname), "w", encoding="utf-8") as f:
+            f.write("\n".join(p_nodes))
+        with open(os.path.join(docs_sub_dir, fname), "w", encoding="utf-8") as f:
+            f.write("\n".join(p_nodes))
 
     # Base64 export
     import base64
     b64_content = base64.b64encode("\n".join([n["uri"] for n in verified_alive_nodes]).encode("utf-8")).decode("utf-8")
     with open(os.path.join(SUB_DIR, "base64.txt"), "w", encoding="utf-8") as f:
         f.write(b64_content)
+    with open(os.path.join(docs_sub_dir, "base64.txt"), "w", encoding="utf-8") as f:
+        f.write(b64_content)
 
+    print(f"  💾 sub/reality.txt      -> {len(proto_reality):5d} verified keys", flush=True)
+    print(f"  💾 sub/hysteria2.txt    -> {len(proto_hy2):5d} verified keys", flush=True)
+    print(f"  💾 sub/trojan.txt       -> {len(proto_trojan):5d} verified keys", flush=True)
+    print(f"  💾 sub/shadowsocks.txt  -> {len(proto_ss):5d} verified keys", flush=True)
     print(f"💾 Updated sub/top50.txt ({len(top50_verified)} keys), sub/top20.txt ({len(top20_verified)} keys), sub/all.txt ({len(all_verified)} keys)", flush=True)
 
 
