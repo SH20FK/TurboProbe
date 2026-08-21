@@ -89,13 +89,18 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Fetch latest origin/main to prevent non-fast-forward push rejections
+          git fetch origin main
+          git reset --soft origin/main
+
           git add -f sub/ docs/sub/ tools/dead_nodes.json tools/node_history.json || true
-          if git diff --staged --quiet; then
-            echo "No changes in probed services."
+          if git diff --cached --quiet; then
+            echo "No changes in probed services relative to origin/main."
           else
             git commit -m "chore(prober): update verified service feeds [$(date -u +'%Y-%m-%d %H:%M UTC')]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
             
-            # Resilient fetch/rebase retry logic with rebase --abort on conflict
+            # Resilient push retry loop
             MAX_ATTEMPTS=5
             ATTEMPT=1
             PUSHED=0
@@ -103,20 +108,15 @@ jobs:
               echo "Push attempt $ATTEMPT of $MAX_ATTEMPTS..."
               if git push origin HEAD:main; then
                 PUSHED=1
-                echo "Successfully pushed changes."
+                echo "Successfully pushed probed services to main."
                 break
               fi
-              echo "Push failed. Fetching and rebasing on origin/main..."
+              echo "Push failed. Re-fetching origin/main and retrying..."
               git fetch origin main
-              if ! git rebase origin/main; then
-                echo "Rebase conflict encountered. Aborting rebase and keeping probed results state..."
-                git rebase --abort || true
-                git checkout origin/main -- .gitignore README.md package.json 2>/dev/null || true
-                git add -f sub/ docs/sub/ tools/dead_nodes.json tools/node_history.json || true
-                git commit --amend --no-edit || true
-              fi
-              SLEEP_TIME=$((ATTEMPT * 3))
-              echo "Retrying push in $SLEEP_TIME seconds..."
+              git reset --soft origin/main
+              git add -f sub/ docs/sub/ tools/dead_nodes.json tools/node_history.json || true
+              git commit -m "chore(prober): update verified service feeds [$(date -u +'%Y-%m-%d %H:%M UTC')]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>" || true
+              SLEEP_TIME=$((ATTEMPT * 2))
               sleep $SLEEP_TIME
               ATTEMPT=$((ATTEMPT + 1))
             done
