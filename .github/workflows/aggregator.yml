@@ -55,7 +55,7 @@ jobs:
         run: |
           ulimit -n 65536 || true
           python -m pip install --upgrade pip
-          pip install "requests[socks]" urllib3 orjson httpx aiohttp
+          pip install -r requirements.txt
           if [ ! -f /usr/local/bin/xray ]; then
             curl -L -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
             sudo unzip -o /tmp/xray.zip -d /usr/local/bin/
@@ -65,7 +65,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: turboprobe-web/package.json
 
