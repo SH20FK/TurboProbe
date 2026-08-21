@@ -38,8 +38,6 @@ interface FilterPanelProps {
   onClearProtos: () => void;
   countryCounts: Record<string, number>;
   protoCounts: Record<string, number>;
-  maxPing: number;
-  onChangeMaxPing: (val: number) => void;
   minHealth: number;
   onChangeMinHealth: (val: number) => void;
 }
@@ -68,8 +66,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   onClearProtos,
   countryCounts,
   protoCounts,
-  maxPing,
-  onChangeMaxPing,
   minHealth,
   onChangeMinHealth,
 }) => {
@@ -98,7 +94,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
     selectedServices.length +
     selectedCountries.length +
     selectedProtos.length +
-    (maxPing > 0 ? 1 : 0) +
     (minHealth > 0 ? 1 : 0);
 
   return (
@@ -363,33 +358,13 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               </div>
             </div>
 
-            {/* Sliders */}
-            <div className="pt-2 border-t border-white/[0.06] grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="p-2.5 rounded-xl bg-black/40 border border-white/[0.06]">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-mono">
-                    Макс. пинг
-                  </span>
-                  <span className="text-[11px] font-mono font-semibold text-zinc-200 px-1.5 py-0.5 rounded bg-zinc-800 border border-white/10">
-                    {maxPing === 0 ? 'Любой' : `≤ ${maxPing} ms`}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={350}
-                  step={10}
-                  value={maxPing}
-                  onChange={(e) => onChangeMaxPing(Number(e.target.value))}
-                  className="w-full my-1 cursor-pointer"
-                />
-              </div>
-
+            {/* Health / Uptime Slider */}
+            <div className="pt-2 border-t border-white/[0.06]">
               <div className="p-2.5 rounded-xl bg-black/40 border border-white/[0.06]">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3 text-zinc-300" />
-                    Аптайм
+                    Минимальный аптайм (Health Score)
                   </span>
                   <span className="text-[11px] font-mono font-semibold text-zinc-200 px-1.5 py-0.5 rounded bg-zinc-800 border border-white/10">
                     {minHealth === 0 ? 'Любой' : `≥ ${minHealth}%`}

@@ -19,7 +19,7 @@ export const PRESETS: PresetItem[] = [
     services: [],
     country: 'all',
     proto: 'reality',
-    maxPing: 120,
+    maxPing: 0,
   },
   {
     id: 'ai',
@@ -29,7 +29,7 @@ export const PRESETS: PresetItem[] = [
     services: ['chatgpt', 'claude', 'gemini'],
     country: 'all',
     proto: 'all',
-    maxPing: 150,
+    maxPing: 0,
   },
   {
     id: 'youtube',
@@ -39,7 +39,7 @@ export const PRESETS: PresetItem[] = [
     services: ['youtube', 'discord'],
     country: 'all',
     proto: 'all',
-    maxPing: 100,
+    maxPing: 0,
   },
 ];
 

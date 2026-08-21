@@ -23,7 +23,6 @@ export default function App() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [selectedProtos, setSelectedProtos] = useState<string[]>([]);
-  const [maxPing, setMaxPing] = useState<number>(0);
   const [minHealth, setMinHealth] = useState<number>(0);
 
   const [allNodes, setAllNodes] = useState<NodeItem[]>([]);
@@ -112,12 +111,10 @@ export default function App() {
       setSelectedServices([]);
       setSelectedCountries([]);
       setSelectedProtos([]);
-      setMaxPing(0);
     } else {
-      if (preset.services.length > 0) setSelectedServices(preset.services);
-      if (preset.country && preset.country !== 'all') setSelectedCountries([preset.country.toLowerCase()]);
-      if (preset.proto && preset.proto !== 'all') setSelectedProtos([preset.proto.toLowerCase()]);
-      if (preset.maxPing > 0) setMaxPing(preset.maxPing);
+      setSelectedServices(preset.services || []);
+      setSelectedCountries(preset.country && preset.country !== 'all' ? [preset.country.toLowerCase()] : []);
+      setSelectedProtos(preset.proto && preset.proto !== 'all' ? [preset.proto.toLowerCase()] : []);
     }
   }, []);
 
@@ -180,11 +177,6 @@ export default function App() {
     setSelectedProtos([]);
   }, []);
 
-  const handleChangeMaxPing = useCallback((val: number) => {
-    setActivePreset('custom');
-    setMaxPing(val);
-  }, []);
-
   const handleChangeMinHealth = useCallback((val: number) => {
     setActivePreset('custom');
     setMinHealth(val);
@@ -195,10 +187,9 @@ export default function App() {
     const hasServices = selectedServices.length > 0;
     const hasCountries = selectedCountries.length > 0;
     const hasProtos = selectedProtos.length > 0;
-    const hasMaxPing = maxPing > 0;
     const hasMinHealth = minHealth > 0;
 
-    if (!hasServices && !hasCountries && !hasProtos && !hasMaxPing && !hasMinHealth) {
+    if (!hasServices && !hasCountries && !hasProtos && !hasMinHealth) {
       return allNodes;
     }
 
@@ -208,19 +199,13 @@ export default function App() {
     return allNodes.filter((node) => {
       const idx = node._index;
 
-      // 1. Max Ping filter
-      if (hasMaxPing) {
-        const ping = idx ? idx.ping : (typeof node.ping_ms === 'number' ? node.ping_ms : 999);
-        if (ping > maxPing) return false;
-      }
-
-      // 2. Min Health filter
+      // 1. Min Health filter
       if (hasMinHealth) {
         const health = idx ? idx.health : (typeof node.health === 'number' ? node.health : 100);
         if (health < minHealth) return false;
       }
 
-      // 3. Service filter (Multi-select)
+      // 2. Service filter (Multi-select)
       if (hasServices) {
         if (idx) {
           const matchService = selectedServices.some((s) => idx.serviceSet.has(s.toLowerCase()));
@@ -233,7 +218,7 @@ export default function App() {
         }
       }
 
-      // 4. Country filter (Multi-select)
+      // 3. Country filter (Multi-select)
       if (hasCountries) {
         if (idx) {
           const matchCountry = normCountries.some(
@@ -247,7 +232,7 @@ export default function App() {
         }
       }
 
-      // 5. Protocol filter (Multi-select)
+      // 4. Protocol filter (Multi-select)
       if (hasProtos) {
         if (idx) {
           const matchProto = normProtos.some((p) => {
@@ -268,7 +253,7 @@ export default function App() {
 
       return true;
     });
-  }, [allNodes, selectedServices, selectedCountries, selectedProtos, maxPing, minHealth]);
+  }, [allNodes, selectedServices, selectedCountries, selectedProtos, minHealth]);
 
   // 6. Subscription URL Generation (Dynamic Worker URL)
   const subUrl = useMemo(() => {
@@ -285,9 +270,6 @@ export default function App() {
     if (selectedProtos.length > 0) {
       params.set('proto', selectedProtos.join(','));
     }
-    if (maxPing > 0) {
-      params.set('max_ping', maxPing.toString());
-    }
     if (minHealth > 0) {
       params.set('min_health', minHealth.toString());
     }
@@ -302,7 +284,7 @@ export default function App() {
     if (activePreset === 'youtube') return `${baseUrl}/youtube`;
 
     return baseUrl;
-  }, [activePreset, selectedServices, selectedCountries, selectedProtos, maxPing, minHealth]);
+  }, [activePreset, selectedServices, selectedCountries, selectedProtos, minHealth]);
 
   const allFilteredKeys = useMemo(() => {
     return filteredNodes.map((n) => n.uri);
@@ -354,8 +336,6 @@ export default function App() {
             onClearProtos={handleClearProtos}
             countryCounts={countryCounts}
             protoCounts={protoCounts}
-            maxPing={maxPing}
-            onChangeMaxPing={handleChangeMaxPing}
             minHealth={minHealth}
             onChangeMinHealth={handleChangeMinHealth}
           />
