@@ -541,7 +541,21 @@ function parseShadowsocksUri(uri) {
  * Generates Clash Meta / Mihomo YAML subscription configuration.
  */
 function generateClashMetaYaml(nodes) {
-  const escapeYaml = (s) => (s || '').toString().replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const sanitizeStr = (s) => {
+    if (s == null) return '';
+    return s
+      .toString()
+      // Strip control characters (0x00-0x1F, 0x7F-0x9F, Unicode invisible/RTL/BOM chars)
+      .replace(/[\x00-\x1f\x7f-\x9f\u2000-\u200f\u2028-\u202f\ufeff]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const escapeYaml = (s) => {
+    const clean = sanitizeStr(s);
+    return clean.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  };
+
   const proxies = [];
   const proxyNames = [];
   const seenNames = new Set();
@@ -555,7 +569,12 @@ function generateClashMetaYaml(nodes) {
       if (uri.includes('#')) {
         try {
           const rawTag = decodeURIComponent(uri.split('#')[1]).trim();
-          if (rawTag) cleanName = rawTag.replace(/[:"'\[\]]/g, '').trim().slice(0, 40);
+          if (rawTag) {
+            cleanName = sanitizeStr(rawTag)
+              .replace(/[:"'\[\]]/g, '')
+              .slice(0, 40)
+              .trim() || cleanName;
+          }
         } catch (_) {}
       }
       let name = `${cleanName} #${idx + 1}`;
@@ -568,9 +587,9 @@ function generateClashMetaYaml(nodes) {
           const p = [
             `  - name: "${escapeYaml(name)}"`,
             `    type: ss`,
-            `    server: ${ss.host}`,
+            `    server: "${escapeYaml(ss.host)}"`,
             `    port: ${ss.port}`,
-            `    cipher: ${ss.method}`,
+            `    cipher: "${escapeYaml(ss.method)}"`,
             `    password: "${escapeYaml(ss.password)}"`,
             `    udp: true`
           ];
@@ -590,7 +609,7 @@ function generateClashMetaYaml(nodes) {
         const security = (urlObj.searchParams.get('security') || 'none').toLowerCase();
         const sni = urlObj.searchParams.get('sni') || host;
         const pbk = urlObj.searchParams.get('pbk') || '';
-        const sid = urlObj.searchParams.get('sid') || '';
+        const sid = (urlObj.searchParams.get('sid') || '').trim();
         const fp = urlObj.searchParams.get('fp') || 'chrome';
         const type = (urlObj.searchParams.get('type') || 'tcp').toLowerCase();
         const flow = urlObj.searchParams.get('flow') || '';
@@ -598,13 +617,13 @@ function generateClashMetaYaml(nodes) {
         const p = [
           `  - name: "${escapeYaml(name)}"`,
           `    type: vless`,
-          `    server: ${host}`,
+          `    server: "${escapeYaml(host)}"`,
           `    port: ${port}`,
-          `    uuid: ${escapeYaml(user)}`,
+          `    uuid: "${escapeYaml(user)}"`,
           `    udp: true`,
           `    tls: ${security === 'tls' || security === 'reality'}`,
-          `    servername: ${escapeYaml(sni)}`,
-          `    client-fingerprint: ${fp}`,
+          `    servername: "${escapeYaml(sni)}"`,
+          `    client-fingerprint: "${escapeYaml(fp)}"`,
           `    network: ${type}`
         ];
         if (flow) {
@@ -612,9 +631,9 @@ function generateClashMetaYaml(nodes) {
         }
         if (security === 'reality' && pbk) {
           p.push('    reality-opts:');
-          p.push(`      public-key: ${escapeYaml(pbk)}`);
-          if (sid && /^[0-9a-fA-F]{2,16}$/.test(sid.trim()) && sid.trim().length % 2 === 0) {
-            p.push(`      short-id: "${escapeYaml(sid.trim())}"`);
+          p.push(`      public-key: "${escapeYaml(pbk)}"`);
+          if (sid && /^[0-9a-fA-F]{2,16}$/.test(sid) && sid.length % 2 === 0) {
+            p.push(`      short-id: "${escapeYaml(sid)}"`);
           }
         }
         if (type === 'ws') {
@@ -638,11 +657,11 @@ function generateClashMetaYaml(nodes) {
         const p = [
           `  - name: "${escapeYaml(name)}"`,
           `    type: trojan`,
-          `    server: ${host}`,
+          `    server: "${escapeYaml(host)}"`,
           `    port: ${port}`,
           `    password: "${escapeYaml(user)}"`,
           `    udp: true`,
-          `    sni: ${escapeYaml(sni)}`,
+          `    sni: "${escapeYaml(sni)}"`,
           `    skip-cert-verify: ${insecure}`,
           `    network: ${type}`
         ];
@@ -671,17 +690,17 @@ function generateClashMetaYaml(nodes) {
         const p = [
           `  - name: "${escapeYaml(name)}"`,
           `    type: hysteria2`,
-          `    server: ${host}`,
+          `    server: "${escapeYaml(host)}"`,
           `    port: ${port}`,
           `    password: "${escapeYaml(pass)}"`,
-          `    sni: ${escapeYaml(sni)}`,
+          `    sni: "${escapeYaml(sni)}"`,
           `    skip-cert-verify: ${insecure}`
         ];
         if (ports) {
           p.push(`    ports: ${ports}`);
         }
         if (obfs) {
-          p.push(`    obfs: ${obfs}`);
+          p.push(`    obfs: "${escapeYaml(obfs)}"`);
           if (obfsPassword) {
             p.push(`    obfs-password: "${escapeYaml(obfsPassword)}"`);
           }
@@ -693,7 +712,7 @@ function generateClashMetaYaml(nodes) {
   });
 
   if (proxies.length === 0) {
-    return 'proxies:\n  - {name: "TurboProbe-Fallback", type: vless, server: 1.1.1.1, port: 443, uuid: 00000000-0000-0000-0000-000000000000, udp: true}\n';
+    return 'proxies:\n  - {name: "TurboProbe-Fallback", type: vless, server: "1.1.1.1", port: 443, uuid: "00000000-0000-0000-0000-000000000000", udp: true}\n';
   }
 
   const groupMembers = proxyNames.map(n => `      - "${escapeYaml(n)}"`).join('\n');

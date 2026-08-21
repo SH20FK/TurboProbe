@@ -334,16 +334,21 @@ export function parseProxyUriToClashProxy(uri: string, index: number, fallbackNa
 /**
  * Formats an object into clean indented YAML string representation.
  */
+function sanitizeForYaml(str: string): string {
+  return (str || '')
+    .toString()
+    .replace(/[\x00-\x1f\x7f-\x9f\u2000-\u200f\u2028-\u202f\ufeff]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function formatYamlValue(val: unknown, indent = 4): string {
   const pad = ' '.repeat(indent);
   if (val === null || val === undefined) return 'null';
   if (typeof val === 'boolean' || typeof val === 'number') return String(val);
   if (typeof val === 'string') {
-    // Quote strings containing special characters or colons
-    if (val.includes(':') || val.includes('#') || val.includes('"') || val.includes('\n') || val.includes('[') || val.includes(']')) {
-      return `"${val.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-    }
-    return val;
+    const clean = sanitizeForYaml(val);
+    return `"${clean.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
   }
   if (Array.isArray(val)) {
     if (val.length === 0) return '[]';

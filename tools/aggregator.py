@@ -683,7 +683,10 @@ def relabel_pool_with_purpose(nodes: list, purpose: str) -> list:
 def _escape_yaml_val(val: str) -> str:
     if val is None:
         return ""
-    return str(val).replace('\\', '\\\\').replace('"', '\\"')
+    # Strip all ASCII and Unicode control characters
+    cleaned = re.sub(r'[\x00-\x1f\x7f-\x9f\u2000-\u200f\u2028-\u202f\ufeff]', ' ', str(val))
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    return cleaned.replace('\\', '\\\\').replace('"', '\\"')
 
 def generate_clash_meta_yaml(nodes: list) -> str:
     sb = ["port: 7890", "socks-port: 7891", "allow-lan: false", "mode: rule", "log-level: info", "proxies:"]
