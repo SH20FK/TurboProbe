@@ -134,8 +134,25 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                           </span>
                         </div>
 
-                        {/* Ping, Health & Copy Action */}
+                        {/* Ping, Speed, RU Verified, Health & Copy Action */}
                         <div className="flex items-center gap-2 flex-shrink-0">
+                          {/* RU Domestic Verified Badge */}
+                          {node.ru_verified && (
+                            <span
+                              title={node.ru_location ? `Проверено из РФ: ${node.ru_location}` : 'Подтверждена доступность из РФ'}
+                              className="hidden md:inline-flex items-center gap-1 text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 shadow-sm"
+                            >
+                              🇷🇺 RU Verified
+                            </span>
+                          )}
+
+                          {/* Mbps Speed Badge */}
+                          {node.speed_mbps && node.speed_mbps > 0 && (
+                            <span className="hidden lg:inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950/70 text-blue-300 border border-blue-500/30">
+                              ⚡ {node.speed_mbps} Mbps
+                            </span>
+                          )}
+
                           {/* Health Score Badge */}
                           <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/10">
                             <ShieldCheck className="w-3 h-3 text-zinc-400" />

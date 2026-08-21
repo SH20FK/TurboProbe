@@ -4,6 +4,10 @@ export interface NodeItem {
   country?: string;
   protocol?: string;
   health?: number;
+  speed_mbps?: number;
+  ru_verified?: boolean;
+  ru_ping_ms?: number;
+  ru_location?: string;
   services?: {
     chatgpt?: boolean;
     claude?: boolean;
