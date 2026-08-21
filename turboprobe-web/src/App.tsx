@@ -323,62 +323,64 @@ export default function App() {
       {/* Subtle Radial Gradient to Vignette the Wave Field */}
       <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-transparent via-[#050505]/60 to-[#050505]" />
 
-      {/* Main Content Layer */}
-      <div className="relative z-10 flex-1 flex flex-col justify-between">
-        {/* Centered Hero Brand Header */}
-        <Header totalConfigs={allNodes.length} updatedAt={updatedAt} />
+      {/* Main Content Layer - Vertically Centered */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center min-h-screen py-8 sm:py-12">
+        <div className="w-full max-w-4xl mx-auto space-y-4">
+          {/* Centered Hero Brand Header */}
+          <Header totalConfigs={allNodes.length} updatedAt={updatedAt} />
 
-        {/* Main Application Feed (Sleek Centered Design) */}
-        <main className="w-full max-w-4xl mx-auto px-4 py-3 space-y-3.5 flex-1">
-          {/* 1. Hero Mode Cards & Collapsible Fine-Tuning */}
-          <FilterPanel
-            activePreset={activePreset}
-            onSelectPreset={handleSelectPreset}
-            selectedServices={selectedServices}
-            onToggleService={handleToggleService}
-            selectedCountries={selectedCountries}
-            onToggleCountry={handleToggleCountry}
-            onClearCountries={handleClearCountries}
-            selectedProtos={selectedProtos}
-            onToggleProto={handleToggleProto}
-            onClearProtos={handleClearProtos}
-            countryCounts={countryCounts}
-            protoCounts={protoCounts}
-            minHealth={minHealth}
-            onChangeMinHealth={handleChangeMinHealth}
-          />
+          {/* Main Application Feed (Sleek Centered Design) */}
+          <main className="w-full px-4 space-y-3.5">
+            {/* 1. Hero Mode Cards & Collapsible Fine-Tuning */}
+            <FilterPanel
+              activePreset={activePreset}
+              onSelectPreset={handleSelectPreset}
+              selectedServices={selectedServices}
+              onToggleService={handleToggleService}
+              selectedCountries={selectedCountries}
+              onToggleCountry={handleToggleCountry}
+              onClearCountries={handleClearCountries}
+              selectedProtos={selectedProtos}
+              onToggleProto={handleToggleProto}
+              onClearProtos={handleClearProtos}
+              countryCounts={countryCounts}
+              protoCounts={protoCounts}
+              minHealth={minHealth}
+              onChangeMinHealth={handleChangeMinHealth}
+            />
 
-          {/* 2. Subscription Generation & Quick Import */}
-          <ExportPanel
-            subUrl={subUrl}
-            filteredCount={filteredNodes.length}
-            selectedLimit={selectedLimit}
-            onChangeLimit={setSelectedLimit}
-            allFilteredKeys={allFilteredKeys}
-            onOpenQr={() => setIsQrOpen(true)}
-            onDownloadClash={handleDownloadClash}
-          />
+            {/* 2. Subscription Generation & Quick Import */}
+            <ExportPanel
+              subUrl={subUrl}
+              filteredCount={filteredNodes.length}
+              selectedLimit={selectedLimit}
+              onChangeLimit={setSelectedLimit}
+              allFilteredKeys={allFilteredKeys}
+              onOpenQr={() => setIsQrOpen(true)}
+              onDownloadClash={handleDownloadClash}
+            />
 
-          {/* 3. Live Verified Nodes Feed */}
-          <NodePreviewList
-            nodes={filteredNodes}
-            isLoading={isLoading}
-            totalAvailable={filteredNodes.length}
-          />
-        </main>
+            {/* 3. Live Verified Nodes Feed */}
+            <NodePreviewList
+              nodes={filteredNodes}
+              isLoading={isLoading}
+              totalAvailable={filteredNodes.length}
+            />
+          </main>
 
-        {/* QR Code Modal */}
-        <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
+          {/* QR Code Modal */}
+          <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
 
-        {/* Minimal Compact Footer */}
-        <footer className="w-full max-w-4xl mx-auto py-3 px-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between text-[11px] text-zinc-500 font-mono">
-          <p className="m-0">
-            TurboProbe · Суверенный и автономный VPN-агрегатор
-          </p>
-          <p className="m-0 text-zinc-600">
-            Авто-обновление каждые 6 часов
-          </p>
-        </footer>
+          {/* Minimal Compact Footer */}
+          <footer className="w-full px-4 pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between text-[11px] text-zinc-500 font-mono">
+            <p className="m-0">
+              TurboProbe · Суверенный и автономный VPN-агрегатор
+            </p>
+            <p className="m-0 text-zinc-600">
+              Авто-обновление каждые 6 часов
+            </p>
+          </footer>
+        </div>
       </div>
     </div>
   );
