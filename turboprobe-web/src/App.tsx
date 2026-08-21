@@ -5,10 +5,18 @@ import { ExportPanel } from './components/ExportPanel';
 import { NodePreviewList } from './components/NodePreviewList';
 import { QrModal } from './components/QrModal';
 import ScrollWaveField from './components/ui/ScrollWaveField';
+import { normalizeAndIndexNodes } from './utils/nodeIndexer';
+import { generateClashMetaYaml } from './utils/clashExport';
 import type { NodeItem, PresetItem } from './types';
 
 const CDN_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
 const JSDELIVR_BASE = 'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub';
+
+const VALID_URI_REGEX = /^[a-z0-9+-.]+:\/\/[^\s]+/i;
+
+function isConflictMarker(line: string): boolean {
+  return line.startsWith('<<<<<<<') || line.startsWith('=======') || line.startsWith('>>>>>>>');
+}
 
 export default function App() {
   const [activePreset, setActivePreset] = useState<string>('all');
@@ -22,7 +30,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isQrOpen, setIsQrOpen] = useState<boolean>(false);
 
-  // 1. Fast Parallel Mirror Fetching with AbortController
+  // 1. Fast Parallel Mirror Fetching with AbortController & Strict Sanitization
   useEffect(() => {
     let isMounted = true;
 
@@ -52,29 +60,40 @@ export default function App() {
       try {
         const data = await Promise.any(mirrors.map((m) => fetchWithTimeout(m)));
         if (isMounted && data && Array.isArray(data.nodes)) {
-          setAllNodes(data.nodes);
+          const sanitized = (data.nodes as NodeItem[]).filter(
+            (n) => n && typeof n.uri === 'string' && VALID_URI_REGEX.test(n.uri.trim()) && !isConflictMarker(n.uri.trim())
+          );
+          setAllNodes(normalizeAndIndexNodes(sanitized));
           setIsLoading(false);
+          return;
         }
-      } catch (_) {
-        try {
-          const res = await fetch(`${JSDELIVR_BASE}/top50.txt`);
-          if (res.ok) {
-            const text = await res.text();
-            const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
-            if (isMounted) {
-              setAllNodes(
-                lines.map((uri, idx) => ({
-                  uri,
-                  ping_ms: 35 + idx * 2,
-                  country: 'NL',
-                  protocol: uri.split('://')[0] || 'vless',
-                  health: 95,
-                  services: { chatgpt: true, youtube: true, discord: true },
-                }))
-              );
-            }
+      } catch {
+        // Mirror fetch failed, fallback to top50.txt
+      }
+
+      try {
+        const res = await fetch(`${JSDELIVR_BASE}/top50.txt`);
+        if (res.ok) {
+          const text = await res.text();
+          const lines = text
+            .split('\n')
+            .map((l) => l.trim())
+            .filter((l) => l.length > 0 && VALID_URI_REGEX.test(l) && !isConflictMarker(l));
+
+          if (isMounted) {
+            const fallbackNodes: NodeItem[] = lines.map((uri, idx) => ({
+              uri,
+              ping_ms: 35 + idx * 2,
+              country: 'NL',
+              protocol: (uri.split('://')[0] || 'vless').toLowerCase(),
+              health: 95,
+              services: { chatgpt: true, youtube: true, discord: true },
+            }));
+            setAllNodes(normalizeAndIndexNodes(fallbackNodes));
           }
-        } catch (_) {}
+        }
+      } catch {
+        // fallback failed
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -102,29 +121,30 @@ export default function App() {
     }
   }, []);
 
-  // 3. Dynamic Counts Calculation
+  // 3. Ultra-fast Pre-indexed Dynamic Counts Calculation
   const countryCounts = useMemo(() => {
     const map: Record<string, number> = {};
-    allNodes.forEach((n) => {
-      const c = (n.country || '').toLowerCase();
-      if (c && c !== 'global') {
+    for (let i = 0; i < allNodes.length; i++) {
+      const n = allNodes[i];
+      const c = n._index?.normalizedCountry || (n.country || '').toLowerCase().trim();
+      if (c && c !== 'global' && c !== 'all') {
         map[c] = (map[c] || 0) + 1;
       }
-    });
+    }
     return map;
   }, [allNodes]);
 
   const protoCounts = useMemo(() => {
     const map: Record<string, number> = {};
-    allNodes.forEach((n) => {
-      const p = (n.protocol || '').toLowerCase();
-      const uri = n.uri.toLowerCase();
-      if (uri.includes('pbk=') || p.includes('reality')) map['reality'] = (map['reality'] || 0) + 1;
-      else if (p.includes('hy2') || p.includes('hysteria2') || uri.startsWith('hy2://')) map['hy2'] = (map['hy2'] || 0) + 1;
-      else if (p.includes('trojan') || uri.startsWith('trojan://')) map['trojan'] = (map['trojan'] || 0) + 1;
-      else if (p.includes('ss') || uri.startsWith('ss://')) map['ss'] = (map['ss'] || 0) + 1;
-      else if (p.includes('vless') || uri.startsWith('vless://')) map['vless'] = (map['vless'] || 0) + 1;
-    });
+    for (let i = 0; i < allNodes.length; i++) {
+      const idx = allNodes[i]._index;
+      if (!idx) continue;
+      if (idx.isReality) map['reality'] = (map['reality'] || 0) + 1;
+      else if (idx.isHy2) map['hy2'] = (map['hy2'] || 0) + 1;
+      else if (idx.isTrojan) map['trojan'] = (map['trojan'] || 0) + 1;
+      else if (idx.isSs) map['ss'] = (map['ss'] || 0) + 1;
+      else if (idx.isVless) map['vless'] = (map['vless'] || 0) + 1;
+    }
     return map;
   }, [allNodes]);
 
@@ -170,55 +190,80 @@ export default function App() {
     setMinHealth(val);
   }, []);
 
-  // 5. Reactive Client-Side Filtering
+  // 5. Zero-allocation, High-performance Filtering using Pre-indexed Metadata
   const filteredNodes = useMemo(() => {
+    const hasServices = selectedServices.length > 0;
+    const hasCountries = selectedCountries.length > 0;
+    const hasProtos = selectedProtos.length > 0;
+    const hasMaxPing = maxPing > 0;
+    const hasMinHealth = minHealth > 0;
+
+    if (!hasServices && !hasCountries && !hasProtos && !hasMaxPing && !hasMinHealth) {
+      return allNodes;
+    }
+
+    const normCountries = hasCountries ? selectedCountries.map((c) => c.toLowerCase().trim()) : [];
+    const normProtos = hasProtos ? selectedProtos.map((p) => p.toLowerCase().trim()) : [];
+
     return allNodes.filter((node) => {
-      // Service filter (Multi-select)
-      if (selectedServices.length > 0) {
-        const matchesServices = selectedServices.some(
-          (s) => node.services && Boolean(node.services[s])
-        );
-        if (!matchesServices) return false;
+      const idx = node._index;
+
+      // 1. Max Ping filter
+      if (hasMaxPing) {
+        const ping = idx ? idx.ping : (typeof node.ping_ms === 'number' ? node.ping_ms : 999);
+        if (ping > maxPing) return false;
       }
 
-      // Country filter (Multi-select)
-      if (selectedCountries.length > 0) {
-        const nCountry = (node.country || '').toLowerCase().trim();
-        const matchCountry = selectedCountries.some((c) => {
-          const target = c.toLowerCase().trim();
-          if (nCountry === target) return true;
-          if (node.uri.includes('#')) {
-            const tag = node.uri.split('#')[1].toLowerCase();
-            return tag.includes(`[${target}]`) || tag.includes(`(${target})`) || tag.includes(`-${target}-`) || tag.includes(` ${target} `);
-          }
+      // 2. Min Health filter
+      if (hasMinHealth) {
+        const health = idx ? idx.health : (typeof node.health === 'number' ? node.health : 100);
+        if (health < minHealth) return false;
+      }
+
+      // 3. Service filter (Multi-select)
+      if (hasServices) {
+        if (idx) {
+          const matchService = selectedServices.some((s) => idx.serviceSet.has(s.toLowerCase()));
+          if (!matchService) return false;
+        } else if (node.services) {
+          const matchService = selectedServices.some((s) => Boolean(node.services![s]));
+          if (!matchService) return false;
+        } else {
           return false;
-        });
-        if (!matchCountry) return false;
+        }
       }
 
-      // Protocol filter (Multi-select)
-      if (selectedProtos.length > 0) {
-        const nProto = (node.protocol || '').toLowerCase();
-        const nUri = node.uri.toLowerCase();
-        const matchProto = selectedProtos.some((p) => {
-          if (p === 'reality') return nUri.includes('pbk=') || nProto.includes('reality');
-          if (p === 'hy2') return nProto.includes('hy2') || nProto.includes('hysteria2') || nUri.startsWith('hy2://');
-          if (p === 'trojan') return nProto.includes('trojan') || nUri.startsWith('trojan://');
-          if (p === 'ss') return nProto.includes('ss') || nUri.startsWith('ss://');
-          if (p === 'vless') return nProto.includes('vless') || nUri.startsWith('vless://');
-          return nProto.includes(p) || nUri.startsWith(p);
-        });
-        if (!matchProto) return false;
+      // 4. Country filter (Multi-select)
+      if (hasCountries) {
+        if (idx) {
+          const matchCountry = normCountries.some(
+            (c) => idx.normalizedCountry === c || idx.countryTokens.includes(c)
+          );
+          if (!matchCountry) return false;
+        } else {
+          const c = (node.country || '').toLowerCase().trim();
+          const matchCountry = normCountries.some((target) => c === target);
+          if (!matchCountry) return false;
+        }
       }
 
-      // Max Ping filter
-      if (maxPing > 0 && (node.ping_ms || 999) > maxPing) {
-        return false;
-      }
-
-      // Min Health filter
-      if (minHealth > 0 && (node.health ?? 100) < minHealth) {
-        return false;
+      // 5. Protocol filter (Multi-select)
+      if (hasProtos) {
+        if (idx) {
+          const matchProto = normProtos.some((p) => {
+            if (p === 'reality') return idx.isReality;
+            if (p === 'hy2') return idx.isHy2;
+            if (p === 'trojan') return idx.isTrojan;
+            if (p === 'ss') return idx.isSs;
+            if (p === 'vless') return idx.isVless;
+            return idx.normalizedProto.includes(p);
+          });
+          if (!matchProto) return false;
+        } else {
+          const p = (node.protocol || '').toLowerCase();
+          const matchProto = normProtos.some((proto) => p.includes(proto));
+          if (!matchProto) return false;
+        }
       }
 
       return true;
@@ -229,7 +274,6 @@ export default function App() {
   const subUrl = useMemo(() => {
     const baseUrl = 'https://sub.turboprobe.workers.dev/sub';
 
-    // 1. If custom dynamic filtering is active
     const params = new URLSearchParams();
 
     if (selectedServices.length > 0) {
@@ -253,12 +297,10 @@ export default function App() {
       return `${baseUrl}?${queryStr}`;
     }
 
-    // 2. Preset REST endpoints
     if (activePreset === 'anti-tspu') return `${baseUrl}/anti-tspu`;
     if (activePreset === 'ai') return `${baseUrl}/ai`;
     if (activePreset === 'youtube') return `${baseUrl}/youtube`;
 
-    // 3. Default top live subscription
     return baseUrl;
   }, [activePreset, selectedServices, selectedCountries, selectedProtos, maxPing, minHealth]);
 
@@ -266,26 +308,17 @@ export default function App() {
     return filteredNodes.map((n) => n.uri);
   }, [filteredNodes]);
 
+  // 7. Client-side Real Clash Meta YAML Generation
   const handleDownloadClash = useCallback(() => {
-    const proxyNames: string[] = [];
-    const proxies = filteredNodes.slice(0, 100).map((n, i) => {
-      let cleanName = `TurboProbe-${String(i + 1).padStart(3, '0')}`;
-      if (n.uri.includes('#')) {
-        try {
-          cleanName = decodeURIComponent(n.uri.split('#')[1]).trim();
-        } catch (_) {}
-      }
-      proxyNames.push(cleanName);
-      return `  - {name: "${cleanName}", type: ${n.protocol || 'vless'}, server: ...}`;
-    });
-
-    const yaml = `# TurboProbe Clash Configuration\nproxies:\n${proxies.join('\n')}\n`;
-    const blob = new Blob([yaml], { type: 'text/yaml' });
+    const yaml = generateClashMetaYaml(filteredNodes);
+    const blob = new Blob([yaml], { type: 'text/yaml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'turboprobe-clash.yaml';
+    a.download = 'turboprobe-clash-meta.yaml';
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, [filteredNodes]);
 
@@ -337,7 +370,7 @@ export default function App() {
 
           {/* Live Node Preview List with ThinkingOrbs & Reveal Animation */}
           <NodePreviewList
-            nodes={filteredNodes.slice(0, 50)}
+            nodes={filteredNodes}
             isLoading={isLoading}
             totalAvailable={filteredNodes.length}
           />

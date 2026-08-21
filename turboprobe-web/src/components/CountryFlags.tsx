@@ -5,7 +5,7 @@ interface FlagProps {
   className?: string;
 }
 
-export const CountryFlag: React.FC<FlagProps> = ({ countryCode = 'all', className = 'w-4 h-3 rounded-[2px] inline-block shadow-sm flex-shrink-0' }) => {
+const CountryFlagComponent: React.FC<FlagProps> = ({ countryCode = 'all', className = 'w-4 h-3 rounded-[2px] inline-block shadow-sm flex-shrink-0' }) => {
   const code = (countryCode || '').toLowerCase();
 
   switch (code) {
@@ -522,6 +522,38 @@ export const CountryFlag: React.FC<FlagProps> = ({ countryCode = 'all', classNam
         </svg>
       );
 
+    case 'dk': // Denmark 🇩🇰
+      return (
+        <svg className={className} viewBox="0 0 37 28">
+          <rect width="37" height="28" fill="#C8102E"/>
+          <rect width="4" height="28" x="12" fill="#ffffff"/>
+          <rect width="37" height="4" y="12" fill="#ffffff"/>
+        </svg>
+      );
+
+    case 'rs': // Serbia 🇷🇸
+      return (
+        <svg className={className} viewBox="0 0 9 6">
+          <rect width="9" height="2" fill="#C6363C"/>
+          <rect width="9" height="2" y="2" fill="#0C4076"/>
+          <rect width="9" height="2" y="4" fill="#ffffff"/>
+        </svg>
+      );
+
+    case 'nz': // New Zealand 🇳🇿
+      return (
+        <svg className={className} viewBox="0 0 60 30">
+          <rect width="60" height="30" fill="#00247D"/>
+          <rect width="30" height="15" fill="#012169"/>
+          <path d="M0,0 L30,15 M30,0 L0,15" stroke="#fff" strokeWidth="2"/>
+          <path d="M15,0 v15 M0,7.5 h30" stroke="#fff" strokeWidth="4"/>
+          <circle cx="45" cy="7" r="1.5" fill="#CC142B" stroke="#fff" strokeWidth="0.5"/>
+          <circle cx="52" cy="13" r="1.5" fill="#CC142B" stroke="#fff" strokeWidth="0.5"/>
+          <circle cx="45" cy="22" r="1.8" fill="#CC142B" stroke="#fff" strokeWidth="0.5"/>
+          <circle cx="39" cy="15" r="1.2" fill="#CC142B" stroke="#fff" strokeWidth="0.5"/>
+        </svg>
+      );
+
     default: // Global / All 🌐
       return (
         <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -532,3 +564,6 @@ export const CountryFlag: React.FC<FlagProps> = ({ countryCode = 'all', classNam
       );
   }
 };
+
+export const CountryFlag = React.memo(CountryFlagComponent);
+

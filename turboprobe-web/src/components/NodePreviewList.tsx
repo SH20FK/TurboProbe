@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThinkingOrb } from 'thinking-orbs';
-import { ChevronDown, ChevronUp, Copy, Check, ShieldCheck, Radio } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Check, ShieldCheck, Radio, Plus } from 'lucide-react';
 import { CountryFlag } from './CountryFlags';
+import { extractRemark, computeDisplayTitle } from '../utils/nodeIndexer';
 import type { NodeItem } from '../types';
 
 interface NodePreviewListProps {
@@ -11,30 +12,31 @@ interface NodePreviewListProps {
   totalAvailable: number;
 }
 
-export const NodePreviewList: React.FC<NodePreviewListProps> = ({
+const NodePreviewListComponent: React.FC<NodePreviewListProps> = ({
   nodes,
   isLoading,
   totalAvailable,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [displayLimit, setDisplayLimit] = useState<number>(50);
 
-  const handleCopyNode = async (uri: string, index: number) => {
+  const handleCopyNode = async (uri: string, key: string) => {
     try {
       await navigator.clipboard.writeText(uri);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 1500);
-    } catch (_) {}
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 1500);
+    } catch {
+      // ignore clipboard error
+    }
   };
 
-  const extractRemark = (uri: string) => {
-    if (uri.includes('#')) {
-      try {
-        return decodeURIComponent(uri.split('#')[1]).replace(/[:"'\[\]]/g, '').trim();
-      } catch (_) {}
-    }
-    return 'TurboProbe Node';
-  };
+  const visibleNodes = useMemo(() => {
+    return nodes.slice(0, displayLimit);
+  }, [nodes, displayLimit]);
+
+  const hasMore = nodes.length > displayLimit;
+  const remainingCount = nodes.length - displayLimit;
 
   return (
     <section className="w-full max-w-5xl mx-auto px-4 py-4">
@@ -50,7 +52,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
               Подходящие серверы
             </span>
             <span className="text-xs px-2 py-0.5 rounded font-mono bg-zinc-800 text-zinc-400 border border-white/10">
-              {nodes.length} из {totalAvailable}
+              {Math.min(visibleNodes.length, nodes.length)} из {totalAvailable}
             </span>
           </div>
 
@@ -100,23 +102,23 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
                 {/* 3. Node List Rows */}
                 {!isLoading &&
-                  nodes.map((node, index) => {
-                    const ping = node.ping_ms ? Math.round(node.ping_ms) : 35 + index * 2;
+                  visibleNodes.map((node, index) => {
+                    const nodeKey = node.id || node.uri || `node-${index}`;
+                    const ping = typeof node.ping_ms === 'number' ? Math.round(node.ping_ms) : (35 + index * 2);
                     const countryCode = (node.country || 'all').toLowerCase();
                     const proto = (node.protocol || (node.uri.split('://')[0] || 'vless')).toUpperCase();
-                    const health = node.health ?? 100;
-                    const isCopied = copiedIndex === index;
+                    const health = typeof node.health === 'number' ? node.health : 100;
+                    const isCopied = copiedKey === nodeKey;
 
-                    // Strictly synchronize title with real verified GeoIP country
-                    let displayTitle = extractRemark(node.uri);
-                    if (node.country && node.country !== 'GLOBAL' && node.country !== 'all') {
-                      const cc = node.country.toUpperCase();
-                      displayTitle = displayTitle.replace(/·\s*(?:[^\w\s]{1,4}\s*)?[A-Za-z]{2}(?:\s+[A-Za-z]{2})?\b/g, `· ${cc}`);
-                    }
+                    // Use precomputed title if indexed, otherwise compute safely
+                    const displayTitle = node._index?.displayTitle || computeDisplayTitle(extractRemark(node.uri), node.country);
+
+                    const hasSpeed = typeof node.speed_mbps === 'number' && node.speed_mbps > 0;
+                    const formattedSpeed = hasSpeed && node.speed_mbps !== undefined ? node.speed_mbps.toFixed(1) : '';
 
                     return (
                       <div
-                        key={index}
+                        key={nodeKey}
                         className="flex items-center justify-between gap-3 p-3 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/[0.06] transition-all"
                       >
                         <div className="flex items-center gap-3 overflow-hidden">
@@ -137,7 +139,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                         {/* Ping, Speed, RU Verified, Health & Copy Action */}
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {/* RU Domestic Verified Badge */}
-                          {node.ru_verified && (
+                          {Boolean(node.ru_verified) && (
                             <span
                               title={node.ru_location ? `Проверено из РФ: ${node.ru_location}` : 'Подтверждена доступность из РФ'}
                               className="hidden md:inline-flex items-center gap-1 text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 shadow-sm"
@@ -147,9 +149,9 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                           )}
 
                           {/* Mbps Speed Badge */}
-                          {node.speed_mbps && node.speed_mbps > 0 && (
+                          {hasSpeed && (
                             <span className="hidden lg:inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950/70 text-blue-300 border border-blue-500/30">
-                              ⚡ {node.speed_mbps} Mbps
+                              ⚡ {formattedSpeed} Mbps
                             </span>
                           )}
 
@@ -167,7 +169,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                           {/* 1-Click Copy Key Button */}
                           <motion.button
                             whileTap={{ scale: 0.9 }}
-                            onClick={() => handleCopyNode(node.uri, index)}
+                            onClick={() => handleCopyNode(node.uri, nodeKey)}
                             type="button"
                             className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-zinc-300 hover:text-white cursor-pointer transition-colors"
                           >
@@ -181,6 +183,29 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                       </div>
                     );
                   })}
+
+                {/* 4. Show More Expansion */}
+                {!isLoading && hasMore && (
+                  <div className="pt-2 flex items-center justify-center gap-3">
+                    <motion.button
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => setDisplayLimit((prev) => prev + 50)}
+                      type="button"
+                      className="px-4 py-2 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 hover:text-white text-xs font-mono font-semibold flex items-center gap-2 border border-white/10 transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Показать еще +50 (осталось {remainingCount})</span>
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => setDisplayLimit(nodes.length)}
+                      type="button"
+                      className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs font-mono border border-white/10 transition-colors cursor-pointer"
+                    >
+                      Показать все ({nodes.length})
+                    </motion.button>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -189,3 +214,5 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
     </section>
   );
 };
+
+export const NodePreviewList = React.memo(NodePreviewListComponent);

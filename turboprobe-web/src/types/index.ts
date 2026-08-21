@@ -1,25 +1,51 @@
+export type ProxyProtocol = 'vless' | 'trojan' | 'ss' | 'hysteria2' | 'hy2' | 'tuic' | 'vmess' | string;
+
+export interface NodeServices {
+  chatgpt?: boolean;
+  claude?: boolean;
+  gemini?: boolean;
+  youtube?: boolean;
+  discord?: boolean;
+  twitter?: boolean;
+  spotify?: boolean;
+  github?: boolean;
+  perplexity?: boolean;
+  [key: string]: boolean | undefined;
+}
+
+export interface NodeIndexMetadata {
+  id: string;
+  cleanTag: string;
+  displayTitle: string;
+  normalizedCountry: string;
+  normalizedProto: string;
+  isReality: boolean;
+  isHy2: boolean;
+  isTrojan: boolean;
+  isSs: boolean;
+  isVless: boolean;
+  ping: number;
+  health: number;
+  serviceSet: Set<string>;
+  countryTokens: string[];
+}
+
 export interface NodeItem {
+  id?: string;
   uri: string;
   ping_ms?: number;
   country?: string;
-  protocol?: string;
+  protocol?: ProxyProtocol;
+  server?: string;
+  port?: number;
+  remark?: string;
   health?: number;
   speed_mbps?: number;
   ru_verified?: boolean;
   ru_ping_ms?: number;
   ru_location?: string;
-  services?: {
-    chatgpt?: boolean;
-    claude?: boolean;
-    gemini?: boolean;
-    youtube?: boolean;
-    discord?: boolean;
-    twitter?: boolean;
-    spotify?: boolean;
-    github?: boolean;
-    perplexity?: boolean;
-    [key: string]: boolean | undefined;
-  };
+  services?: NodeServices;
+  _index?: NodeIndexMetadata;
 }
 
 export interface StatsData {

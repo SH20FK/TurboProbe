@@ -16,6 +16,10 @@ on:
           - 'full'        # 🌐 Полный краулер (1500+ источников, ~15 мин)
           - 'prober_only' # 🔬 Только Xray-пробер текущих ключей (~30 сек)
 
+concurrency:
+  group: "${{ github.workflow }}"
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -25,6 +29,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Increase file descriptor limit
+        run: |
+          ulimit -n 65536 || true
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -34,14 +42,38 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+
+      - name: Cache Xray binary
+        id: cache-xray
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/xray
+          key: xray-linux-64-v1.8.24
 
       - name: Install dependencies & Xray-core
         run: |
+          ulimit -n 65536 || true
           python -m pip install --upgrade pip
           pip install "requests[socks]" urllib3 orjson httpx aiohttp
-          curl -L -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
-          sudo unzip -o /tmp/xray.zip -d /usr/local/bin/
-          sudo chmod +x /usr/local/bin/xray
+          if [ ! -f /usr/local/bin/xray ]; then
+            curl -L -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+            sudo unzip -o /tmp/xray.zip -d /usr/local/bin/
+            sudo chmod +x /usr/local/bin/xray
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: turboprobe-web/package.json
+
+      - name: Verify Web Build
+        run: |
+          cd turboprobe-web
+          npm ci || npm install
+          npm run build
 
       - name: Discover new subscription sources
         if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full') }}
@@ -68,6 +100,8 @@ jobs:
           ulimit -n 65536 || true
           if [ "${{ github.event.inputs.mode }}" = "fast" ]; then
             python tools/service_prober.py --limit 1000
+          elif [ "${{ github.event.inputs.mode }}" = "prober_only" ]; then
+            python tools/service_prober.py --limit 500
           else
             python tools/service_prober.py --limit 0
           fi
@@ -86,7 +120,35 @@ jobs:
             echo "No subscription updates detected."
           else
             git commit -m "chore(sub): auto-update VPN subscriptions [$(date -u +'%Y-%m-%d %H:%M UTC')]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
-            git checkout -- . || true
-            git fetch origin main
-            git push origin HEAD:main || (git pull --rebase -X theirs origin main && git push origin HEAD:main) || git push -f origin HEAD:main
+            
+            # Resilient fetch/rebase retry logic with rebase --abort on conflict
+            MAX_ATTEMPTS=5
+            ATTEMPT=1
+            PUSHED=0
+            while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+              echo "Push attempt $ATTEMPT of $MAX_ATTEMPTS..."
+              if git push origin HEAD:main; then
+                PUSHED=1
+                echo "Successfully pushed changes."
+                break
+              fi
+              echo "Push failed. Fetching and rebasing on origin/main..."
+              git fetch origin main
+              if ! git rebase origin/main; then
+                echo "Rebase conflict encountered. Aborting rebase and keeping generated subscription state..."
+                git rebase --abort || true
+                git checkout origin/main -- .gitignore README.md package.json 2>/dev/null || true
+                git add -f sub/ docs/sub/ tools/discovered_sources.json tools/dead_nodes.json tools/node_history.json tools/telegram_feed.txt || true
+                git commit --amend --no-edit || true
+              fi
+              SLEEP_TIME=$((ATTEMPT * 3))
+              echo "Retrying push in $SLEEP_TIME seconds..."
+              sleep $SLEEP_TIME
+              ATTEMPT=$((ATTEMPT + 1))
+            done
+
+            if [ $PUSHED -ne 1 ]; then
+              echo "Failed to push after $MAX_ATTEMPTS attempts."
+              exit 1
+            fi
           fi

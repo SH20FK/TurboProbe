@@ -621,7 +621,7 @@ def main():
 
     new_confirmed = 0
     validated_stats = {}
-    with ThreadPoolExecutor(max_workers=300) as pool:
+    with ThreadPoolExecutor(max_workers=min(64, len(new_candidates) or 1)) as pool:
         future_map = {pool.submit(validate_source, u): u for u in new_candidates}
         for fut in as_completed(future_map):
             url = future_map[fut]

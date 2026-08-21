@@ -17,7 +17,9 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
       await navigator.clipboard.writeText(subUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (_) {}
+    } catch {
+      // ignore copy failure
+    }
   };
 
   return (

@@ -230,19 +230,21 @@ function ScrollWaveFieldBase(props: Props) {
         rollStart,
         cameraHeight,
     })
-    live.current = {
-        colors,
-        density,
-        dotSize,
-        waveHeight,
-        scatter,
-        waveLength,
-        waveSpeed,
-        flowSpeed,
-        tiltStart,
-        rollStart,
-        cameraHeight,
-    }
+    useEffect(() => {
+        live.current = {
+            colors,
+            density,
+            dotSize,
+            waveHeight,
+            scatter,
+            waveLength,
+            waveSpeed,
+            flowSpeed,
+            tiltStart,
+            rollStart,
+            cameraHeight,
+        };
+    }, [colors, density, dotSize, waveHeight, scatter, waveLength, waveSpeed, flowSpeed, tiltStart, rollStart, cameraHeight]);
 
     useEffect(() => {
         const host = hostRef.current

@@ -5,7 +5,7 @@ import { Layers, ShieldCheck, Sparkles, Tv, Globe } from 'lucide-react';
 import { CountryFlag } from './CountryFlags';
 import type { PresetItem } from '../types';
 
-export const PRESETS: PresetItem[] = [
+const PRESET_CARDS: PresetItem[] = [
   {
     id: 'all',
     name: 'Все протоколы',
@@ -102,7 +102,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({ activePreset, on
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {PRESETS.map((preset) => {
+        {PRESET_CARDS.map((preset) => {
           const isActive = activePreset === preset.id;
           const isCountryPreset = preset.id === 'de' || preset.id === 'nl';
 

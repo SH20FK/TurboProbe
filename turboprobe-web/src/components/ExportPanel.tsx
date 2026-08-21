@@ -37,7 +37,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
       await navigator.clipboard.writeText(activeDisplayUrl);
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
-    } catch (_) {}
+    } catch {
+      // ignore
+    }
   };
 
   const handleCopyHapp = async () => {
@@ -46,7 +48,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
       setCopiedHapp(true);
       setTimeout(() => setCopiedHapp(false), 2500);
       window.location.href = `happ://add/${subUrl}#TurboProbe`;
-    } catch (_) {}
+    } catch {
+      // ignore
+    }
   };
 
   const handleCopyFlclash = async () => {
@@ -55,7 +59,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
       setCopiedFlclash(true);
       setTimeout(() => setCopiedFlclash(false), 2500);
       window.location.href = `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`;
-    } catch (_) {}
+    } catch {
+      // ignore
+    }
   };
 
   return (

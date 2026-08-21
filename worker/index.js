@@ -11,8 +11,27 @@
  * - https://turboprobe.workers.dev/sub/clash
  */
 
-const GITHUB_PREVIEW_URL = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/docs/sub/preview.json';
-const GITHUB_FALLBACK_SUB = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/top50.txt';
+const JSON_MIRRORS = [
+  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/preview.json',
+  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/docs/sub/preview.json',
+  'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub/preview.json',
+  'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/docs/sub/preview.json',
+  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/nodes.json',
+];
+
+const TEXT_MIRRORS = [
+  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/all.txt',
+  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/top50.txt',
+  'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub/top50.txt',
+  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/anti-whitelist.txt',
+];
+
+const COMMON_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Profile-Update-Interval': '6',
+  'Subscription-Userinfo': 'upload=0; download=0; total=1073741824000; expire=0',
+  'Cache-Control': 'public, max-age=300, s-maxage=300'
+};
 
 export default {
   async fetch(request, env, ctx) {
@@ -26,6 +45,7 @@ export default {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
           'Access-Control-Allow-Headers': '*',
+          'Cache-Control': 'public, max-age=86400'
         },
       });
     }
@@ -41,7 +61,8 @@ export default {
         {
           headers: {
             'Content-Type': 'application/json; charset=utf-8',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=300'
           }
         }
       );
@@ -60,7 +81,7 @@ export default {
 
       // Multi-Protocol parsing (e.g. ?proto=reality,hy2)
       let protos = [];
-      const protoParam = url.searchParams.get('proto');
+      const protoParam = url.searchParams.get('proto') || url.searchParams.get('protocol');
       if (protoParam && protoParam !== 'all') {
         protos = protoParam.split(',').map(p => p.trim().toLowerCase()).filter(Boolean);
       }
@@ -68,7 +89,7 @@ export default {
       let maxPing = parseInt(url.searchParams.get('max_ping') || url.searchParams.get('ping') || '0', 10);
       let minHealth = parseInt(url.searchParams.get('min_health') || url.searchParams.get('health') || '0', 10);
       let limit = parseInt(url.searchParams.get('limit') || '100', 10);
-      let format = (url.searchParams.get('format') || 'plain').toLowerCase();
+      let format = (url.searchParams.get('format') || url.searchParams.get('type') || 'plain').toLowerCase();
 
       // Direct query parameters (e.g. ?services=chatgpt,gemini OR ?chatgpt,gemini)
       const servicesParam = url.searchParams.get('services') || url.searchParams.get('service') || url.searchParams.get('srv');
@@ -98,7 +119,11 @@ export default {
           protos = ['reality'];
         } else if (cleanPath === 'clash' || cleanPath === 'meta') {
           format = 'clash';
-        } else if (['de', 'nl', 'kz', 'fi', 'tr', 'ru', 'se', 'us', 'sg'].includes(cleanPath)) {
+        } else if (cleanPath === 'singbox' || cleanPath === 'sing-box') {
+          format = 'singbox';
+        } else if (cleanPath === 'base64' || cleanPath === 'b64') {
+          format = 'base64';
+        } else if (['de', 'nl', 'kz', 'fi', 'tr', 'ru', 'se', 'us', 'sg', 'gb', 'fr', 'jp'].includes(cleanPath)) {
           countries = [cleanPath];
         } else if (cleanPath.includes('+') || cleanPath.includes(',')) {
           services = cleanPath.split(/[+,]/).map(s => s.trim().toLowerCase()).filter(Boolean);
@@ -107,80 +132,73 @@ export default {
         }
       }
 
-      // 4. Fetch Cached preview.json / nodes.json with multiple fallback mirrors
-      const mirrors = [
-        'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/preview.json',
-        'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/docs/sub/preview.json',
-        'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub/preview.json',
-        'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/docs/sub/preview.json',
-      ];
+      // 4. Parallel fetch Cached preview.json / nodes.json with Promise.any and timeout fallbacks
+      let allNodes = await fetchFirstSuccessfulJson(JSON_MIRRORS, 3500);
 
-      let allNodes = [];
-      for (const mirror of mirrors) {
-        try {
-          const res = await fetch(mirror, {
-            headers: { 'User-Agent': 'TurboProbe-EdgeWorker/2.0' },
-            cf: { cacheTtl: 60, cacheEverything: true }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const list = Array.isArray(data) ? data : (data.nodes || []);
-            if (Array.isArray(list) && list.length > 0) {
-              allNodes = list;
-              break;
-            }
-          }
-        } catch (_) {}
-      }
-
-      // If all JSON mirrors fail, fallback to raw top50.txt / anti-whitelist.txt
+      // If all JSON mirrors fail, parallel fallback to raw text lists
       if (allNodes.length === 0) {
-        const textMirrors = [
-          'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/top50.txt',
-          'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub/top50.txt',
-          'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/anti-whitelist.txt',
-        ];
-        for (const tUrl of textMirrors) {
-          try {
-            const res = await fetch(tUrl, { headers: { 'User-Agent': 'TurboProbe-EdgeWorker/2.0' } });
-            if (res.ok) {
-              const text = await res.text();
-              const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-              if (lines.length > 0) {
-                const userAgent = (request.headers.get('User-Agent') || '').toLowerCase();
-                const isClash = format === 'clash' || format === 'meta' || format === 'yaml' ||
-                                path.includes('/clash') || path.includes('/meta') ||
-                                userAgent.includes('clash') || userAgent.includes('mihomo') || userAgent.includes('flclash') || userAgent.includes('stash');
-                if (isClash) {
-                  const clashYaml = generateClashMetaYaml(lines.map(u => ({ uri: u })));
-                  return new Response(clashYaml, {
-                    headers: {
-                      'Content-Type': 'text/yaml; charset=utf-8',
-                      'Content-Disposition': 'inline; filename="TurboProbe_Clash.yaml"',
-                      'Access-Control-Allow-Origin': '*',
-                      'Profile-Update-Interval': '6',
-                      'Subscription-Userinfo': 'upload=0; download=0; total=1073741824000; expire=0'
-                    }
-                  });
-                }
-                return new Response(lines.join('\n'), {
-                  headers: {
-                    'Content-Type': 'text/plain; charset=utf-8',
-                    'Content-Disposition': 'inline; filename="TurboProbe_Sub.txt"',
-                    'Access-Control-Allow-Origin': '*',
-                    'Profile-Update-Interval': '6',
-                    'Subscription-Userinfo': 'upload=0; download=0; total=1073741824000; expire=0'
-                  }
-                });
+        const lines = await fetchFirstSuccessfulText(TEXT_MIRRORS, 3500);
+        if (lines.length > 0) {
+          const userAgent = (request.headers.get('User-Agent') || '').toLowerCase();
+          const isClash = format === 'clash' || format === 'meta' || format === 'yaml' ||
+                          path.includes('/clash') || path.includes('/meta') ||
+                          userAgent.includes('clash') || userAgent.includes('mihomo') || userAgent.includes('flclash') || userAgent.includes('stash');
+          
+          if (isClash) {
+            const clashYaml = generateClashMetaYaml(lines.map(u => ({ uri: u })));
+            return new Response(clashYaml, {
+              headers: {
+                ...COMMON_HEADERS,
+                'Content-Type': 'text/yaml; charset=utf-8',
+                'Content-Disposition': 'inline; filename="TurboProbe_Clash.yaml"'
               }
+            });
+          }
+
+          if (format === 'singbox' || format === 'sing-box' || path.includes('/singbox')) {
+            const sbJson = generateSingboxJson(lines.map(u => ({ uri: u })));
+            return new Response(JSON.stringify(sbJson, null, 2), {
+              headers: {
+                ...COMMON_HEADERS,
+                'Content-Type': 'application/json; charset=utf-8',
+                'Content-Disposition': 'inline; filename="TurboProbe_Singbox.json"'
+              }
+            });
+          }
+
+          if (format === 'base64' || format === 'b64' || path.includes('/base64')) {
+            const b64 = safeBase64Encode(lines.join('\n'));
+            return new Response(b64, {
+              headers: {
+                ...COMMON_HEADERS,
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Content-Disposition': 'inline; filename="TurboProbe_Base64.txt"'
+              }
+            });
+          }
+
+          return new Response(lines.join('\n'), {
+            headers: {
+              ...COMMON_HEADERS,
+              'Content-Type': 'text/plain; charset=utf-8',
+              'Content-Disposition': 'inline; filename="TurboProbe_Sub.txt"'
             }
-          } catch (_) {}
+          });
         }
-        return new Response('No active nodes available.', { status: 503 });
+        return new Response('No active nodes available.', {
+          status: 503,
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-cache, no-store'
+          }
+        });
       }
 
       // 5. Filter Nodes dynamically on edge
       let matching = allNodes.filter(node => {
+        if (!node || !node.uri) return false;
+
         // Filter by services (multi-select match)
         if (services.length > 0) {
           if (!node.services) return false;
@@ -239,56 +257,299 @@ export default {
       // Cap to requested limit
       const finalNodes = matching.slice(0, limit);
 
-      // Check if Clash YAML format is requested (by param, path, or client User-Agent)
+      // Check format request
       const userAgent = (request.headers.get('User-Agent') || '').toLowerCase();
       const isClashClient = format === 'clash' || format === 'meta' || format === 'yaml' ||
                             path.includes('/clash') || path.includes('/meta') ||
-                            userAgent.includes('clash') || userAgent.includes('mihomo') || userAgent.includes('flclash');
+                            userAgent.includes('clash') || userAgent.includes('mihomo') || userAgent.includes('flclash') || userAgent.includes('stash');
 
       if (isClashClient) {
         const clashYaml = generateClashMetaYaml(finalNodes);
         return new Response(clashYaml, {
           headers: {
+            ...COMMON_HEADERS,
             'Content-Type': 'text/yaml; charset=utf-8',
-            'Content-Disposition': 'inline; filename="TurboProbe_Clash.yaml"',
-            'Access-Control-Allow-Origin': '*',
-            'Profile-Update-Interval': '6',
-            'Subscription-Userinfo': 'upload=0; download=0; total=1073741824000; expire=0'
+            'Content-Disposition': 'inline; filename="TurboProbe_Clash.yaml"'
           }
         });
       }
 
-      // Plain/Base64 URI List
+      if (format === 'singbox' || format === 'sing-box' || path.includes('/singbox')) {
+        const sbJson = generateSingboxJson(finalNodes);
+        return new Response(JSON.stringify(sbJson, null, 2), {
+          headers: {
+            ...COMMON_HEADERS,
+            'Content-Type': 'application/json; charset=utf-8',
+            'Content-Disposition': 'inline; filename="TurboProbe_Singbox.json"'
+          }
+        });
+      }
+
       const lines = finalNodes.map(n => n.uri).filter(Boolean);
       const outputText = lines.join('\n');
 
+      if (format === 'base64' || format === 'b64' || path.includes('/base64')) {
+        const b64 = safeBase64Encode(outputText);
+        return new Response(b64, {
+          headers: {
+            ...COMMON_HEADERS,
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Content-Disposition': 'inline; filename="TurboProbe_Base64.txt"'
+          }
+        });
+      }
+
+      // Plain text URI list
       return new Response(outputText, {
         headers: {
+          ...COMMON_HEADERS,
           'Content-Type': 'text/plain; charset=utf-8',
-          'Content-Disposition': 'inline; filename="TurboProbe_Sub.txt"',
-          'Access-Control-Allow-Origin': '*',
-          'Profile-Update-Interval': '6',
-          'Subscription-Userinfo': 'upload=0; download=0; total=1073741824000; expire=0'
+          'Content-Disposition': 'inline; filename="TurboProbe_Sub.txt"'
         }
       });
 
     } catch (err) {
-      return new Response(`Worker Error: ${err.message}`, { status: 500 });
+      return new Response(`Worker Error: ${err.message}`, {
+        status: 500,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-cache, no-store'
+        }
+      });
     }
   }
 };
 
+/**
+ * Parallel upstream JSON mirror fetcher using Promise.any and abort timeouts.
+ */
+async function fetchFirstSuccessfulJson(mirrors, timeoutMs = 3500) {
+  const promises = mirrors.map(async (mirrorUrl) => {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    try {
+      const res = await fetch(mirrorUrl, {
+        signal: controller ? controller.signal : undefined,
+        headers: { 'User-Agent': 'TurboProbe-EdgeWorker/2.0' },
+        cf: { cacheTtl: 60, cacheEverything: true }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data && Array.isArray(data.nodes) ? data.nodes : []);
+      const validList = list.filter(n => n && typeof n.uri === 'string' && !n.uri.startsWith('<') && !n.uri.startsWith('=') && !n.uri.startsWith('>'));
+      if (validList.length > 0) {
+        return validList;
+      }
+      throw new Error('Empty or invalid nodes list');
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  });
+
+  try {
+    return await Promise.any(promises);
+  } catch (_) {
+    return [];
+  }
+}
+
+/**
+ * Parallel upstream plaintext mirror fetcher using Promise.any and abort timeouts.
+ */
+async function fetchFirstSuccessfulText(mirrors, timeoutMs = 3500) {
+  const promises = mirrors.map(async (mirrorUrl) => {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    try {
+      const res = await fetch(mirrorUrl, {
+        signal: controller ? controller.signal : undefined,
+        headers: { 'User-Agent': 'TurboProbe-EdgeWorker/2.0' }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const lines = text
+        .split(/\r?\n/)
+        .map(l => l.trim())
+        .filter(l => l && !l.startsWith('#') && !l.startsWith('//') && !l.startsWith('<') && !l.startsWith('=') && !l.startsWith('>'));
+      if (lines.length > 0) {
+        return lines;
+      }
+      throw new Error('Empty text content');
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  });
+
+  try {
+    return await Promise.any(promises);
+  } catch (_) {
+    return [];
+  }
+}
+
+/**
+ * Safe Base64 decode with URL-safe replacement and padding repair.
+ */
+function safeBase64Decode(str) {
+  if (!str) return '';
+  let clean = '';
+  try {
+    clean = decodeURIComponent(str);
+  } catch (_) {
+    clean = str;
+  }
+  clean = clean.replace(/-/g, '+').replace(/_/g, '/').trim();
+  const pad = clean.length % 4;
+  if (pad === 2) clean += '==';
+  else if (pad === 3) clean += '=';
+  else if (pad === 1) clean += '===';
+  try {
+    if (typeof atob === 'function') {
+      return atob(clean);
+    }
+  } catch (_) {}
+  try {
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(clean, 'base64').toString('utf-8');
+    }
+  } catch (_) {}
+  return '';
+}
+
+/**
+ * Safe Base64 encode for UTF-8 strings.
+ */
+function safeBase64Encode(str) {
+  if (!str) return '';
+  try {
+    if (typeof btoa === 'function') {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
+  } catch (_) {}
+  try {
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(str, 'utf-8').toString('base64');
+    }
+  } catch (_) {}
+  return str;
+}
+
+/**
+ * Robust Shadowsocks URI parser (handles SIP002 Base64 userinfo, plain userinfo, and Legacy Base64 formats).
+ */
+function parseShadowsocksUri(uri) {
+  try {
+    if (!uri || !uri.startsWith('ss://')) return null;
+    let main = uri.slice(5);
+    let tag = '';
+    if (main.includes('#')) {
+      const parts = main.split('#');
+      main = parts[0];
+      try {
+        tag = decodeURIComponent(parts.slice(1).join('#')).trim();
+      } catch (_) {
+        tag = parts.slice(1).join('#').trim();
+      }
+    }
+    if (main.includes('?')) {
+      main = main.split('?')[0];
+    }
+
+    let method = 'aes-256-gcm';
+    let password = '';
+    let host = '';
+    let port = 8388;
+
+    const parseHostPort = (hp) => {
+      let h = '', p = 8388;
+      if (hp.startsWith('[')) {
+        const closeBracket = hp.indexOf(']');
+        if (closeBracket !== -1) {
+          h = hp.slice(1, closeBracket);
+          const rest = hp.slice(closeBracket + 1);
+          if (rest.startsWith(':')) {
+            p = parseInt(rest.slice(1), 10) || 8388;
+          }
+        } else {
+          h = hp.replace(/^\[|\]$/g, '');
+        }
+      } else if (hp.includes(':')) {
+        const lastColon = hp.lastIndexOf(':');
+        h = hp.slice(0, lastColon).replace(/^\[|\]$/g, '');
+        p = parseInt(hp.slice(lastColon + 1), 10) || 8388;
+      } else {
+        h = hp.replace(/^\[|\]$/g, '');
+      }
+      return { host: h, port: p };
+    };
+
+    if (main.includes('@')) {
+      // SIP002 format: [base64_userinfo | user:pass]@host:port
+      const atIdx = main.lastIndexOf('@');
+      let rawUserInfo = main.slice(0, atIdx);
+      const hostPort = main.slice(atIdx + 1);
+
+      try {
+        rawUserInfo = decodeURIComponent(rawUserInfo);
+      } catch (_) {}
+
+      if (rawUserInfo.includes(':')) {
+        const colonIdx = rawUserInfo.indexOf(':');
+        method = rawUserInfo.slice(0, colonIdx);
+        password = rawUserInfo.slice(colonIdx + 1);
+      } else {
+        const decoded = safeBase64Decode(rawUserInfo);
+        if (decoded.includes(':')) {
+          const colonIdx = decoded.indexOf(':');
+          method = decoded.slice(0, colonIdx);
+          password = decoded.slice(colonIdx + 1);
+        } else {
+          password = decoded || rawUserInfo;
+        }
+      }
+      const hp = parseHostPort(hostPort);
+      host = hp.host;
+      port = hp.port;
+    } else {
+      // Legacy format: base64(method:password@host:port)
+      const decoded = safeBase64Decode(main);
+      if (decoded.includes('@')) {
+        const atIdx = decoded.lastIndexOf('@');
+        const rawUserInfo = decoded.slice(0, atIdx);
+        const hostPort = decoded.slice(atIdx + 1);
+
+        if (rawUserInfo.includes(':')) {
+          const colonIdx = rawUserInfo.indexOf(':');
+          method = rawUserInfo.slice(0, colonIdx);
+          password = rawUserInfo.slice(colonIdx + 1);
+        }
+        const hp = parseHostPort(hostPort);
+        host = hp.host;
+        port = hp.port;
+      }
+    }
+
+    if (host && password) {
+      return { method, password, host, port, tag };
+    }
+  } catch (_) {}
+  return null;
+}
+
+/**
+ * Generates Clash Meta / Mihomo YAML subscription configuration.
+ */
 function generateClashMetaYaml(nodes) {
+  const escapeYaml = (s) => (s || '').toString().replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const proxies = [];
   const proxyNames = [];
   const seenNames = new Set();
 
   nodes.forEach((node, idx) => {
     try {
-      const uri = node.uri;
+      const uri = typeof node === 'string' ? node : (node && node.uri);
       if (!uri) return;
-      const urlObj = new URL(uri);
-      const proto = urlObj.protocol.replace(':', '').toLowerCase();
 
       let cleanName = `TurboProbe-${String(idx + 1).padStart(3, '0')}`;
       if (uri.includes('#')) {
@@ -301,89 +562,130 @@ function generateClashMetaYaml(nodes) {
       if (seenNames.has(name)) name = `${name}-${idx + 1}`;
       seenNames.add(name);
 
-      const host = urlObj.hostname;
+      if (uri.startsWith('ss://')) {
+        const ss = parseShadowsocksUri(uri);
+        if (ss && ss.host && ss.password) {
+          const p = [
+            `  - name: "${escapeYaml(name)}"`,
+            `    type: ss`,
+            `    server: ${ss.host}`,
+            `    port: ${ss.port}`,
+            `    cipher: ${ss.method}`,
+            `    password: "${escapeYaml(ss.password)}"`,
+            `    udp: true`
+          ];
+          proxies.push(p.join('\n'));
+          proxyNames.push(name);
+        }
+        return;
+      }
+
+      const urlObj = new URL(uri);
+      const proto = urlObj.protocol.replace(':', '').toLowerCase();
+      const host = urlObj.hostname.replace(/^\[|\]$/g, '');
       const port = parseInt(urlObj.port || '443', 10);
-      const user = urlObj.username;
+      const user = decodeURIComponent(urlObj.username || urlObj.password || '');
 
       if (proto === 'vless') {
-        const security = urlObj.searchParams.get('security') || 'none';
+        const security = (urlObj.searchParams.get('security') || 'none').toLowerCase();
         const sni = urlObj.searchParams.get('sni') || host;
         const pbk = urlObj.searchParams.get('pbk') || '';
         const sid = urlObj.searchParams.get('sid') || '';
         const fp = urlObj.searchParams.get('fp') || 'chrome';
         const type = (urlObj.searchParams.get('type') || 'tcp').toLowerCase();
+        const flow = urlObj.searchParams.get('flow') || '';
 
         const p = [
-          `  - name: "${name}"`,
+          `  - name: "${escapeYaml(name)}"`,
           `    type: vless`,
           `    server: ${host}`,
           `    port: ${port}`,
-          `    uuid: ${user}`,
+          `    uuid: ${escapeYaml(user)}`,
           `    udp: true`,
           `    tls: ${security === 'tls' || security === 'reality'}`,
-          `    servername: ${sni}`,
+          `    servername: ${escapeYaml(sni)}`,
           `    client-fingerprint: ${fp}`,
           `    network: ${type}`
         ];
+        if (flow) {
+          p.push(`    flow: ${flow}`);
+        }
         if (security === 'reality' && pbk) {
           p.push('    reality-opts:');
-          p.push(`      public-key: ${pbk}`);
-          if (sid) p.push(`      short-id: ${sid}`);
+          p.push(`      public-key: ${escapeYaml(pbk)}`);
+          if (sid) p.push(`      short-id: ${escapeYaml(sid)}`);
         }
         if (type === 'ws') {
           const wsPath = urlObj.searchParams.get('path') || '/';
           const wsHost = urlObj.searchParams.get('host') || sni;
           p.push('    ws-opts:');
-          p.push(`      path: "${wsPath}"`);
+          p.push(`      path: "${escapeYaml(wsPath)}"`);
           p.push('      headers:');
-          p.push(`        Host: "${wsHost}"`);
+          p.push(`        Host: "${escapeYaml(wsHost)}"`);
         } else if (type === 'grpc') {
           const sName = urlObj.searchParams.get('serviceName') || '';
           p.push('    grpc-opts:');
-          p.push(`      grpc-service-name: "${sName}"`);
+          p.push(`      grpc-service-name: "${escapeYaml(sName)}"`);
         }
         proxies.push(p.join('\n'));
         proxyNames.push(name);
       } else if (proto === 'trojan') {
         const sni = urlObj.searchParams.get('sni') || host;
+        const type = (urlObj.searchParams.get('type') || 'tcp').toLowerCase();
+        const insecure = urlObj.searchParams.get('allowInsecure') === '1' || urlObj.searchParams.get('insecure') === '1' || urlObj.searchParams.get('insecure') === 'true';
         const p = [
-          `  - name: "${name}"`,
+          `  - name: "${escapeYaml(name)}"`,
           `    type: trojan`,
           `    server: ${host}`,
           `    port: ${port}`,
-          `    password: ${user}`,
+          `    password: "${escapeYaml(user)}"`,
           `    udp: true`,
-          `    sni: ${sni}`
+          `    sni: ${escapeYaml(sni)}`,
+          `    skip-cert-verify: ${insecure}`,
+          `    network: ${type}`
         ];
+        if (type === 'ws') {
+          const wsPath = urlObj.searchParams.get('path') || '/';
+          const wsHost = urlObj.searchParams.get('host') || sni;
+          p.push('    ws-opts:');
+          p.push(`      path: "${escapeYaml(wsPath)}"`);
+          p.push('      headers:');
+          p.push(`        Host: "${escapeYaml(wsHost)}"`);
+        } else if (type === 'grpc') {
+          const sName = urlObj.searchParams.get('serviceName') || '';
+          p.push('    grpc-opts:');
+          p.push(`      grpc-service-name: "${escapeYaml(sName)}"`);
+        }
         proxies.push(p.join('\n'));
         proxyNames.push(name);
-      } else if (proto === 'ss' || proto === 'shadowsocks') {
-        if (uri.includes('@')) {
-          let [userInfoPart] = uri.split('://')[1].split('#')[0].split('@');
-          let method = 'aes-256-gcm';
-          let password = '';
-          if (userInfoPart.includes(':')) {
-            [method, password] = userInfoPart.split(':');
-          } else {
-            try {
-              const decoded = atob(userInfoPart);
-              if (decoded.includes(':')) [method, password] = decoded.split(':');
-            } catch (_) {}
-          }
-          if (password) {
-            const p = [
-              `  - name: "${name}"`,
-              `    type: ss`,
-              `    server: ${host}`,
-              `    port: ${port}`,
-              `    cipher: ${method}`,
-              `    password: "${password}"`,
-              `    udp: true`
-            ];
-            proxies.push(p.join('\n'));
-            proxyNames.push(name);
+      } else if (proto === 'hy2' || proto === 'hysteria2') {
+        const sni = urlObj.searchParams.get('sni') || host;
+        const insecure = urlObj.searchParams.get('insecure') === '1' || urlObj.searchParams.get('insecure') === 'true' || urlObj.searchParams.get('allowInsecure') === '1';
+        const ports = urlObj.searchParams.get('ports') || urlObj.searchParams.get('mport') || '';
+        const obfs = urlObj.searchParams.get('obfs') || '';
+        const obfsPassword = urlObj.searchParams.get('obfs-password') || urlObj.searchParams.get('obfs_password') || '';
+        const pass = decodeURIComponent(urlObj.password || urlObj.username || user || '');
+
+        const p = [
+          `  - name: "${escapeYaml(name)}"`,
+          `    type: hysteria2`,
+          `    server: ${host}`,
+          `    port: ${port}`,
+          `    password: "${escapeYaml(pass)}"`,
+          `    sni: ${escapeYaml(sni)}`,
+          `    skip-cert-verify: ${insecure}`
+        ];
+        if (ports) {
+          p.push(`    ports: ${ports}`);
+        }
+        if (obfs) {
+          p.push(`    obfs: ${obfs}`);
+          if (obfsPassword) {
+            p.push(`    obfs-password: "${escapeYaml(obfsPassword)}"`);
           }
         }
+        proxies.push(p.join('\n'));
+        proxyNames.push(name);
       }
     } catch (_) {}
   });
@@ -392,7 +694,7 @@ function generateClashMetaYaml(nodes) {
     return 'proxies:\n  - {name: "TurboProbe-Fallback", type: vless, server: 1.1.1.1, port: 443, uuid: 00000000-0000-0000-0000-000000000000, udp: true}\n';
   }
 
-  const groupMembers = proxyNames.map(n => `      - "${n}"`).join('\n');
+  const groupMembers = proxyNames.map(n => `      - "${escapeYaml(n)}"`).join('\n');
 
   return [
     'port: 7890',
@@ -428,4 +730,145 @@ function generateClashMetaYaml(nodes) {
     '  - GEOIP,RU,DIRECT',
     '  - MATCH,⚡ TURBOPROBE-AUTO'
   ].join('\n');
+}
+
+/**
+ * Generates Sing-box Outbound JSON configuration.
+ */
+function generateSingboxJson(nodes) {
+  const outbounds = [];
+  const tags = [];
+
+  nodes.forEach((node, idx) => {
+    try {
+      const uri = typeof node === 'string' ? node : (node && node.uri);
+      if (!uri) return;
+
+      let cleanName = `TurboProbe-${String(idx + 1).padStart(3, '0')}`;
+      if (uri.includes('#')) {
+        try {
+          const rawTag = decodeURIComponent(uri.split('#')[1]).trim();
+          if (rawTag) cleanName = rawTag.replace(/[:"'\[\]]/g, '').trim().slice(0, 40);
+        } catch (_) {}
+      }
+      const tag = `${cleanName} #${idx + 1}`;
+
+      if (uri.startsWith('ss://')) {
+        const ss = parseShadowsocksUri(uri);
+        if (ss && ss.host && ss.password) {
+          outbounds.push({
+            type: 'shadowsocks',
+            tag,
+            server: ss.host,
+            server_port: ss.port,
+            method: ss.method,
+            password: ss.password
+          });
+          tags.push(tag);
+        }
+        return;
+      }
+
+      const urlObj = new URL(uri);
+      const proto = urlObj.protocol.replace(':', '').toLowerCase();
+      const host = urlObj.hostname.replace(/^\[|\]$/g, '');
+      const port = parseInt(urlObj.port || '443', 10);
+      const user = decodeURIComponent(urlObj.username || urlObj.password || '');
+
+      if (proto === 'vless') {
+        const security = (urlObj.searchParams.get('security') || 'none').toLowerCase();
+        const sni = urlObj.searchParams.get('sni') || host;
+        const pbk = urlObj.searchParams.get('pbk') || '';
+        const sid = urlObj.searchParams.get('sid') || '';
+        const fp = urlObj.searchParams.get('fp') || 'chrome';
+        const flow = urlObj.searchParams.get('flow') || '';
+
+        const ob = {
+          type: 'vless',
+          tag,
+          server: host,
+          server_port: port,
+          uuid: user,
+          packet_encoding: 'xudp'
+        };
+        if (flow) ob.flow = flow;
+        if (security === 'tls' || security === 'reality') {
+          ob.tls = {
+            enabled: true,
+            server_name: sni,
+            utls: { enabled: true, fingerprint: fp }
+          };
+          if (security === 'reality' && pbk) {
+            ob.tls.reality = { enabled: true, public_key: pbk, short_id: sid };
+          }
+        }
+        outbounds.push(ob);
+        tags.push(tag);
+      } else if (proto === 'trojan') {
+        const sni = urlObj.searchParams.get('sni') || host;
+        outbounds.push({
+          type: 'trojan',
+          tag,
+          server: host,
+          server_port: port,
+          password: user,
+          tls: { enabled: true, server_name: sni }
+        });
+        tags.push(tag);
+      } else if (proto === 'hy2' || proto === 'hysteria2') {
+        const sni = urlObj.searchParams.get('sni') || host;
+        const insecure = urlObj.searchParams.get('insecure') === '1' || urlObj.searchParams.get('insecure') === 'true' || urlObj.searchParams.get('allowInsecure') === '1';
+        const pass = decodeURIComponent(urlObj.password || urlObj.username || user || '');
+        const obfs = urlObj.searchParams.get('obfs') || '';
+        const obfsPassword = urlObj.searchParams.get('obfs-password') || urlObj.searchParams.get('obfs_password') || '';
+
+        const ob = {
+          type: 'hysteria2',
+          tag,
+          server: host,
+          server_port: port,
+          password: pass,
+          tls: { enabled: true, server_name: sni, insecure }
+        };
+        if (obfs && obfsPassword) {
+          ob.obfs = { type: obfs, password: obfsPassword };
+        }
+        outbounds.push(ob);
+        tags.push(tag);
+      }
+    } catch (_) {}
+  });
+
+  if (outbounds.length === 0) {
+    outbounds.push({
+      type: 'vless',
+      tag: 'TurboProbe-Fallback',
+      server: '1.1.1.1',
+      server_port: 443,
+      uuid: '00000000-0000-0000-0000-000000000000'
+    });
+    tags.push('TurboProbe-Fallback');
+  }
+
+  return {
+    outbounds: [
+      {
+        type: 'selector',
+        tag: 'select',
+        outbounds: ['auto', ...tags],
+        default: 'auto'
+      },
+      {
+        type: 'urltest',
+        tag: 'auto',
+        outbounds: tags,
+        url: 'http://cp.cloudflare.com/generate_204',
+        interval: '3m',
+        tolerance: 50
+      },
+      ...outbounds,
+      { type: 'direct', tag: 'direct' },
+      { type: 'block', tag: 'block' }
+    ]
+  };
 }

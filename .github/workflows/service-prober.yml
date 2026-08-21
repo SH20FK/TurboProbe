@@ -1,0 +1,128 @@
+name: Service & Accessibility Prober
+
+on:
+  schedule:
+    # Runs every 2 hours automatically
+    - cron: '30 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Количество нод для проверки (0 = все)'
+        required: true
+        default: '500'
+        type: string
+
+concurrency:
+  group: "${{ github.workflow }}"
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    name: Probe Services & Domestic Russian Accessibility
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Increase file descriptor limit
+        run: |
+          ulimit -n 65536 || true
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Cache Xray binary
+        id: cache-xray
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/xray
+          key: xray-linux-64-v1.8.24
+
+      - name: Install dependencies & Xray-core
+        run: |
+          ulimit -n 65536 || true
+          python -m pip install --upgrade pip
+          pip install "requests[socks]" urllib3 orjson httpx aiohttp
+          if [ ! -f /usr/local/bin/xray ]; then
+            curl -L -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+            sudo unzip -o /tmp/xray.zip -d /usr/local/bin/
+            sudo chmod +x /usr/local/bin/xray
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: turboprobe-web/package.json
+
+      - name: Verify Web Build
+        run: |
+          cd turboprobe-web
+          npm ci || npm install
+          npm run build
+
+      - name: Run Deep Service Prober
+        run: |
+          ulimit -n 65536 || true
+          LIMIT="${{ github.event.inputs.limit }}"
+          if [ -z "$LIMIT" ]; then
+            LIMIT="500"
+          fi
+          python tools/service_prober.py --limit "$LIMIT"
+
+      - name: Copy subscriptions to docs for GitHub Pages hosting
+        run: |
+          mkdir -p docs/sub
+          cp -r sub/* docs/sub/
+
+      - name: Commit and push probed results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f sub/ docs/sub/ tools/dead_nodes.json tools/node_history.json || true
+          if git diff --staged --quiet; then
+            echo "No changes in probed services."
+          else
+            git commit -m "chore(prober): update verified service feeds [$(date -u +'%Y-%m-%d %H:%M UTC')]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+            
+            # Resilient fetch/rebase retry logic with rebase --abort on conflict
+            MAX_ATTEMPTS=5
+            ATTEMPT=1
+            PUSHED=0
+            while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+              echo "Push attempt $ATTEMPT of $MAX_ATTEMPTS..."
+              if git push origin HEAD:main; then
+                PUSHED=1
+                echo "Successfully pushed changes."
+                break
+              fi
+              echo "Push failed. Fetching and rebasing on origin/main..."
+              git fetch origin main
+              if ! git rebase origin/main; then
+                echo "Rebase conflict encountered. Aborting rebase and keeping probed results state..."
+                git rebase --abort || true
+                git checkout origin/main -- .gitignore README.md package.json 2>/dev/null || true
+                git add -f sub/ docs/sub/ tools/dead_nodes.json tools/node_history.json || true
+                git commit --amend --no-edit || true
+              fi
+              SLEEP_TIME=$((ATTEMPT * 3))
+              echo "Retrying push in $SLEEP_TIME seconds..."
+              sleep $SLEEP_TIME
+              ATTEMPT=$((ATTEMPT + 1))
+            done
+
+            if [ $PUSHED -ne 1 ]; then
+              echo "Failed to push after $MAX_ATTEMPTS attempts."
+              exit 1
+            fi
+          fi

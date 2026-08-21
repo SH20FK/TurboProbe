@@ -11,7 +11,7 @@ import {
     InstancedMesh,
     Matrix4,
 } from "three";
-import { geoEquirectangular, geoPath } from "d3-geo";
+import { geoEquirectangular, geoPath, type GeoSphere, type GeoPermissibleObjects } from "d3-geo";
 
 type Rgba = { r: number; g: number; b: number; a: number };
 
@@ -231,15 +231,17 @@ const GlobeComponent = ({
                 const ctx = offscreenCanvas.getContext("2d", { willReadFrequently: true });
                 if (!ctx) return;
 
-                const projection = geoEquirectangular().fitSize([bitmapWidth, bitmapHeight], { type: "Sphere" } as any);
+                const projection = geoEquirectangular().fitSize([bitmapWidth, bitmapHeight], { type: "Sphere" } as GeoSphere);
                 const pathGenerator = geoPath().projection(projection).context(ctx);
                 ctx.fillStyle = "#000";
                 ctx.fillRect(0, 0, bitmapWidth, bitmapHeight);
                 ctx.fillStyle = "#fff";
                 ctx.beginPath();
-                landFeatures.features.forEach((feature: any) => {
-                    pathGenerator(feature);
-                });
+                if (landFeatures && Array.isArray(landFeatures.features)) {
+                    landFeatures.features.forEach((feature: GeoPermissibleObjects) => {
+                        pathGenerator(feature);
+                    });
+                }
                 ctx.fill();
 
                 const imageData = ctx.getImageData(0, 0, bitmapWidth, bitmapHeight);
@@ -303,7 +305,7 @@ const GlobeComponent = ({
                 renderer.render(scene, camera);
                 canvas.style.opacity = "1";
                 setIsLoading(false);
-            } catch (_) {
+            } catch {
                 setIsLoading(false);
             }
         };
@@ -409,6 +411,7 @@ const GlobeComponent = ({
             renderer.dispose();
             container.removeChild(canvas);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const containerStyle: CSSProperties = {
