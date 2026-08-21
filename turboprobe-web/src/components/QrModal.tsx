@@ -26,22 +26,22 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop Overlay */}
+          {/* Backdrop Overlay (Subtle and preserving the 3D particle background) */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
           />
 
-          {/* Modal Card with Scale Animation */}
+          {/* Modal Card with Glassmorphism and Smooth Scale Animation */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="relative z-10 w-full max-w-sm p-6 rounded-2xl bg-[#121212] border border-white/15 shadow-2xl flex flex-col items-center text-center"
+            className="relative z-10 w-full max-w-sm p-6 rounded-3xl bg-zinc-900/90 backdrop-blur-xl border border-white/15 shadow-2xl shadow-black/80 flex flex-col items-center text-center"
           >
             {/* Close Button */}
             <button
