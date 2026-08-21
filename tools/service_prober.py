@@ -92,10 +92,10 @@ SUB_DIR = os.path.join(ROOT_DIR, "sub")
 SERVICES_DIR = os.path.join(SUB_DIR, "services")
 
 DEFAULT_PROBE_LIMIT = 0     # 0 = probe 100% of all harvested candidate nodes
-BATCH_SIZE = 100            # Nodes per Xray instance (100 = rock solid stability)
-NUM_XRAY_WORKERS = 6        # 6 Concurrent Xray processes (600 parallel live tunnels)
+BATCH_SIZE = 75             # 75 nodes per Xray instance (instant 20ms startup)
+NUM_XRAY_WORKERS = 4        # 4 Concurrent Xray processes matching CI vCPUs
 BASE_SOCKS_PORT = 10900     # Starting port for multi-inbound testing
-PORT_STEP = 200             # Port range per worker (Worker 0: 10900, Worker 1: 11100, ... Worker 5: 11900)
+PORT_STEP = 150             # Port range per worker (10900, 11050, 11200, 11350)
 PROBE_TIMEOUT = 3.5         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
 
 TARGET_SERVICES = {
@@ -459,7 +459,7 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
 # =============================================================================
 # 🧪 BATCH RUNNER
 # =============================================================================
-def wait_for_port_ready(port: int, max_wait: float = 3.0) -> bool:
+def wait_for_port_ready(port: int, max_wait: float = 6.0) -> bool:
     """Actively polls until Xray binds and opens the inbound port."""
     t0 = time.perf_counter()
     while time.perf_counter() - t0 < max_wait:
