@@ -323,69 +323,73 @@ export default function App() {
   }, [filteredNodes]);
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-zinc-100 selection:bg-zinc-100 selection:text-zinc-950 overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#050505] text-zinc-100 selection:bg-zinc-100 selection:text-zinc-950 overflow-x-hidden flex flex-col justify-between">
       
       {/* 3D Particle Scroll Wave Field Background */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-50">
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-40">
         <ScrollWaveField />
       </div>
 
       {/* Subtle Radial Gradient to Vignette the Wave Field */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-transparent via-[#050505]/50 to-[#050505]" />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-transparent via-[#050505]/60 to-[#050505]" />
 
       {/* Main Content Layer */}
-      <div className="relative z-10">
-        {/* Minimal Header */}
+      <div className="relative z-10 flex-1 flex flex-col justify-between">
+        {/* Sleek Top Bar */}
         <Header />
 
-        <main className="pb-16 space-y-2">
-          {/* Unified Filter Panel with Integrated Presets */}
-          <FilterPanel
-            activePreset={activePreset}
-            onSelectPreset={handleSelectPreset}
-            selectedServices={selectedServices}
-            onToggleService={handleToggleService}
-            selectedCountries={selectedCountries}
-            onToggleCountry={handleToggleCountry}
-            onClearCountries={handleClearCountries}
-            selectedProtos={selectedProtos}
-            onToggleProto={handleToggleProto}
-            onClearProtos={handleClearProtos}
-            countryCounts={countryCounts}
-            protoCounts={protoCounts}
-            maxPing={maxPing}
-            onChangeMaxPing={handleChangeMaxPing}
-            minHealth={minHealth}
-            onChangeMinHealth={handleChangeMinHealth}
-          />
+        {/* 2-Column Grid Dashboard Layout (Zero-Scroll on Desktop) */}
+        <main className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-2 grid grid-cols-1 lg:grid-cols-12 gap-4 items-start flex-1">
+          {/* Left Column: Filter Controls (Col-span 7) */}
+          <div className="lg:col-span-7 space-y-3">
+            <FilterPanel
+              activePreset={activePreset}
+              onSelectPreset={handleSelectPreset}
+              selectedServices={selectedServices}
+              onToggleService={handleToggleService}
+              selectedCountries={selectedCountries}
+              onToggleCountry={handleToggleCountry}
+              onClearCountries={handleClearCountries}
+              selectedProtos={selectedProtos}
+              onToggleProto={handleToggleProto}
+              onClearProtos={handleClearProtos}
+              countryCounts={countryCounts}
+              protoCounts={protoCounts}
+              maxPing={maxPing}
+              onChangeMaxPing={handleChangeMaxPing}
+              minHealth={minHealth}
+              onChangeMinHealth={handleChangeMinHealth}
+            />
+          </div>
 
-          {/* Export Panel with Full Width Copy & App Integrations */}
-          <ExportPanel
-            subUrl={subUrl}
-            filteredCount={filteredNodes.length}
-            allFilteredKeys={allFilteredKeys}
-            onOpenQr={() => setIsQrOpen(true)}
-            onDownloadClash={handleDownloadClash}
-          />
+          {/* Right Column: Export Panel & Live Node Preview (Col-span 5) */}
+          <div className="lg:col-span-5 space-y-3">
+            <ExportPanel
+              subUrl={subUrl}
+              filteredCount={filteredNodes.length}
+              allFilteredKeys={allFilteredKeys}
+              onOpenQr={() => setIsQrOpen(true)}
+              onDownloadClash={handleDownloadClash}
+            />
 
-          {/* Live Node Preview List with ThinkingOrbs & Reveal Animation */}
-          <NodePreviewList
-            nodes={filteredNodes}
-            isLoading={isLoading}
-            totalAvailable={filteredNodes.length}
-          />
+            <NodePreviewList
+              nodes={filteredNodes}
+              isLoading={isLoading}
+              totalAvailable={filteredNodes.length}
+            />
+          </div>
         </main>
 
-        {/* QR Code Modal with Scale Animation */}
+        {/* QR Code Modal */}
         <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
 
-        {/* Minimal Footer */}
-        <footer className="w-full max-w-5xl mx-auto py-8 px-4 border-t border-white/[0.06] text-center text-xs text-zinc-500 font-mono">
+        {/* Minimal Compact Footer */}
+        <footer className="w-full max-w-7xl mx-auto py-2.5 px-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between text-[11px] text-zinc-500 font-mono">
           <p className="m-0">
             TurboProbe · Суверенный и автономный VPN-агрегатор
           </p>
-          <p className="mt-1 m-0 text-zinc-600">
-            Обновляется автоматически каждые 6 часов через GitHub Actions
+          <p className="m-0 text-zinc-600">
+            Авто-обновление каждые 6 часов
           </p>
         </footer>
       </div>

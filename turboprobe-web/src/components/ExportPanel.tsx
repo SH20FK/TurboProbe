@@ -62,15 +62,15 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   };
 
   return (
-    <section className="w-full max-w-5xl mx-auto px-4 py-3">
-      <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/10 shadow-2xl relative overflow-hidden space-y-4">
+    <section className="w-full">
+      <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/10 shadow-xl relative overflow-hidden space-y-3">
         
         {/* Clean Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-zinc-200" />
-              Персональная ссылка на подписку
+            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-zinc-200" />
+              Ссылка на подписку
             </span>
             <span className="text-xs font-mono text-zinc-400">
               ({filteredCount} серверов)

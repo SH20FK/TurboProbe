@@ -39,16 +39,16 @@ const NodePreviewListComponent: React.FC<NodePreviewListProps> = ({
   const remainingCount = nodes.length - displayLimit;
 
   return (
-    <section className="w-full max-w-5xl mx-auto px-4 py-4">
-      <div className="p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
+    <section className="w-full">
+      <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/[0.08]">
         {/* Section Header with Toggle */}
         <div
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center justify-between cursor-pointer select-none py-1"
+          className="flex items-center justify-between cursor-pointer select-none py-0.5"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-2">
-              <Radio className="w-4 h-4 text-zinc-300" />
+              <Radio className="w-3.5 h-3.5 text-zinc-300" />
               Подходящие серверы
             </span>
             <span className="text-xs px-2 py-0.5 rounded font-mono bg-zinc-800 text-zinc-400 border border-white/10">
@@ -64,17 +64,17 @@ const NodePreviewListComponent: React.FC<NodePreviewListProps> = ({
           </motion.div>
         </div>
 
-        {/* Expandable Node Panel */}
+        {/* Expandable Node Panel with Internal Scrollbar */}
         <AnimatePresence>
           {isExpanded && (
             <motion.div
               initial={{ height: 0, opacity: 0, filter: 'blur(10px)' }}
               animate={{ height: 'auto', opacity: 1, filter: 'blur(0px)' }}
               exit={{ height: 0, opacity: 0, filter: 'blur(10px)' }}
-              transition={{ duration: 0.35, ease: 'easeOut' }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
               className="overflow-hidden"
             >
-              <div className="mt-4 pt-4 border-t border-white/[0.06] space-y-2">
+              <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-2 max-h-[340px] sm:max-h-[380px] overflow-y-auto pr-1">
                 {/* 1. Loading State */}
                 {isLoading && (
                   <div className="flex flex-col items-center justify-center py-12 gap-3">
