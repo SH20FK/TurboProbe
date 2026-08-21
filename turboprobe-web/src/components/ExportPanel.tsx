@@ -6,6 +6,8 @@ import { HappIcon, FlClashIcon } from './ServiceIcons';
 interface ExportPanelProps {
   subUrl: string;
   filteredCount: number;
+  selectedLimit: number;
+  onChangeLimit: (limit: number) => void;
   allFilteredKeys: string[];
   onOpenQr: () => void;
   onDownloadClash: () => void;
@@ -14,6 +16,8 @@ interface ExportPanelProps {
 export const ExportPanel: React.FC<ExportPanelProps> = ({
   subUrl,
   filteredCount,
+  selectedLimit,
+  onChangeLimit,
   allFilteredKeys: _allFilteredKeys,
   onOpenQr,
   onDownloadClash: _onDownloadClash,
@@ -21,6 +25,8 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHapp, setCopiedHapp] = useState(false);
   const [copiedFlclash, setCopiedFlclash] = useState(false);
+
+  const effectiveCount = selectedLimit > 0 ? Math.min(selectedLimit, filteredCount) : filteredCount;
 
   const clashSubUrl = useMemo(() => {
     if (subUrl.includes('raw.githubusercontent.com') || subUrl.includes('.github.io')) {
@@ -64,16 +70,39 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   return (
     <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/60 backdrop-blur-md border border-white/10 shadow-2xl space-y-3.5">
       
-      {/* Clean Header */}
-      <div className="flex items-center justify-between">
+      {/* Clean Header with Server Limit Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-zinc-200" />
             Ссылка на подписку
           </span>
           <span className="text-xs font-mono text-zinc-400">
-            ({filteredCount} серверов)
+            ({effectiveCount} {selectedLimit > 0 && selectedLimit < filteredCount ? `из ${filteredCount}` : 'серверов'})
           </span>
+        </div>
+
+        {/* Server Limit Selector Pills */}
+        <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs font-mono self-start sm:self-auto">
+          <span className="text-zinc-500 px-1 text-[10px] uppercase font-semibold">Лимит:</span>
+          {[20, 50, 100, 0].map((lim) => {
+            const isActive = selectedLimit === lim;
+
+            return (
+              <button
+                key={lim}
+                onClick={() => onChangeLimit(lim)}
+                type="button"
+                className={`px-2 py-0.5 rounded-lg text-xs font-semibold transition-all cursor-pointer select-none ${
+                  isActive
+                    ? 'bg-white text-zinc-950 font-bold shadow-sm'
+                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                }`}
+              >
+                {lim === 0 ? 'Все' : lim}
+              </button>
+            );
+          })}
         </div>
       </div>
 

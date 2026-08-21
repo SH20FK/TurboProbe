@@ -23,6 +23,7 @@ export default function App() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [selectedProtos, setSelectedProtos] = useState<string[]>([]);
+  const [selectedLimit, setSelectedLimit] = useState<number>(50);
   const [minHealth, setMinHealth] = useState<number>(0);
 
   const [allNodes, setAllNodes] = useState<NodeItem[]>([]);
@@ -274,6 +275,9 @@ export default function App() {
     if (selectedProtos.length > 0) {
       params.set('proto', selectedProtos.join(','));
     }
+    if (selectedLimit > 0) {
+      params.set('limit', selectedLimit.toString());
+    }
     if (minHealth > 0) {
       params.set('min_health', minHealth.toString());
     }
@@ -288,7 +292,7 @@ export default function App() {
     if (activePreset === 'youtube') return `${baseUrl}/youtube`;
 
     return baseUrl;
-  }, [activePreset, selectedServices, selectedCountries, selectedProtos, minHealth]);
+  }, [activePreset, selectedServices, selectedCountries, selectedProtos, selectedLimit, minHealth]);
 
   const allFilteredKeys = useMemo(() => {
     return filteredNodes.map((n) => n.uri);
@@ -348,6 +352,8 @@ export default function App() {
           <ExportPanel
             subUrl={subUrl}
             filteredCount={filteredNodes.length}
+            selectedLimit={selectedLimit}
+            onChangeLimit={setSelectedLimit}
             allFilteredKeys={allFilteredKeys}
             onOpenQr={() => setIsQrOpen(true)}
             onDownloadClash={handleDownloadClash}
