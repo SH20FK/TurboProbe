@@ -18,7 +18,6 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   onOpenQr,
   onDownloadClash: _onDownloadClash,
 }) => {
-  const [formatMode, setFormatMode] = useState<'standard' | 'clash'>('standard');
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHapp, setCopiedHapp] = useState(false);
   const [copiedFlclash, setCopiedFlclash] = useState(false);
@@ -30,11 +29,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
     return `${subUrl}${subUrl.includes('?') ? '&' : '?'}format=clash`;
   }, [subUrl]);
 
-  const activeDisplayUrl = formatMode === 'clash' ? clashSubUrl : subUrl;
-
   const handleCopyMainUrl = async () => {
     try {
-      await navigator.clipboard.writeText(activeDisplayUrl);
+      await navigator.clipboard.writeText(subUrl);
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
     } catch {
@@ -68,8 +65,8 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
     <section className="w-full max-w-5xl mx-auto px-4 py-3">
       <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/10 shadow-2xl relative overflow-hidden space-y-4">
         
-        {/* Format Selector Tabs */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        {/* Clean Header */}
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-zinc-200" />
@@ -79,29 +76,6 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               ({filteredCount} серверов)
             </span>
           </div>
-          
-          <div className="flex items-center gap-1 p-1 bg-black/60 rounded-xl border border-white/10 w-full sm:w-auto">
-            <button
-              onClick={() => setFormatMode('standard')}
-              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                formatMode === 'standard'
-                  ? 'bg-zinc-800 text-white shadow border border-white/10'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              📱 Happ / v2ray / Hiddify
-            </button>
-            <button
-              onClick={() => setFormatMode('clash')}
-              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                formatMode === 'clash'
-                  ? 'bg-zinc-800 text-white shadow border border-white/10'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              ⚡ Clash / FlClash / Mihomo
-            </button>
-          </div>
         </div>
 
         {/* 1. Subscription URL Bar */}
@@ -109,7 +83,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <input
             type="text"
             readOnly
-            value={activeDisplayUrl}
+            value={subUrl}
             className="w-full bg-transparent text-xs sm:text-sm font-mono text-zinc-200 outline-none px-2 select-all overflow-ellipsis"
           />
           <motion.button
@@ -155,11 +129,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                 className="flex items-center gap-2 font-bold"
               >
                 <Copy className="w-5 h-5" />
-                <span>
-                  {formatMode === 'clash'
-                    ? 'Скопировать ссылку для Clash / FlClash (YAML)'
-                    : 'Скопировать ссылку на подписку (TXT)'}
-                </span>
+                <span>Скопировать ссылку на подписку</span>
               </motion.div>
             )}
           </AnimatePresence>
