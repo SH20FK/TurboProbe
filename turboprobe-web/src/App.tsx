@@ -372,13 +372,19 @@ export default function App() {
           {/* QR Code Modal */}
           <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
 
-          {/* Minimal Compact Footer */}
-          <footer className="w-full px-4 pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between text-[11px] text-zinc-500 font-mono">
-            <p className="m-0">
-              TurboProbe · Суверенный и автономный VPN-агрегатор
-            </p>
-            <p className="m-0 text-zinc-600">
-              Авто-обновление каждые 6 часов
+          {/* Minimal Centered Footer */}
+          <footer className="w-full px-4 pt-4 border-t border-white/[0.06] flex items-center justify-center text-center text-xs text-zinc-500 font-mono">
+            <p className="m-0 flex items-center gap-1.5">
+              <span>Создано</span>
+              <a
+                href="https://github.com/SH20FK"
+                target="_blank"
+                rel="noreferrer"
+                className="text-zinc-300 hover:text-white font-semibold underline underline-offset-4 decoration-white/20 hover:decoration-white transition-colors"
+              >
+                SH20FK
+              </a>
+              <span>для сообщества</span>
             </p>
           </footer>
         </div>
