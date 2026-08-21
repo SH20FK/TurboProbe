@@ -116,10 +116,22 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-          # Fetch latest origin/main to prevent non-fast-forward push rejections
-          git fetch origin main
-          git reset --soft origin/main
+          # 1. Backup newly generated subscription and crawler artifacts to /tmp
+          mkdir -p /tmp/tp_backup_sub /tmp/tp_backup_tools
+          cp -r sub/* /tmp/tp_backup_sub/ 2>/dev/null || true
+          cp tools/discovered_sources.json tools/dead_nodes.json tools/node_history.json tools/telegram_feed.txt /tmp/tp_backup_tools/ 2>/dev/null || true
 
+          # 2. Fetch and hard-reset to latest origin/main to preserve all UI/frontend changes
+          git fetch origin main
+          git reset --hard origin/main
+
+          # 3. Restore newly generated subscription files
+          mkdir -p sub docs/sub
+          cp -r /tmp/tp_backup_sub/* sub/
+          cp -r /tmp/tp_backup_sub/* docs/sub/
+          cp /tmp/tp_backup_tools/* tools/ 2>/dev/null || true
+
+          # 4. Stage ONLY subscription and database files
           git add -f sub/ docs/sub/ tools/discovered_sources.json tools/dead_nodes.json tools/node_history.json tools/telegram_feed.txt || true
           if git diff --cached --quiet; then
             echo "No subscription updates detected relative to origin/main."
@@ -139,7 +151,10 @@ jobs:
               fi
               echo "Push failed. Re-fetching origin/main and retrying..."
               git fetch origin main
-              git reset --soft origin/main
+              git reset --hard origin/main
+              cp -r /tmp/tp_backup_sub/* sub/
+              cp -r /tmp/tp_backup_sub/* docs/sub/
+              cp /tmp/tp_backup_tools/* tools/ 2>/dev/null || true
               git add -f sub/ docs/sub/ tools/discovered_sources.json tools/dead_nodes.json tools/node_history.json tools/telegram_feed.txt || true
               git commit -m "chore(sub): auto-update VPN subscriptions [$(date -u +'%Y-%m-%d %H:%M UTC')]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>" || true
               SLEEP_TIME=$((ATTEMPT * 2))

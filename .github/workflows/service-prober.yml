@@ -85,15 +85,27 @@ jobs:
           mkdir -p docs/sub
           cp -r sub/* docs/sub/
 
-      - name: Commit and push probed results
+      - name: Commit and push verified service results
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-          # Fetch latest origin/main to prevent non-fast-forward push rejections
-          git fetch origin main
-          git reset --soft origin/main
+          # 1. Backup newly generated subscription artifacts to /tmp
+          mkdir -p /tmp/tp_prober_sub /tmp/tp_prober_tools
+          cp -r sub/* /tmp/tp_prober_sub/ 2>/dev/null || true
+          cp tools/dead_nodes.json tools/node_history.json /tmp/tp_prober_tools/ 2>/dev/null || true
 
+          # 2. Fetch and hard-reset to latest origin/main to preserve all UI/frontend changes
+          git fetch origin main
+          git reset --hard origin/main
+
+          # 3. Restore newly generated subscription files
+          mkdir -p sub docs/sub
+          cp -r /tmp/tp_prober_sub/* sub/
+          cp -r /tmp/tp_prober_sub/* docs/sub/
+          cp /tmp/tp_prober_tools/* tools/ 2>/dev/null || true
+
+          # 4. Stage ONLY subscription and database files
           git add -f sub/ docs/sub/ tools/dead_nodes.json tools/node_history.json || true
           if git diff --cached --quiet; then
             echo "No changes in probed services relative to origin/main."
@@ -113,7 +125,10 @@ jobs:
               fi
               echo "Push failed. Re-fetching origin/main and retrying..."
               git fetch origin main
-              git reset --soft origin/main
+              git reset --hard origin/main
+              cp -r /tmp/tp_prober_sub/* sub/
+              cp -r /tmp/tp_prober_sub/* docs/sub/
+              cp /tmp/tp_prober_tools/* tools/ 2>/dev/null || true
               git add -f sub/ docs/sub/ tools/dead_nodes.json tools/node_history.json || true
               git commit -m "chore(prober): update verified service feeds [$(date -u +'%Y-%m-%d %H:%M UTC')]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>" || true
               SLEEP_TIME=$((ATTEMPT * 2))
