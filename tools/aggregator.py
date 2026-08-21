@@ -736,8 +736,9 @@ def generate_clash_meta_yaml(nodes: list) -> str:
                 if security == "reality" and pbk:
                     sb.append("    reality-opts:")
                     sb.append(f"      public-key: \"{_escape_yaml_val(pbk)}\"")
-                    if sid:
-                        sb.append(f"      short-id: \"{_escape_yaml_val(sid)}\"")
+                    clean_sid = sid.strip() if sid else ""
+                    if clean_sid and re.fullmatch(r'^[0-9a-fA-F]{2,16}$', clean_sid) and len(clean_sid) % 2 == 0:
+                        sb.append(f"      short-id: \"{_escape_yaml_val(clean_sid)}\"")
                 if net_type == "ws":
                     ws_path = params.get("path", ["/"])[0]
                     ws_host = params.get("host", [""])[0] or sni

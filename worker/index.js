@@ -613,7 +613,9 @@ function generateClashMetaYaml(nodes) {
         if (security === 'reality' && pbk) {
           p.push('    reality-opts:');
           p.push(`      public-key: ${escapeYaml(pbk)}`);
-          if (sid) p.push(`      short-id: ${escapeYaml(sid)}`);
+          if (sid && /^[0-9a-fA-F]{2,16}$/.test(sid.trim()) && sid.trim().length % 2 === 0) {
+            p.push(`      short-id: "${escapeYaml(sid.trim())}"`);
+          }
         }
         if (type === 'ws') {
           const wsPath = urlObj.searchParams.get('path') || '/';

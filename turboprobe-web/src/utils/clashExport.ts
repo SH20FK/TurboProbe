@@ -225,10 +225,17 @@ export function parseProxyUriToClashProxy(uri: string, index: number, fallbackNa
       }
 
       if (isReality) {
-        config['reality-opts'] = {
-          'public-key': searchParams.get('pbk') || '',
-          'short-id': searchParams.get('sid') || '',
+        const pbk = searchParams.get('pbk') || '';
+        const rawSid = (searchParams.get('sid') || '').trim();
+        const realityOpts: Record<string, string> = {
+          'public-key': pbk,
         };
+        // Short ID in REALITY must be a valid hex string of even length between 2 and 16 characters (max 8 bytes).
+        // If empty, missing, or invalid, omit 'short-id' completely so Mihomo/FlClash never fails validation.
+        if (rawSid && /^[0-9a-fA-F]{2,16}$/.test(rawSid) && rawSid.length % 2 === 0) {
+          realityOpts['short-id'] = rawSid;
+        }
+        config['reality-opts'] = realityOpts;
       }
 
       if (network === 'ws') {
