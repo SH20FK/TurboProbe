@@ -350,34 +350,79 @@ def discover_all_github_repositories(scanned_repos_cache: dict) -> tuple:
     print(f"  🚀 Delta Repository Crawler generated {len(all_repo_candidates)} fresh candidate URLs", flush=True)
     return all_repo_candidates, scanned_repos_cache
 
-# =============================================================================
-# 3. 📡 TELEGRAM PUBLIC CHANNELS SCRAPER
-# =============================================================================
-def scrape_telegram_channel(channel: str) -> tuple:
-    """Scrapes public telegram channel web preview for live keys and sub links."""
-    url = f"https://t.me/s/{channel}"
-    html = fetch_url(url, timeout=5)
-    if not html:
-        return ([], [])
+SOURCE_QUALITY_PATH = os.path.join(TOOLS_DIR, "source_quality_index.json")
 
-    direct_keys = extract_uris_from_content(html)
-    sub_urls = re.findall(r'https?://[^\s\'"<>]+(?:sub|\.txt|raw|workers\.dev|pages\.dev|vercel\.app)[^\s\'"<>]*', html)
-    clean_sub_urls = []
-    for u in sub_urls:
-        u = u.rstrip('.,;()[]')
-        if u.startswith("https://t.me"):
-            continue
-        clean_sub_urls.append(u)
+def load_source_quality_index() -> dict:
+    if os.path.isfile(SOURCE_QUALITY_PATH):
+        try:
+            with open(SOURCE_QUALITY_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
 
-    return (direct_keys, clean_sub_urls)
+def update_source_quality_index(source_stats: dict):
+    q_index = load_source_quality_index()
+    now_ts = time.time()
+    for url, yield_count in source_stats.items():
+        prev = q_index.get(url, {"score": 50.0, "total_yield": 0, "runs": 0})
+        runs = prev.get("runs", 0) + 1
+        total_yield = prev.get("total_yield", 0) + yield_count
+        decay_score = prev.get("score", 50.0) * 0.85 + (min(yield_count, 100) * 0.15)
+        q_index[url] = {
+            "score": round(decay_score, 2),
+            "total_yield": total_yield,
+            "runs": runs,
+            "last_scanned": now_ts,
+        }
+    try:
+        with open(SOURCE_QUALITY_PATH, "w", encoding="utf-8") as f:
+            json.dump(q_index, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+# =============================================================================
+# 3. 📡 DEEP TELEGRAM PUBLIC CHANNELS SCRAPER (Feature 3: ?before={id} pagination)
+# =============================================================================
+def scrape_telegram_channel_deep(channel: str, max_pages: int = 3) -> tuple:
+    """Scrapes public telegram channel web preview with ?before={id} deep pagination."""
+    all_keys = []
+    all_subs = set()
+    current_url = f"https://t.me/s/{channel}"
+    
+    for _ in range(max_pages):
+        html = fetch_url(current_url, timeout=5)
+        if not html:
+            break
+        keys = extract_uris_from_content(html)
+        if keys:
+            all_keys.extend(keys)
+        
+        sub_urls = re.findall(r'https?://[^\s\'"<>]+(?:sub|\.txt|raw|workers\.dev|pages\.dev|vercel\.app)[^\s\'"<>]*', html)
+        for u in sub_urls:
+            u = u.rstrip('.,;()[]')
+            if not u.startswith("https://t.me"):
+                all_subs.add(u)
+                
+        msg_ids = re.findall(r'data-post="' + re.escape(channel) + r'/(\d+)"', html)
+        if msg_ids:
+            oldest_id = min(int(m) for m in msg_ids)
+            if oldest_id > 1:
+                current_url = f"https://t.me/s/{channel}?before={oldest_id}"
+            else:
+                break
+        else:
+            break
+            
+    return (list(dict.fromkeys(all_keys)), list(all_subs))
 
 def discover_from_telegram() -> tuple:
     all_direct_keys = []
     found_sub_urls = set()
 
-    print(f"  📡 Crawling {len(TELEGRAM_CHANNELS)} public Telegram channels (100 parallel workers)...", flush=True)
+    print(f"  📡 Deep-crawling {len(TELEGRAM_CHANNELS)} public Telegram channels with pagination (100 workers)...", flush=True)
     with ThreadPoolExecutor(max_workers=100) as pool:
-        future_map = {pool.submit(scrape_telegram_channel, ch): ch for ch in TELEGRAM_CHANNELS}
+        future_map = {pool.submit(scrape_telegram_channel_deep, ch): ch for ch in TELEGRAM_CHANNELS}
         for fut in as_completed(future_map):
             ch = future_map[fut]
             try:
@@ -389,11 +434,102 @@ def discover_from_telegram() -> tuple:
             except Exception:
                 pass
 
-    print(f"  🎉 Telegram crawl complete: {len(all_direct_keys)} direct keys, {len(found_sub_urls)} sub URLs", flush=True)
+    print(f"  🎉 Deep Telegram crawl complete: {len(all_direct_keys)} direct keys, {len(found_sub_urls)} sub URLs", flush=True)
     return (all_direct_keys, found_sub_urls)
 
 # =============================================================================
-# 4. 🧪 VALIDATION & HEALTH CHECK
+# 4. 🦊 ALTERNATIVE PLATFORMS & GISTS (Features 4 & 5)
+# =============================================================================
+def discover_from_gitlab() -> set:
+    """Discovers proxy repositories from GitLab public API."""
+    candidates = set()
+    queries = ["vless", "v2ray", "clash-meta", "hysteria2", "free-vpn"]
+    for q in queries:
+        url = f"https://gitlab.com/api/v4/projects?search={urllib.parse.quote(q)}&order_by=updated_at&per_page=20"
+        try:
+            raw = fetch_url(url, timeout=6)
+            if raw:
+                items = json.loads(raw)
+                for item in items:
+                    p_path = item.get("path_with_namespace")
+                    default_branch = item.get("default_branch", "main")
+                    if p_path:
+                        candidates.add(f"https://gitlab.com/{p_path}/-/raw/{default_branch}/sub/all.txt")
+                        candidates.add(f"https://gitlab.com/{p_path}/-/raw/{default_branch}/all.txt")
+                        candidates.add(f"https://gitlab.com/{p_path}/-/raw/{default_branch}/vless.txt")
+                        candidates.add(f"https://gitlab.com/{p_path}/-/raw/{default_branch}/sub.txt")
+        except Exception:
+            pass
+    print(f"  🦊 GitLab Discovery yielded {len(candidates)} candidate files", flush=True)
+    return candidates
+
+def discover_from_codeberg() -> set:
+    """Discovers proxy repositories from Codeberg Gitea API."""
+    candidates = set()
+    queries = ["vless", "v2ray", "clash", "hysteria"]
+    for q in queries:
+        url = f"https://codeberg.org/api/v1/repos/search?q={urllib.parse.quote(q)}&limit=20"
+        try:
+            raw = fetch_url(url, timeout=6)
+            if raw:
+                data = json.loads(raw)
+                for item in data.get("data", []):
+                    full_name = item.get("full_name")
+                    default_branch = item.get("default_branch", "main")
+                    if full_name:
+                        candidates.add(f"https://codeberg.org/{full_name}/raw/branch/{default_branch}/sub/all.txt")
+                        candidates.add(f"https://codeberg.org/{full_name}/raw/branch/{default_branch}/all.txt")
+                        candidates.add(f"https://codeberg.org/{full_name}/raw/branch/{default_branch}/sub.txt")
+        except Exception:
+            pass
+    print(f"  🏔️ Codeberg Discovery yielded {len(candidates)} candidate files", flush=True)
+    return candidates
+
+def discover_from_github_gists() -> tuple:
+    """Scrapes public GitHub Gists for fresh vless/reality/clash drops."""
+    direct_keys = []
+    if not GITHUB_TOKEN:
+        return direct_keys
+    url = f"{GITHUB_API}/gists/public?per_page=30"
+    try:
+        data = gh_api_get(url)
+        if isinstance(data, list):
+            for gist in data:
+                files = gist.get("files", {})
+                for fname, finfo in files.items():
+                    if any(ext in fname.lower() for ext in [".txt", ".yaml", ".json", "vless", "sub"]):
+                        raw_url = finfo.get("raw_url")
+                        if raw_url:
+                            content = fetch_url(raw_url, timeout=4)
+                            if content:
+                                uris = extract_uris_from_content(content)
+                                if uris:
+                                    direct_keys.extend(uris)
+    except Exception:
+        pass
+    print(f"  📄 GitHub Gists yielded {len(direct_keys)} fresh keys", flush=True)
+    return direct_keys
+
+def crawl_repository_commit_history(full_name: str, branch: str = "main", limit: int = 5) -> set:
+    """Feature 2: Scrapes keys from the last N commits of top active repositories."""
+    commit_candidates = set()
+    if not GITHUB_TOKEN:
+        return commit_candidates
+    try:
+        api_url = f"{GITHUB_API}/repos/{full_name}/commits?sha={branch}&per_page={limit}"
+        commits = gh_api_get(api_url)
+        if isinstance(commits, list):
+            for c in commits:
+                sha = c.get("sha")
+                if sha:
+                    for fpath in ["sub/all.txt", "all.txt", "vless.txt", "reality.txt", "sub.txt"]:
+                        commit_candidates.add(f"https://raw.githubusercontent.com/{full_name}/{sha}/{fpath}")
+    except Exception:
+        pass
+    return commit_candidates
+
+# =============================================================================
+# 5. 🧪 VALIDATION & HEALTH CHECK
 # =============================================================================
 def validate_source(url: str, min_nodes: int = MIN_NODES_TO_KEEP) -> int:
     """Fetches source URL and counts how many valid keys it contains."""
@@ -455,11 +591,24 @@ def main():
     # Step B: GitHub Code Search (if token provided or in CI)
     candidate_urls.update(discover_from_github_code())
 
-    # Step C: Telegram Web Feeds
+    # Step C: GitLab & Codeberg Discovery (Feature 4)
+    candidate_urls.update(discover_from_gitlab())
+    candidate_urls.update(discover_from_codeberg())
+
+    # Step D: Commit History Time-Machine (Features 1 & 2)
+    for r, b in SEED_REPOSITORIES[:15]:
+        candidate_urls.update(crawl_repository_commit_history(r, b, limit=4))
+
+    # Step E: Telegram Deep Web Feeds
     telegram_keys, telegram_subs = discover_from_telegram()
     candidate_urls.update(telegram_subs)
 
-    # Save direct telegram keys into tools/telegram_feed.txt
+    # Step F: Public GitHub Gists (Feature 5)
+    gist_keys = discover_from_github_gists()
+    if gist_keys:
+        telegram_keys.extend(gist_keys)
+
+    # Save direct harvested keys into tools/telegram_feed.txt
     if telegram_keys:
         unique_tg = list(dict.fromkeys(telegram_keys))
         with open(TELEGRAM_FEED_PATH, "w", encoding="utf-8") as f:
@@ -471,12 +620,14 @@ def main():
     print(f"\n🧪 Validating {len(new_candidates)} fresh candidate subscription URLs concurrently...", flush=True)
 
     new_confirmed = 0
+    validated_stats = {}
     with ThreadPoolExecutor(max_workers=300) as pool:
         future_map = {pool.submit(validate_source, u): u for u in new_candidates}
         for fut in as_completed(future_map):
             url = future_map[fut]
             try:
                 count = fut.result()
+                validated_stats[url] = count
                 if count >= MIN_NODES_TO_KEEP:
                     existing[url] = {
                         "discovered_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -490,6 +641,9 @@ def main():
                     active_dead_urls[url] = now_ts
             except Exception:
                 active_dead_urls[url] = now_ts
+
+    # Update Source Quality Index (Feature 12)
+    update_source_quality_index(validated_stats)
 
     # 3. Save updated database & metadata
     metadata["scanned_repos"] = scanned_repos_cache

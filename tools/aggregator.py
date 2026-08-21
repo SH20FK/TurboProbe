@@ -243,46 +243,126 @@ def fetch_url(url: str, timeout: int = 8) -> str:
     except Exception:
         return ""
 
+def extract_proxies_from_clash_yaml(content: str) -> list:
+    """Extracts standard URIs from Clash/Clash Meta YAML configs (proxies: block)."""
+    uris = []
+    if "proxies:" not in content and "Proxy:" not in content:
+        return []
+    
+    try:
+        import yaml
+        data = yaml.safe_load(content)
+        if isinstance(data, dict):
+            proxies = data.get("proxies") or data.get("Proxy") or []
+            if isinstance(proxies, list):
+                for p in proxies:
+                    if not isinstance(p, dict):
+                        continue
+                    p_type = str(p.get("type", "")).lower()
+                    server = p.get("server", "")
+                    port = p.get("port", 443)
+                    name = p.get("name", "Proxy")
+                    
+                    if p_type == "vless":
+                        uuid = p.get("uuid", "")
+                        tls = p.get("tls", False)
+                        sni = p.get("servername", server)
+                        net = p.get("network", "tcp")
+                        fp = p.get("client-fingerprint", "chrome")
+                        reality_opts = p.get("reality-opts", {})
+                        pbk = reality_opts.get("public-key", "") if isinstance(reality_opts, dict) else ""
+                        sid = reality_opts.get("short-id", "") if isinstance(reality_opts, dict) else ""
+                        sec = "reality" if pbk else ("tls" if tls else "none")
+                        
+                        query = f"security={sec}&sni={sni}&fp={fp}&type={net}"
+                        if pbk: query += f"&pbk={pbk}"
+                        if sid: query += f"&sid={sid}"
+                        if net == "ws":
+                            ws_opts = p.get("ws-opts", {})
+                            if isinstance(ws_opts, dict):
+                                path = ws_opts.get("path", "/")
+                                query += f"&path={urllib.parse.quote(path)}"
+                        
+                        uris.append(f"vless://{uuid}@{server}:{port}?{query}#{urllib.parse.quote(name)}")
+                    elif p_type == "trojan":
+                        pwd = p.get("password", "")
+                        sni = p.get("sni", server)
+                        uris.append(f"trojan://{pwd}@{server}:{port}?sni={sni}#{urllib.parse.quote(name)}")
+                    elif p_type in ["ss", "shadowsocks"]:
+                        cipher = p.get("cipher", "aes-256-gcm")
+                        pwd = p.get("password", "")
+                        userinfo = base64.b64encode(f"{cipher}:{pwd}".encode()).decode()
+                        uris.append(f"ss://{userinfo}@{server}:{port}#{urllib.parse.quote(name)}")
+                    elif p_type in ["hy2", "hysteria2"]:
+                        pwd = p.get("password", "")
+                        sni = p.get("sni", server)
+                        uris.append(f"hysteria2://{pwd}@{server}:{port}?sni={sni}#{urllib.parse.quote(name)}")
+    except Exception:
+        pass
+    return uris
+
+def recursive_decode_subscription(content: str, max_depth: int = 5) -> str:
+    """Multi-layer recursive unpacker (Base64, gzip, nested sub strings up to 5 layers)."""
+    cur = content.strip()
+    for _ in range(max_depth):
+        clean = re.sub(r'\s+', '', cur)
+        if len(clean) > 20 and len(clean) % 4 == 0 and not clean.startswith(("vless://", "trojan://", "ss://", "hy2://", "hysteria2://", "<", "{", "port:", "proxies:")):
+            try:
+                dec = base64.b64decode(clean).decode("utf-8", errors="ignore")
+                if dec and dec != cur and ("://" in dec or "proxies:" in dec or "vmess://" in dec):
+                    cur = dec
+                    continue
+            except Exception:
+                pass
+        break
+    return cur
+
 def extract_uris_from_content(content: str) -> list:
+    """Extracts all proxy URIs supporting multi-layer Base64, Clash YAML, JSON, and Telegram HTML."""
     if not content:
         return []
     
+    # 1. Recursive Multi-Layer Unpacker (Feature 11)
+    content = recursive_decode_subscription(content, max_depth=5)
+    
     uris = []
     
-    # Base64 auto-decoding
-    clean = re.sub(r'\s+', '', content)
-    if len(clean) > 20 and len(clean) % 4 == 0 and not clean.startswith(("vless://", "trojan://", "ss://", "vmess://", "<")):
-        try:
-            decoded = base64.b64decode(clean).decode("utf-8", errors="ignore")
-            if "://" in decoded:
-                content = decoded
-        except Exception:
-            pass
+    # 2. Clash Meta YAML Proxy Extractor (Feature 6)
+    if "proxies:" in content or "Proxy:" in content:
+        clash_proxies = extract_proxies_from_clash_yaml(content)
+        if clash_proxies:
+            uris.extend(clash_proxies)
             
-    # Telegram Web Parsing
+    # 3. Telegram Web Parsing
     if '<div class="tgme_widget_message_text' in content:
         for block in re.findall(r'<div class="tgme_widget_message_text[^>]*>(.*?)</div>', content, re.DOTALL):
             for match in URI_REGEX.finditer(block):
                 uris.append(match.group(0).strip())
                 
-    # Direct Regex
+    # 4. Direct Regex
     for match in URI_REGEX.finditer(content):
         uris.append(match.group(0).strip())
         
-    # Line by line
+    # 5. Line by line
     for line in content.splitlines():
         line = line.strip()
         if any(line.startswith(proto) for proto in ("vless://", "trojan://", "ss://", "hy2://", "hysteria2://", "tuic://")):
             uris.append(line)
             
-    return list(set(uris))
+    return list(dict.fromkeys(uris))
 
 def get_node_key(uri: str) -> str:
+    """Feature 17: Strict IP/Host + Port + UUID deduplication to eliminate server clones."""
     try:
+        parsed = urllib.parse.urlparse(uri)
+        proto = parsed.scheme.lower()
+        netloc = parsed.netloc.split('@')[-1] if '@' in parsed.netloc else parsed.netloc
+        user = parsed.netloc.split('@')[0] if '@' in parsed.netloc else ""
+        host_port = netloc.split('?')[0].split('/')[0].split('#')[0]
+        return f"{proto}://{user}@{host_port}".lower()
+    except Exception:
         raw = uri.split('#')[0].split('?')[0]
         return raw.strip().lower()
-    except Exception:
-        return uri.strip().lower()
 
 def check_node_ping(uri: str, timeout: float = 0.50) -> tuple:
     """Socket & TLS handshake benchmark. Tests real server responsiveness."""

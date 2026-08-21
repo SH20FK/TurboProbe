@@ -421,10 +421,23 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
 
     # If the tunnel cannot connect to Cloudflare, it is DEAD.
     if not is_alive:
-        return (False, "GLOBAL", 9999.0, {})
+        return (False, "GLOBAL", 9999.0, 0.0, {})
 
     if not real_country:
         real_country = "GLOBAL"
+
+    # Feature 14: Micro-burst bandwidth test for fast candidates
+    speed_mbps = 0.0
+    if is_alive and real_ping_ms < 350.0:
+        try:
+            t0 = time.perf_counter()
+            s_resp = session.get("https://speed.cloudflare.com/__down?bytes=204800", timeout=2.0, verify=False)
+            if s_resp.status_code == 200:
+                el = time.perf_counter() - t0
+                if el > 0:
+                    speed_mbps = round((len(s_resp.content) * 8 / 1_000_000) / el, 1)
+        except Exception:
+            pass
 
     # Step 3: Test target services concurrently through confirmed alive tunnel
     services = {}
@@ -441,7 +454,7 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
             sk, ok = sf.result()
             services[sk] = ok
 
-    return (True, real_country, real_ping_ms, services)
+    return (True, real_country, real_ping_ms, speed_mbps, services)
 
 # =============================================================================
 # 🧪 BATCH RUNNER
@@ -524,11 +537,12 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
             for fut in as_completed(futures):
                 uri, proto = futures[fut]
                 try:
-                    is_alive, verified_country, real_ping, services = fut.result()
+                    is_alive, verified_country, real_ping, speed_mbps, services = fut.result()
                     if is_alive:
                         results.append({
                             "uri": uri,
                             "ping_ms": real_ping,
+                            "speed_mbps": speed_mbps,
                             "country": verified_country,
                             "protocol": proto,
                             "services": services,
@@ -1043,14 +1057,22 @@ def main():
             f.write("\n".join(s_keys))
         print(f"  💾 sub/services/{s_fname:<15} -> {len(s_keys):>5} verified keys", flush=True)
 
-    # 🎯 Generate Primary Verified Pools (Top20, Top50, Anti-Whitelist, All) - Strictly Lowest Ping First
+    # 🎯 Generate Primary Verified Pools (Top20, Top50, Anti-Whitelist, All) - Lowest Ping & High Speed First
+    def vip_ranking_score(n: dict) -> float:
+        ping = n.get("ping_ms", 999.0)
+        speed = n.get("speed_mbps", 0.0)
+        speed_bonus = min(speed * 1.2, 50.0)
+        return max(ping - speed_bonus, 1.0)
+
+    vip_ranked_nodes = sorted(verified_alive_nodes, key=vip_ranking_score)
+
     top20_verified = [
         format_verified_remark(n["uri"], n["country"], "VIP-Top20", idx, n.get("ping_ms", 0))
-        for idx, n in enumerate(verified_alive_nodes[:20], start=1)
+        for idx, n in enumerate(vip_ranked_nodes[:20], start=1)
     ]
     top50_verified = [
         format_verified_remark(n["uri"], n["country"], "VIP-Top50", idx, n.get("ping_ms", 0))
-        for idx, n in enumerate(verified_alive_nodes[:50], start=1)
+        for idx, n in enumerate(vip_ranked_nodes[:50], start=1)
     ]
     anti_censor_verified = [
         format_verified_remark(n["uri"], n["country"], "Anti-Censor", idx, n.get("ping_ms", 0))
