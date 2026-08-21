@@ -26,6 +26,7 @@ export default function App() {
   const [minHealth, setMinHealth] = useState<number>(0);
 
   const [allNodes, setAllNodes] = useState<NodeItem[]>([]);
+  const [updatedAt, setUpdatedAt] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isQrOpen, setIsQrOpen] = useState<boolean>(false);
 
@@ -63,6 +64,9 @@ export default function App() {
             (n) => n && typeof n.uri === 'string' && VALID_URI_REGEX.test(n.uri.trim()) && !isConflictMarker(n.uri.trim())
           );
           setAllNodes(normalizeAndIndexNodes(sanitized));
+          if (data.updated_at) {
+            setUpdatedAt(data.updated_at);
+          }
           setIsLoading(false);
           return;
         }
@@ -317,8 +321,8 @@ export default function App() {
 
       {/* Main Content Layer */}
       <div className="relative z-10 flex-1 flex flex-col justify-between">
-        {/* Sleek Top Bar */}
-        <Header />
+        {/* Centered Hero Brand Header */}
+        <Header totalConfigs={allNodes.length} updatedAt={updatedAt} />
 
         {/* Main Application Feed (Sleek Centered Design) */}
         <main className="w-full max-w-4xl mx-auto px-4 py-3 space-y-3.5 flex-1">
