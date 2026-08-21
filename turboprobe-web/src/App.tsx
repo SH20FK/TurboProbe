@@ -38,10 +38,11 @@ export default function App() {
     async function loadData() {
       setIsLoading(true);
 
+      const cacheBust = Date.now();
       const mirrors = [
-        'sub/preview.json',
-        `${JSDELIVR_BASE}/preview.json`,
-        `${CDN_BASE}/preview.json`,
+        `sub/preview.json?t=${cacheBust}`,
+        `${JSDELIVR_BASE}/preview.json?t=${cacheBust}`,
+        `${CDN_BASE}/preview.json?t=${cacheBust}`,
       ];
 
       const fetchWithTimeout = async (url: string, ms = 2500) => {
