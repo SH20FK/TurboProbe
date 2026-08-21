@@ -560,10 +560,7 @@ def format_verified_remark(uri: str, country: str, purpose: str, idx: int, ping_
     base = uri.split('#')[0]
     flag = country_code_to_flag(country)
     badge = f"{flag} {country}" if country != "GLOBAL" else "🌐 Global"
-    if ping_ms and ping_ms < 1000:
-        remark = f"TurboProbe · {badge} · ⚡ {ping_ms:.0f}ms · {purpose} #{idx:02d}"
-    else:
-        remark = f"TurboProbe · {badge} · {purpose} #{idx:02d}"
+    remark = f"TurboProbe · {badge} · {purpose} #{idx:02d}"
     return f"{base}#{remark}"
 
 def generate_clash_meta_yaml(nodes: list) -> str:
