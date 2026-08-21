@@ -228,7 +228,6 @@ export function parseProxyUriToClashProxy(uri: string, index: number, fallbackNa
         server: host,
         port,
         uuid: user,
-        cipher: 'auto',
         udp: true,
         tls: isTls,
       };
