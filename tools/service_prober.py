@@ -556,11 +556,14 @@ def country_code_to_flag(cc: str) -> str:
         return "🌐"
     return "".join(chr(127397 + ord(c)) for c in cc.upper())
 
-def format_verified_remark(uri: str, country: str, purpose: str, idx: int) -> str:
+def format_verified_remark(uri: str, country: str, purpose: str, idx: int, ping_ms: float = 0.0) -> str:
     base = uri.split('#')[0]
     flag = country_code_to_flag(country)
     badge = f"{flag} {country}" if country != "GLOBAL" else "🌐 Global"
-    remark = f"TurboProbe · {badge} · {purpose} #{idx:02d}"
+    if ping_ms and ping_ms < 1000:
+        remark = f"TurboProbe · {badge} · ⚡ {ping_ms:.0f}ms · {purpose} #{idx:02d}"
+    else:
+        remark = f"TurboProbe · {badge} · {purpose} #{idx:02d}"
     return f"{base}#{remark}"
 
 def generate_clash_meta_yaml(nodes: list) -> str:
@@ -987,51 +990,51 @@ def main():
 
     print("💾 Saved sub/nodes.json and sub/preview.json with genuine verified flags", flush=True)
 
-    # 🎯 Generate Service-Specific Subscriptions with GENUINE working nodes ONLY
+    # 🎯 Generate Service-Specific Subscriptions with GENUINE working nodes ONLY (Sorted by lowest ping)
     service_files = {
         "chatgpt.txt": [
-            format_verified_remark(n["uri"], n["country"], "ChatGPT", idx)
-            for idx, n in enumerate([x for x in verified_alive_nodes if x["services"].get("chatgpt")], start=1)
+            format_verified_remark(n["uri"], n["country"], "ChatGPT", idx, n.get("ping_ms", 0))
+            for idx, n in enumerate(sorted([x for x in verified_alive_nodes if x["services"].get("chatgpt")], key=lambda x: x.get("ping_ms", 999)), start=1)
         ],
         "claude.txt": [
-            format_verified_remark(n["uri"], n["country"], "Claude", idx)
-            for idx, n in enumerate([x for x in verified_alive_nodes if x["services"].get("claude")], start=1)
+            format_verified_remark(n["uri"], n["country"], "Claude", idx, n.get("ping_ms", 0))
+            for idx, n in enumerate(sorted([x for x in verified_alive_nodes if x["services"].get("claude")], key=lambda x: x.get("ping_ms", 999)), start=1)
         ],
         "gemini.txt": [
-            format_verified_remark(n["uri"], n["country"], "Gemini", idx)
-            for idx, n in enumerate([x for x in verified_alive_nodes if x["services"].get("gemini")], start=1)
+            format_verified_remark(n["uri"], n["country"], "Gemini", idx, n.get("ping_ms", 0))
+            for idx, n in enumerate(sorted([x for x in verified_alive_nodes if x["services"].get("gemini")], key=lambda x: x.get("ping_ms", 999)), start=1)
         ],
         "perplexity.txt": [
-            format_verified_remark(n["uri"], n["country"], "Perplexity", idx)
-            for idx, n in enumerate([x for x in verified_alive_nodes if x["services"].get("perplexity")], start=1)
+            format_verified_remark(n["uri"], n["country"], "Perplexity", idx, n.get("ping_ms", 0))
+            for idx, n in enumerate(sorted([x for x in verified_alive_nodes if x["services"].get("perplexity")], key=lambda x: x.get("ping_ms", 999)), start=1)
         ],
         "youtube.txt": [
-            format_verified_remark(n["uri"], n["country"], "YouTube 4K", idx)
-            for idx, n in enumerate([x for x in verified_alive_nodes if x["services"].get("youtube")], start=1)
+            format_verified_remark(n["uri"], n["country"], "YouTube 4K", idx, n.get("ping_ms", 0))
+            for idx, n in enumerate(sorted([x for x in verified_alive_nodes if x["services"].get("youtube")], key=lambda x: x.get("ping_ms", 999)), start=1)
         ],
         "discord.txt": [
-            format_verified_remark(n["uri"], n["country"], "Discord", idx)
-            for idx, n in enumerate([x for x in verified_alive_nodes if x["services"].get("discord")], start=1)
+            format_verified_remark(n["uri"], n["country"], "Discord", idx, n.get("ping_ms", 0))
+            for idx, n in enumerate(sorted([x for x in verified_alive_nodes if x["services"].get("discord")], key=lambda x: x.get("ping_ms", 999)), start=1)
         ],
         "instagram.txt": [
-            format_verified_remark(n["uri"], n["country"], "Instagram", idx)
-            for idx, n in enumerate([x for x in verified_alive_nodes if x["services"].get("instagram")], start=1)
+            format_verified_remark(n["uri"], n["country"], "Instagram", idx, n.get("ping_ms", 0))
+            for idx, n in enumerate(sorted([x for x in verified_alive_nodes if x["services"].get("instagram")], key=lambda x: x.get("ping_ms", 999)), start=1)
         ],
         "twitter.txt": [
-            format_verified_remark(n["uri"], n["country"], "Twitter", idx)
-            for idx, n in enumerate([x for x in verified_alive_nodes if x["services"].get("twitter")], start=1)
+            format_verified_remark(n["uri"], n["country"], "Twitter", idx, n.get("ping_ms", 0))
+            for idx, n in enumerate(sorted([x for x in verified_alive_nodes if x["services"].get("twitter")], key=lambda x: x.get("ping_ms", 999)), start=1)
         ],
         "spotify.txt": [
-            format_verified_remark(n["uri"], n["country"], "Spotify", idx)
-            for idx, n in enumerate([x for x in verified_alive_nodes if x["services"].get("spotify")], start=1)
+            format_verified_remark(n["uri"], n["country"], "Spotify", idx, n.get("ping_ms", 0))
+            for idx, n in enumerate(sorted([x for x in verified_alive_nodes if x["services"].get("spotify")], key=lambda x: x.get("ping_ms", 999)), start=1)
         ],
         "github.txt": [
-            format_verified_remark(n["uri"], n["country"], "GitHub", idx)
-            for idx, n in enumerate([x for x in verified_alive_nodes if x["services"].get("github")], start=1)
+            format_verified_remark(n["uri"], n["country"], "GitHub", idx, n.get("ping_ms", 0))
+            for idx, n in enumerate(sorted([x for x in verified_alive_nodes if x["services"].get("github")], key=lambda x: x.get("ping_ms", 999)), start=1)
         ],
         "ai-bundle.txt": [
-            format_verified_remark(n["uri"], n["country"], "All-AI", idx)
-            for idx, n in enumerate([x for x in verified_alive_nodes if x["services"].get("chatgpt") and (x["services"].get("claude") or x["services"].get("gemini"))], start=1)
+            format_verified_remark(n["uri"], n["country"], "All-AI", idx, n.get("ping_ms", 0))
+            for idx, n in enumerate(sorted([x for x in verified_alive_nodes if x["services"].get("chatgpt") and (x["services"].get("claude") or x["services"].get("gemini"))], key=lambda x: x.get("ping_ms", 999)), start=1)
         ],
     }
 
@@ -1043,21 +1046,21 @@ def main():
             f.write("\n".join(s_keys))
         print(f"  💾 sub/services/{s_fname:<15} -> {len(s_keys):>5} verified keys", flush=True)
 
-    # 🎯 Generate Primary Verified Pools (Top20, Top50, Anti-Whitelist, All)
+    # 🎯 Generate Primary Verified Pools (Top20, Top50, Anti-Whitelist, All) - Strictly Lowest Ping First
     top20_verified = [
-        format_verified_remark(n["uri"], n["country"], "VIP-Top20", idx)
+        format_verified_remark(n["uri"], n["country"], "VIP-Top20", idx, n.get("ping_ms", 0))
         for idx, n in enumerate(verified_alive_nodes[:20], start=1)
     ]
     top50_verified = [
-        format_verified_remark(n["uri"], n["country"], "VIP-Top50", idx)
+        format_verified_remark(n["uri"], n["country"], "VIP-Top50", idx, n.get("ping_ms", 0))
         for idx, n in enumerate(verified_alive_nodes[:50], start=1)
     ]
     anti_censor_verified = [
-        format_verified_remark(n["uri"], n["country"], "Anti-Censor", idx)
-        for idx, n in enumerate([n for n in verified_alive_nodes if "reality" in n["uri"].lower() or "hy2" in n["uri"].lower()], start=1)
+        format_verified_remark(n["uri"], n["country"], "Anti-Censor", idx, n.get("ping_ms", 0))
+        for idx, n in enumerate(sorted([n for n in verified_alive_nodes if "reality" in n["uri"].lower() or "hy2" in n["uri"].lower()], key=lambda x: x.get("ping_ms", 999)), start=1)
     ]
     all_verified = [
-        format_verified_remark(n["uri"], n["country"], "Verified", idx)
+        format_verified_remark(n["uri"], n["country"], "Verified", idx, n.get("ping_ms", 0))
         for idx, n in enumerate(verified_alive_nodes, start=1)
     ]
 

@@ -39,7 +39,7 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
 GITHUB_API = "https://api.github.com"
 
 # =============================================================================
-# 1. 🔍 DYNAMIC GITHUB CODE SEARCH QUERIES
+# 1. 🔍 DYNAMIC GITHUB CODE SEARCH QUERIES (Ultra-Fresh & Reality Focus)
 # =============================================================================
 GITHUB_CODE_QUERIES = [
     "vless:// security=reality extension:txt",
@@ -55,27 +55,35 @@ GITHUB_CODE_QUERIES = [
     "path:sub extension:txt vless://",
     "clash.meta proxies: extension:yaml",
     "clash-meta proxies: extension:yaml",
+    "vless:// gosuslugi extension:txt",
+    "vless:// sber extension:txt",
+    "vless:// vk.com extension:txt",
 ]
 
 # =============================================================================
-# 2. 📦 DYNAMIC GITHUB REPOSITORY SEARCH MATRIX (Scans all GitHub repos)
+# 2. 📦 DYNAMIC GITHUB REPOSITORY SEARCH MATRIX (Sorted by latest updates)
 # =============================================================================
 DYNAMIC_REPO_QUERIES = [
-    "vless sort:updated",
-    "vless-reality sort:updated",
-    "v2ray-share sort:updated",
-    "free-vless sort:updated",
-    "clash-meta sort:updated",
-    "clash-meta-config sort:updated",
-    "hysteria2-nodes sort:updated",
-    "sing-box-config sort:updated",
-    "vpn-subscription sort:updated",
-    "free-nodes sort:updated",
-    "v2ray-collector sort:updated",
-    "shadowsocks-aggregator sort:updated",
-    "xray-nodes sort:updated",
-    "proxy-pool v2ray sort:updated",
-    "sub-merge sort:updated",
+    "vless-reality sort:updated-desc",
+    "vless sort:updated-desc",
+    "v2ray-share sort:updated-desc",
+    "free-vless sort:updated-desc",
+    "clash-meta sort:updated-desc",
+    "clash-meta-config sort:updated-desc",
+    "hysteria2 sort:updated-desc",
+    "sing-box-nodes sort:updated-desc",
+    "vpn-subscription sort:updated-desc",
+    "free-nodes sort:updated-desc",
+    "v2ray-collector sort:updated-desc",
+    "shadowsocks-aggregator sort:updated-desc",
+    "xray-nodes sort:updated-desc",
+    "proxy-pool v2ray sort:updated-desc",
+    "sub-merge sort:updated-desc",
+    "v2ray-nodes sort:updated-desc",
+    "v2ray-config sort:updated-desc",
+    "russia-vless sort:updated-desc",
+    "antizapret sort:updated-desc",
+    "anti-censor sort:updated-desc",
     "topic:vless",
     "topic:v2ray",
     "topic:hysteria2",
@@ -87,7 +95,7 @@ DYNAMIC_REPO_QUERIES = [
     "topic:free-vpn",
 ]
 
-# Seed baseline of high-yield active proxy repositories
+# Seed baseline of high-yield active proxy repositories (Hourly Auto-Updaters)
 SEED_REPOSITORIES = [
     ("m3hd1-r/free-v2ray-collector", "main"),
     ("Surfboardv2ray/v2ray-worker-sub", "master"),
@@ -118,10 +126,16 @@ SEED_REPOSITORIES = [
     ("AlienVPN402/AlienVPN402", "main"),
     ("MrPooyaX/Vplay", "main"),
     ("miladrahimi/v2ray-collector", "main"),
+    ("roosterkid/openproxylist", "main"),
+    ("Bardiafa/Free-V2ray-Config", "main"),
+    ("everyday-vpn/everyday-vpn", "main"),
+    ("mahdibland/V2RayAggregator", "master"),
+    ("aiboboxx/v2rayfree", "main"),
+    ("tolinkshare2/tolinkshare2", "main"),
 ]
 
 # =============================================================================
-# 3. 📡 PUBLIC TELEGRAM CHANNELS
+# 3. 📡 EXPANDED PUBLIC TELEGRAM CHANNELS (Fresh Real-Time Keys)
 # =============================================================================
 TELEGRAM_CHANNELS = [
     "v2rayng_org",
@@ -151,6 +165,20 @@ TELEGRAM_CHANNELS = [
     "VlessConfig",
     "Proxy_Kafe",
     "OutlineVpnOfficial",
+    "v2rayng_config_channel",
+    "SafeNet_VPN",
+    "v2ray_collector",
+    "v2ray_hub",
+    "free_vpn_sub",
+    "shadowrocket_configs",
+    "vless_nodes",
+    "v2ray_daily",
+    "fast_v2ray",
+    "v2ray_vip",
+    "free_nodes_collector",
+    "v2ray_sub_official",
+    "v2ray_vpn_free",
+    "v2ray_auto_config",
 ]
 
 MIN_NODES_TO_KEEP = 5
