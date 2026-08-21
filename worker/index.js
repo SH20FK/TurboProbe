@@ -147,12 +147,29 @@ export default {
               const text = await res.text();
               const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
               if (lines.length > 0) {
+                const userAgent = (request.headers.get('User-Agent') || '').toLowerCase();
+                const isClash = format === 'clash' || format === 'meta' || format === 'yaml' ||
+                                path.includes('/clash') || path.includes('/meta') ||
+                                userAgent.includes('clash') || userAgent.includes('mihomo') || userAgent.includes('flclash') || userAgent.includes('stash');
+                if (isClash) {
+                  const clashYaml = generateClashMetaYaml(lines.map(u => ({ uri: u })));
+                  return new Response(clashYaml, {
+                    headers: {
+                      'Content-Type': 'text/yaml; charset=utf-8',
+                      'Content-Disposition': 'inline; filename="TurboProbe_Clash.yaml"',
+                      'Access-Control-Allow-Origin': '*',
+                      'Profile-Update-Interval': '6',
+                      'Subscription-Userinfo': 'upload=0; download=0; total=1073741824000; expire=0'
+                    }
+                  });
+                }
                 return new Response(lines.join('\n'), {
                   headers: {
                     'Content-Type': 'text/plain; charset=utf-8',
                     'Content-Disposition': 'inline; filename="TurboProbe_Sub.txt"',
                     'Access-Control-Allow-Origin': '*',
                     'Profile-Update-Interval': '6',
+                    'Subscription-Userinfo': 'upload=0; download=0; total=1073741824000; expire=0'
                   }
                 });
               }
@@ -294,7 +311,7 @@ function generateClashMetaYaml(nodes) {
         const pbk = urlObj.searchParams.get('pbk') || '';
         const sid = urlObj.searchParams.get('sid') || '';
         const fp = urlObj.searchParams.get('fp') || 'chrome';
-        const type = urlObj.searchParams.get('type') || 'tcp';
+        const type = (urlObj.searchParams.get('type') || 'tcp').toLowerCase();
 
         const p = [
           `  - name: "${name}"`,
@@ -313,6 +330,18 @@ function generateClashMetaYaml(nodes) {
           p.push(`      public-key: ${pbk}`);
           if (sid) p.push(`      short-id: ${sid}`);
         }
+        if (type === 'ws') {
+          const wsPath = urlObj.searchParams.get('path') || '/';
+          const wsHost = urlObj.searchParams.get('host') || sni;
+          p.push('    ws-opts:');
+          p.push(`      path: "${wsPath}"`);
+          p.push('      headers:');
+          p.push(`        Host: "${wsHost}"`);
+        } else if (type === 'grpc') {
+          const sName = urlObj.searchParams.get('serviceName') || '';
+          p.push('    grpc-opts:');
+          p.push(`      grpc-service-name: "${sName}"`);
+        }
         proxies.push(p.join('\n'));
         proxyNames.push(name);
       } else if (proto === 'trojan') {
@@ -328,6 +357,33 @@ function generateClashMetaYaml(nodes) {
         ];
         proxies.push(p.join('\n'));
         proxyNames.push(name);
+      } else if (proto === 'ss' || proto === 'shadowsocks') {
+        if (uri.includes('@')) {
+          let [userInfoPart] = uri.split('://')[1].split('#')[0].split('@');
+          let method = 'aes-256-gcm';
+          let password = '';
+          if (userInfoPart.includes(':')) {
+            [method, password] = userInfoPart.split(':');
+          } else {
+            try {
+              const decoded = atob(userInfoPart);
+              if (decoded.includes(':')) [method, password] = decoded.split(':');
+            } catch (_) {}
+          }
+          if (password) {
+            const p = [
+              `  - name: "${name}"`,
+              `    type: ss`,
+              `    server: ${host}`,
+              `    port: ${port}`,
+              `    cipher: ${method}`,
+              `    password: "${password}"`,
+              `    udp: true`
+            ];
+            proxies.push(p.join('\n'));
+            proxyNames.push(name);
+          }
+        }
       }
     } catch (_) {}
   });

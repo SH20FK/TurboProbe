@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, Check, QrCode, ShieldCheck } from 'lucide-react';
 import { HappIcon, FlClashIcon } from './ServiceIcons';
@@ -18,13 +18,23 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   onOpenQr,
   onDownloadClash: _onDownloadClash,
 }) => {
+  const [formatMode, setFormatMode] = useState<'standard' | 'clash'>('standard');
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedHapp, setCopiedHapp] = useState(false);
   const [copiedFlclash, setCopiedFlclash] = useState(false);
 
+  const clashSubUrl = useMemo(() => {
+    if (subUrl.includes('raw.githubusercontent.com') || subUrl.includes('.github.io')) {
+      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/docs/sub/clash.yaml';
+    }
+    return `${subUrl}${subUrl.includes('?') ? '&' : '?'}format=clash`;
+  }, [subUrl]);
+
+  const activeDisplayUrl = formatMode === 'clash' ? clashSubUrl : subUrl;
+
   const handleCopyMainUrl = async () => {
     try {
-      await navigator.clipboard.writeText(subUrl);
+      await navigator.clipboard.writeText(activeDisplayUrl);
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
     } catch (_) {}
@@ -35,18 +45,15 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
       await navigator.clipboard.writeText(subUrl);
       setCopiedHapp(true);
       setTimeout(() => setCopiedHapp(false), 2500);
-      // Launch Happ app via direct unencoded URL so it detects https protocol
       window.location.href = `happ://add/${subUrl}#TurboProbe`;
     } catch (_) {}
   };
 
   const handleCopyFlclash = async () => {
     try {
-      const clashSubUrl = `${subUrl}${subUrl.includes('?') ? '&' : '?'}format=clash`;
       await navigator.clipboard.writeText(clashSubUrl);
       setCopiedFlclash(true);
       setTimeout(() => setCopiedFlclash(false), 2500);
-      // Launch FlClash app via official flclash:// scheme with format=clash
       window.location.href = `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`;
     } catch (_) {}
   };
@@ -55,23 +62,48 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
     <section className="w-full max-w-5xl mx-auto px-4 py-3">
       <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/50 backdrop-blur-sm border border-white/10 shadow-2xl relative overflow-hidden space-y-4">
         
-        {/* Header Label */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-zinc-200" />
-            Персональная ссылка на подписку
-          </span>
-          <span className="text-xs font-mono text-zinc-400">
-            Готово к импорту ({filteredCount} серверов)
-          </span>
+        {/* Format Selector Tabs */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-zinc-200" />
+              Персональная ссылка на подписку
+            </span>
+            <span className="text-xs font-mono text-zinc-400">
+              ({filteredCount} серверов)
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-1 p-1 bg-black/60 rounded-xl border border-white/10 w-full sm:w-auto">
+            <button
+              onClick={() => setFormatMode('standard')}
+              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                formatMode === 'standard'
+                  ? 'bg-zinc-800 text-white shadow border border-white/10'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              📱 Happ / v2ray / Hiddify
+            </button>
+            <button
+              onClick={() => setFormatMode('clash')}
+              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                formatMode === 'clash'
+                  ? 'bg-zinc-800 text-white shadow border border-white/10'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              ⚡ Clash / FlClash / Mihomo
+            </button>
+          </div>
         </div>
 
-        {/* 1. Subscription URL Bar with QR-code button inside on the right */}
+        {/* 1. Subscription URL Bar */}
         <div className="flex items-center gap-2 p-2 rounded-xl bg-black/80 border border-white/10">
           <input
             type="text"
             readOnly
-            value={subUrl}
+            value={activeDisplayUrl}
             className="w-full bg-transparent text-xs sm:text-sm font-mono text-zinc-200 outline-none px-2 select-all overflow-ellipsis"
           />
           <motion.button
@@ -117,13 +149,17 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                 className="flex items-center gap-2 font-bold"
               >
                 <Copy className="w-5 h-5" />
-                <span>Скопировать ссылку на подписку</span>
+                <span>
+                  {formatMode === 'clash'
+                    ? 'Скопировать ссылку для Clash / FlClash (YAML)'
+                    : 'Скопировать ссылку на подписку (TXT)'}
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
         </motion.button>
 
-        {/* 3. Two equal buttons below: Happ (left) & FlClash (right) */}
+        {/* 3. Two equal quick-action buttons */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Happ */}
           <motion.button

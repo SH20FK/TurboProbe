@@ -563,6 +563,156 @@ def format_verified_remark(uri: str, country: str, purpose: str, idx: int) -> st
     remark = f"TurboProbe · {badge} · {purpose} #{idx:02d}"
     return f"{base}#{remark}"
 
+def generate_clash_meta_yaml(nodes: list) -> str:
+    """Generates standard Clash Meta YAML with auto url-test and select groups."""
+    import re, base64
+    proxies = []
+    proxy_names = []
+    seen = set()
+
+    for idx, node in enumerate(nodes, start=1):
+        uri = node.get("uri", "") if isinstance(node, dict) else str(node)
+        if not uri or "://" not in uri:
+            continue
+        try:
+            parsed = urllib.parse.urlparse(uri)
+            proto = parsed.scheme.lower()
+            host = parsed.hostname
+            port = parsed.port or 443
+            user = parsed.username or ""
+            query = urllib.parse.parse_qs(parsed.query)
+
+            country = node.get("country", "GLOBAL") if isinstance(node, dict) else "GLOBAL"
+            flag = country_code_to_flag(country)
+            raw_tag = urllib.parse.unquote(parsed.fragment).strip() if parsed.fragment else ""
+            if raw_tag:
+                clean_name = re.sub(r'[:"\'\[\]]', '', raw_tag).strip()[:35]
+            else:
+                clean_name = f"TurboProbe {flag} {country} #{idx:02d}"
+            
+            name = clean_name
+            if name in seen:
+                name = f"{name} ({idx})"
+            seen.add(name)
+
+            if proto == "vless":
+                security = query.get("security", ["none"])[0].lower()
+                sni = query.get("sni", [""])[0] or host
+                pbk = query.get("pbk", [""])[0]
+                sid = query.get("sid", [""])[0]
+                fp = query.get("fp", ["chrome"])[0]
+                net_type = query.get("type", ["tcp"])[0].lower()
+
+                p_lines = [
+                    f'  - name: "{name}"',
+                    f'    type: vless',
+                    f'    server: {host}',
+                    f'    port: {port}',
+                    f'    uuid: {user}',
+                    f'    udp: true',
+                    f'    tls: {"true" if security in ["tls", "reality"] else "false"}',
+                    f'    servername: {sni}',
+                    f'    client-fingerprint: {fp}',
+                    f'    network: {net_type}',
+                ]
+                if security == "reality" and pbk:
+                    p_lines.append('    reality-opts:')
+                    p_lines.append(f'      public-key: {pbk}')
+                    if sid:
+                        p_lines.append(f'      short-id: {sid}')
+                if net_type == "ws":
+                    path = query.get("path", ["/"])[0]
+                    ws_host = query.get("host", [""])[0] or sni
+                    p_lines.append('    ws-opts:')
+                    p_lines.append(f'      path: "{path}"')
+                    p_lines.append('      headers:')
+                    p_lines.append(f'        Host: "{ws_host}"')
+                elif net_type == "grpc":
+                    service_name = query.get("serviceName", [""])[0]
+                    p_lines.append('    grpc-opts:')
+                    p_lines.append(f'      grpc-service-name: "{service_name}"')
+
+                proxies.append("\n".join(p_lines))
+                proxy_names.append(name)
+
+            elif proto == "trojan":
+                sni = query.get("sni", [""])[0] or host
+                p_lines = [
+                    f'  - name: "{name}"',
+                    f'    type: trojan',
+                    f'    server: {host}',
+                    f'    port: {port}',
+                    f'    password: {user}',
+                    f'    udp: true',
+                    f'    sni: {sni}',
+                ]
+                proxies.append("\n".join(p_lines))
+                proxy_names.append(name)
+
+            elif proto in ["ss", "shadowsocks"]:
+                if "@" in uri:
+                    userinfo = uri.split("://", 1)[1].split("#", 1)[0].split("@", 1)[0]
+                    if ":" in userinfo:
+                        method, password = userinfo.split(":", 1)
+                    else:
+                        pad = 4 - (len(userinfo) % 4)
+                        if pad != 4: userinfo += "=" * pad
+                        dec = base64.b64decode(userinfo).decode("utf-8", errors="ignore")
+                        method, password = dec.split(":", 1)
+                    p_lines = [
+                        f'  - name: "{name}"',
+                        f'    type: ss',
+                        f'    server: {host}',
+                        f'    port: {port}',
+                        f'    cipher: {method}',
+                        f'    password: "{password}"',
+                        f'    udp: true',
+                    ]
+                    proxies.append("\n".join(p_lines))
+                    proxy_names.append(name)
+        except Exception:
+            pass
+
+    if not proxies:
+        return 'port: 7890\nmode: rule\nproxies:\n  - {name: "TurboProbe-Fallback", type: vless, server: 1.1.1.1, port: 443, uuid: 00000000-0000-0000-0000-000000000000, udp: true}\n'
+
+    group_members = "\n".join([f'      - "{n}"' for n in proxy_names])
+
+    return f"""port: 7890
+socks-port: 7891
+allow-lan: false
+mode: rule
+log-level: info
+
+proxies:
+{chr(10).join(proxies)}
+
+proxy-groups:
+  - name: "⚡ TURBOPROBE-AUTO"
+    type: url-test
+    url: http://cp.cloudflare.com/generate_204
+    interval: 300
+    tolerance: 50
+    proxies:
+{group_members}
+  - name: "🚀 SELECT"
+    type: select
+    proxies:
+      - "⚡ TURBOPROBE-AUTO"
+{group_members}
+
+rules:
+  - DOMAIN-SUFFIX,openai.com,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,claude.ai,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,youtube.com,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,discord.com,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,instagram.com,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,x.com,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,twitter.com,⚡ TURBOPROBE-AUTO
+  - GEOIP,RU,DIRECT
+  - MATCH,⚡ TURBOPROBE-AUTO
+"""
+
 # =============================================================================
 # 🚀 MAIN PIPELINE
 # =============================================================================
@@ -981,6 +1131,18 @@ def main():
             "total_countries": len(country_manifest),
             "countries": country_manifest
         }, f, indent=2, ensure_ascii=False)
+
+    # ⚡ Generate and save Clash Meta YAML Configurations
+    clash_yaml_content = generate_clash_meta_yaml(verified_alive_nodes)
+    with open(os.path.join(SUB_DIR, "clash.yaml"), "w", encoding="utf-8") as f:
+        f.write(clash_yaml_content)
+    with open(os.path.join(SUB_DIR, "clash.meta.yaml"), "w", encoding="utf-8") as f:
+        f.write(clash_yaml_content)
+    with open(os.path.join(docs_sub_dir, "clash.yaml"), "w", encoding="utf-8") as f:
+        f.write(clash_yaml_content)
+    with open(os.path.join(docs_sub_dir, "clash.meta.yaml"), "w", encoding="utf-8") as f:
+        f.write(clash_yaml_content)
+    print("  💾 sub/clash.yaml & sub/clash.meta.yaml generated successfully for FlClash/Mihomo", flush=True)
 
     print("\n🎉 [Complete] Real Tunnel Verification finished successfully!")
 
