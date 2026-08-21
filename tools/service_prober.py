@@ -818,7 +818,7 @@ def main():
         "version": "2.0",
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "total_nodes": len(verified_alive_nodes),
-        "nodes": verified_alive_nodes[:100],
+        "nodes": verified_alive_nodes,
     }
 
     with open(os.path.join(SUB_DIR, "nodes.json"), "w", encoding="utf-8") as f:
