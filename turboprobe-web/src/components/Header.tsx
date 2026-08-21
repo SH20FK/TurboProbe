@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ totalConfigs = 0, updatedAt }) =
 
       {/* 3. Subtitle */}
       <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-1.5 mb-3 max-w-md">
-        Бесплатный VPN — быстро, без регистрации и ограничений
+        Суверенный VPN — быстро и без ограничений
       </p>
 
       {/* 4. Live Stats Badges (Configs count & Moscow Time) */}
