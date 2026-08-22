@@ -664,6 +664,23 @@ def wait_for_ports_ready(ports: list, max_wait: float = XRAY_STARTUP_TIMEOUT) ->
     return sorted(pending)
 
 
+def diagnose_xray_config(xray_bin: str, cfg_file: str) -> str:
+    """Returns Xray's own configuration-test output after an inbound startup failure."""
+    try:
+        completed = subprocess.run(
+            [xray_bin, "run", "-test", "-c", cfg_file],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        output = "\n".join(part.strip() for part in (completed.stdout, completed.stderr) if part.strip())
+        if output:
+            return f"config test exit {completed.returncode}: {output[-1000:]}"
+        return f"config test exit {completed.returncode} with no output"
+    except Exception as exc:
+        return f"config test failed: {exc}"
+
+
 def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT, basic_only: bool = False) -> list:
     """Runs a batch through Xray; basic_only uses ipwho.is and skips service checks."""
     inbounds = []
@@ -748,6 +765,8 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
             summary = f"{len(missing_ports)}/{len(inbound_ports)} SOCKS ports did not bind within {XRAY_STARTUP_TIMEOUT:.0f}s"
             if error_detail:
                 summary += f"; Xray exited: {error_detail[-800:]}"
+            else:
+                summary += f"; {diagnose_xray_config(xray_bin, cfg_file)}"
             print(f"  ⚠️ [Xray Warning] {summary}", flush=True)
             return results
 

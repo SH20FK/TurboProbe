@@ -49,7 +49,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /usr/local/bin/xray
-          key: xray-linux-64-v1.8.24
+          key: xray-linux-64-v26.3.27
 
       - name: Install dependencies & Xray-core
         run: |
@@ -57,10 +57,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           if [ ! -f /usr/local/bin/xray ]; then
-            curl -L -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+            curl -fL --retry 3 -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/download/v26.3.27/Xray-linux-64.zip
             sudo unzip -o /tmp/xray.zip -d /usr/local/bin/
             sudo chmod +x /usr/local/bin/xray
           fi
+          /usr/local/bin/xray version
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
