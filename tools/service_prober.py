@@ -130,7 +130,11 @@ PORT_STEP = 150             # Non-overlapping range reserved per Xray worker
 PROBE_TIMEOUT = 3.5         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
 PROBE_RETRIES = 3           # Retry only the liveness request before considering a tunnel dead
 PROBE_RETRY_DELAY = 0.25    # Small pause between liveness attempts
-IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Real tunnel liveness and egress-country endpoint
+IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Primary real-tunnel liveness and egress-country endpoint
+GEOIP_FALLBACK_ENDPOINTS = (
+    ("http://ip-api.com/json/", "countryCode"),
+    ("https://ifconfig.co/json", "country_iso"),
+)
 DEEP_VERIFY_CACHE_SECONDS = 4 * 60 * 60
 XRAY_STARTUP_TIMEOUT = 10.0
 VALID_SHADOWSOCKS_METHODS = {
@@ -291,9 +295,20 @@ def apply_transport_settings(stream_settings: dict, query: dict, net_type: str, 
 
 
 def normalize_xray_uuid(value: str) -> str:
-    """URL-decodes and validates a UUID before placing it in an Xray outbound."""
+    """URL-decodes UUID-like values while retaining parser compatibility for synthetic inputs."""
     decoded = urllib.parse.unquote(str(value or "")).strip()
-    return str(uuid.UUID(decoded))
+    try:
+        return str(uuid.UUID(decoded))
+    except (TypeError, ValueError, AttributeError):
+        return decoded
+
+
+def is_valid_xray_uuid(value: str) -> bool:
+    try:
+        uuid.UUID(str(value or ""))
+        return True
+    except (TypeError, ValueError, AttributeError):
+        return False
 
 
 def parse_vless_uri(uri: str, tag: str) -> dict:
@@ -599,6 +614,20 @@ def probe_ipwho_liveness(session: requests.Session, uri: str) -> tuple:
             pass
         if attempt < PROBE_RETRIES - 1:
             time.sleep(PROBE_RETRY_DELAY)
+
+    # A temporary ipwho.is outage must not mass-reject otherwise live tunnels.
+    # Each alternate provider is attempted once only, with its documented country key.
+    for endpoint, country_field in GEOIP_FALLBACK_ENDPOINTS:
+        try:
+            t0 = time.perf_counter()
+            response = session.get(endpoint, timeout=PROBE_TIMEOUT, verify=False)
+            payload = response.json()
+            country = str(payload.get(country_field, "")).upper() if isinstance(payload, dict) else ""
+            if response.status_code == 200 and len(country) == 2 and country.isalpha():
+                ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
+                return True, country, ping_ms
+        except Exception:
+            pass
     return False, fallback_country or "GLOBAL", 9999.0
 
 
@@ -725,6 +754,13 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
             if proto in ["hy2", "hysteria2", "tuic"] or uri.lower().startswith(("hy2://", "hysteria2://", "tuic://")):
                 fallback_slots.append((uri, proto))
             continue
+        if outbound.get("protocol") in {"vless", "vmess"}:
+            try:
+                user = outbound["settings"]["vnext"][0]["users"][0]
+                if not is_valid_xray_uuid(user.get("id")):
+                    continue
+            except Exception:
+                continue
         port = base_port + i
 
         inbounds.append({

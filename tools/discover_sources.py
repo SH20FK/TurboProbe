@@ -209,6 +209,20 @@ def source_identity(url: str) -> str:
         return url.strip().rstrip("/")
 
 
+def is_commit_pinned_github_raw_url(url: str) -> bool:
+    """Identifies raw GitHub URLs whose ref segment is an immutable 40-character commit SHA."""
+    try:
+        parsed = urllib.parse.urlparse(url)
+        parts = [part for part in parsed.path.split("/") if part]
+        return (
+            parsed.netloc.lower() == "raw.githubusercontent.com"
+            and len(parts) >= 3
+            and re.fullmatch(r"[0-9a-fA-F]{40}", parts[2]) is not None
+        )
+    except Exception:
+        return False
+
+
 def github_repository_from_source(url: str) -> str:
     """Extracts owner/repository for GitHub raw/blob source URLs, otherwise returns an empty string."""
     try:
@@ -706,10 +720,22 @@ def main():
     # Validate genuinely new identities, plus known GitHub sources only when the
     # repository has a new push inside the last 12 hours. Commit URLs and branches
     # of the same file collapse to one stable identity before any download happens.
+    # Collapse duplicate representations of the same new file deterministically.
+    # A live branch URL is preferred over a commit-pinned snapshot so later runs can
+    # observe repository changes instead of freezing on whichever set item appeared first.
+    candidate_groups = {}
+    for candidate_url in candidate_urls:
+        candidate_groups.setdefault(source_identity(candidate_url), []).append(candidate_url)
+
+    selected_candidates = {}
+    for identity, urls in candidate_groups.items():
+        ordered_urls = sorted(set(urls))
+        live_urls = [url for url in ordered_urls if not is_commit_pinned_github_raw_url(url)]
+        selected_candidates[identity] = live_urls[0] if live_urls else ordered_urls[0]
+
     candidates_to_validate = {}
     candidate_reasons = {}
-    for candidate_url in candidate_urls:
-        identity = source_identity(candidate_url)
+    for identity, candidate_url in selected_candidates.items():
         prior = existing_by_identity.get(identity)
         repository = github_repository_from_source(candidate_url)
         repo_info = scanned_repos_cache.get(repository.lower(), {}) if repository else {}
@@ -770,6 +796,28 @@ def main():
 
     # Update Source Quality Index (Feature 12)
     update_source_quality_index(validated_stats)
+
+    # Drop inactive records whose own last observation is older than the dead-URL TTL.
+    # Active records retain their existing schema and are never removed by this cleanup.
+    pruned_inactive = 0
+    retained_existing = {}
+    for source_url, record in existing.items():
+        if not isinstance(record, dict) or record.get("status", "active") == "active":
+            retained_existing[source_url] = record
+            continue
+        timestamp_text = record.get("last_checked") or record.get("discovered_at")
+        try:
+            checked_ts = datetime.strptime(timestamp_text, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
+        except Exception:
+            retained_existing[source_url] = record
+            continue
+        if now_ts - checked_ts <= DEAD_URL_TTL:
+            retained_existing[source_url] = record
+        else:
+            pruned_inactive += 1
+    if pruned_inactive:
+        print(f"  🧹 Pruned {pruned_inactive} expired inactive source record(s)", flush=True)
+    existing = retained_existing
 
     # 3. Save updated database & metadata
     metadata["scanned_repos"] = scanned_repos_cache

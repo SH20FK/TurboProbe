@@ -9,6 +9,8 @@ TurboProbe Ultra-Speed Mega-Aggregator & Low-Latency Engine v5.0
 - Outputs dedicated sub files, Top-20 / Top-50 VIP sub, and Clash Meta YAML
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import re
@@ -60,6 +62,8 @@ TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 DISCOVERED_SOURCES_PATH = os.path.join(TOOLS_DIR, "discovered_sources.json")
 NODE_HISTORY_PATH = os.path.join(TOOLS_DIR, "node_history.json")
 DEAD_NODES_PATH = os.path.join(TOOLS_DIR, "dead_nodes.json")
+SOURCE_QUALITY_PATH = os.path.join(TOOLS_DIR, "source_quality_index.json")
+NODE_HISTORY_TTL_SECONDS = 30 * 24 * 60 * 60
 
 # Size of each paginated "sub/chunks/chunk-XXX.txt" file (ordered by ascending ping)
 CHUNK_SIZE = 500
@@ -80,7 +84,27 @@ def load_node_history() -> dict:
     return {}
 
 def save_node_history(history_map: dict):
-    """Saves node check history (capped at 50,000 active nodes)."""
+    """Saves node check history after expiring stale deep-check records and capping active entries."""
+    try:
+        now = datetime.now(timezone.utc)
+        retained_history = {}
+        for key, record in history_map.items():
+            if not isinstance(record, dict):
+                continue
+            checked_at = record.get("deep_checked_at")
+            if isinstance(checked_at, str):
+                try:
+                    checked_dt = datetime.fromisoformat(checked_at.replace("Z", "+00:00"))
+                    if checked_dt.tzinfo is None:
+                        checked_dt = checked_dt.replace(tzinfo=timezone.utc)
+                    if (now - checked_dt.astimezone(timezone.utc)).total_seconds() > NODE_HISTORY_TTL_SECONDS:
+                        continue
+                except Exception:
+                    pass
+            retained_history[key] = record
+        history_map = retained_history
+    except Exception:
+        pass
     if len(history_map) > 50000:
         items = sorted(history_map.items(), key=lambda x: x[1].get("total_checks", 0), reverse=True)[:50000]
         history_map = dict(items)
@@ -231,6 +255,28 @@ URI_REGEX = re.compile(
 SSL_CTX = ssl.create_default_context()
 SSL_CTX.check_hostname = False
 SSL_CTX.verify_mode = ssl.CERT_NONE
+
+
+def is_basic_proxy_uri(uri: str) -> bool:
+    """Rejects clearly malformed direct VLESS/Trojan links before they enter output pools."""
+    try:
+        parsed = urllib.parse.urlparse(str(uri).strip())
+        scheme = parsed.scheme.lower()
+        if scheme not in {"vless", "trojan", "ss", "hy2", "hysteria2", "tuic", "vmess"}:
+            return False
+        if scheme == "ss" and "@" not in parsed.netloc:
+            # SIP002 fully-base64 links are decoded later by the dedicated SS parser.
+            return True
+        host = (parsed.hostname or "").strip("[]")
+        port = parsed.port if parsed.port is not None else 443
+        if not host or not 1 <= port <= 65535:
+            return False
+        if scheme in {"vless", "trojan"} and not parsed.username:
+            return False
+        return True
+    except Exception:
+        return False
+
 
 def fetch_url(url: str, timeout: int = 8) -> str:
     headers = {
@@ -453,34 +499,39 @@ def extract_uris_from_content(content: str) -> list:
     content = recursive_decode_subscription(content, max_depth=5)
     
     uris = []
+
+    def append_if_basic_uri(candidate: str):
+        candidate = str(candidate or "").strip()
+        if is_basic_proxy_uri(candidate):
+            uris.append(candidate)
     
     # 2. Clash Meta YAML Proxy Extractor (Feature 6)
     if "proxies:" in content or "Proxy:" in content:
         clash_proxies = extract_proxies_from_clash_yaml(content)
         if clash_proxies:
-            uris.extend(clash_proxies)
+            uris.extend(uri for uri in clash_proxies if is_basic_proxy_uri(uri))
 
     # 3. Sing-box JSON Proxy Extractor
     if "outbounds" in content or '"type"' in content:
         sb_proxies = extract_proxies_from_singbox_json(content)
         if sb_proxies:
-            uris.extend(sb_proxies)
+            uris.extend(uri for uri in sb_proxies if is_basic_proxy_uri(uri))
             
     # 4. Telegram Web Parsing
     if '<div class="tgme_widget_message_text' in content:
         for block in re.findall(r'<div class="tgme_widget_message_text[^>]*>(.*?)</div>', content, re.DOTALL):
             for match in URI_REGEX.finditer(block):
-                uris.append(match.group(0).strip())
+                append_if_basic_uri(match.group(0))
                 
     # 5. Direct Regex
     for match in URI_REGEX.finditer(content):
-        uris.append(match.group(0).strip())
+        append_if_basic_uri(match.group(0))
         
     # 6. Line by line
     for line in content.splitlines():
         line = line.strip()
         if any(line.startswith(proto) for proto in ("vless://", "trojan://", "ss://", "hy2://", "hysteria2://", "tuic://", "vmess://")):
-            uris.append(line)
+            append_if_basic_uri(line)
             
     return list(dict.fromkeys(uris))
 
@@ -781,14 +832,17 @@ def generate_clash_meta_yaml(nodes: list) -> str:
             seen_names.add(name)
             
             proto = parsed.scheme.lower()
-            user_info = parsed.netloc.split('@')[0] if '@' in parsed.netloc else ""
-            host_port = parsed.netloc.split('@')[1] if '@' in parsed.netloc else parsed.netloc
-            host = host_port.split(':')[0].strip('[]')
-            port = int(host_port.split(':')[1]) if ':' in host_port else 443
+            user_info = urllib.parse.unquote(parsed.username or "")
+            host = (parsed.hostname or "").strip('[]')
+            port = parsed.port if parsed.port is not None else 443
+            if not host or not 1 <= port <= 65535:
+                continue
             params = urllib.parse.parse_qs(parsed.query)
             
             if proto == "vless":
                 uuid = user_info
+                if not uuid:
+                    continue
                 security = params.get("security", ["none"])[0].lower()
                 sni = params.get("sni", [host])[0]
                 pbk = params.get("pbk", [""])[0]
@@ -829,6 +883,8 @@ def generate_clash_meta_yaml(nodes: list) -> str:
                 proxy_names.append(name)
             elif proto == "trojan":
                 password = user_info
+                if not password:
+                    continue
                 sni = params.get("sni", [host])[0]
                 net_type = params.get("type", ["tcp"])[0].lower()
                 sb.append(f"  - name: \"{_escape_yaml_val(name)}\"")
@@ -869,7 +925,7 @@ def generate_clash_meta_yaml(nodes: list) -> str:
                     cipher, password = "aes-256-gcm", user_info
 
                 cipher = cipher.strip().lower()
-                if not cipher or cipher not in VALID_SS_CIPHERS:
+                if not cipher or cipher not in VALID_SS_CIPHERS or not password:
                     continue
 
                 sb.append(f"  - name: \"{_escape_yaml_val(name)}\"")
@@ -882,6 +938,8 @@ def generate_clash_meta_yaml(nodes: list) -> str:
                 proxy_names.append(name)
             elif proto in ["hy2", "hysteria2"]:
                 password = user_info
+                if not password:
+                    continue
                 sni = params.get("sni", [host])[0]
                 skip_cert = params.get("insecure", ["0"])[0] in ["1", "true"]
                 ports = params.get("ports", [""])[0]
@@ -918,6 +976,29 @@ def generate_clash_meta_yaml(nodes: list) -> str:
     sb.append("\nrules:")
     sb.append("  - MATCH,DIRECT")
     return "\n".join(sb)
+
+def load_source_quality_scores() -> dict:
+    """Loads optional source quality scores without making source discovery a dependency."""
+    try:
+        with open(SOURCE_QUALITY_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def prioritize_sources_by_quality(sources: list) -> list:
+    """Orders an unchanged source set by descending historical yield score (default: 50)."""
+    try:
+        quality_index = load_source_quality_scores()
+        return sorted(
+            sources,
+            key=lambda url: float(quality_index.get(url, {}).get("score", 50.0)) if isinstance(quality_index.get(url), dict) else 50.0,
+            reverse=True,
+        )
+    except Exception:
+        return list(sources)
+
 
 def load_discovered_sources() -> list:
     """Loads source URLs auto-confirmed by tools/discover_sources.py, if any."""
@@ -1010,6 +1091,8 @@ def main():
         all_sources = list(dict.fromkeys(SOURCES + extra_sources))
         print(f"🚀 [TurboProbe Full Engine] Crawling from {len(all_sources)} verified sources "
               f"({len(SOURCES)} seed + {len(extra_sources)} auto-discovered)...", flush=True)
+
+    all_sources = prioritize_sources_by_quality(all_sources)
 
     fetched_count = 0
     all_uris = []

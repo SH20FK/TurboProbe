@@ -139,7 +139,7 @@ class TestWebFrontendAndTypes(unittest.TestCase):
     def test_f9_01_typescript_clean_build(self):
         """F9.1: npm run build in turboprobe-web/ must finish cleanly with exit code 0"""
         cmd = ["npm", "run", "build"]
-        res = subprocess.run(cmd, cwd=WEB_DIR, capture_output=True, text=True, shell=True)
+        res = subprocess.run(cmd, cwd=WEB_DIR, capture_output=True, text=True, shell=False)
         self.assertEqual(
             res.returncode, 0,
             f"npm run build failed with code {res.returncode}.\nSTDOUT: {res.stdout}\nSTDERR: {res.stderr}"
