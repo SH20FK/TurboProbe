@@ -127,7 +127,7 @@ PROBE_TIMEOUT = 3.5         # Seconds per real tunnel HTTP request (full TLS han
 PROBE_RETRIES = 3           # Retry only the liveness request before considering a tunnel dead
 PROBE_RETRY_DELAY = 0.25    # Small pause between liveness attempts
 IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Real tunnel liveness and egress-country endpoint
-DEEP_VERIFY_CACHE_SECONDS = 12 * 60 * 60
+DEEP_VERIFY_CACHE_SECONDS = 4 * 60 * 60
 
 TARGET_SERVICES = {
     "chatgpt": {
@@ -794,7 +794,7 @@ def _deep_uri_fingerprint(uri: str) -> str:
 
 
 def _is_fresh_deep_check(record: dict, now: datetime) -> bool:
-    """Returns whether a cached deep-check outcome is safely reusable for 12 hours."""
+    """Returns whether a cached deep-check outcome is safely reusable for four hours."""
     try:
         checked_at = datetime.fromisoformat(str(record.get("deep_checked_at", "")).replace("Z", "+00:00"))
         if checked_at.tzinfo is None:
@@ -808,7 +808,7 @@ def _is_fresh_deep_check(record: dict, now: datetime) -> bool:
 def deep_verify_nodes(uris: list, batch_size: int = BATCH_SIZE) -> set:
     """Returns URI bases that passed an ipwho.is check through a real Xray tunnel.
 
-    Successful and failed outcomes are cached by stable node key for 12 hours. This
+    Successful and failed outcomes are cached by stable node key for four hours. This
     shared entry point lets aggregator.py skip repeated Xray work for unchanged keys.
     """
     if not uris:
