@@ -46,7 +46,7 @@ import signal
 import urllib.parse
 import urllib.request
 import socket
-import threading
+import queue
 import asyncio
 import base64
 import hashlib
@@ -123,15 +123,15 @@ SERVICES_DIR = os.path.join(SUB_DIR, "services")
 
 DEFAULT_PROBE_LIMIT = 0     # 0 = probe 100% of all harvested candidate nodes
 BATCH_SIZE = 75             # 75 nodes per Xray instance (instant 20ms startup)
-NUM_XRAY_WORKERS = 4        # 4 Concurrent Xray processes matching CI vCPUs
+NUM_XRAY_WORKERS = 4        # 4 concurrent Xray processes matching CI vCPUs
+BASE_SOCKS_PORT = 10900     # Proven local SOCKS range start
+PORT_STEP = 150             # Non-overlapping range reserved per Xray worker
 PROBE_TIMEOUT = 3.5         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
 PROBE_RETRIES = 3           # Retry only the liveness request before considering a tunnel dead
 PROBE_RETRY_DELAY = 0.25    # Small pause between liveness attempts
 IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Real tunnel liveness and egress-country endpoint
 DEEP_VERIFY_CACHE_SECONDS = 4 * 60 * 60
 XRAY_STARTUP_TIMEOUT = 10.0
-_PORT_ALLOCATION_LOCK = threading.Lock()
-_ALLOCATED_XRAY_PORTS = set()
 
 TARGET_SERVICES = {
     "chatgpt": {
@@ -664,33 +664,13 @@ def wait_for_ports_ready(ports: list, max_wait: float = XRAY_STARTUP_TIMEOUT) ->
     return sorted(pending)
 
 
-def get_free_port(used_ports: set) -> int:
-    """Allocates a unique OS-assigned port across all concurrently running Xray batches."""
-    for _ in range(256):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.bind(("127.0.0.1", 0))
-            port = sock.getsockname()[1]
-        with _PORT_ALLOCATION_LOCK:
-            if port not in used_ports and port not in _ALLOCATED_XRAY_PORTS:
-                used_ports.add(port)
-                _ALLOCATED_XRAY_PORTS.add(port)
-                return port
-    raise RuntimeError("Could not allocate a unique local SOCKS port for Xray")
-
-
-def release_batch_ports(ports: list):
-    with _PORT_ALLOCATION_LOCK:
-        _ALLOCATED_XRAY_PORTS.difference_update(ports)
-
-
-def run_batch_probe(xray_bin: str, batch: list, basic_only: bool = False) -> list:
+def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT, basic_only: bool = False) -> list:
     """Runs a batch through Xray; basic_only uses ipwho.is and skips service checks."""
     inbounds = []
     outbounds = []
     rules = []
     active_slots = []
     fallback_slots = []
-    used_ports = set()
 
     for i, (idx, uri, ping_ms, country, proto) in enumerate(batch):
         in_tag = f"in_{i}"
@@ -700,7 +680,7 @@ def run_batch_probe(xray_bin: str, batch: list, basic_only: bool = False) -> lis
             if proto in ["hy2", "hysteria2", "tuic"] or uri.lower().startswith(("hy2://", "hysteria2://", "tuic://")):
                 fallback_slots.append((uri, proto))
             continue
-        port = get_free_port(used_ports)
+        port = base_port + i
 
         inbounds.append({
             "tag": in_tag,
@@ -812,7 +792,6 @@ def run_batch_probe(xray_bin: str, batch: list, basic_only: bool = False) -> lis
                     proc.wait(timeout=1.0)
                 except Exception:
                     pass
-        release_batch_ports(list(used_ports))
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     return results
@@ -878,9 +857,21 @@ def deep_verify_nodes(uris: list, batch_size: int = BATCH_SIZE) -> set:
 
     batches = [probe_pool[i:i + batch_size] for i in range(0, len(probe_pool), batch_size)]
     worker_count = min(NUM_XRAY_WORKERS, len(batches))
+    slot_queue = queue.Queue()
+    for slot in range(worker_count):
+        slot_queue.put(slot)
 
     def process_basic_batch(batch: list) -> list:
-        return run_batch_probe(xray_bin, batch, basic_only=True)
+        slot = slot_queue.get()
+        try:
+            return run_batch_probe(
+                xray_bin,
+                batch,
+                base_port=BASE_SOCKS_PORT + (slot * PORT_STEP),
+                basic_only=True,
+            )
+        finally:
+            slot_queue.put(slot)
 
     verified = []
     with ThreadPoolExecutor(max_workers=worker_count) as batch_pool:
@@ -1422,14 +1413,22 @@ def main():
     print(f"🚀 Launching Parallel Multi-Core Xray Cluster ({NUM_XRAY_WORKERS} concurrent Xray instances, {batch_size * NUM_XRAY_WORKERS} parallel nodes)...", flush=True)
 
     verified_alive_nodes = []
+    slot_queue = queue.Queue()
+    for slot in range(NUM_XRAY_WORKERS):
+        slot_queue.put(slot)
 
     def process_batch_worker(b_idx: int, batch: list) -> tuple:
-        res = run_batch_probe(
-            xray_bin,
-            batch,
-            basic_only=(args.vantage == "ru-local"),
-        )
-        return b_idx, len(batch), res
+        slot = slot_queue.get()
+        try:
+            res = run_batch_probe(
+                xray_bin,
+                batch,
+                base_port=BASE_SOCKS_PORT + (slot * PORT_STEP),
+                basic_only=(args.vantage == "ru-local"),
+            )
+            return b_idx, len(batch), res
+        finally:
+            slot_queue.put(slot)
 
     with ThreadPoolExecutor(max_workers=NUM_XRAY_WORKERS) as batch_pool:
         batch_futs = {
