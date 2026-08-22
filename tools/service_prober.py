@@ -254,6 +254,23 @@ def get_xray_binary_path() -> str:
 # =============================================================================
 # 🧩 PROTOCOL PARSERS (URI -> XRAY OUTBOUND JSON)
 # =============================================================================
+VALID_STREAM_SECURITY = {"none", "tls", "reality"}
+REMOVED_XRAY_TRANSPORTS = {"h2", "http", "quic"}
+
+
+def normalize_stream_security(value: str, default: str) -> str:
+    """Normalizes URI security values to the supported Xray stream-security set."""
+    security = str(value or default).strip().lower()
+    if security == "default":
+        security = default
+    return security if security in VALID_STREAM_SECURITY else "none"
+
+
+def is_supported_xray_transport(net_type: str) -> bool:
+    """Rejects URI transports removed by the pinned current Xray Core before batch config generation."""
+    return str(net_type or "tcp").strip().lower() not in REMOVED_XRAY_TRANSPORTS
+
+
 def apply_transport_settings(stream_settings: dict, query: dict, net_type: str, default_host: str):
     """Normalizes URI transport aliases and attaches the matching Xray transport object."""
     network = (net_type or "tcp").lower()
@@ -321,8 +338,10 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
             return None
         query = urllib.parse.parse_qs(parsed.query)
 
-        security = query.get("security", ["none"])[0].lower()
+        security = normalize_stream_security(query.get("security", ["none"])[0], "none")
         net_type = query.get("type", ["tcp"])[0].lower()
+        if not is_supported_xray_transport(net_type):
+            return None
         sni = query.get("sni", [""])[0] or host
         fp = query.get("fp", ["chrome"])[0]
         flow = query.get("flow", [""])[0]
@@ -344,7 +363,6 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
                 stream_settings["tlsSettings"] = {
                     "serverName": sni,
                     "fingerprint": fp,
-                    "allowInsecure": query.get("allowInsecure", ["0"])[0] == "1",
                 }
             else:
                 stream_settings["realitySettings"] = {
@@ -358,7 +376,6 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
             stream_settings["tlsSettings"] = {
                 "serverName": sni,
                 "fingerprint": fp,
-                "allowInsecure": query.get("allowInsecure", ["0"])[0] == "1",
             }
 
         apply_transport_settings(stream_settings, query, net_type, host)
@@ -392,18 +409,20 @@ def parse_trojan_uri(uri: str, tag: str) -> dict:
             return None
         query = urllib.parse.parse_qs(parsed.query)
 
-        security = query.get("security", ["tls"])[0].lower()
+        security = normalize_stream_security(query.get("security", ["tls"])[0], "tls")
         net_type = query.get("type", ["tcp"])[0].lower()
+        if not is_supported_xray_transport(net_type):
+            return None
         sni = query.get("sni", [""])[0] or host
 
         stream_settings = {
             "network": net_type,
             "security": security,
-            "tlsSettings": {
-                "serverName": sni,
-                "allowInsecure": query.get("allowInsecure", ["0"])[0] == "1",
-            }
         }
+        if security == "tls":
+            stream_settings["tlsSettings"] = {
+                "serverName": sni,
+            }
 
         apply_transport_settings(stream_settings, query, net_type, host)
 
