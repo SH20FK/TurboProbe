@@ -21,6 +21,7 @@ import time
 import urllib.request
 import urllib.parse
 import urllib.error
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 try:
@@ -184,6 +185,43 @@ TELEGRAM_CHANNELS = [
 MIN_NODES_TO_KEEP = 5
 MAX_SEARCH_PAGES = 3
 REQUEST_PAUSE = 1.0
+REPOSITORY_RECHECK_SECONDS = 12 * 3600
+
+
+def source_identity(url: str) -> str:
+    """Returns a stable identity for a source, independent of a GitHub branch or commit SHA."""
+    try:
+        parsed = urllib.parse.urlparse(url.strip())
+        host = parsed.netloc.lower()
+        path_parts = [part for part in parsed.path.split("/") if part]
+        if host == "raw.githubusercontent.com" and len(path_parts) >= 4:
+            owner, repo = path_parts[0].lower(), path_parts[1].lower()
+            file_start = 3
+            if len(path_parts) >= 6 and path_parts[2:4] == ["refs", "heads"]:
+                file_start = 5
+            return f"github://{owner}/{repo}/" + "/".join(path_parts[file_start:])
+        if host == "github.com" and len(path_parts) >= 5 and path_parts[2] == "blob":
+            owner, repo = path_parts[0].lower(), path_parts[1].lower()
+            return f"github://{owner}/{repo}/" + "/".join(path_parts[4:])
+        normalized_path = parsed.path.rstrip("/") or "/"
+        return urllib.parse.urlunparse((parsed.scheme.lower(), host, normalized_path, "", parsed.query, ""))
+    except Exception:
+        return url.strip().rstrip("/")
+
+
+def github_repository_from_source(url: str) -> str:
+    """Extracts owner/repository for GitHub raw/blob source URLs, otherwise returns an empty string."""
+    try:
+        parsed = urllib.parse.urlparse(url)
+        path_parts = [part for part in parsed.path.split("/") if part]
+        if parsed.netloc.lower() == "raw.githubusercontent.com" and len(path_parts) >= 2:
+            return f"{path_parts[0].lower()}/{path_parts[1].lower()}"
+        if parsed.netloc.lower() == "github.com" and len(path_parts) >= 2:
+            return f"{path_parts[0].lower()}/{path_parts[1].lower()}"
+    except Exception:
+        pass
+    return ""
+
 
 def fetch_url(url: str, timeout: int = 8, headers: dict = None) -> str:
     """Fetches text content from URL with custom headers."""
@@ -300,55 +338,96 @@ def search_single_query(q: str) -> list:
             for repo in items:
                 full_name = repo.get("full_name", "")
                 default_branch = repo.get("default_branch", "main")
+                pushed_at = repo.get("pushed_at", "")
                 if full_name:
-                    results.append((full_name, default_branch))
+                    results.append((full_name, default_branch, pushed_at))
         except Exception:
             break
     return results
 
+
+def fetch_repository_state(full_name: str, fallback_branch: str) -> tuple:
+    """Returns GitHub's current default branch and push timestamp for a tracked seed repository."""
+    if not GITHUB_TOKEN:
+        return full_name, fallback_branch, ""
+    try:
+        data = gh_api_get(f"{GITHUB_API}/repos/{full_name}")
+        return full_name, data.get("default_branch", fallback_branch), data.get("pushed_at", "")
+    except Exception:
+        return full_name, fallback_branch, ""
+
+
+def repository_changed_recently(pushed_at: str, previous_pushed_at: str, now_ts: float) -> bool:
+    """Returns true only for a new GitHub push inside the configured recheck window."""
+    if not pushed_at or pushed_at == previous_pushed_at:
+        return False
+    try:
+        pushed_ts = datetime.strptime(pushed_at, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
+        return 0 <= now_ts - pushed_ts <= REPOSITORY_RECHECK_SECONDS
+    except Exception:
+        return False
+
+
 def discover_all_github_repositories(scanned_repos_cache: dict) -> tuple:
-    """Dynamically searches ALL GitHub repositories matching proxy queries in parallel."""
-    discovered_repos = set(SEED_REPOSITORIES)
+    """Crawls only new repositories or repositories with a new push within 12 hours."""
+    repo_map = {name.lower(): (name, branch, "") for name, branch in SEED_REPOSITORIES}
+
+    # Seed repositories remain observable even if a particular query no longer returns them.
+    if GITHUB_TOKEN:
+        with ThreadPoolExecutor(max_workers=min(16, len(SEED_REPOSITORIES) or 1)) as seed_pool:
+            seed_futures = [seed_pool.submit(fetch_repository_state, name, branch) for name, branch in SEED_REPOSITORIES]
+            for future in as_completed(seed_futures):
+                try:
+                    full_name, branch, pushed_at = future.result()
+                    repo_map[full_name.lower()] = (full_name, branch, pushed_at)
+                except Exception:
+                    pass
 
     print(f"  🔍 Dynamically querying GitHub Search API in parallel across {len(DYNAMIC_REPO_QUERIES)} queries...", flush=True)
     with ThreadPoolExecutor(max_workers=len(DYNAMIC_REPO_QUERIES)) as q_pool:
         q_futs = [q_pool.submit(search_single_query, q) for q in DYNAMIC_REPO_QUERIES]
         for qf in as_completed(q_futs):
             try:
-                for item in qf.result():
-                    discovered_repos.add(item)
+                for full_name, branch, pushed_at in qf.result():
+                    repo_map[full_name.lower()] = (full_name, branch, pushed_at)
             except Exception:
                 pass
 
-    # Filter out repos that were already scanned recently (within last 18 hours)
     now_ts = time.time()
     fresh_repos = []
     skipped_cached = 0
-    for r in discovered_repos:
-        repo_name = r[0]
-        last_scanned = scanned_repos_cache.get(repo_name, 0)
-        if now_ts - last_scanned < 64800:  # 18 hours cache
+    repo_state = {}
+    for repo_name, branch, pushed_at in repo_map.values():
+        previous = scanned_repos_cache.get(repo_name.lower(), {})
+        if isinstance(previous, (int, float)):
+            previous = {"last_scanned": previous, "pushed_at": ""}
+        previous_push = previous.get("pushed_at", "") if isinstance(previous, dict) else ""
+        last_scanned = previous.get("last_scanned", 0) if isinstance(previous, dict) else 0
+        changed = repository_changed_recently(pushed_at, previous_push, now_ts)
+        if last_scanned and not changed:
             skipped_cached += 1
+            repo_state[repo_name.lower()] = {"pushed_at": previous_push, "last_scanned": last_scanned}
             continue
-        fresh_repos.append(r)
+        fresh_repos.append((repo_name, branch, pushed_at))
 
-    print(f"  📦 Total repositories: {len(discovered_repos)} ({skipped_cached} cached & skipped, {len(fresh_repos)} newly discovered to crawl)", flush=True)
+    print(f"  📦 Total repositories: {len(repo_map)} ({skipped_cached} unchanged & skipped, {len(fresh_repos)} new/updated to crawl)", flush=True)
 
-    # Crawl only NEW/FRESH discovered repositories concurrently (200 workers)
     all_repo_candidates = set()
     with ThreadPoolExecutor(max_workers=200) as pool:
-        future_map = {pool.submit(crawl_single_repository, r[0], r[1]): r[0] for r in fresh_repos}
+        future_map = {
+            pool.submit(crawl_single_repository, repo_name, branch): (repo_name, pushed_at)
+            for repo_name, branch, pushed_at in fresh_repos
+        }
         for fut in as_completed(future_map):
-            repo_name = future_map[fut]
+            repo_name, pushed_at = future_map[fut]
             try:
-                res = fut.result()
-                all_repo_candidates.update(res)
-                scanned_repos_cache[repo_name] = now_ts
+                all_repo_candidates.update(fut.result())
+                repo_state[repo_name.lower()] = {"pushed_at": pushed_at, "last_scanned": now_ts}
             except Exception:
                 pass
 
-    print(f"  🚀 Delta Repository Crawler generated {len(all_repo_candidates)} fresh candidate URLs", flush=True)
-    return all_repo_candidates, scanned_repos_cache
+    print(f"  🚀 Delta Repository Crawler generated {len(all_repo_candidates)} source candidates", flush=True)
+    return all_repo_candidates, repo_state
 
 SOURCE_QUALITY_PATH = os.path.join(TOOLS_DIR, "source_quality_index.json")
 
@@ -578,13 +657,22 @@ def main():
     active_dead_urls = {u: ts for u, ts in dead_urls_map.items() if now_ts - ts < DEAD_URL_TTL}
     dead_urls_set = set(active_dead_urls.keys())
 
-    known_sources = set(SOURCES) | set(existing.keys()) | dead_urls_set
-    print(f"📚 Known baseline sources: {len(known_sources)} URLs ({len(dead_urls_set)} blacklisted for 36h)", flush=True)
+    # Index older entries lazily: missing identity metadata is derived in memory and
+    # written back only when that specific source is newly validated or revalidated.
+    existing_by_identity = {}
+    for source_url, record in existing.items():
+        record = record if isinstance(record, dict) else {}
+        identity = record.get("source_id") or source_identity(source_url)
+        existing_by_identity.setdefault(identity, (source_url, record))
+
+    baseline_source_ids = {source_identity(url) for url in SOURCES}
+    known_source_ids = baseline_source_ids | set(existing_by_identity) | {source_identity(url) for url in dead_urls_set}
+    print(f"📚 Known source identities: {len(known_source_ids)} ({len(dead_urls_set)} blacklisted for 36h)", flush=True)
 
     # 2. Run All Crawlers Concurrently
     candidate_urls = set()
 
-    # Step A: Dynamic GitHub Repositories Crawler with delta caching
+    # Step A: Dynamic GitHub Repositories Crawler with change-aware cache
     repo_candidates, scanned_repos_cache = discover_all_github_repositories(scanned_repos_cache)
     candidate_urls.update(repo_candidates)
 
@@ -615,28 +703,66 @@ def main():
             f.write("\n".join(unique_tg))
         print(f"\n💾 Saved {len(unique_tg)} fresh direct keys to tools/telegram_feed.txt", flush=True)
 
-    # Filter out already known & dead URLs
-    new_candidates = [u for u in candidate_urls if u not in known_sources]
-    print(f"\n🧪 Validating {len(new_candidates)} fresh candidate subscription URLs concurrently...", flush=True)
+    # Validate genuinely new identities, plus known GitHub sources only when the
+    # repository has a new push inside the last 12 hours. Commit URLs and branches
+    # of the same file collapse to one stable identity before any download happens.
+    candidates_to_validate = {}
+    candidate_reasons = {}
+    for candidate_url in candidate_urls:
+        identity = source_identity(candidate_url)
+        prior = existing_by_identity.get(identity)
+        repository = github_repository_from_source(candidate_url)
+        repo_info = scanned_repos_cache.get(repository.lower(), {}) if repository else {}
+        pushed_at = repo_info.get("pushed_at", "") if isinstance(repo_info, dict) else ""
+
+        if identity not in known_source_ids:
+            candidates_to_validate[identity] = candidate_url
+            candidate_reasons[identity] = "new"
+        elif prior and repository_changed_recently(pushed_at, prior[1].get("repo_pushed_at", ""), now_ts):
+            # Preserve the established branch URL rather than replacing it with a commit snapshot.
+            candidates_to_validate[identity] = prior[0]
+            candidate_reasons[identity] = "repo-updated"
+
+    print(f"\n🧪 Validating {len(candidates_to_validate)} new or recently changed source identities concurrently...", flush=True)
 
     new_confirmed = 0
+    refreshed_confirmed = 0
     validated_stats = {}
-    with ThreadPoolExecutor(max_workers=min(64, len(new_candidates) or 1)) as pool:
-        future_map = {pool.submit(validate_source, u): u for u in new_candidates}
+    with ThreadPoolExecutor(max_workers=min(64, len(candidates_to_validate) or 1)) as pool:
+        future_map = {
+            pool.submit(validate_source, url): identity
+            for identity, url in candidates_to_validate.items()
+        }
         for fut in as_completed(future_map):
-            url = future_map[fut]
+            identity = future_map[fut]
+            url = candidates_to_validate[identity]
+            prior = existing_by_identity.get(identity)
+            reason = candidate_reasons[identity]
+            repository = github_repository_from_source(url)
+            repo_info = scanned_repos_cache.get(repository.lower(), {}) if repository else {}
             try:
                 count = fut.result()
                 validated_stats[url] = count
                 if count >= MIN_NODES_TO_KEEP:
-                    existing[url] = {
-                        "discovered_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    record = dict(prior[1]) if prior else {}
+                    record.update({
+                        "discovered_at": record.get("discovered_at") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                         "nodes_at_discovery": count,
                         "last_checked": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                        "status": "active"
-                    }
-                    new_confirmed += 1
-                    print(f"  ✅ [VALID NEW SOURCE] ({count:4d} keys): {url}", flush=True)
+                        "status": "active",
+                        "source_id": identity,
+                        "repository": repository,
+                        "repo_pushed_at": repo_info.get("pushed_at", "") if isinstance(repo_info, dict) else "",
+                    })
+                    existing[url] = record
+                    existing_by_identity[identity] = (url, record)
+                    if reason == "new":
+                        new_confirmed += 1
+                        label = "VALID NEW SOURCE"
+                    else:
+                        refreshed_confirmed += 1
+                        label = "REVALIDATED UPDATED SOURCE"
+                    print(f"  ✅ [{label}] ({count:4d} keys): {url}", flush=True)
                 else:
                     active_dead_urls[url] = now_ts
             except Exception:
@@ -656,6 +782,7 @@ def main():
     print("\n" + "=" * 70)
     print(f"🎉 [Complete] Discovery Bot finished successfully!")
     print(f"   • New validated sources added: {new_confirmed}")
+    print(f"   • Updated sources revalidated: {refreshed_confirmed}")
     print(f"   • Total active discovered pool: {len(existing) - 1} sources")
     if telegram_keys:
         print(f"   • Direct live Telegram feed:   {len(unique_tg)} nodes")

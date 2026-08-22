@@ -48,13 +48,21 @@ import urllib.request
 import socket
 import asyncio
 import base64
+import hashlib
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    from aggregator import detect_country_code, GLOBAL_COUNTRY_KEYWORDS, get_node_key, load_fresh_ru_verified_keys
+    from aggregator import (
+        detect_country_code,
+        GLOBAL_COUNTRY_KEYWORDS,
+        get_node_key,
+        load_fresh_ru_verified_keys,
+        load_node_history,
+        save_node_history,
+    )
 except Exception:
     def detect_country_code(uri: str) -> str:
         return "GLOBAL"
@@ -64,6 +72,12 @@ except Exception:
 
     def load_fresh_ru_verified_keys() -> set:
         return set()
+
+    def load_node_history() -> dict:
+        return {}
+
+    def save_node_history(history_map: dict):
+        return None
 
 try:
     import orjson
@@ -113,6 +127,7 @@ PROBE_TIMEOUT = 3.5         # Seconds per real tunnel HTTP request (full TLS han
 PROBE_RETRIES = 3           # Retry only the liveness request before considering a tunnel dead
 PROBE_RETRY_DELAY = 0.25    # Small pause between liveness attempts
 IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Real tunnel liveness and egress-country endpoint
+DEEP_VERIFY_CACHE_SECONDS = 12 * 60 * 60
 
 TARGET_SERVICES = {
     "chatgpt": {
@@ -773,28 +788,65 @@ def run_batch_probe(xray_bin: str, batch: list, basic_only: bool = False) -> lis
     return results
 
 
+def _deep_uri_fingerprint(uri: str) -> str:
+    """Hashes the full connection URI so changed transport/security parameters bypass the cache."""
+    return hashlib.sha256(uri.split("#", 1)[0].strip().encode("utf-8")).hexdigest()
+
+
+def _is_fresh_deep_check(record: dict, now: datetime) -> bool:
+    """Returns whether a cached deep-check outcome is safely reusable for 12 hours."""
+    try:
+        checked_at = datetime.fromisoformat(str(record.get("deep_checked_at", "")).replace("Z", "+00:00"))
+        if checked_at.tzinfo is None:
+            checked_at = checked_at.replace(tzinfo=timezone.utc)
+        age_seconds = (now - checked_at.astimezone(timezone.utc)).total_seconds()
+        return 0 <= age_seconds <= DEEP_VERIFY_CACHE_SECONDS
+    except Exception:
+        return False
+
+
 def deep_verify_nodes(uris: list, batch_size: int = BATCH_SIZE) -> set:
     """Returns URI bases that passed an ipwho.is check through a real Xray tunnel.
 
-    This shared entry point is used by aggregator.py as a fast, service-free deep gate.
-    It raises when the engine cannot be started so the caller can fall back safely.
+    Successful and failed outcomes are cached by stable node key for 12 hours. This
+    shared entry point lets aggregator.py skip repeated Xray work for unchanged keys.
     """
     if not uris:
         return set()
+
+    history_map = load_node_history()
+    now = datetime.now(timezone.utc)
+    cached_verified = set()
+    pending_uris = []
+    cached_hits = 0
+    for uri in uris:
+        record = history_map.get(get_node_key(uri), {})
+        fingerprint = _deep_uri_fingerprint(uri)
+        if (
+            isinstance(record, dict)
+            and record.get("deep_uri_fingerprint") == fingerprint
+            and _is_fresh_deep_check(record, now)
+        ):
+            cached_hits += 1
+            if record.get("deep_alive") is True:
+                cached_verified.add(uri.split("#", 1)[0].lower())
+        else:
+            pending_uris.append(uri)
+
+    if not pending_uris:
+        print(f"  ♻️ [Deep Cache] Reused {cached_hits}/{len(uris)} fresh deep-check results; no Xray batches needed.", flush=True)
+        return cached_verified
 
     xray_bin = get_xray_binary_path()
     if not xray_bin:
         raise RuntimeError("Xray binary is unavailable for deep verification")
 
     probe_pool = []
-    for idx, uri in enumerate(uris):
+    for idx, uri in enumerate(pending_uris):
         proto = uri.split("://", 1)[0].lower() if "://" in uri else "vless"
         probe_pool.append((idx, uri, 0.0, "GLOBAL", proto))
 
     batches = [probe_pool[i:i + batch_size] for i in range(0, len(probe_pool), batch_size)]
-    if not batches:
-        return set()
-
     worker_count = min(NUM_XRAY_WORKERS, len(batches))
 
     def process_basic_batch(batch: list) -> list:
@@ -806,7 +858,22 @@ def deep_verify_nodes(uris: list, batch_size: int = BATCH_SIZE) -> set:
         for future in as_completed(futures):
             verified.extend(future.result())
 
-    return {str(node.get("uri", "")).split("#", 1)[0].lower() for node in verified if node.get("uri")}
+    verified_keys = {get_node_key(node["uri"]) for node in verified if node.get("uri")}
+    checked_at = now.isoformat()
+    for uri in pending_uris:
+        node_key = get_node_key(uri)
+        record = history_map.get(node_key, {})
+        if not isinstance(record, dict):
+            record = {}
+        record["deep_checked_at"] = checked_at
+        record["deep_uri_fingerprint"] = _deep_uri_fingerprint(uri)
+        record["deep_alive"] = node_key in verified_keys
+        history_map[node_key] = record
+    save_node_history(history_map)
+
+    fresh_verified = {str(node.get("uri", "")).split("#", 1)[0].lower() for node in verified if node.get("uri")}
+    print(f"  ♻️ [Deep Cache] Reused {cached_hits} cached results; deep-checked {len(pending_uris)} new or expired keys.", flush=True)
+    return cached_verified | fresh_verified
 
 
 def country_code_to_flag(cc: str) -> str:

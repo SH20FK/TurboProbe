@@ -926,7 +926,7 @@ def load_discovered_sources() -> list:
     try:
         with open(DISCOVERED_SOURCES_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return list(data.keys())
+        return [url for url in data.keys() if not str(url).startswith("_")]
     except Exception:
         return []
 
