@@ -54,10 +54,16 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    from aggregator import detect_country_code, GLOBAL_COUNTRY_KEYWORDS
+    from aggregator import detect_country_code, GLOBAL_COUNTRY_KEYWORDS, get_node_key, load_fresh_ru_verified_keys
 except Exception:
     def detect_country_code(uri: str) -> str:
         return "GLOBAL"
+
+    def get_node_key(uri: str) -> str:
+        return uri.split("#", 1)[0].lower()
+
+    def load_fresh_ru_verified_keys() -> set:
+        return set()
 
 try:
     import orjson
@@ -106,6 +112,7 @@ NUM_XRAY_WORKERS = 4        # 4 Concurrent Xray processes matching CI vCPUs
 BASE_SOCKS_PORT = 10900     # Starting port for multi-inbound testing
 PORT_STEP = 150             # Port range per worker (10900, 11050, 11200, 11350)
 PROBE_TIMEOUT = 3.5         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
+IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Lightweight tunnel liveness endpoint used by the aggregator gate
 
 TARGET_SERVICES = {
     "chatgpt": {
@@ -510,6 +517,27 @@ def uri_to_xray_outbound(uri: str, tag: str) -> dict:
 # =============================================================================
 # 🚀 REAL HTTP SOCKS5 PROBER (USES SOCKS5H FOR REMOTE DNS)
 # =============================================================================
+def probe_node_basic_liveness(port: int, uri: str) -> tuple:
+    """Checks only real Xray-tunnel liveness through ipwho.is; does not test services."""
+    proxy_url = f"socks5h://127.0.0.1:{port}"
+    with requests.Session() as session:
+        session.proxies = {"http": proxy_url, "https": proxy_url}
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+        })
+        try:
+            t0 = time.perf_counter()
+            resp = session.get(IPWHO_LIVENESS_URL, timeout=PROBE_TIMEOUT, verify=False)
+            payload = resp.json()
+            if resp.status_code == 200 and isinstance(payload, dict) and payload.get("success") is True:
+                country = str(payload.get("country_code") or "GLOBAL").upper()
+                ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
+                return (True, country, ping_ms, 0.0, {})
+        except Exception:
+            pass
+    return (False, "GLOBAL", 9999.0, 0.0, {})
+
+
 def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
     """
     1. Tests real tunnel connectivity and extracts real outgoing GeoIP.
@@ -607,8 +635,8 @@ def wait_for_port_ready(port: int, max_wait: float = 6.0) -> bool:
         time.sleep(0.02)
     return False
 
-def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT) -> list:
-    """Runs a batch of nodes through Xray multi-inbound proxy with fallback for Hysteria 2 / TUIC."""
+def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT, basic_only: bool = False) -> list:
+    """Runs a batch through Xray; basic_only uses ipwho.is and skips service checks."""
     inbounds = []
     outbounds = []
     rules = []
@@ -642,11 +670,12 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
 
     results = []
 
-    # Direct fallback probes for non-Xray protocols
-    for uri, proto in fallback_slots:
-        res = probe_direct_hy2_tuic(uri, proto)
-        if res:
-            results.append(res)
+    # Direct fallback is TCP-only and therefore never satisfies the basic deep gate.
+    if not basic_only:
+        for uri, proto in fallback_slots:
+            res = probe_direct_hy2_tuic(uri, proto)
+            if res:
+                results.append(res)
 
     if not active_slots:
         return results
@@ -674,9 +703,10 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
         if not ready:
             print(f"  ⚠️ [Xray Warning] Port {base_port} did not answer in 3s", flush=True)
 
+        probe_fn = probe_node_basic_liveness if basic_only else probe_node_liveness_and_services
         with ThreadPoolExecutor(max_workers=len(active_slots)) as pool:
             futures = {
-                pool.submit(probe_node_liveness_and_services, port, uri): (uri, proto)
+                pool.submit(probe_fn, port, uri): (uri, proto)
                 for (_, port, uri, _, _, proto) in active_slots
             }
             for fut in as_completed(futures):
@@ -710,6 +740,51 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     return results
+
+
+def deep_verify_nodes(uris: list, batch_size: int = BATCH_SIZE) -> set:
+    """Returns URI bases that passed an ipwho.is check through a real Xray tunnel.
+
+    This shared entry point is used by aggregator.py as a fast, service-free deep gate.
+    It raises when the engine cannot be started so the caller can fall back safely.
+    """
+    if not uris:
+        return set()
+
+    xray_bin = get_xray_binary_path()
+    if not xray_bin:
+        raise RuntimeError("Xray binary is unavailable for deep verification")
+
+    probe_pool = []
+    for idx, uri in enumerate(uris):
+        proto = uri.split("://", 1)[0].lower() if "://" in uri else "vless"
+        probe_pool.append((idx, uri, 0.0, "GLOBAL", proto))
+
+    batches = [probe_pool[i:i + batch_size] for i in range(0, len(probe_pool), batch_size)]
+    if not batches:
+        return set()
+
+    worker_count = min(NUM_XRAY_WORKERS, len(batches))
+    slot_queue = queue.Queue()
+    for slot in range(worker_count):
+        slot_queue.put(slot)
+
+    def process_basic_batch(batch: list) -> list:
+        slot = slot_queue.get()
+        try:
+            base_port = BASE_SOCKS_PORT + (slot * PORT_STEP)
+            return run_batch_probe(xray_bin, batch, base_port=base_port, basic_only=True)
+        finally:
+            slot_queue.put(slot)
+
+    verified = []
+    with ThreadPoolExecutor(max_workers=worker_count) as batch_pool:
+        futures = [batch_pool.submit(process_basic_batch, batch) for batch in batches]
+        for future in as_completed(futures):
+            verified.extend(future.result())
+
+    return {str(node.get("uri", "")).split("#", 1)[0].lower() for node in verified if node.get("uri")}
+
 
 def country_code_to_flag(cc: str) -> str:
     if not cc or len(cc) != 2 or cc == "GLOBAL":
@@ -1071,6 +1146,7 @@ def main():
     parser = argparse.ArgumentParser(description="TurboProbe Deep Service Prober")
     parser.add_argument("--limit", type=int, default=DEFAULT_PROBE_LIMIT, help="Max nodes to deep probe with Xray")
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE, help="Batch size for concurrent probing")
+    parser.add_argument("--vantage", choices=["cloud", "ru-local"], default="cloud", help="Verification vantage point; ru-local writes only sub/ru-verified.json")
     args = parser.parse_args()
 
     probe_limit = args.limit
@@ -1137,6 +1213,9 @@ def main():
 
     if not candidates:
         print("⚠️ No candidate nodes could be harvested.", flush=True)
+        if args.vantage == "ru-local":
+            with open(os.path.join(SUB_DIR, "ru-verified.json"), "w", encoding="utf-8") as f:
+                json.dump({}, f, indent=2, ensure_ascii=False)
         return
 
     # 1e. Filter out TSPU-blocked spam domains (workers.dev, .ir, .cn) and prioritize Reality / Hy2 / RU Whitelist
@@ -1231,7 +1310,12 @@ def main():
         worker_slot = slot_queue.get()
         try:
             worker_base_port = BASE_SOCKS_PORT + (worker_slot * PORT_STEP)
-            res = run_batch_probe(xray_bin, batch, base_port=worker_base_port)
+            res = run_batch_probe(
+                xray_bin,
+                batch,
+                base_port=worker_base_port,
+                basic_only=(args.vantage == "ru-local"),
+            )
             return b_idx, len(batch), res
         finally:
             slot_queue.put(worker_slot)
@@ -1248,6 +1332,21 @@ def main():
 
     print(f"\n🏆 Total genuinely alive & verified nodes: {len(verified_alive_nodes)}", flush=True)
 
+    if args.vantage == "ru-local":
+        verified_at = datetime.now(timezone.utc).isoformat()
+        ru_payload = {
+            get_node_key(node["uri"]): {
+                "verified_at": verified_at,
+                "vantage": "ru-local",
+            }
+            for node in verified_alive_nodes
+            if node.get("uri")
+        }
+        with open(os.path.join(SUB_DIR, "ru-verified.json"), "w", encoding="utf-8") as f:
+            json.dump(ru_payload, f, indent=2, ensure_ascii=False)
+        print(f"💾 Saved sub/ru-verified.json with {len(ru_payload)} RU-local verified nodes; cloud outputs were not changed.", flush=True)
+        return
+
     if not verified_alive_nodes:
         print("⚠️ No nodes passed real HTTP connectivity test.", flush=True)
         return
@@ -1255,9 +1354,11 @@ def main():
     # Sort verified database by lowest ping
     verified_alive_nodes.sort(key=lambda n: n["ping_ms"])
 
-    # Load cumulative health score history
+    # Load cumulative health score history and merge fresh RU-local confirmations.
+    ru_verified_keys = load_fresh_ru_verified_keys()
     for n in verified_alive_nodes:
         n["health"] = 99.0
+        n["ru_verified"] = get_node_key(n["uri"]) in ru_verified_keys
 
     # 🇷🇺 Run Globalping domestic Russian test on top 40 candidates
     verified_alive_nodes = verify_nodes_with_globalping_ru(verified_alive_nodes, max_nodes=40)

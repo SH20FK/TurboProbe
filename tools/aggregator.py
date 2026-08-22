@@ -64,6 +64,13 @@ DEAD_NODES_PATH = os.path.join(TOOLS_DIR, "dead_nodes.json")
 # Size of each paginated "sub/chunks/chunk-XXX.txt" file (ordered by ascending ping)
 CHUNK_SIZE = 500
 
+# Real-tunnel gate: each batch has BATCH_SIZE nodes and up to four Xray workers run in parallel.
+# Tune this limit if the CI runtime approaches 20 minutes; elapsed time depends on batch size and
+# the slowest ipwho.is request in each batch. The CLI flag can override the default per run.
+DEEP_VERIFY_LIMIT = int(os.environ.get("DEEP_VERIFY_LIMIT", "3000"))
+RU_VERIFIED_PATH = os.path.join(SUB_DIR, "ru-verified.json")
+RU_VERIFIED_MAX_AGE_SECONDS = 48 * 60 * 60
+
 def load_node_history() -> dict:
     """Loads persistent cumulative history and check counters for all nodes."""
     if os.path.isfile(NODE_HISTORY_PATH):
@@ -491,6 +498,61 @@ def get_node_key(uri: str) -> str:
     except Exception:
         raw = uri.split('#')[0].split('?')[0]
         return raw.strip().lower()
+
+def load_fresh_ru_verified_keys(max_age_seconds: int = RU_VERIFIED_MAX_AGE_SECONDS) -> set:
+    """Loads only RU-local confirmations whose embedded timestamp is no older than 48 hours."""
+    if not os.path.isfile(RU_VERIFIED_PATH):
+        return set()
+
+    try:
+        with open(RU_VERIFIED_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return set()
+
+        now = datetime.now(timezone.utc)
+        fresh = set()
+        for node_key, record in data.items():
+            if not isinstance(record, dict) or record.get("vantage") != "ru-local":
+                continue
+            verified_at = record.get("verified_at")
+            if not isinstance(verified_at, str):
+                continue
+            try:
+                verified_dt = datetime.fromisoformat(verified_at.replace("Z", "+00:00"))
+                if verified_dt.tzinfo is None:
+                    verified_dt = verified_dt.replace(tzinfo=timezone.utc)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= (now - verified_dt.astimezone(timezone.utc)).total_seconds() <= max_age_seconds:
+                fresh.add(str(node_key).lower())
+        return fresh
+    except Exception as e:
+        print(f"⚠️ Failed to load ru-verified.json; continuing without RU flags: {e}", flush=True)
+        return set()
+
+
+def update_existing_nodes_ru_flags(ru_verified_keys: set):
+    """Updates an existing prober nodes.json without changing its structure when available."""
+    nodes_path = os.path.join(SUB_DIR, "nodes.json")
+    if not os.path.isfile(nodes_path):
+        return
+    try:
+        with open(nodes_path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        nodes = payload.get("nodes", []) if isinstance(payload, dict) else []
+        if not isinstance(nodes, list):
+            return
+        for node in nodes:
+            if isinstance(node, dict) and node.get("uri"):
+                node["ru_verified"] = get_node_key(node["uri"]) in ru_verified_keys
+        if isinstance(payload, dict):
+            payload["ru_verified_updated_at"] = datetime.now(timezone.utc).isoformat()
+            with open(nodes_path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"⚠️ Failed to merge RU flags into nodes.json: {e}", flush=True)
+
 
 def check_node_ping(uri: str, timeout: float = 0.50) -> tuple:
     """Socket & TLS handshake benchmark. Tests real server responsiveness with FD leak protection."""
@@ -939,6 +1001,7 @@ def main():
     parser = argparse.ArgumentParser(description="TurboProbe VPN Aggregator")
     parser.add_argument("--fast", action="store_true", help="Fast mode: Only Tier-1 sources, under 30s")
     parser.add_argument("--limit", type=int, default=0, help="Max candidates to test")
+    parser.add_argument("--deep-verify-limit", type=int, default=DEEP_VERIFY_LIMIT, help="Maximum TCP-alive nodes to deep-verify through Xray")
     args = parser.parse_args()
 
     extra_sources = []
@@ -1098,15 +1161,61 @@ def main():
 
     # 4. 🥇 STRICT SORT BY LOWEST PING (Ascending: 10ms -> 30ms -> 50ms)
     alive_tuples.sort(key=lambda item: item[1])
+    tcp_alive_count = len(alive_tuples)
+    deep_verify_limit = max(0, args.deep_verify_limit)
+    deep_verified_alive = 0
+    deep_verify_rejected = 0
+    deep_gate_applied = False
+    tcp_only_candidates = []
+
+    # The official pool is accepted only after a real Xray-tunnel request to ipwho.is.
+    # Any tail outside the configured limit remains visible for manual review only.
+    if alive_tuples and deep_verify_limit > 0:
+        deep_slice = alive_tuples[:deep_verify_limit]
+        tcp_only_candidates = alive_tuples[deep_verify_limit:]
+        try:
+            from service_prober import deep_verify_nodes
+
+            print(f"🔬 [Deep Gate] Verifying {len(deep_slice)} low-latency nodes through real Xray tunnels...", flush=True)
+            verified_bases = deep_verify_nodes([item[0] for item in deep_slice])
+            verified_tuples = [
+                item for item in deep_slice
+                if item[0].split("#", 1)[0].lower() in verified_bases
+            ]
+            deep_verified_alive = len(verified_tuples)
+            deep_verify_rejected = len(deep_slice) - deep_verified_alive
+            alive_tuples = verified_tuples
+            deep_gate_applied = True
+            print(f"✅ [Deep Gate] {deep_verified_alive}/{len(deep_slice)} nodes passed; {deep_verify_rejected} rejected.", flush=True)
+        except Exception as e:
+            # Availability must not be lost solely because Xray or the deep network check failed.
+            alive_tuples = alive_tuples
+            tcp_only_candidates = []
+            print(f"⚠️ [Deep Gate] Unavailable ({e}); falling back to the established TCP-only pool.", flush=True)
+    elif alive_tuples:
+        print("⚠️ [Deep Gate] Disabled by a non-positive limit; falling back to the established TCP-only pool.", flush=True)
+
+    raw_candidates_path = os.path.join(SUB_DIR, "raw-candidates.txt")
+    if deep_gate_applied:
+        os.makedirs(SUB_DIR, exist_ok=True)
+        with open(raw_candidates_path, "w", encoding="utf-8") as f:
+            f.write("# TCP-only candidates: not deep-verified through an Xray tunnel; excluded from official subscriptions.\n")
+            f.write("\n".join(item[0] for item in tcp_only_candidates))
+        print(f"  💾 sub/raw-candidates.txt -> {len(tcp_only_candidates):5d} TCP-only candidates", flush=True)
+    elif os.path.isfile(raw_candidates_path):
+        try:
+            os.remove(raw_candidates_path)
+        except OSError:
+            pass
+
     alive_nodes = [item[0] for item in alive_tuples]
     alive_keys_set = {item[2] for item in alive_tuples}
-    
     avg_ping = round(sum(item[1] for item in alive_tuples) / max(len(alive_tuples), 1), 1)
     best_ping = alive_tuples[0][1] if alive_tuples else 0.0
     ping_by_uri = {item[0]: item[1] for item in alive_tuples}
-    
-    print(f"✅ Benchmark finished: {len(alive_nodes)} nodes ONLINE! 🏆 Best Ping: {best_ping}ms | ⚡ Avg Ping: {avg_ping}ms", flush=True)
-    
+
+    print(f"✅ Verified output pool: {len(alive_nodes)} nodes ONLINE! 🏆 Best Ping: {best_ping}ms | ⚡ Avg Ping: {avg_ping}ms", flush=True)
+
     # 5. Strict Categorization (All strictly sorted by ping!)
     vless_nodes = []
     reality_nodes = []
@@ -1282,6 +1391,11 @@ def main():
             "services": service_manifest
         }, f, indent=2, ensure_ascii=False)
 
+    # 🌐 Merge fresh RU-local confirmations into metadata without blocking cloud verification.
+    ru_verified_keys = load_fresh_ru_verified_keys()
+    ru_verified_output_count = sum(1 for uri in alive_nodes if get_node_key(uri) in ru_verified_keys)
+    update_existing_nodes_ru_flags(ru_verified_keys)
+
     # 🌐 Generate sub/preview.json and sub/nodes.json for Instant Frontend Mirroring
     top_preview_nodes = []
     for u in alive_nodes[:150]:
@@ -1296,6 +1410,7 @@ def main():
             "country": cc,
             "protocol": proto,
             "health": 95.0,
+            "ru_verified": get_node_key(u) in ru_verified_keys,
             "services": {
                 "chatgpt": is_ai_country,
                 "claude": is_ai_country and cc in {"US", "NL", "DE", "FI", "GB", "SE", "JP", "SG", "GLOBAL"},
@@ -1346,6 +1461,14 @@ def main():
         "raw_fetched": len(all_uris),
         "unique_nodes": len(unique_uris),
         "purged_dead_blacklist": skipped_dead,
+        "tcp_alive_candidates": tcp_alive_count,
+        "deep_verify_limit": deep_verify_limit,
+        "deep_verified_alive": deep_verified_alive,
+        "deep_verify_rejected": deep_verify_rejected,
+        "deep_gate_applied": deep_gate_applied,
+        "tcp_only_candidates": len(tcp_only_candidates) if deep_gate_applied else 0,
+        "ru_verified_nodes": ru_verified_output_count,
+        "ru_verification_fresh": bool(ru_verified_keys),
         "alive_verified_nodes": len(alive_nodes),
         "best_ping_ms": best_ping,
         "avg_ping_ms": avg_ping,
