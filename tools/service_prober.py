@@ -256,7 +256,7 @@ def get_xray_binary_path() -> str:
 # =============================================================================
 VALID_STREAM_SECURITY = {"none", "tls", "reality"}
 REMOVED_XRAY_TRANSPORTS = {"h2", "http", "quic"}
-SUPPORTED_URI_TRANSPORTS = {"tcp", "ws", "grpc", "xhttp", "splithttp", "kcp", "mkcp", "httpupgrade", "hysteria"}
+SUPPORTED_URI_TRANSPORTS = {"tcp", "raw", "ws", "grpc", "xhttp", "splithttp", "kcp", "mkcp", "httpupgrade", "hysteria"}
 
 
 def normalize_stream_security(value: str, default: str) -> str:
