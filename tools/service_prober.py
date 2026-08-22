@@ -42,11 +42,11 @@ import shutil
 import platform
 import tempfile
 import subprocess
+import signal
 import urllib.parse
 import urllib.request
 import socket
 import asyncio
-import queue
 import base64
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -109,10 +109,10 @@ SERVICES_DIR = os.path.join(SUB_DIR, "services")
 DEFAULT_PROBE_LIMIT = 0     # 0 = probe 100% of all harvested candidate nodes
 BATCH_SIZE = 75             # 75 nodes per Xray instance (instant 20ms startup)
 NUM_XRAY_WORKERS = 4        # 4 Concurrent Xray processes matching CI vCPUs
-BASE_SOCKS_PORT = 10900     # Starting port for multi-inbound testing
-PORT_STEP = 150             # Port range per worker (10900, 11050, 11200, 11350)
 PROBE_TIMEOUT = 3.5         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
-IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Lightweight tunnel liveness endpoint used by the aggregator gate
+PROBE_RETRIES = 3           # Retry only the liveness request before considering a tunnel dead
+PROBE_RETRY_DELAY = 0.25    # Small pause between liveness attempts
+IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Real tunnel liveness and egress-country endpoint
 
 TARGET_SERVICES = {
     "chatgpt": {
@@ -223,6 +223,45 @@ def get_xray_binary_path() -> str:
 # =============================================================================
 # 🧩 PROTOCOL PARSERS (URI -> XRAY OUTBOUND JSON)
 # =============================================================================
+def apply_transport_settings(stream_settings: dict, query: dict, net_type: str, default_host: str):
+    """Normalizes URI transport aliases and attaches the matching Xray transport object."""
+    network = (net_type or "tcp").lower()
+    path = query.get("path", ["/"])[0]
+    host_value = query.get("host", [""])[0] or default_host
+
+    if network == "ws":
+        stream_settings["wsSettings"] = {
+            "path": path,
+            "headers": {"Host": host_value},
+        }
+    elif network == "grpc":
+        stream_settings["grpcSettings"] = {
+            "serviceName": query.get("serviceName", [""])[0],
+        }
+    elif network in ("xhttp", "splithttp"):
+        network = "xhttp"
+        stream_settings["xhttpSettings"] = {
+            "path": path,
+            "host": host_value,
+            "mode": query.get("mode", ["auto"])[0],
+        }
+    elif network in ("h2", "http"):
+        network = "h2"
+        hosts = [item.strip() for item in host_value.split(",") if item.strip()]
+        stream_settings["httpSettings"] = {
+            "path": path,
+            "host": hosts or [default_host],
+        }
+    elif network == "quic":
+        stream_settings["quicSettings"] = {
+            "security": query.get("quicSecurity", ["none"])[0],
+            "key": query.get("key", [""])[0],
+            "header": {"type": query.get("headerType", ["none"])[0]},
+        }
+
+    stream_settings["network"] = network
+
+
 def parse_vless_uri(uri: str, tag: str) -> dict:
     try:
         parsed = urllib.parse.urlparse(uri)
@@ -269,15 +308,7 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
                 "allowInsecure": query.get("allowInsecure", ["0"])[0] == "1",
             }
 
-        if net_type == "ws":
-            stream_settings["wsSettings"] = {
-                "path": query.get("path", ["/"])[0],
-                "headers": {"Host": query.get("host", [""])[0] or sni},
-            }
-        elif net_type == "grpc":
-            stream_settings["grpcSettings"] = {
-                "serviceName": query.get("serviceName", [""])[0],
-            }
+        apply_transport_settings(stream_settings, query, net_type, sni)
 
         return {
             "tag": tag,
@@ -319,15 +350,7 @@ def parse_trojan_uri(uri: str, tag: str) -> dict:
             }
         }
 
-        if net_type == "ws":
-            stream_settings["wsSettings"] = {
-                "path": query.get("path", ["/"])[0],
-                "headers": {"Host": query.get("host", [""])[0] or sni},
-            }
-        elif net_type == "grpc":
-            stream_settings["grpcSettings"] = {
-                "serviceName": query.get("serviceName", [""])[0],
-            }
+        apply_transport_settings(stream_settings, query, net_type, sni)
 
         return {
             "tag": tag,
@@ -517,6 +540,25 @@ def uri_to_xray_outbound(uri: str, tag: str) -> dict:
 # =============================================================================
 # 🚀 REAL HTTP SOCKS5 PROBER (USES SOCKS5H FOR REMOTE DNS)
 # =============================================================================
+def probe_ipwho_liveness(session: requests.Session, uri: str) -> tuple:
+    """Runs the only retried probe: a real tunnel request to ipwho.is with country parsing."""
+    fallback_country = detect_country_code(uri)
+    for attempt in range(PROBE_RETRIES):
+        try:
+            t0 = time.perf_counter()
+            response = session.get(IPWHO_LIVENESS_URL, timeout=PROBE_TIMEOUT, verify=False)
+            payload = response.json()
+            if response.status_code == 200 and isinstance(payload, dict) and payload.get("success") is True:
+                country = str(payload.get("country_code") or fallback_country or "GLOBAL").upper()
+                ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
+                return True, country, ping_ms
+        except Exception:
+            pass
+        if attempt < PROBE_RETRIES - 1:
+            time.sleep(PROBE_RETRY_DELAY)
+    return False, fallback_country or "GLOBAL", 9999.0
+
+
 def probe_node_basic_liveness(port: int, uri: str) -> tuple:
     """Checks only real Xray-tunnel liveness through ipwho.is; does not test services."""
     proxy_url = f"socks5h://127.0.0.1:{port}"
@@ -525,17 +567,8 @@ def probe_node_basic_liveness(port: int, uri: str) -> tuple:
         session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
         })
-        try:
-            t0 = time.perf_counter()
-            resp = session.get(IPWHO_LIVENESS_URL, timeout=PROBE_TIMEOUT, verify=False)
-            payload = resp.json()
-            if resp.status_code == 200 and isinstance(payload, dict) and payload.get("success") is True:
-                country = str(payload.get("country_code") or "GLOBAL").upper()
-                ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
-                return (True, country, ping_ms, 0.0, {})
-        except Exception:
-            pass
-    return (False, "GLOBAL", 9999.0, 0.0, {})
+        is_alive, country, ping_ms = probe_ipwho_liveness(session, uri)
+        return (is_alive, country, ping_ms, 0.0, {})
 
 
 def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
@@ -551,44 +584,13 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
         })
 
-        # Step 1: Real HTTPS Liveness & Real GeoIP check (Cloudflare Trace)
-        real_country = None
-        real_ping_ms = 999.0
-        is_alive = False
-
-        try:
-            t0 = time.perf_counter()
-            resp = session.get("https://cloudflare.com/cdn-cgi/trace", timeout=PROBE_TIMEOUT, verify=False)
-            if resp.status_code == 200:
-                real_ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
-                is_alive = True
-                for line in resp.text.splitlines():
-                    if line.startswith("loc="):
-                        real_country = line.split("=")[1].strip().upper()
-                        break
-        except Exception:
-            pass
-
-        # Step 2: Fallback to HTTP 204 if HTTPS failed
+        # Step 1: The tunnel must answer ipwho.is. This request is retried up to three
+        # times and yields the actual egress country; failed retries stop the node early.
+        is_alive, real_country, real_ping_ms = probe_ipwho_liveness(session, uri)
         if not is_alive:
-            try:
-                t0 = time.perf_counter()
-                resp_http = session.get("http://cp.cloudflare.com/generate_204", timeout=PROBE_TIMEOUT, verify=False)
-                if resp_http.status_code in [200, 204]:
-                    real_ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
-                    is_alive = True
-                    real_country = "GLOBAL"
-            except Exception:
-                pass
+            return (False, detect_country_code(uri), 9999.0, 0.0, {})
 
-        # If the tunnel cannot connect to Cloudflare, it is DEAD.
-        if not is_alive:
-            return (False, "GLOBAL", 9999.0, 0.0, {})
-
-        if not real_country:
-            real_country = "GLOBAL"
-
-        # Feature 14: Micro-burst bandwidth test for fast candidates
+        # Step 2: Micro-burst bandwidth test for fast candidates
         speed_mbps = 0.0
         if is_alive and real_ping_ms < 350.0:
             try:
@@ -601,7 +603,7 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
             except Exception:
                 pass
 
-        # Step 3: Test target services through confirmed alive tunnel
+        # Step 3: Test target services through the confirmed alive tunnel (no retries).
         services = {}
         def check_single_service(s_key, s_info):
             try:
@@ -635,16 +637,29 @@ def wait_for_port_ready(port: int, max_wait: float = 6.0) -> bool:
         time.sleep(0.02)
     return False
 
-def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT, basic_only: bool = False) -> list:
+
+def get_free_port(used_ports: set) -> int:
+    """Reserves a unique OS-assigned local port number for one Xray SOCKS inbound."""
+    while True:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        if port not in used_ports:
+            used_ports.add(port)
+            return port
+
+
+def run_batch_probe(xray_bin: str, batch: list, basic_only: bool = False) -> list:
     """Runs a batch through Xray; basic_only uses ipwho.is and skips service checks."""
     inbounds = []
     outbounds = []
     rules = []
     active_slots = []
     fallback_slots = []
+    used_ports = set()
 
     for i, (idx, uri, ping_ms, country, proto) in enumerate(batch):
-        port = base_port + i
+        port = get_free_port(used_ports)
         in_tag = f"in_{i}"
         out_tag = f"out_{i}"
         outbound = uri_to_xray_outbound(uri, out_tag)
@@ -694,14 +709,23 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
 
     proc = None
     try:
-        proc = subprocess.Popen(
-            [xray_bin, "run", "-c", cfg_file],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-        ready = wait_for_port_ready(base_port, max_wait=3.0)
+        popen_kwargs = {
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+        }
+        if os.name == "nt":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+            popen_kwargs["startupinfo"] = startupinfo
+        else:
+            popen_kwargs["start_new_session"] = True
+
+        proc = subprocess.Popen([xray_bin, "run", "-c", cfg_file], **popen_kwargs)
+        readiness_port = active_slots[0][1]
+        ready = wait_for_port_ready(readiness_port, max_wait=3.0)
         if not ready:
-            print(f"  ⚠️ [Xray Warning] Port {base_port} did not answer in 3s", flush=True)
+            print(f"  ⚠️ [Xray Warning] Port {readiness_port} did not answer in 3s", flush=True)
 
         probe_fn = probe_node_basic_liveness if basic_only else probe_node_liveness_and_services
         with ThreadPoolExecutor(max_workers=len(active_slots)) as pool:
@@ -729,7 +753,14 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
     finally:
         if proc:
             try:
-                proc.terminate()
+                if os.name == "nt":
+                    subprocess.call(
+                        ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                else:
+                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
                 proc.wait(timeout=1.5)
             except Exception:
                 try:
@@ -765,17 +796,9 @@ def deep_verify_nodes(uris: list, batch_size: int = BATCH_SIZE) -> set:
         return set()
 
     worker_count = min(NUM_XRAY_WORKERS, len(batches))
-    slot_queue = queue.Queue()
-    for slot in range(worker_count):
-        slot_queue.put(slot)
 
     def process_basic_batch(batch: list) -> list:
-        slot = slot_queue.get()
-        try:
-            base_port = BASE_SOCKS_PORT + (slot * PORT_STEP)
-            return run_batch_probe(xray_bin, batch, base_port=base_port, basic_only=True)
-        finally:
-            slot_queue.put(slot)
+        return run_batch_probe(xray_bin, batch, basic_only=True)
 
     verified = []
     with ThreadPoolExecutor(max_workers=worker_count) as batch_pool:
@@ -1302,23 +1325,14 @@ def main():
     print(f"🚀 Launching Parallel Multi-Core Xray Cluster ({NUM_XRAY_WORKERS} concurrent Xray instances, {batch_size * NUM_XRAY_WORKERS} parallel nodes)...", flush=True)
 
     verified_alive_nodes = []
-    slot_queue = queue.Queue()
-    for s in range(NUM_XRAY_WORKERS):
-        slot_queue.put(s)
-    
+
     def process_batch_worker(b_idx: int, batch: list) -> tuple:
-        worker_slot = slot_queue.get()
-        try:
-            worker_base_port = BASE_SOCKS_PORT + (worker_slot * PORT_STEP)
-            res = run_batch_probe(
-                xray_bin,
-                batch,
-                base_port=worker_base_port,
-                basic_only=(args.vantage == "ru-local"),
-            )
-            return b_idx, len(batch), res
-        finally:
-            slot_queue.put(worker_slot)
+        res = run_batch_probe(
+            xray_bin,
+            batch,
+            basic_only=(args.vantage == "ru-local"),
+        )
+        return b_idx, len(batch), res
 
     with ThreadPoolExecutor(max_workers=NUM_XRAY_WORKERS) as batch_pool:
         batch_futs = {

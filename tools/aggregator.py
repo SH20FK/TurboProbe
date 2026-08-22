@@ -64,10 +64,8 @@ DEAD_NODES_PATH = os.path.join(TOOLS_DIR, "dead_nodes.json")
 # Size of each paginated "sub/chunks/chunk-XXX.txt" file (ordered by ascending ping)
 CHUNK_SIZE = 500
 
-# Real-tunnel gate: each batch has BATCH_SIZE nodes and up to four Xray workers run in parallel.
-# Tune this limit if the CI runtime approaches 20 minutes; elapsed time depends on batch size and
-# the slowest ipwho.is request in each batch. The CLI flag can override the default per run.
-DEEP_VERIFY_LIMIT = int(os.environ.get("DEEP_VERIFY_LIMIT", "3000"))
+# Real-tunnel gate: the entire TCP-alive pool is verified in Xray batches before it is published.
+# Runtime scales with the number of alive nodes, BATCH_SIZE, and the slowest ipwho.is request per batch.
 RU_VERIFIED_PATH = os.path.join(SUB_DIR, "ru-verified.json")
 RU_VERIFIED_MAX_AGE_SECONDS = 48 * 60 * 60
 
@@ -1001,7 +999,6 @@ def main():
     parser = argparse.ArgumentParser(description="TurboProbe VPN Aggregator")
     parser.add_argument("--fast", action="store_true", help="Fast mode: Only Tier-1 sources, under 30s")
     parser.add_argument("--limit", type=int, default=0, help="Max candidates to test")
-    parser.add_argument("--deep-verify-limit", type=int, default=DEEP_VERIFY_LIMIT, help="Maximum TCP-alive nodes to deep-verify through Xray")
     args = parser.parse_args()
 
     extra_sources = []
@@ -1162,21 +1159,18 @@ def main():
     # 4. 🥇 STRICT SORT BY LOWEST PING (Ascending: 10ms -> 30ms -> 50ms)
     alive_tuples.sort(key=lambda item: item[1])
     tcp_alive_count = len(alive_tuples)
-    deep_verify_limit = max(0, args.deep_verify_limit)
     deep_verified_alive = 0
     deep_verify_rejected = 0
     deep_gate_applied = False
-    tcp_only_candidates = []
 
-    # The official pool is accepted only after a real Xray-tunnel request to ipwho.is.
-    # Any tail outside the configured limit remains visible for manual review only.
-    if alive_tuples and deep_verify_limit > 0:
-        deep_slice = alive_tuples[:deep_verify_limit]
-        tcp_only_candidates = alive_tuples[deep_verify_limit:]
+    # The official pool is accepted only after every TCP-alive node receives a real
+    # Xray-tunnel request to ipwho.is. There is intentionally no TCP-only tail.
+    if alive_tuples:
+        deep_slice = alive_tuples
         try:
             from service_prober import deep_verify_nodes
 
-            print(f"🔬 [Deep Gate] Verifying {len(deep_slice)} low-latency nodes through real Xray tunnels...", flush=True)
+            print(f"🔬 [Deep Gate] Verifying the full TCP-alive pool ({len(deep_slice)} nodes) through real Xray tunnels...", flush=True)
             verified_bases = deep_verify_nodes([item[0] for item in deep_slice])
             verified_tuples = [
                 item for item in deep_slice
@@ -1189,20 +1183,12 @@ def main():
             print(f"✅ [Deep Gate] {deep_verified_alive}/{len(deep_slice)} nodes passed; {deep_verify_rejected} rejected.", flush=True)
         except Exception as e:
             # Availability must not be lost solely because Xray or the deep network check failed.
-            alive_tuples = alive_tuples
-            tcp_only_candidates = []
             print(f"⚠️ [Deep Gate] Unavailable ({e}); falling back to the established TCP-only pool.", flush=True)
-    elif alive_tuples:
-        print("⚠️ [Deep Gate] Disabled by a non-positive limit; falling back to the established TCP-only pool.", flush=True)
 
+    # Older runs may have left this former overflow file behind; it is obsolete now
+    # because every TCP-alive node is deep-verified before publication.
     raw_candidates_path = os.path.join(SUB_DIR, "raw-candidates.txt")
-    if deep_gate_applied:
-        os.makedirs(SUB_DIR, exist_ok=True)
-        with open(raw_candidates_path, "w", encoding="utf-8") as f:
-            f.write("# TCP-only candidates: not deep-verified through an Xray tunnel; excluded from official subscriptions.\n")
-            f.write("\n".join(item[0] for item in tcp_only_candidates))
-        print(f"  💾 sub/raw-candidates.txt -> {len(tcp_only_candidates):5d} TCP-only candidates", flush=True)
-    elif os.path.isfile(raw_candidates_path):
+    if os.path.isfile(raw_candidates_path):
         try:
             os.remove(raw_candidates_path)
         except OSError:
@@ -1462,11 +1448,12 @@ def main():
         "unique_nodes": len(unique_uris),
         "purged_dead_blacklist": skipped_dead,
         "tcp_alive_candidates": tcp_alive_count,
-        "deep_verify_limit": deep_verify_limit,
+        "deep_verify_limit": None,
+        "deep_verify_scope": "all_tcp_alive",
         "deep_verified_alive": deep_verified_alive,
         "deep_verify_rejected": deep_verify_rejected,
         "deep_gate_applied": deep_gate_applied,
-        "tcp_only_candidates": len(tcp_only_candidates) if deep_gate_applied else 0,
+        "tcp_only_candidates": 0,
         "ru_verified_nodes": ru_verified_output_count,
         "ru_verification_fresh": bool(ru_verified_keys),
         "alive_verified_nodes": len(alive_nodes),
