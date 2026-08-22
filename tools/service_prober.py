@@ -46,6 +46,7 @@ import signal
 import urllib.parse
 import urllib.request
 import socket
+import threading
 import asyncio
 import base64
 import hashlib
@@ -128,6 +129,9 @@ PROBE_RETRIES = 3           # Retry only the liveness request before considering
 PROBE_RETRY_DELAY = 0.25    # Small pause between liveness attempts
 IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Real tunnel liveness and egress-country endpoint
 DEEP_VERIFY_CACHE_SECONDS = 4 * 60 * 60
+XRAY_STARTUP_TIMEOUT = 10.0
+_PORT_ALLOCATION_LOCK = threading.Lock()
+_ALLOCATED_XRAY_PORTS = set()
 
 TARGET_SERVICES = {
     "chatgpt": {
@@ -638,30 +642,45 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
 # =============================================================================
 # 🧪 BATCH RUNNER
 # =============================================================================
-def wait_for_port_ready(port: int, max_wait: float = 6.0) -> bool:
-    """Actively polls until Xray binds and opens the inbound port."""
-    t0 = time.perf_counter()
-    while time.perf_counter() - t0 < max_wait:
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(0.05)
-                if s.connect_ex(("127.0.0.1", port)) == 0:
-                    return True
-        except Exception:
-            pass
-        time.sleep(0.02)
-    return False
+def _is_port_open(port: int) -> bool:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(0.05)
+            return sock.connect_ex(("127.0.0.1", port)) == 0
+    except Exception:
+        return False
+
+
+def wait_for_ports_ready(ports: list, max_wait: float = XRAY_STARTUP_TIMEOUT) -> list:
+    """Returns the subset of Xray inbound ports that did not bind before the timeout."""
+    pending = set(ports)
+    deadline = time.perf_counter() + max_wait
+    while pending and time.perf_counter() < deadline:
+        for port in tuple(pending):
+            if _is_port_open(port):
+                pending.discard(port)
+        if pending:
+            time.sleep(0.03)
+    return sorted(pending)
 
 
 def get_free_port(used_ports: set) -> int:
-    """Reserves a unique OS-assigned local port number for one Xray SOCKS inbound."""
-    while True:
+    """Allocates a unique OS-assigned port across all concurrently running Xray batches."""
+    for _ in range(256):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
-        if port not in used_ports:
-            used_ports.add(port)
-            return port
+        with _PORT_ALLOCATION_LOCK:
+            if port not in used_ports and port not in _ALLOCATED_XRAY_PORTS:
+                used_ports.add(port)
+                _ALLOCATED_XRAY_PORTS.add(port)
+                return port
+    raise RuntimeError("Could not allocate a unique local SOCKS port for Xray")
+
+
+def release_batch_ports(ports: list):
+    with _PORT_ALLOCATION_LOCK:
+        _ALLOCATED_XRAY_PORTS.difference_update(ports)
 
 
 def run_batch_probe(xray_bin: str, batch: list, basic_only: bool = False) -> list:
@@ -674,7 +693,6 @@ def run_batch_probe(xray_bin: str, batch: list, basic_only: bool = False) -> lis
     used_ports = set()
 
     for i, (idx, uri, ping_ms, country, proto) in enumerate(batch):
-        port = get_free_port(used_ports)
         in_tag = f"in_{i}"
         out_tag = f"out_{i}"
         outbound = uri_to_xray_outbound(uri, out_tag)
@@ -682,6 +700,7 @@ def run_batch_probe(xray_bin: str, batch: list, basic_only: bool = False) -> lis
             if proto in ["hy2", "hysteria2", "tuic"] or uri.lower().startswith(("hy2://", "hysteria2://", "tuic://")):
                 fallback_slots.append((uri, proto))
             continue
+        port = get_free_port(used_ports)
 
         inbounds.append({
             "tag": in_tag,
@@ -726,7 +745,7 @@ def run_batch_probe(xray_bin: str, batch: list, basic_only: bool = False) -> lis
     try:
         popen_kwargs = {
             "stdout": subprocess.DEVNULL,
-            "stderr": subprocess.DEVNULL,
+            "stderr": subprocess.PIPE,
         }
         if os.name == "nt":
             startupinfo = subprocess.STARTUPINFO()
@@ -737,10 +756,20 @@ def run_batch_probe(xray_bin: str, batch: list, basic_only: bool = False) -> lis
             popen_kwargs["start_new_session"] = True
 
         proc = subprocess.Popen([xray_bin, "run", "-c", cfg_file], **popen_kwargs)
-        readiness_port = active_slots[0][1]
-        ready = wait_for_port_ready(readiness_port, max_wait=3.0)
-        if not ready:
-            print(f"  ⚠️ [Xray Warning] Port {readiness_port} did not answer in 3s", flush=True)
+        inbound_ports = [slot[1] for slot in active_slots]
+        missing_ports = wait_for_ports_ready(inbound_ports)
+        if missing_ports:
+            error_detail = ""
+            if proc.poll() is not None and proc.stderr:
+                try:
+                    error_detail = proc.stderr.read().decode("utf-8", errors="ignore").strip()
+                except Exception:
+                    pass
+            summary = f"{len(missing_ports)}/{len(inbound_ports)} SOCKS ports did not bind within {XRAY_STARTUP_TIMEOUT:.0f}s"
+            if error_detail:
+                summary += f"; Xray exited: {error_detail[-800:]}"
+            print(f"  ⚠️ [Xray Warning] {summary}", flush=True)
+            return results
 
         probe_fn = probe_node_basic_liveness if basic_only else probe_node_liveness_and_services
         with ThreadPoolExecutor(max_workers=len(active_slots)) as pool:
@@ -783,6 +812,7 @@ def run_batch_probe(xray_bin: str, batch: list, basic_only: bool = False) -> lis
                     proc.wait(timeout=1.0)
                 except Exception:
                     pass
+        release_batch_ports(list(used_ports))
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     return results
