@@ -50,6 +50,7 @@ import queue
 import asyncio
 import base64
 import hashlib
+import uuid
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -281,10 +282,16 @@ def apply_transport_settings(stream_settings: dict, query: dict, net_type: str, 
     stream_settings["network"] = network
 
 
+def normalize_xray_uuid(value: str) -> str:
+    """URL-decodes and validates a UUID before placing it in an Xray outbound."""
+    decoded = urllib.parse.unquote(str(value or "")).strip()
+    return str(uuid.UUID(decoded))
+
+
 def parse_vless_uri(uri: str, tag: str) -> dict:
     try:
         parsed = urllib.parse.urlparse(uri)
-        uuid = parsed.username
+        uuid = normalize_xray_uuid(parsed.username)
         host = (parsed.hostname or "").strip('[]')
         port = parsed.port or 443
         query = urllib.parse.parse_qs(parsed.query)
@@ -456,7 +463,7 @@ def parse_vmess_uri(uri: str, tag: str) -> dict:
         
         host = str(data.get("add", "")).strip('[]')
         port = int(data.get("port", 443))
-        uuid = str(data.get("id", ""))
+        uuid = normalize_xray_uuid(data.get("id", ""))
         aid = int(data.get("aid", 0))
         net = str(data.get("net", "tcp")).lower()
         tls_val = str(data.get("tls", "")).lower()
@@ -664,8 +671,8 @@ def wait_for_ports_ready(ports: list, max_wait: float = XRAY_STARTUP_TIMEOUT) ->
     return sorted(pending)
 
 
-def diagnose_xray_config(xray_bin: str, cfg_file: str) -> str:
-    """Returns Xray's own configuration-test output after an inbound startup failure."""
+def run_xray_config_test(xray_bin: str, cfg_file: str) -> tuple:
+    """Runs Xray's config validator and returns its exit code plus compact output."""
     try:
         completed = subprocess.run(
             [xray_bin, "run", "-test", "-c", cfg_file],
@@ -674,11 +681,15 @@ def diagnose_xray_config(xray_bin: str, cfg_file: str) -> str:
             timeout=15,
         )
         output = "\n".join(part.strip() for part in (completed.stdout, completed.stderr) if part.strip())
-        if output:
-            return f"config test exit {completed.returncode}: {output[-1000:]}"
-        return f"config test exit {completed.returncode} with no output"
+        return completed.returncode, output[-2000:]
     except Exception as exc:
-        return f"config test failed: {exc}"
+        return -1, f"config test failed: {exc}"
+
+
+def diagnose_xray_config(xray_bin: str, cfg_file: str) -> str:
+    """Returns Xray's own configuration-test output after an inbound startup failure."""
+    return_code, output = run_xray_config_test(xray_bin, cfg_file)
+    return f"config test exit {return_code}: {output or 'no output'}"
 
 
 def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT, basic_only: bool = False) -> list:
@@ -735,8 +746,38 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
 
     tmp_dir = tempfile.mkdtemp(prefix="turboprobe_xray_")
     cfg_file = os.path.join(tmp_dir, "config.json")
-    with open(cfg_file, "w", encoding="utf-8") as f:
-        json.dump(cfg, f)
+
+    def write_config():
+        with open(cfg_file, "w", encoding="utf-8") as f:
+            json.dump(cfg, f)
+
+    # One malformed outbound makes Xray reject the complete config. Validate before
+    # starting and remove only the tag explicitly named by Xray; then retry the
+    # remaining batch. URL decoding and UUID validation handle the common case,
+    # while this loop protects against any future malformed transport or cipher.
+    remaining_retries = len(active_slots)
+    while active_slots:
+        write_config()
+        test_code, test_output = run_xray_config_test(xray_bin, cfg_file)
+        if test_code == 0:
+            break
+        bad_tags = set(re.findall(r"(?:tag|outbound config with tag)\s+(out_\d+)", test_output))
+        if not bad_tags or remaining_retries <= 0:
+            print(f"  ⚠️ [Xray Config] Rejected batch before startup: {test_output[-1000:] or 'no diagnostic output'}", flush=True)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            return results
+        bad_indexes = {int(tag.split("_", 1)[1]) for tag in bad_tags}
+        before_count = len(active_slots)
+        active_slots[:] = [slot for slot in active_slots if slot[0] not in bad_indexes]
+        inbounds[:] = [item for item in inbounds if item.get("tag") not in {f"in_{idx}" for idx in bad_indexes}]
+        outbounds[:] = [item for item in outbounds if item.get("tag") not in bad_tags]
+        rules[:] = [item for item in rules if not set(item.get("inboundTag", [])) & {f"in_{idx}" for idx in bad_indexes}]
+        remaining_retries -= max(1, before_count - len(active_slots))
+        print(f"  🧹 [Xray Config] Dropped {before_count - len(active_slots)} malformed node(s): {', '.join(sorted(bad_tags))}", flush=True)
+
+    if not active_slots:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        return results
 
     proc = None
     try:
