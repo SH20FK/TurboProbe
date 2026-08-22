@@ -133,6 +133,13 @@ PROBE_RETRY_DELAY = 0.25    # Small pause between liveness attempts
 IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Real tunnel liveness and egress-country endpoint
 DEEP_VERIFY_CACHE_SECONDS = 4 * 60 * 60
 XRAY_STARTUP_TIMEOUT = 10.0
+VALID_SHADOWSOCKS_METHODS = {
+    "aes-128-gcm", "aes-256-gcm",
+    "chacha20-poly1305", "chacha20-ietf-poly1305",
+    "xchacha20-poly1305", "xchacha20-ietf-poly1305",
+    "2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm",
+    "2022-blake3-chacha20-poly1305",
+}
 
 TARGET_SERVICES = {
     "chatgpt": {
@@ -247,7 +254,8 @@ def apply_transport_settings(stream_settings: dict, query: dict, net_type: str, 
     """Normalizes URI transport aliases and attaches the matching Xray transport object."""
     network = (net_type or "tcp").lower()
     path = query.get("path", ["/"])[0]
-    host_value = query.get("host", [""])[0] or default_host
+    default_host = str(default_host or "").strip()
+    host_value = str(query.get("host", [""])[0] or "").strip() or default_host
 
     if network == "ws":
         stream_settings["wsSettings"] = {
@@ -293,7 +301,9 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
         parsed = urllib.parse.urlparse(uri)
         uuid = normalize_xray_uuid(parsed.username)
         host = (parsed.hostname or "").strip('[]')
-        port = parsed.port or 443
+        port = parsed.port if parsed.port is not None else 443
+        if not host or not 1 <= port <= 65535:
+            return None
         query = urllib.parse.parse_qs(parsed.query)
 
         security = query.get("security", ["none"])[0].lower()
@@ -301,6 +311,8 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
         sni = query.get("sni", [""])[0] or host
         fp = query.get("fp", ["chrome"])[0]
         flow = query.get("flow", [""])[0]
+        if flow and not (security in ("tls", "reality") and net_type == "tcp"):
+            flow = ""
 
         stream_settings = {
             "network": net_type,
@@ -334,7 +346,7 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
                 "allowInsecure": query.get("allowInsecure", ["0"])[0] == "1",
             }
 
-        apply_transport_settings(stream_settings, query, net_type, sni)
+        apply_transport_settings(stream_settings, query, net_type, host)
 
         return {
             "tag": tag,
@@ -345,7 +357,7 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
                     "port": port,
                     "users": [{
                         "id": uuid,
-                        "encryption": query.get("encryption", ["none"])[0],
+                        "encryption": "none",
                         "flow": flow,
                     }]
                 }]
@@ -360,7 +372,9 @@ def parse_trojan_uri(uri: str, tag: str) -> dict:
         parsed = urllib.parse.urlparse(uri)
         password = parsed.username
         host = (parsed.hostname or "").strip('[]')
-        port = parsed.port or 443
+        port = parsed.port if parsed.port is not None else 443
+        if not host or not 1 <= port <= 65535:
+            return None
         query = urllib.parse.parse_qs(parsed.query)
 
         security = query.get("security", ["tls"])[0].lower()
@@ -376,7 +390,7 @@ def parse_trojan_uri(uri: str, tag: str) -> dict:
             }
         }
 
-        apply_transport_settings(stream_settings, query, net_type, sni)
+        apply_transport_settings(stream_settings, query, net_type, host)
 
         return {
             "tag": tag,
@@ -433,6 +447,9 @@ def parse_ss_uri(uri: str, tag: str) -> dict:
             host, port = _extract_ss_host_port(hostport)
 
         host = host.strip('[]')
+        method = urllib.parse.unquote(str(method or "")).strip().lower()
+        if not host or not 1 <= port <= 65535 or method not in VALID_SHADOWSOCKS_METHODS:
+            return None
         return {
             "tag": tag,
             "protocol": "shadowsocks",
@@ -756,6 +773,8 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
     # remaining batch. URL decoding and UUID validation handle the common case,
     # while this loop protects against any future malformed transport or cipher.
     remaining_retries = len(active_slots)
+    fallback_rounds = 0
+    last_rejection_output = ""
     while active_slots:
         write_config()
         test_code, test_output = run_xray_config_test(xray_bin, cfg_file)
@@ -766,6 +785,8 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
             print(f"  ⚠️ [Xray Config] Rejected batch before startup: {test_output[-1000:] or 'no diagnostic output'}", flush=True)
             shutil.rmtree(tmp_dir, ignore_errors=True)
             return results
+        last_rejection_output = test_output
+        fallback_rounds += 1
         bad_indexes = {int(tag.split("_", 1)[1]) for tag in bad_tags}
         before_count = len(active_slots)
         active_slots[:] = [slot for slot in active_slots if slot[0] not in bad_indexes]
@@ -774,6 +795,13 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
         rules[:] = [item for item in rules if not set(item.get("inboundTag", [])) & {f"in_{idx}" for idx in bad_indexes}]
         remaining_retries -= max(1, before_count - len(active_slots))
         print(f"  🧹 [Xray Config] Dropped {before_count - len(active_slots)} malformed node(s): {', '.join(sorted(bad_tags))}", flush=True)
+
+    if fallback_rounds > 1:
+        print(
+            f"  ℹ️ [Xray Config] Fallback ran {fallback_rounds} times; last Xray error: "
+            f"{last_rejection_output[-1000:]}",
+            flush=True,
+        )
 
     if not active_slots:
         shutil.rmtree(tmp_dir, ignore_errors=True)
