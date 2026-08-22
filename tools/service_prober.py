@@ -257,6 +257,7 @@ def get_xray_binary_path() -> str:
 VALID_STREAM_SECURITY = {"none", "tls", "reality"}
 REMOVED_XRAY_TRANSPORTS = {"h2", "http", "quic"}
 SUPPORTED_URI_TRANSPORTS = {"tcp", "raw", "ws", "grpc", "xhttp", "splithttp", "kcp", "mkcp", "httpupgrade", "hysteria"}
+REALITY_COMPATIBLE_TRANSPORTS = {"tcp", "raw", "xhttp", "grpc"}
 
 
 def normalize_stream_security(value: str, default: str) -> str:
@@ -278,6 +279,45 @@ def normalize_xray_transport(value: str) -> str:
 def is_supported_xray_transport(net_type: str) -> bool:
     """Compatibility helper for parser call sites and external tests."""
     return bool(normalize_xray_transport(net_type))
+
+
+def normalize_reality_public_key(value: str) -> str:
+    """Returns a URL-safe 32-byte REALITY public key or an empty string."""
+    key = urllib.parse.unquote(str(value or "")).strip()
+    try:
+        decoded = base64.urlsafe_b64decode(key + "=" * (-len(key) % 4))
+    except (ValueError, TypeError):
+        return ""
+    return key if len(decoded) == 32 else ""
+
+
+def normalize_reality_short_id(value: str):
+    """Returns a valid REALITY short ID (zero to sixteen even hex characters), else None."""
+    short_id = str(value or "").strip().lower()
+    if not short_id:
+        return ""
+    if len(short_id) > 16 or len(short_id) % 2 or not re.fullmatch(r"[0-9a-f]+", short_id):
+        return None
+    return short_id
+
+
+def prepare_outbound_for_current_xray(outbound: dict):
+    """Validates and converts REALITY URI fields immediately before Xray config generation."""
+    stream = outbound.get("streamSettings", {})
+    if stream.get("security") != "reality":
+        return outbound
+    if stream.get("network") not in REALITY_COMPATIBLE_TRANSPORTS:
+        return None
+    reality = stream.get("realitySettings") or {}
+    public_key = normalize_reality_public_key(reality.get("password") or reality.get("publicKey"))
+    short_id = normalize_reality_short_id(reality.get("shortId"))
+    if not public_key or short_id is None:
+        return None
+    reality["password"] = public_key
+    reality["shortId"] = short_id
+    reality.pop("publicKey", None)
+    stream["realitySettings"] = reality
+    return outbound
 
 
 def apply_transport_settings(stream_settings: dict, query: dict, net_type: str, default_host: str):
@@ -363,24 +403,17 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
         }
 
         if security == "reality":
+            # Preserve the URI-facing parser shape; strict validation happens before batch config generation.
             pbk = query.get("pbk", [""])[0]
             sid = query.get("sid", [""])[0]
             spx = query.get("spx", ["/"])[0]
-            if not pbk:
-                # Reality requires pbk; if missing, fallback to tls
-                stream_settings["security"] = "tls"
-                stream_settings["tlsSettings"] = {
-                    "serverName": sni,
-                    "fingerprint": fp,
-                }
-            else:
-                stream_settings["realitySettings"] = {
-                    "serverName": sni,
-                    "fingerprint": fp,
-                    "publicKey": pbk,
-                    "shortId": sid,
-                    "spiderX": spx,
-                }
+            stream_settings["realitySettings"] = {
+                "serverName": sni,
+                "fingerprint": fp,
+                "publicKey": pbk,
+                "shortId": sid,
+                "spiderX": spx,
+            }
         elif security == "tls":
             stream_settings["tlsSettings"] = {
                 "serverName": sni,
@@ -789,6 +822,9 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
                     continue
             except Exception:
                 continue
+        outbound = prepare_outbound_for_current_xray(outbound)
+        if not outbound:
+            continue
         port = base_port + i
 
         inbounds.append({
