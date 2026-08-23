@@ -591,13 +591,13 @@ class TestDiscoveredDefects(unittest.TestCase):
         self.assertTrue(callable(getattr(service_prober, "run_async_syn_prefilter", None)))
         self.assertTrue(callable(getattr(service_prober, "check_candidate_reachability", None)))
 
-        # Test prefilter on UDP / Hysteria2 item
+        # Test prefilter on UDP / Hysteria2 item (tiered result: tls/tcp/tcp-fail)
         item = (0, "hysteria2://pass@[2001:db8::1]:443#Hy2", 50.0, "GLOBAL", "hysteria2")
         self.assertTrue(service_prober.check_candidate_reachability(item))
 
-        filtered = asyncio.run(service_prober.run_async_syn_prefilter([item]))
-        self.assertEqual(len(filtered), 1)
-        self.assertEqual(filtered[0], item)
+        tiers = asyncio.run(service_prober.run_async_syn_prefilter([item]))
+        self.assertEqual(sum(len(bucket) for bucket in tiers.values()), 1)
+        self.assertEqual(tiers["tls"][0], item)
 
 
 if __name__ == "__main__":

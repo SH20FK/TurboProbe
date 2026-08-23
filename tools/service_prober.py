@@ -46,7 +46,9 @@ import signal
 import urllib.parse
 import urllib.request
 import socket
+import ssl
 import queue
+import threading
 import asyncio
 import base64
 import hashlib
@@ -127,10 +129,18 @@ BATCH_SIZE = 75             # 75 nodes per Xray instance (instant 20ms startup)
 NUM_XRAY_WORKERS = 4        # 4 concurrent Xray processes matching CI vCPUs
 BASE_SOCKS_PORT = 10900     # Proven local SOCKS range start
 PORT_STEP = 150             # Non-overlapping range reserved per Xray worker
-PROBE_TIMEOUT = 3.5         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
+PROBE_TIMEOUT = 6.0         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
 PROBE_RETRIES = 3           # Retry only the liveness request before considering a tunnel dead
 PROBE_RETRY_DELAY = 0.25    # Small pause between liveness attempts
 IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Primary real-tunnel liveness and egress-country endpoint
+# Client-realistic reachability: exactly the endpoints proxy clients (Happ, mihomo,
+# v2rayN url-test) hit. A tunnel that answers ipwho.is but cannot fetch a plain 204
+# is useless in real clients and must not be published as alive.
+CLIENT_LIVENESS_URLS = (
+    "http://www.gstatic.com/generate_204",
+    "https://connectivitycheck.platform.hicloud.com/generate_204",
+    "https://cloudflare.com/cdn-cgi/trace",
+)
 GEOIP_FALLBACK_ENDPOINTS = (
     ("http://ip-api.com/json/", "countryCode"),
     ("https://ifconfig.co/json", "country_iso"),
@@ -260,6 +270,98 @@ SUPPORTED_URI_TRANSPORTS = {"tcp", "raw", "ws", "grpc", "xhttp", "splithttp", "k
 REALITY_COMPATIBLE_TRANSPORTS = {"tcp", "raw", "xhttp", "grpc"}
 
 
+def coerce_extra_scalar(value: str):
+    """Converts an xhttp extra= scalar to bool/int/float when the text clearly denotes one."""
+    v = value.strip()
+    if v == "true":
+        return True
+    if v == "false":
+        return False
+    if v == "null":
+        return None
+    try:
+        return int(v)
+    except ValueError:
+        pass
+    try:
+        return float(v)
+    except ValueError:
+        pass
+    return v
+
+
+def parse_transport_extra(s: str):
+    """Parses xhttp extra= payloads supplied as JSON or python-ish key=value dicts."""
+    s = s.strip()
+    if s.startswith("{") and s.endswith("}"):
+        s = s[1:-1]
+    result = {}
+    i, n = 0, len(s)
+    while i < n:
+        while i < n and s[i] in " ,+":
+            i += 1
+        if i >= n:
+            break
+        key_start = i
+        while i < n and s[i] != "=":
+            i += 1
+        key = s[key_start:i].strip()
+        if not key or i >= n:
+            break
+        i += 1
+        if i < n and s[i] == "{":
+            depth = 0
+            val_start = i
+            while i < n:
+                if s[i] == "{":
+                    depth += 1
+                elif s[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        i += 1
+                        break
+                i += 1
+            result[key] = parse_transport_extra(s[val_start:i])
+        else:
+            val_start = i
+            depth = 0
+            while i < n:
+                if s[i] == "{":
+                    depth += 1
+                elif s[i] == "}":
+                    depth -= 1
+                elif s[i] == "," and depth == 0:
+                    break
+                i += 1
+            result[key] = coerce_extra_scalar(s[val_start:i].strip())
+    return result
+
+
+def resolve_extra_object(raw_value: str):
+    """Returns the xhttp extra= payload as a dict, trying JSON first, then the lenient parser."""
+    raw = urllib.parse.unquote(str(raw_value or "")).strip()
+    if not raw:
+        return None
+    try:
+        loaded = json.loads(raw)
+        return loaded if isinstance(loaded, dict) else None
+    except Exception:
+        pass
+    normalized = re.sub(r"\bTrue\b", "true", raw)
+    normalized = re.sub(r"\bFalse\b", "false", normalized)
+    normalized = re.sub(r"\bNone\b", "null", normalized)
+    try:
+        loaded = json.loads(normalized)
+        return loaded if isinstance(loaded, dict) else None
+    except Exception:
+        pass
+    try:
+        parsed = parse_transport_extra(raw)
+        return parsed if isinstance(parsed, dict) and parsed else None
+    except Exception:
+        return None
+
+
 def normalize_stream_security(value: str, default: str) -> str:
     """Normalizes URI security values to the supported Xray stream-security set."""
     security = str(value or default).strip().lower()
@@ -338,11 +440,34 @@ def apply_transport_settings(stream_settings: dict, query: dict, net_type: str, 
         }
     elif network in ("xhttp", "splithttp"):
         network = "xhttp"
-        stream_settings["xhttpSettings"] = {
+        xhttp_settings = {
             "path": path,
             "host": host_value,
             "mode": query.get("mode", ["auto"])[0],
         }
+        extra_obj = resolve_extra_object(query.get("extra", [""])[0])
+        if extra_obj:
+            xhttp_settings.update(extra_obj)
+        stream_settings["xhttpSettings"] = xhttp_settings
+    elif network == "httpupgrade":
+        stream_settings["httpupgradeSettings"] = {
+            "path": path,
+            "host": host_value,
+        }
+    elif network == "kcp" or network == "mkcp":
+        network = "kcp"
+        kcp_settings = {
+            "mtu": 1350,
+            "header": {"type": query.get("headerType", ["none"])[0]},
+        }
+        seed = str(query.get("seed", [""])[0] or "").strip()
+        if seed:
+            kcp_settings["seed"] = seed
+        stream_settings["kcpSettings"] = kcp_settings
+    elif network == "tcp" or network == "raw":
+        header_type = str(query.get("headerType", ["none"])[0] or "none").strip().lower()
+        if header_type and header_type != "none":
+            stream_settings["tcpSettings"] = {"header": {"type": header_type}}
     elif network in ("h2", "http"):
         network = "h2"
         hosts = [item.strip() for item in host_value.split(",") if item.strip()]
@@ -406,19 +531,37 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
             # Preserve the URI-facing parser shape; strict validation happens before batch config generation.
             pbk = query.get("pbk", [""])[0]
             sid = query.get("sid", [""])[0]
-            spx = query.get("spx", ["/"])[0]
-            stream_settings["realitySettings"] = {
+            spx = query.get("spx", [""])[0] or "/"
+            reality_settings = {
                 "serverName": sni,
                 "fingerprint": fp,
                 "publicKey": pbk,
                 "shortId": sid,
                 "spiderX": spx,
             }
+            mldsa65 = str(query.get("mldsa65Verify", [""])[0] or "").strip()
+            if mldsa65:
+                reality_settings["mldsa65Verify"] = mldsa65
+            stream_settings["realitySettings"] = reality_settings
         elif security == "tls":
-            stream_settings["tlsSettings"] = {
+            tls_settings = {
                 "serverName": sni,
                 "fingerprint": fp,
             }
+            alpn_raw = str(query.get("alpn", [""])[0] or "").strip()
+            if alpn_raw:
+                tls_settings["alpn"] = [urllib.parse.unquote(a.strip()) for a in alpn_raw.split(",") if a.strip()]
+            if str(query.get("allowInsecure", query.get("allowinsecure", [""]))[0] or "").lower() in ("1", "true"):
+                tls_settings["allowInsecure"] = True
+            pinned = str(query.get("pinnedPeerCertSha256", query.get("pin", [""]))[0] or "").strip()
+            if pinned:
+                tls_settings["pinnedPeerCertSha256"] = pinned
+            if str(query.get("verifyPeerCertByName", query.get("vpcn", [""]))[0] or "").lower() in ("1", "true"):
+                tls_settings["verifyPeerCertByName"] = True
+            ech_raw = str(query.get("ech", [""])[0] or "").strip()
+            if ech_raw:
+                tls_settings["echConfigList"] = urllib.parse.unquote(ech_raw)
+            stream_settings["tlsSettings"] = tls_settings
 
         apply_transport_settings(stream_settings, query, net_type, host)
 
@@ -659,6 +802,18 @@ def uri_to_xray_outbound(uri: str, tag: str) -> dict:
 # =============================================================================
 # 🚀 REAL HTTP SOCKS5 PROBER (USES SOCKS5H FOR REMOTE DNS)
 # =============================================================================
+def _client_reachability_ok(session) -> bool:
+    """Requires at least one client-style generate_204 endpoint through the tunnel."""
+    for endpoint in CLIENT_LIVENESS_URLS:
+        try:
+            r = session.get(endpoint, timeout=PROBE_TIMEOUT, verify=False, allow_redirects=False)
+            if r.status_code in (200, 204):
+                return True
+        except Exception:
+            pass
+    return False
+
+
 def probe_ipwho_liveness(session: requests.Session, uri: str) -> tuple:
     """Runs the only retried probe: a real tunnel request to ipwho.is with country parsing."""
     fallback_country = detect_country_code(uri)
@@ -667,8 +822,22 @@ def probe_ipwho_liveness(session: requests.Session, uri: str) -> tuple:
             t0 = time.perf_counter()
             response = session.get(IPWHO_LIVENESS_URL, timeout=PROBE_TIMEOUT, verify=False)
             payload = response.json()
-            if response.status_code == 200 and isinstance(payload, dict) and payload.get("success") is True:
-                country = str(payload.get("country_code") or fallback_country or "GLOBAL").upper()
+            country = str(payload.get("country_code") or "").upper() if isinstance(payload, dict) else ""
+            # A success flag with a missing/garbage country is suspicious: fall through
+            # to the alternate providers so a poisoned or hijacked answer is not
+            # blindly accepted as proof of liveness.
+            if (
+                response.status_code == 200
+                and isinstance(payload, dict)
+                and payload.get("success") is True
+                and len(country) == 2
+                and country.isalpha()
+            ):
+                # Dual-gate: GeoIP proves the tunnel exits where it claims; the
+                # client-realistic 204 check proves a real proxy client (Happ,
+                # mihomo url-test) would actually see this node as working.
+                if not _client_reachability_ok(session):
+                    return False, fallback_country or "GLOBAL", 9999.0
                 ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
                 return True, country, ping_ms
         except Exception:
@@ -756,6 +925,50 @@ def probe_node_liveness_and_services(port: int, uri: str) -> tuple:
 # =============================================================================
 # 🧪 BATCH RUNNER
 # =============================================================================
+_used_socks_ports: set = set()
+_socks_ports_lock = threading.Lock()
+
+
+def _can_bind_local(port: int) -> bool:
+    """Returns whether this process can currently bind the given loopback port."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", port))
+            return True
+    except OSError:
+        return False
+
+
+def allocate_free_socks_port() -> int:
+    """
+    Reserves a free local port for a Xray SOCKS inbound.
+    Prefers the dedicated low prober range, which the OS never hands out as an
+    ephemeral source port; probing traffic otherwise races Xray for high ports
+    between reservation and startup and leaves every inbound unbound.
+    """
+    preferred_span = PORT_STEP * NUM_XRAY_WORKERS + BATCH_SIZE
+    with _socks_ports_lock:
+        for port in range(BASE_SOCKS_PORT, BASE_SOCKS_PORT + preferred_span):
+            if port not in _used_socks_ports and _can_bind_local(port):
+                _used_socks_ports.add(port)
+                return port
+    # Dedicated range is exhausted; fall back to ephemeral ports.
+    for _ in range(64):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        with _socks_ports_lock:
+            if port not in _used_socks_ports:
+                _used_socks_ports.add(port)
+                return port
+    raise RuntimeError("no free local SOCKS port available")
+
+
+def release_socks_port(port: int):
+    with _socks_ports_lock:
+        _used_socks_ports.discard(port)
+
+
 def _is_port_open(port: int) -> bool:
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -806,6 +1019,11 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
     rules = []
     active_slots = []
     fallback_slots = []
+    allocated_ports = []
+
+    def _release_allocated():
+        for p in allocated_ports:
+            release_socks_port(p)
 
     for i, (idx, uri, ping_ms, country, proto) in enumerate(batch):
         in_tag = f"in_{i}"
@@ -825,7 +1043,11 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
         outbound = prepare_outbound_for_current_xray(outbound)
         if not outbound:
             continue
-        port = base_port + i
+        try:
+            port = allocate_free_socks_port()
+        except RuntimeError:
+            continue
+        allocated_ports.append(port)
 
         inbounds.append({
             "tag": in_tag,
@@ -852,6 +1074,7 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
                 results.append(res)
 
     if not active_slots:
+        _release_allocated()
         return results
 
     cfg = {
@@ -884,6 +1107,7 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
         if not bad_tags or remaining_retries <= 0:
             print(f"  ⚠️ [Xray Config] Rejected batch before startup: {test_output[-1000:] or 'no diagnostic output'}", flush=True)
             shutil.rmtree(tmp_dir, ignore_errors=True)
+            _release_allocated()
             return results
         last_rejection_output = test_output
         fallback_rounds += 1
@@ -905,6 +1129,7 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
 
     if not active_slots:
         shutil.rmtree(tmp_dir, ignore_errors=True)
+        _release_allocated()
         return results
 
     proc = None
@@ -936,8 +1161,14 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
                 summary += f"; Xray exited: {error_detail[-800:]}"
             else:
                 summary += f"; {diagnose_xray_config(xray_bin, cfg_file)}"
-            print(f"  ⚠️ [Xray Warning] {summary}", flush=True)
-            return results
+            # Drop only the failed inbounds and keep probing every healthy slot;
+            # abandoning the whole batch here used to mass-reject live nodes.
+            missing_set = set(missing_ports)
+            before_count = len(active_slots)
+            active_slots[:] = [slot for slot in active_slots if slot[1] not in missing_set]
+            print(f"  ⚠️ [Xray Warning] {summary}; probing remaining {len(active_slots)}/{before_count} slots", flush=True)
+            if not active_slots:
+                return results
 
         probe_fn = probe_node_basic_liveness if basic_only else probe_node_liveness_and_services
         with ThreadPoolExecutor(max_workers=len(active_slots)) as pool:
@@ -981,6 +1212,7 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
                 except Exception:
                     pass
         shutil.rmtree(tmp_dir, ignore_errors=True)
+        _release_allocated()
 
     return results
 
@@ -1382,10 +1614,40 @@ def verify_nodes_with_globalping_ru(nodes: list, max_nodes: int = 40) -> list:
     print(f"  ✨ Globalping finished: {ru_confirmed_count}/{len(test_slice)} top nodes confirmed 100% accessible directly from inside Russia!", flush=True)
     return nodes
 
-async def async_probe_candidate_socket(sem: asyncio.Semaphore, item: tuple, timeout: float = 0.20):
+def _uri_tls_sni_hint(uri: str, parsed) -> str:
+    """Returns the SNI hostname a TLS probe should present for this node URI."""
+    match = re.search(r"[?&]sni=([^&#]+)", uri)
+    if match:
+        return urllib.parse.unquote(match.group(1)).strip()
+    return (parsed.hostname or "").strip('[]') or ""
+
+
+def _uri_expects_tls(uri: str, proto: str, parsed) -> bool:
+    """Returns whether the node endpoint speaks TLS on its transport port."""
+    if proto in ("hy2", "hysteria2", "tuic", "wireguard", "ss"):
+        return False
+    query = urllib.parse.parse_qs(parsed.query)
+    security = str(query.get("security", [""])[0]).lower()
+    if security in ("tls", "reality"):
+        return True
+    if "pbk=" in uri:
+        return True
+    if proto == "trojan":
+        return True
+    return (parsed.port or 443) == 443 and security == ""
+
+
+async def async_probe_candidate_socket(sem: asyncio.Semaphore, item: tuple, timeout: float = 0.85):
+    """
+    Pre-filter with a real TLS ClientHello instead of a bare TCP connect.
+    TSPU/DPI middleboxes let SYNs through while killing or resetting the TLS
+    handshake to censored endpoints; a completed handshake is far stronger
+    evidence of reachability. Returns (tier, item) where tier is "tls" when
+    the handshake completed and "tcp" when only the socket connected.
+    """
     _, uri, _, _, proto = item
     if proto in ["hy2", "hysteria2", "tuic", "wireguard"]:
-        return item
+        return ("tls", item)
     writer = None
     try:
         parsed = urllib.parse.urlparse(uri)
@@ -1397,7 +1659,21 @@ async def async_probe_candidate_socket(sem: asyncio.Semaphore, item: tuple, time
         async with sem:
             conn = asyncio.open_connection(host, port)
             reader, writer = await asyncio.wait_for(conn, timeout=timeout)
-            return item
+            tier = "tcp"
+            expects_tls = _uri_expects_tls(uri.lower(), proto, parsed)
+            sni = _uri_tls_sni_hint(uri, parsed)
+            if expects_tls and sni:
+                try:
+                    tls_ctx = ssl.create_default_context()
+                    tls_ctx.check_hostname = False
+                    tls_ctx.verify_mode = ssl.CERT_NONE
+                    await asyncio.wait_for(writer.start_tls(tls_ctx, server_hostname=sni), timeout=2.0)
+                    tier = "tls"
+                except Exception:
+                    tier = "tcp-fail"
+            elif expects_tls and not sni:
+                tier = "tls"
+            return (tier, item)
     except Exception:
         return None
     finally:
@@ -1408,11 +1684,16 @@ async def async_probe_candidate_socket(sem: asyncio.Semaphore, item: tuple, time
             except Exception:
                 pass
 
-async def run_async_syn_prefilter(pool: list, concurrency: int = 4000) -> list:
+async def run_async_syn_prefilter(pool: list, concurrency: int = 4000) -> dict:
+    """Partitions the pool into TLS-confirmed and merely TCP-connected nodes."""
     sem = asyncio.Semaphore(concurrency)
     tasks = [async_probe_candidate_socket(sem, item, timeout=0.85) for item in pool]
     res = await asyncio.gather(*tasks, return_exceptions=True)
-    return [r for r in res if r and not isinstance(r, Exception)]
+    tiers = {"tls": [], "tcp": [], "tcp-fail": []}
+    for r in res:
+        if r and not isinstance(r, Exception):
+            tiers.setdefault(r[0], []).append(r[1])
+    return tiers
 
 def check_candidate_reachability(item: tuple) -> bool:
     _, uri, _, _, proto = item
@@ -1441,12 +1722,16 @@ def check_candidate_reachability(item: tuple) -> bool:
 # 🚀 MAIN PIPELINE
 # =============================================================================
 def main():
+    global PROBE_TIMEOUT
     import argparse
     parser = argparse.ArgumentParser(description="TurboProbe Deep Service Prober")
     parser.add_argument("--limit", type=int, default=DEFAULT_PROBE_LIMIT, help="Max nodes to deep probe with Xray")
     parser.add_argument("--batch-size", type=int, default=BATCH_SIZE, help="Batch size for concurrent probing")
     parser.add_argument("--vantage", choices=["cloud", "ru-local"], default="cloud", help="Verification vantage point; ru-local writes only sub/ru-verified.json")
+    parser.add_argument("--timeout", type=float, default=PROBE_TIMEOUT, help="Per-request tunnel HTTP timeout in seconds")
     args = parser.parse_args()
+
+    PROBE_TIMEOUT = max(2.0, float(args.timeout))
 
     probe_limit = args.limit
     batch_size = args.batch_size
@@ -1574,11 +1859,25 @@ def main():
         proto = uri.split("://")[0].lower() if "://" in uri else "vless"
         probe_pool.append((i, uri, 50.0, "GLOBAL", proto))
 
-    print(f"⚡ [AsyncIO SYN-Scanner] Ultra-speed asynchronous port pre-filter across {len(probe_pool)} endpoints (4000 connections, under 1s)...", flush=True)
+    print(f"⚡ [AsyncIO TLS-Handshake Scanner] Probing {len(probe_pool)} endpoints (TCP connect + real TLS ClientHello, 4000 concurrent)...", flush=True)
     t_start = time.perf_counter()
+    prefilter_tiers = None
     try:
-        reachable_pool = asyncio.run(run_async_syn_prefilter(probe_pool, concurrency=4000))
+        prefilter_tiers = asyncio.run(run_async_syn_prefilter(probe_pool, concurrency=4000))
     except Exception:
+        pass
+
+    if prefilter_tiers is not None:
+        tls_confirmed = prefilter_tiers.get("tls", [])
+        tcp_connected = prefilter_tiers.get("tcp", [])
+        tls_killed = prefilter_tiers.get("tcp-fail", [])
+        # Strictest first: only nodes whose TLS handshake completed. Nodes where
+        # TCP connected but TLS was killed are classic DPI victims and poison
+        # client feeds with n/a pings; they join only when the pool runs dry.
+        reachable_pool = tls_confirmed if len(tls_confirmed) >= 20 else tls_confirmed + tcp_connected
+        if len(reachable_pool) < 20:
+            reachable_pool = reachable_pool + tls_killed
+    else:
         with ThreadPoolExecutor(max_workers=min(256, len(probe_pool) or 1)) as pre_pool:
             reach_futs = {pre_pool.submit(check_candidate_reachability, item): item for item in probe_pool}
             reachable_pool = []
@@ -1591,42 +1890,63 @@ def main():
                     pass
 
     elapsed_pre = round(time.perf_counter() - t_start, 2)
-    print(f"✨ AsyncIO SYN-Filter finished in {elapsed_pre}s: {len(reachable_pool)} reachable nodes selected ({len(probe_pool) - len(reachable_pool)} dead filtered out)", flush=True)
+    dropped_count = len(probe_pool) - len(reachable_pool)
+    if prefilter_tiers is not None:
+        tier_stats = f"[TLS-ok: {len(prefilter_tiers.get('tls', []))}, TCP-only: {len(prefilter_tiers.get('tcp', []))}, TLS-killed-by-DPI: {len(prefilter_tiers.get('tcp-fail', []))}]"
+    else:
+        tier_stats = "[fallback TCP mode]"
+    print(f"✨ TLS-Handshake Filter finished in {elapsed_pre}s {tier_stats}: {len(reachable_pool)} candidates selected ({dropped_count} dead filtered out)", flush=True)
     if len(reachable_pool) >= 20:
         probe_pool = reachable_pool
 
-    num_batches = (len(probe_pool) + batch_size - 1) // batch_size
-    all_batches = [probe_pool[b * batch_size : (b + 1) * batch_size] for b in range(num_batches)]
-
     print(f"🚀 Launching Parallel Multi-Core Xray Cluster ({NUM_XRAY_WORKERS} concurrent Xray instances, {batch_size * NUM_XRAY_WORKERS} parallel nodes)...", flush=True)
 
-    verified_alive_nodes = []
-    slot_queue = queue.Queue()
-    for slot in range(NUM_XRAY_WORKERS):
-        slot_queue.put(slot)
+    def execute_probe_round(pool_items: list, round_label: str) -> list:
+        round_slot_queue = queue.Queue()
+        for slot in range(NUM_XRAY_WORKERS):
+            round_slot_queue.put(slot)
 
-    def process_batch_worker(b_idx: int, batch: list) -> tuple:
-        slot = slot_queue.get()
-        try:
-            res = run_batch_probe(
-                xray_bin,
-                batch,
-                base_port=BASE_SOCKS_PORT + (slot * PORT_STEP),
-                basic_only=(args.vantage == "ru-local"),
-            )
-            return b_idx, len(batch), res
-        finally:
-            slot_queue.put(slot)
+        num_batches = (len(pool_items) + batch_size - 1) // batch_size
+        all_batches = [pool_items[b * batch_size : (b + 1) * batch_size] for b in range(num_batches)]
 
-    with ThreadPoolExecutor(max_workers=NUM_XRAY_WORKERS) as batch_pool:
-        batch_futs = {
-            batch_pool.submit(process_batch_worker, b, all_batches[b]): b
-            for b in range(num_batches)
-        }
-        for bf in as_completed(batch_futs):
-            b_idx, batch_len, results = bf.result()
-            verified_alive_nodes.extend(results)
-            print(f"  🧪 Batch {b_idx + 1}/{num_batches} ({batch_len} nodes) -> {len(results)} confirmed ONLINE (total alive: {len(verified_alive_nodes)})", flush=True)
+        def process_batch_worker(b_idx: int, batch: list) -> tuple:
+            slot = round_slot_queue.get()
+            try:
+                res = run_batch_probe(
+                    xray_bin,
+                    batch,
+                    base_port=BASE_SOCKS_PORT + (slot * PORT_STEP),
+                    basic_only=(args.vantage == "ru-local"),
+                )
+                return b_idx, len(batch), res
+            finally:
+                round_slot_queue.put(slot)
+
+        round_results = []
+        with ThreadPoolExecutor(max_workers=NUM_XRAY_WORKERS) as batch_pool:
+            batch_futs = {
+                batch_pool.submit(process_batch_worker, b, all_batches[b]): b
+                for b in range(num_batches)
+            }
+            for bf in as_completed(batch_futs):
+                b_idx, batch_len, results = bf.result()
+                round_results.extend(results)
+                print(f"  🧪 [{round_label}] Batch {b_idx + 1}/{num_batches} ({batch_len} nodes) -> {len(results)} confirmed ONLINE (round total: {len(round_results)})", flush=True)
+        return round_results
+
+    verified_alive_nodes = execute_probe_round(probe_pool, "Pass 1")
+
+    # Retry pass: a flaky Xray instance used to mass-reject otherwise live nodes.
+    # Any unconfirmed node gets one more chance with brand-new instances before
+    # it is declared dead; only nodes failing both passes are discarded.
+    alive_keys_first_pass = {get_node_key(n["uri"]) for n in verified_alive_nodes}
+    failed_probe_items = [item for item in probe_pool if get_node_key(item[1]) not in alive_keys_first_pass]
+    if failed_probe_items:
+        print(f"\n🔁 [Retry Round] Re-probing {len(failed_probe_items)} unconfirmed node(s) with fresh Xray instances...", flush=True)
+        retry_results = execute_probe_round(failed_probe_items, "Retry")
+        verified_alive_nodes.extend(retry_results)
+        recovered = len(retry_results)
+        print(f"🔁 [Retry Round] {recovered} node(s) recovered on second pass", flush=True)
 
     print(f"\n🏆 Total genuinely alive & verified nodes: {len(verified_alive_nodes)}", flush=True)
 
