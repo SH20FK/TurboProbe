@@ -132,6 +132,7 @@ PORT_STEP = 150             # Non-overlapping range reserved per Xray worker
 PROBE_TIMEOUT = 6.0         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
 PROBE_RETRIES = 3           # Retry only the liveness request before considering a tunnel dead
 PROBE_RETRY_DELAY = 0.25    # Small pause between liveness attempts
+PROBE_TOTAL_BUDGET = 22.0   # Hard per-node wall-clock budget for the whole liveness gate
 IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Primary real-tunnel liveness and egress-country endpoint
 # Client-realistic reachability: exactly the endpoints proxy clients (Happ, mihomo,
 # v2rayN url-test) hit. A tunnel that answers ipwho.is but cannot fetch a plain 204
@@ -265,6 +266,7 @@ def get_xray_binary_path() -> str:
 # 🧩 PROTOCOL PARSERS (URI -> XRAY OUTBOUND JSON)
 # =============================================================================
 VALID_STREAM_SECURITY = {"none", "tls", "reality"}
+VALID_KCP_HEADER_TYPES = {"none", "srtp", "utp", "wechat", "video", "dtls", "wireguard", "dns"}
 REMOVED_XRAY_TRANSPORTS = {"h2", "http", "quic"}
 SUPPORTED_URI_TRANSPORTS = {"tcp", "raw", "ws", "grpc", "xhttp", "splithttp", "kcp", "mkcp", "httpupgrade", "hysteria"}
 REALITY_COMPATIBLE_TRANSPORTS = {"tcp", "raw", "xhttp", "grpc"}
@@ -337,29 +339,56 @@ def parse_transport_extra(s: str):
     return result
 
 
+def _sanitize_extra_value(value):
+    """Keeps only JSON-safe, Xray-decodable types; drops nulls and stray floats."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        cleaned = {}
+        for k, v in value.items():
+            if not isinstance(k, str):
+                continue
+            sanitized = _sanitize_extra_value(v)
+            if sanitized is not None:
+                cleaned[k] = sanitized
+        return cleaned or None
+    return None
+
+
 def resolve_extra_object(raw_value: str):
-    """Returns the xhttp extra= payload as a dict, trying JSON first, then the lenient parser."""
+    """Returns the xhttp extra= payload as a sanitized dict, JSON first, then the lenient parser."""
     raw = urllib.parse.unquote(str(raw_value or "")).strip()
     if not raw:
         return None
+    loaded = None
     try:
         loaded = json.loads(raw)
-        return loaded if isinstance(loaded, dict) else None
     except Exception:
         pass
-    normalized = re.sub(r"\bTrue\b", "true", raw)
-    normalized = re.sub(r"\bFalse\b", "false", normalized)
-    normalized = re.sub(r"\bNone\b", "null", normalized)
-    try:
-        loaded = json.loads(normalized)
-        return loaded if isinstance(loaded, dict) else None
-    except Exception:
-        pass
-    try:
-        parsed = parse_transport_extra(raw)
-        return parsed if isinstance(parsed, dict) and parsed else None
-    except Exception:
+    if loaded is None:
+        normalized = re.sub(r"\bTrue\b", "true", raw)
+        normalized = re.sub(r"\bFalse\b", "false", normalized)
+        normalized = re.sub(r"\bNone\b", "null", normalized)
+        try:
+            loaded = json.loads(normalized)
+        except Exception:
+            pass
+    if loaded is None:
+        try:
+            loaded = parse_transport_extra(raw)
+        except Exception:
+            return None
+    if not isinstance(loaded, dict) or not loaded:
         return None
+    # Malformed scalar types here previously crashed the whole-batch decode in
+    # Xray without naming a tag ("Invalid integer range"), losing every node.
+    return _sanitize_extra_value(loaded)
 
 
 def normalize_stream_security(value: str, default: str) -> str:
@@ -432,6 +461,9 @@ def apply_transport_settings(stream_settings: dict, query: dict, net_type: str, 
     if network == "ws":
         stream_settings["wsSettings"] = {
             "path": path,
+            "host": host_value,
+            # headers.Host is deprecated in new cores but kept for backward
+            # compatibility; the independent "host" field above takes priority.
             "headers": {"Host": host_value},
         }
     elif network == "grpc":
@@ -446,7 +478,7 @@ def apply_transport_settings(stream_settings: dict, query: dict, net_type: str, 
             "mode": query.get("mode", ["auto"])[0],
         }
         extra_obj = resolve_extra_object(query.get("extra", [""])[0])
-        if extra_obj:
+        if isinstance(extra_obj, dict) and extra_obj:
             xhttp_settings.update(extra_obj)
         stream_settings["xhttpSettings"] = xhttp_settings
     elif network == "httpupgrade":
@@ -456,9 +488,12 @@ def apply_transport_settings(stream_settings: dict, query: dict, net_type: str, 
         }
     elif network == "kcp" or network == "mkcp":
         network = "kcp"
+        header_type = str(query.get("headerType", ["none"])[0] or "none").strip().lower()
+        if header_type not in VALID_KCP_HEADER_TYPES:
+            header_type = "none"
         kcp_settings = {
             "mtu": 1350,
-            "header": {"type": query.get("headerType", ["none"])[0]},
+            "header": {"type": header_type},
         }
         seed = str(query.get("seed", [""])[0] or "").strip()
         if seed:
@@ -551,8 +586,9 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
             alpn_raw = str(query.get("alpn", [""])[0] or "").strip()
             if alpn_raw:
                 tls_settings["alpn"] = [urllib.parse.unquote(a.strip()) for a in alpn_raw.split(",") if a.strip()]
-            if str(query.get("allowInsecure", query.get("allowinsecure", [""]))[0] or "").lower() in ("1", "true"):
-                tls_settings["allowInsecure"] = True
+            # NOTE: allowInsecure was removed from Xray-core (migrated to
+            # pinnedPeerCertSha256) and its mere presence rejects the whole
+            # config, so the URI parameter is deliberately ignored here.
             pinned = str(query.get("pinnedPeerCertSha256", query.get("pin", [""]))[0] or "").strip()
             if pinned:
                 tls_settings["pinnedPeerCertSha256"] = pinned
@@ -669,6 +705,18 @@ def parse_ss_uri(uri: str, tag: str) -> dict:
         method = urllib.parse.unquote(str(method or "")).strip().lower()
         if not host or not 1 <= port <= 65535 or method not in VALID_SHADOWSOCKS_METHODS:
             return None
+        if method.startswith("2022-blake3"):
+            # shadowsocks-2022 requires a base64 PSK of exact key size; a bad
+            # key aborts the entire Xray config decode without naming a tag.
+            try:
+                norm_psk = password.replace('-', '+').replace('_', '/')
+                norm_psk += "=" * ((4 - len(norm_psk) % 4) % 4)
+                psk_bytes = base64.b64decode(norm_psk, validate=True)
+            except Exception:
+                return None
+            expected_len = 16 if method.endswith("aes-128-gcm") else 32
+            if len(psk_bytes) != expected_len:
+                return None
         return {
             "tag": tag,
             "protocol": "shadowsocks",
@@ -713,12 +761,11 @@ def parse_vmess_uri(uri: str, tag: str) -> dict:
         if stream_settings["security"] == "tls":
             stream_settings["tlsSettings"] = {
                 "serverName": sni,
-                "allowInsecure": False
             }
         if net == "ws":
             stream_settings["wsSettings"] = {
                 "path": path,
-                "headers": {"Host": data.get("host", sni)}
+                "host": str(data.get("host", sni) or ""),
             }
         elif net == "grpc":
             stream_settings["grpcSettings"] = {
@@ -802,11 +849,13 @@ def uri_to_xray_outbound(uri: str, tag: str) -> dict:
 # =============================================================================
 # 🚀 REAL HTTP SOCKS5 PROBER (USES SOCKS5H FOR REMOTE DNS)
 # =============================================================================
-def _client_reachability_ok(session) -> bool:
+def _client_reachability_ok(session, deadline: float = None) -> bool:
     """Requires at least one client-style generate_204 endpoint through the tunnel."""
     for endpoint in CLIENT_LIVENESS_URLS:
+        if deadline is not None and time.perf_counter() > deadline - 1.0:
+            break
         try:
-            r = session.get(endpoint, timeout=PROBE_TIMEOUT, verify=False, allow_redirects=False)
+            r = session.get(endpoint, timeout=min(PROBE_TIMEOUT, 4.0), verify=False, allow_redirects=False)
             if r.status_code in (200, 204):
                 return True
         except Exception:
@@ -817,7 +866,10 @@ def _client_reachability_ok(session) -> bool:
 def probe_ipwho_liveness(session: requests.Session, uri: str) -> tuple:
     """Runs the only retried probe: a real tunnel request to ipwho.is with country parsing."""
     fallback_country = detect_country_code(uri)
+    probe_deadline = time.perf_counter() + PROBE_TOTAL_BUDGET
     for attempt in range(PROBE_RETRIES):
+        if time.perf_counter() > probe_deadline:
+            break
         try:
             t0 = time.perf_counter()
             response = session.get(IPWHO_LIVENESS_URL, timeout=PROBE_TIMEOUT, verify=False)
@@ -836,7 +888,7 @@ def probe_ipwho_liveness(session: requests.Session, uri: str) -> tuple:
                 # Dual-gate: GeoIP proves the tunnel exits where it claims; the
                 # client-realistic 204 check proves a real proxy client (Happ,
                 # mihomo url-test) would actually see this node as working.
-                if not _client_reachability_ok(session):
+                if not _client_reachability_ok(session, deadline=probe_deadline):
                     return False, fallback_country or "GLOBAL", 9999.0
                 ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
                 return True, country, ping_ms
@@ -848,12 +900,16 @@ def probe_ipwho_liveness(session: requests.Session, uri: str) -> tuple:
     # A temporary ipwho.is outage must not mass-reject otherwise live tunnels.
     # Each alternate provider is attempted once only, with its documented country key.
     for endpoint, country_field in GEOIP_FALLBACK_ENDPOINTS:
+        if time.perf_counter() > probe_deadline:
+            break
         try:
             t0 = time.perf_counter()
             response = session.get(endpoint, timeout=PROBE_TIMEOUT, verify=False)
             payload = response.json()
             country = str(payload.get(country_field, "")).upper() if isinstance(payload, dict) else ""
             if response.status_code == 200 and len(country) == 2 and country.isalpha():
+                if not _client_reachability_ok(session, deadline=probe_deadline):
+                    return False, fallback_country or "GLOBAL", 9999.0
                 ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
                 return True, country, ping_ms
         except Exception:
@@ -1091,6 +1147,50 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
         with open(cfg_file, "w", encoding="utf-8") as f:
             json.dump(cfg, f)
 
+    def _drop_slots(bad_indexes: set):
+        bad_tags_dropped = {f"out_{idx}" for idx in bad_indexes}
+        active_slots[:] = [slot for slot in active_slots if slot[0] not in bad_indexes]
+        inbounds[:] = [item for item in inbounds if item.get("tag") not in {f"in_{idx}" for idx in bad_indexes}]
+        outbounds[:] = [item for item in outbounds if item.get("tag") not in bad_tags_dropped]
+        rules[:] = [item for item in rules if not set(item.get("inboundTag", [])) & {f"in_{idx}" for idx in bad_indexes}]
+
+    def _validate_nodes_individually() -> int:
+        """
+        Whole-batch decode failures (e.g. "Invalid integer range") name no tag,
+        so bisect-by-node: test every outbound alone and keep only the configs
+        Xray accepts. Returns the number of dropped nodes.
+        """
+        def single_test(slot):
+            idx = slot[0]
+            single_cfg = {
+                "log": {"loglevel": "none"},
+                "inbounds": [item for item in inbounds if item.get("tag") == f"in_{idx}"],
+                "outbounds": [item for item in outbounds if item.get("tag") == f"out_{idx}"],
+                "routing": {"rules": [item for item in rules if f"in_{idx}" in item.get("inboundTag", [])]},
+            }
+            single_file = os.path.join(tmp_dir, f"config_single_{idx}.json")
+            try:
+                with open(single_file, "w", encoding="utf-8") as f:
+                    json.dump(single_cfg, f)
+                code, _ = run_xray_config_test(xray_bin, single_file)
+                return idx, code == 0
+            except Exception:
+                return idx, False
+            finally:
+                try:
+                    os.remove(single_file)
+                except OSError:
+                    pass
+
+        with ThreadPoolExecutor(max_workers=8) as tp:
+            outcomes = list(tp.map(single_test, list(active_slots)))
+        good_indexes = {idx for idx, ok in outcomes if ok}
+        dropped = len(active_slots) - len(good_indexes)
+        if dropped:
+            print(f"  🧹 [Xray Config] Individual validation dropped {dropped} poisoned node(s)", flush=True)
+            _drop_slots({s[0] for s in active_slots} - good_indexes)
+        return dropped
+
     # One malformed outbound makes Xray reject the complete config. Validate before
     # starting and remove only the tag explicitly named by Xray; then retry the
     # remaining batch. URL decoding and UUID validation handle the common case,
@@ -1104,7 +1204,16 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
         if test_code == 0:
             break
         bad_tags = set(re.findall(r"(?:tag|outbound config with tag)\s+(out_\d+)", test_output))
-        if not bad_tags or remaining_retries <= 0:
+        if not bad_tags:
+            # Unnamed decode failures used to discard every node in the batch.
+            if remaining_retries <= 0:
+                print(f"  ⚠️ [Xray Config] Rejected batch before startup: {test_output[-1000:] or 'no diagnostic output'}", flush=True)
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+                _release_allocated()
+                return results
+            remaining_retries -= _validate_nodes_individually()
+            continue
+        if remaining_retries <= 0:
             print(f"  ⚠️ [Xray Config] Rejected batch before startup: {test_output[-1000:] or 'no diagnostic output'}", flush=True)
             shutil.rmtree(tmp_dir, ignore_errors=True)
             _release_allocated()
@@ -1113,10 +1222,7 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
         fallback_rounds += 1
         bad_indexes = {int(tag.split("_", 1)[1]) for tag in bad_tags}
         before_count = len(active_slots)
-        active_slots[:] = [slot for slot in active_slots if slot[0] not in bad_indexes]
-        inbounds[:] = [item for item in inbounds if item.get("tag") not in {f"in_{idx}" for idx in bad_indexes}]
-        outbounds[:] = [item for item in outbounds if item.get("tag") not in bad_tags]
-        rules[:] = [item for item in rules if not set(item.get("inboundTag", [])) & {f"in_{idx}" for idx in bad_indexes}]
+        _drop_slots(bad_indexes)
         remaining_retries -= max(1, before_count - len(active_slots))
         print(f"  🧹 [Xray Config] Dropped {before_count - len(active_slots)} malformed node(s): {', '.join(sorted(bad_tags))}", flush=True)
 
@@ -1680,7 +1786,10 @@ async def async_probe_candidate_socket(sem: asyncio.Semaphore, item: tuple, time
         if writer:
             try:
                 writer.close()
-                await writer.wait_closed()
+                try:
+                    await asyncio.wait_for(writer.wait_closed(), timeout=1.0)
+                except Exception:
+                    pass
             except Exception:
                 pass
 
