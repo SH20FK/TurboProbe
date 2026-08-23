@@ -12,6 +12,10 @@ jobs:
   ru-verify:
     name: Deep-verify pool from a Russian vantage point
     runs-on: self-hosted
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout repository
