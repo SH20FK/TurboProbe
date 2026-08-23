@@ -15,7 +15,9 @@ jobs:
     timeout-minutes: 120
     defaults:
       run:
-        shell: bash
+        # Windows self-hosted: plain `bash` resolves to the WSL stub in System32,
+        # so Git Bash is pinned by absolute path instead.
+        shell: '"C:\Program Files\Git\bin\bash.exe" --noprofile --norc -eo pipefail {0}'
 
     steps:
       - name: Checkout repository
