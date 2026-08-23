@@ -68,6 +68,50 @@ export default {
       );
     }
 
+    // 3. Minimal monochrome landing page (editorial, dark, no gradients)
+    if (path === '/' || path === '') {
+      const landing = `<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurboProbe Edge API v7.0</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,300&family=Geist+Mono:wght@400&display=swap');
+:root{--bg:#0b0b0c;--fg:#eae9e6;--line:rgba(234,233,230,0.08);--mono:'Geist Mono',monospace;--serif:'Cormorant Garamond','Playfair Display',serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:13px;line-height:1.45;letter-spacing:0.02em;}
+main{max-width:480px;margin:0 auto;padding:160px 24px 60px;display:flex;flex-direction:column;align-items:center;gap:32px;text-align:center;}
+h1{font-family:var(--serif);font-weight:300;font-size:clamp(2.2rem,8vw,3.6rem);letter-spacing:-0.04em;line-height:0.9;color:#fdfdfc;margin-bottom:6px;}
+.subtitle{font-family:var(--mono);font-size:11px;color:#9a9790;text-transform:uppercase;letter-spacing:0.08em;}
+.meta{font-family:var(--mono);font-size:11px;color:#5a5752;letter-spacing:0.06em;text-transform:uppercase;margin-top:48px;opacity:.7;}
+svg{display:block;margin:0 auto 24px;opacity:.95;}
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <svg width="44" height="30" viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="TurboProbe logo">
+      <polygon points="20,0 40,28 0,28" stroke="#eae9e6" stroke-width="1.2" fill="none" stroke-linejoin="round"/>
+      <circle cx="20" cy="19" r="2.2" fill="#eae9e6" opacity=".9"/>
+    </svg>
+    <h1>TurboProbe Edge API v7.0</h1>
+    <div class="subtitle">Суверенный роутер и генератор подписок VLESS / Trojan / Hysteria 2</div>
+  </div>
+  <div style="font-family:var(--mono);font-size:12px;color:#787774;line-height:1.55;max-width:420px;">
+    <p>Этот сайт обслуживает VPN агрегатор <strong>TurboProbe</strong>, создано <strong>SH20FK</strong> с любовью для сообщества.</p>
+  </div>
+  <div class="meta">TurboProbe Edge &middot; SH20FK &middot; 2026</div>
+</main>
+</body>
+</html>`;
+      return new Response(landing, {
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'public, max-age=300, s-maxage=300'
+        }
+      });
+    }
+
     try {
       // Multi-Service parsing (e.g. ?services=chatgpt,gemini)
       let services = [];

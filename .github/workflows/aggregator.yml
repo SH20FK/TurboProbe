@@ -97,6 +97,9 @@ jobs:
           python tools/aggregator.py
 
       - name: Run Deep Service Prober (Real Tunnel Verifier)
+        env:
+          TP_XRAY_WORKERS: "6"
+          TP_BATCH_SIZE: "150"
         run: |
           ulimit -n 65536 || true
           if [ "${{ github.event.inputs.mode }}" = "fast" ]; then

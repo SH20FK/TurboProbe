@@ -125,14 +125,15 @@ SUB_DIR = os.path.join(ROOT_DIR, "sub")
 SERVICES_DIR = os.path.join(SUB_DIR, "services")
 
 DEFAULT_PROBE_LIMIT = 0     # 0 = probe 100% of all harvested candidate nodes
-BATCH_SIZE = 75             # 75 nodes per Xray instance (instant 20ms startup)
-NUM_XRAY_WORKERS = 4        # 4 concurrent Xray processes matching CI vCPUs
+BATCH_SIZE = int(os.environ.get("TP_BATCH_SIZE", "75"))    # Nodes per Xray instance
+NUM_XRAY_WORKERS = int(os.environ.get("TP_XRAY_WORKERS", "4"))  # Concurrent Xray processes
 BASE_SOCKS_PORT = 10900     # Proven local SOCKS range start
-PORT_STEP = 150             # Non-overlapping range reserved per Xray worker
-PROBE_TIMEOUT = 6.0         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
-PROBE_RETRIES = 3           # Retry only the liveness request before considering a tunnel dead
-PROBE_RETRY_DELAY = 0.25    # Small pause between liveness attempts
-PROBE_TOTAL_BUDGET = 22.0   # Hard per-node wall-clock budget for the whole liveness gate
+PORT_STEP = BATCH_SIZE + 75  # Non-overlapping port range reserved per Xray worker
+PROBE_TIMEOUT = 4.5         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
+PROBE_RETRIES = 2           # Retry only the liveness request before considering a tunnel dead
+PROBE_RETRY_DELAY = 0.2    # Small pause between liveness attempts
+PROBE_TOTAL_BUDGET = 15.0   # Hard per-node wall-clock budget for the whole liveness gate
+PROBE_FAST_TIMEOUT = 3.5    # Faster timeout when running massive pools (e.g. CI >10k nodes)
 IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Primary real-tunnel liveness and egress-country endpoint
 # Client-realistic reachability: exactly the endpoints proxy clients (Happ, mihomo,
 # v2rayN url-test) hit. A tunnel that answers ipwho.is but cannot fetch a plain 204
@@ -1197,6 +1198,7 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
     # while this loop protects against any future malformed transport or cipher.
     remaining_retries = len(active_slots)
     fallback_rounds = 0
+    named_drop_rounds = 0
     last_rejection_output = ""
     while active_slots:
         write_config()
@@ -1220,6 +1222,13 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
             return results
         last_rejection_output = test_output
         fallback_rounds += 1
+        named_drop_rounds += 1
+        if named_drop_rounds > 2:
+            # Xray reports only the first failing tag per run; a batch with many
+            # malformed nodes would burn one sequential config test per node.
+            # Switch to one parallel per-node validation pass instead.
+            remaining_retries -= _validate_nodes_individually()
+            continue
         bad_indexes = {int(tag.split("_", 1)[1]) for tag in bad_tags}
         before_count = len(active_slots)
         _drop_slots(bad_indexes)
@@ -2048,14 +2057,20 @@ def main():
     # Retry pass: a flaky Xray instance used to mass-reject otherwise live nodes.
     # Any unconfirmed node gets one more chance with brand-new instances before
     # it is declared dead; only nodes failing both passes are discarded.
+    # On massive pools (CI full runs) most failures are genuinely dead tunnels;
+    # re-probing tens of thousands of corpses doubles wall time for nothing,
+    # so the retry round is capped to a sane slice.
+    RETRY_ROUND_CAP = 2000
     alive_keys_first_pass = {get_node_key(n["uri"]) for n in verified_alive_nodes}
     failed_probe_items = [item for item in probe_pool if get_node_key(item[1]) not in alive_keys_first_pass]
-    if failed_probe_items:
+    if failed_probe_items and len(failed_probe_items) <= RETRY_ROUND_CAP:
         print(f"\n🔁 [Retry Round] Re-probing {len(failed_probe_items)} unconfirmed node(s) with fresh Xray instances...", flush=True)
         retry_results = execute_probe_round(failed_probe_items, "Retry")
         verified_alive_nodes.extend(retry_results)
         recovered = len(retry_results)
         print(f"🔁 [Retry Round] {recovered} node(s) recovered on second pass", flush=True)
+    elif failed_probe_items:
+        print(f"\n⏭️ [Retry Round] Skipped: {len(failed_probe_items)} unconfirmed node(s) exceed the {RETRY_ROUND_CAP}-node cap (large-pool mode).", flush=True)
 
     print(f"\n🏆 Total genuinely alive & verified nodes: {len(verified_alive_nodes)}", flush=True)
 
