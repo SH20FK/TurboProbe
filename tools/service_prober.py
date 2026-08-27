@@ -157,6 +157,21 @@ VALID_SHADOWSOCKS_METHODS = {
     "2022-blake3-chacha20-poly1305",
 }
 
+# Extended SS method set that Mihomo accepts (includes legacy stream ciphers
+# still present in many public subscriptions).
+SS_MIHOMO_ALLOWED_METHODS = VALID_SHADOWSOCKS_METHODS | {
+    "aes-128-cfb", "aes-192-cfb", "aes-256-cfb",
+    "aes-128-ctr", "aes-192-ctr", "aes-256-ctr",
+    "aes-192-gcm", "rc4-md5",
+    "chacha20", "chacha20-ietf",
+    "xchacha20", "xchacha20-ietf",
+}
+
+# Mihomo binary — optional; enables real Hy2/TUIC/AnyTLS checking.
+# If absent, those protocols are skipped rather than faked.
+MIHOMO_STARTUP_TIMEOUT = 6.0
+MIHOMO_LIVENESS_URL = "http://www.gstatic.com/generate_204"  # Lightweight 204; no body
+
 TARGET_SERVICES = {
     "chatgpt": {
         "name": "ChatGPT / OpenAI",
@@ -261,6 +276,148 @@ def get_xray_binary_path() -> str:
         return local_bin
     except Exception as e:
         print(f"⚠️ [Xray] Failed to download Xray-core: {e}", flush=True)
+        return ""
+
+# =============================================================================
+# 📦 MIHOMO CORE AUTO-SETUP (optional — enables real Hy2/TUIC/AnyTLS probing)
+# =============================================================================
+def get_mihomo_binary_path() -> str:
+    """Finds or auto-downloads mihomo binary for current OS/arch.
+
+    Mirrors get_xray_binary_path() — tries PATH, then local bin, then
+    downloads the latest stable release from MetaCubeX/mihomo on GitHub.
+    Returns empty string on failure (non-fatal: Hy2/TUIC probing is skipped).
+    """
+    os_name = platform.system().lower()
+    machine = platform.machine().lower()
+    exe_name = "mihomo.exe" if os_name == "windows" else "mihomo"
+
+    # 1. System PATH
+    sys_mihomo = shutil.which("mihomo")
+    if sys_mihomo:
+        return sys_mihomo
+
+    # 2. Local bin directory (same as Xray)
+    local_bin = os.path.join(BIN_DIR, exe_name)
+    if os.path.isfile(local_bin):
+        return local_bin
+
+    # 3. Auto-download latest release from MetaCubeX/mihomo
+    os.makedirs(BIN_DIR, exist_ok=True)
+    print(f"[Mihomo] Binary not found — downloading latest release for {os_name}/{machine}...", flush=True)
+
+    # Map platform/machine → Mihomo release filename components.
+    # Naming verified against v1.19.30 release assets:
+    #   mihomo-windows-amd64-v1.19.30.zip   mihomo-windows-arm64-v1.19.30.zip
+    #   mihomo-linux-amd64-v1.19.30.gz      mihomo-linux-arm64-v1.19.30.gz
+    #   mihomo-darwin-amd64-v1.19.30.gz     mihomo-darwin-arm64-v1.19.30.gz
+    if os_name == "windows":
+        arch = "arm64" if ("arm" in machine and "64" in machine) else "amd64"
+        ext = "zip"
+    elif os_name == "darwin":
+        arch = "arm64" if "arm" in machine else "amd64"
+        ext = "gz"
+    else:  # linux and anything else
+        if "aarch64" in machine or "arm64" in machine:
+            arch = "arm64"
+        elif "arm" in machine:
+            arch = "armv7"
+        else:
+            arch = "amd64"
+        ext = "gz"
+
+    # Step 3a: Resolve latest release tag AND get the full asset list via GitHub
+    # API. This lets us pick the exact filename instead of guessing -v1/-v3/-go120
+    # suffix variants that differ across releases.
+    try:
+        import urllib.request, json as _json
+        api_url = "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"
+        api_req = urllib.request.Request(
+            api_url,
+            headers={"User-Agent": "TurboProbe/2.0", "Accept": "application/vnd.github+json"},
+        )
+        with urllib.request.urlopen(api_req, timeout=10) as resp:
+            release_info = _json.loads(resp.read().decode())
+        version = release_info.get("tag_name", "").lstrip("v")
+        if not version:
+            raise ValueError("Empty tag_name in GitHub API response")
+        # Build a name → URL map for all assets in this release
+        assets = {a["name"]: a["browser_download_url"] for a in release_info.get("assets", [])}
+    except Exception as e:
+        print(f"[Mihomo] Could not resolve latest version via GitHub API: {e}", flush=True)
+        return ""
+
+    # Pick the first matching asset from this priority list:
+    # 1. Plain name — no qualifiers, broadest CPU compatibility baseline
+    # 2. -compatible — explicitly built for older CPUs
+    # 3. -v1         — oldest micro-arch level, most portable
+    # 4. -v3         — modern CPUs (AVX2), good for CI/cloud VMs
+    preferred_order = [
+        f"mihomo-{os_name}-{arch}-v{version}.{ext}",
+        f"mihomo-{os_name}-{arch}-compatible-v{version}.{ext}",
+        f"mihomo-{os_name}-{arch}-v1-v{version}.{ext}",
+        f"mihomo-{os_name}-{arch}-v3-v{version}.{ext}",
+    ]
+
+    download_url = None
+    chosen_stem = None
+    for stem in preferred_order:
+        if stem in assets:
+            download_url = assets[stem]
+            chosen_stem = stem
+            break
+
+    if not download_url:
+        print(
+            f"[Mihomo] No suitable asset found for {os_name}-{arch} in release v{version}. "
+            f"Please download mihomo manually to {local_bin}.",
+            flush=True,
+        )
+        return ""
+
+    archive_path = os.path.join(BIN_DIR, chosen_stem)
+    try:
+        import urllib.request, zipfile, gzip as _gzip
+
+        print(f"[Mihomo] Downloading {download_url} ...", flush=True)
+        dl_req = urllib.request.Request(download_url, headers={"User-Agent": "TurboProbe/2.0"})
+        with urllib.request.urlopen(dl_req, timeout=60) as resp, open(archive_path, "wb") as out:
+            shutil.copyfileobj(resp, out)
+
+        if ext == "zip":
+            with zipfile.ZipFile(archive_path, "r") as zf:
+                # The zip contains mihomo.exe (possibly under a subdirectory).
+                for name in zf.namelist():
+                    if os.path.basename(name).lower().startswith("mihomo") and not name.endswith("/"):
+                        with zf.open(name) as src, open(local_bin, "wb") as dst:
+                            shutil.copyfileobj(src, dst)
+                        break
+        else:
+            # .gz — single compressed binary (not a tar archive)
+            with _gzip.open(archive_path, "rb") as src, open(local_bin, "wb") as dst:
+                shutil.copyfileobj(src, dst)
+
+        if os.path.isfile(archive_path):
+            os.remove(archive_path)
+
+        if os_name != "windows":
+            os.chmod(local_bin, 0o755)
+
+        if os.path.isfile(local_bin):
+            print(f"[Mihomo] Installed mihomo v{version} to {local_bin}", flush=True)
+            return local_bin
+
+        print(f"[Mihomo] Archive extracted but binary not found at {local_bin}", flush=True)
+        return ""
+
+    except Exception as e:
+        print(f"[Mihomo] Failed to download/extract: {e}", flush=True)
+        for p in (archive_path, local_bin):
+            try:
+                if os.path.isfile(p):
+                    os.remove(p)
+            except Exception:
+                pass
         return ""
 
 # =============================================================================
@@ -636,6 +793,7 @@ def parse_trojan_uri(uri: str, tag: str) -> dict:
         if not net_type:
             return None
         sni = query.get("sni", [""])[0] or host
+        fp = query.get("fp", ["chrome"])[0]
 
         stream_settings = {
             "network": net_type,
@@ -644,6 +802,21 @@ def parse_trojan_uri(uri: str, tag: str) -> dict:
         if security == "tls":
             stream_settings["tlsSettings"] = {
                 "serverName": sni,
+                "fingerprint": fp,
+            }
+        elif security == "reality":
+            # Build realitySettings so prepare_outbound_for_current_xray() can
+            # validate the public key. Without this block all Trojan+REALITY URIs
+            # were silently discarded (W2).
+            pbk = query.get("pbk", [""])[0]
+            sid = query.get("sid", [""])[0]
+            spx = query.get("spx", [""])[0] or "/"
+            stream_settings["realitySettings"] = {
+                "serverName": sni,
+                "fingerprint": fp,
+                "publicKey": pbk,
+                "shortId": sid,
+                "spiderX": spx,
             }
 
         apply_transport_settings(stream_settings, query, net_type, host)
@@ -662,6 +835,7 @@ def parse_trojan_uri(uri: str, tag: str) -> dict:
         }
     except Exception:
         return None
+
 
 def _extract_ss_host_port(hostport: str) -> tuple:
     clean = hostport.split("?")[0].split("/")[0]
@@ -745,16 +919,19 @@ def parse_vmess_uri(uri: str, tag: str) -> dict:
         norm += "=" * pad
         dec = base64.b64decode(norm).decode("utf-8", errors="ignore")
         data = json.loads(dec)
-        
+
         host = str(data.get("add", "")).strip('[]')
         port = int(data.get("port", 443))
         uuid = normalize_xray_uuid(data.get("id", ""))
         aid = int(data.get("aid", 0))
-        net = str(data.get("net", "tcp")).lower()
+        net = normalize_xray_transport(str(data.get("net", "tcp")).lower())
+        if not net:
+            return None
         tls_val = str(data.get("tls", "")).lower()
         sni = str(data.get("sni", "") or data.get("host", host))
         path = str(data.get("path", "/"))
-        
+        host_header = str(data.get("host", sni) or "")
+
         stream_settings = {
             "network": net,
             "security": "tls" if tls_val in ["tls", "1", "true"] else "none",
@@ -763,16 +940,20 @@ def parse_vmess_uri(uri: str, tag: str) -> dict:
             stream_settings["tlsSettings"] = {
                 "serverName": sni,
             }
-        if net == "ws":
-            stream_settings["wsSettings"] = {
-                "path": path,
-                "host": str(data.get("host", sni) or ""),
-            }
-        elif net == "grpc":
-            stream_settings["grpcSettings"] = {
-                "serviceName": path
-            }
-            
+
+        # Build a synthetic query dict so apply_transport_settings() works the
+        # same way it does for VLESS/Trojan. This replaces the former ws/grpc-only
+        # inline blocks and adds coverage for xhttp, httpupgrade, kcp, tcp (W5).
+        vmess_query = {
+            "path": [path],
+            "host": [host_header],
+            "serviceName": [path],   # grpc
+            "mode": [data.get("mode", "auto")],
+            "headerType": [data.get("type", "none")],
+            "seed": [data.get("seed", "")],
+        }
+        apply_transport_settings(stream_settings, vmess_query, net, host)
+
         return {
             "tag": tag,
             "protocol": "vmess",
@@ -792,48 +973,242 @@ def parse_vmess_uri(uri: str, tag: str) -> dict:
     except Exception:
         return None
 
-def probe_direct_hy2_tuic(uri: str, proto: str) -> dict:
-    """Direct reachability benchmark for UDP/QUIC-based protocols (Hysteria 2 / TUIC)."""
+
+
+def _build_mihomo_config(uri: str, local_port: int) -> dict | None:
+    """Builds a single-proxy Mihomo JSON config for Hy2/TUIC/AnyTLS.
+
+    Returns the config dict or None if the URI cannot be parsed into a valid
+    Mihomo proxy structure.
+    """
     try:
         parsed = urllib.parse.urlparse(uri)
+        proto = parsed.scheme.lower()
         host = (parsed.hostname or "").strip('[]')
         if not host:
             netloc = parsed.netloc.split('@')[-1] if '@' in parsed.netloc else parsed.netloc
             host = netloc.split('?')[0].split('/')[0].split('#')[0].strip('[]')
         port = parsed.port or 443
-        
+        if not host or not (1 <= port <= 65535):
+            return None
+        query = urllib.parse.parse_qs(parsed.query)
+        password = urllib.parse.unquote(parsed.username or "")
+        sni = query.get("sni", [""])[0] or host
+        proxy_name = f"tp_mihomo_{local_port}"
+
+        if proto in ("hy2", "hysteria2"):
+            proxy = {
+                "name": proxy_name,
+                "type": "hysteria2",
+                "server": host,
+                "port": port,
+                "password": password,
+                "sni": sni,
+                "skip-cert-verify": query.get("insecure", ["0"])[0] in ("1", "true"),
+                "udp": False,
+            }
+            obfs = query.get("obfs", [""])[0]
+            if obfs and obfs != "none":
+                proxy["obfs"] = obfs
+                proxy["obfs-password"] = query.get("obfs-password", query.get("obfsParam", [""]))[0]
+            ports = query.get("ports", [""])[0]
+            if ports:
+                proxy["ports"] = ports
+        elif proto == "tuic":
+            proxy = {
+                "name": proxy_name,
+                "type": "tuic",
+                "server": host,
+                "port": port,
+                "uuid": password,
+                "password": query.get("password", [""])[0],
+                "sni": sni,
+                "skip-cert-verify": True,
+                "udp-relay-mode": "native",
+                "udp": False,
+            }
+            alpn = query.get("alpn", [""])[0]
+            if alpn:
+                proxy["alpn"] = [a.strip() for a in alpn.split(",") if a.strip()]
+            cc = query.get("congestion_control", query.get("cc", ["bbr"]))[0]
+            if cc:
+                proxy["congestion-controller"] = cc
+        else:
+            # anytls or other future protocols
+            proxy = {
+                "name": proxy_name,
+                "type": proto,
+                "server": host,
+                "port": port,
+                "password": password,
+                "sni": sni,
+                "skip-cert-verify": True,
+                "udp": False,
+            }
+
+        return {
+            "allow-lan": False,
+            "bind-address": "127.0.0.1",
+            "mode": "rule",
+            "log-level": "silent",
+            "ipv6": True,
+            "socks-port": local_port,
+            "proxies": [proxy],
+            "proxy-groups": [{"name": "TP_CHECK", "type": "select", "proxies": [proxy_name]}],
+            "rules": ["MATCH,TP_CHECK"],
+        }
+    except Exception:
+        return None
+
+
+def _is_port_open_fast(port: int) -> bool:
+    """Quick TCP connect check for Mihomo SOCKS port readiness."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.05)
+            return s.connect_ex(("127.0.0.1", port)) == 0
+    except Exception:
+        return False
+
+
+def probe_via_mihomo(uri: str, proto: str) -> dict | None:
+    """Real Hy2/TUIC/AnyTLS probe through Mihomo SOCKS5 tunnel.
+
+    Replaces the former probe_direct_hy2_tuic() which only did a TCP connect
+    to a UDP server and fabricated speed=45Mbps and all service flags (W1).
+
+    Returns a result dict compatible with run_batch_probe() output, or None
+    if the node is unreachable or Mihomo is not installed.
+    """
+    mihomo_bin = get_mihomo_binary_path()
+    if not mihomo_bin:
+        print(f"  ⚠️ [Mihomo] Binary not found — skipping {proto} node. "
+              f"Install mihomo to {BIN_DIR} for real Hy2/TUIC probing.", flush=True)
+        return None
+
+    # Allocate a dedicated local SOCKS port for this single-proxy Mihomo instance.
+    try:
+        local_port = allocate_free_socks_port()
+    except RuntimeError:
+        return None
+
+    config = _build_mihomo_config(uri, local_port)
+    if not config:
+        release_socks_port(local_port)
+        return None
+
+    tmp_dir = tempfile.mkdtemp(prefix="turboprobe_mihomo_")
+    cfg_file = os.path.join(tmp_dir, f"mihomo_{local_port}.json")
+    proc = None
+
+    try:
+        with open(cfg_file, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+        }
+        if os.name == "nt":
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            si.wShowWindow = subprocess.SW_HIDE
+            popen_kwargs["startupinfo"] = si
+
+        proc = subprocess.Popen([mihomo_bin, "-f", cfg_file], **popen_kwargs)
+
+        # Drain Mihomo stdout/stderr in background so the pipe never fills.
+        def _drain(p):
+            try:
+                for _ in p.stdout:
+                    pass
+            except Exception:
+                pass
+        threading.Thread(target=_drain, args=(proc,), daemon=True).start()
+
+        # Wait for Mihomo to open the SOCKS port (up to MIHOMO_STARTUP_TIMEOUT seconds).
+        deadline = time.perf_counter() + MIHOMO_STARTUP_TIMEOUT
+        started = False
+        while time.perf_counter() < deadline:
+            if _is_port_open_fast(local_port):
+                started = True
+                break
+            if proc.poll() is not None:
+                break
+            time.sleep(0.1)
+
+        if not started:
+            return None
+
+        # Brief warm-up — Mihomo can return transient EOF right after port opens.
+        time.sleep(0.5)
+
+        # Real liveness probe: HTTP GET through the SOCKS5 tunnel.
+        proxy_url = f"socks5://127.0.0.1:{local_port}"
         t0 = time.perf_counter()
         try:
-            sock = socket.create_connection((host, port), timeout=1.5)
-            sock.close()
-            res = 0
+            with requests.Session() as session:
+                session.proxies = {"http": proxy_url, "https": proxy_url}
+                r = session.get(MIHOMO_LIVENESS_URL, timeout=PROBE_TIMEOUT, verify=False,
+                                allow_redirects=False)
+                if r.status_code not in (200, 204):
+                    return None
         except Exception:
-            res = -1
-        if res == 0:
-                elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 1)
-                cc = detect_country_code(uri)
-                return {
-                    "uri": uri,
-                    "ping_ms": elapsed_ms,
-                    "speed_mbps": 45.0,
-                    "country": cc,
-                    "protocol": proto,
-                    "services": {
-                        "youtube": True,
-                        "discord": True,
-                        "twitter": True,
-                        "spotify": True,
-                        "github": True,
-                        "chatgpt": False,
-                        "claude": False,
-                        "gemini": False,
-                        "perplexity": False,
-                        "instagram": False,
-                    }
-                }
-    except Exception:
-        pass
-    return None
+            return None
+        ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
+
+        # Service checks through the confirmed tunnel.
+        services = {}
+        try:
+            proxy_url_s5h = f"socks5h://127.0.0.1:{local_port}"
+            svc_proxies = {"http": proxy_url_s5h, "https": proxy_url_s5h}
+            def _check_svc(s_key, s_info):
+                try:
+                    resp = requests.get(s_info["url"], proxies=svc_proxies,
+                                        timeout=PROBE_TIMEOUT, verify=False, allow_redirects=True)
+                    return s_key, resp.status_code in s_info["valid_status"]
+                except Exception:
+                    return s_key, False
+
+            with ThreadPoolExecutor(max_workers=min(10, len(TARGET_SERVICES))) as spool:
+                sfuts = [spool.submit(_check_svc, k, v) for k, v in TARGET_SERVICES.items()]
+                for sf in as_completed(sfuts):
+                    sk, ok = sf.result()
+                    services[sk] = ok
+        except Exception:
+            services = {k: False for k in TARGET_SERVICES}
+
+        cc = detect_country_code(uri)
+        return {
+            "uri": uri,
+            "ping_ms": ping_ms,
+            "speed_mbps": 0.0,
+            "country": cc,
+            "protocol": proto,
+            "services": services,
+        }
+
+    finally:
+        if proc and proc.poll() is None:
+            try:
+                proc.terminate()
+                proc.wait(timeout=2.0)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+        release_socks_port(local_port)
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+# Keep old name as alias so existing call-sites in run_batch_probe() still work.
+# The real implementation is now probe_via_mihomo().
+def probe_direct_hy2_tuic(uri: str, proto: str) -> dict | None:
+    """Deprecated shim → probe_via_mihomo(). Kept for backward compatibility."""
+    return probe_via_mihomo(uri, proto)
+
+
 
 def uri_to_xray_outbound(uri: str, tag: str) -> dict:
     low = uri.lower()
@@ -1248,10 +1623,14 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
         return results
 
     proc = None
+    _drain_thread = None
     try:
         popen_kwargs = {
-            "stdout": subprocess.DEVNULL,
-            "stderr": subprocess.PIPE,
+            # Merge stderr into stdout so the OS pipe never fills up and deadlocks
+            # Xray (W3). We don't need the output during normal operation; the drain
+            # thread below discards it silently.
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
         }
         if os.name == "nt":
             startupinfo = subprocess.STARTUPINFO()
@@ -1262,20 +1641,25 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
             popen_kwargs["start_new_session"] = True
 
         proc = subprocess.Popen([xray_bin, "run", "-c", cfg_file], **popen_kwargs)
+
+        # Drain stdout (which now also carries stderr) in a background thread so
+        # the pipe buffer never fills up and blocks the Xray process.
+        def _drain_stdout(p):
+            try:
+                for _ in p.stdout:
+                    pass
+            except Exception:
+                pass
+
+        _drain_thread = threading.Thread(target=_drain_stdout, args=(proc,), daemon=True)
+        _drain_thread.start()
         inbound_ports = [slot[1] for slot in active_slots]
         missing_ports = wait_for_ports_ready(inbound_ports)
         if missing_ports:
-            error_detail = ""
-            if proc.poll() is not None and proc.stderr:
-                try:
-                    error_detail = proc.stderr.read().decode("utf-8", errors="ignore").strip()
-                except Exception:
-                    pass
+            # Stderr is merged into stdout and drained by the background thread,
+            # so we can't read it here — use the config test for diagnostics instead.
             summary = f"{len(missing_ports)}/{len(inbound_ports)} SOCKS ports did not bind within {XRAY_STARTUP_TIMEOUT:.0f}s"
-            if error_detail:
-                summary += f"; Xray exited: {error_detail[-800:]}"
-            else:
-                summary += f"; {diagnose_xray_config(xray_bin, cfg_file)}"
+            summary += f"; {diagnose_xray_config(xray_bin, cfg_file)}"
             # Drop only the failed inbounds and keep probing every healthy slot;
             # abandoning the whole batch here used to mass-reject live nodes.
             missing_set = set(missing_ports)
@@ -1986,15 +2370,24 @@ def main():
         pass
 
     if prefilter_tiers is not None:
-        tls_confirmed = prefilter_tiers.get("tls", [])
+        # UDP-only protocols (hy2/tuic/wireguard) were returned as "tls" by
+        # async_probe_candidate_socket() without any actual network probe, which
+        # inflated the tls_confirmed count and could exclude TCP nodes from the
+        # pool (W10). Separate them now.
+        UDP_PROTOS = {"hy2", "hysteria2", "tuic", "wireguard"}
+        raw_tls = prefilter_tiers.get("tls", [])
+        tls_confirmed = [item for item in raw_tls if item[4] not in UDP_PROTOS]
+        udp_pass = [item for item in raw_tls if item[4] in UDP_PROTOS]
         tcp_connected = prefilter_tiers.get("tcp", [])
         tls_killed = prefilter_tiers.get("tcp-fail", [])
         # Strictest first: only nodes whose TLS handshake completed. Nodes where
         # TCP connected but TLS was killed are classic DPI victims and poison
         # client feeds with n/a pings; they join only when the pool runs dry.
+        # UDP nodes always pass through regardless of the TLS threshold.
         reachable_pool = tls_confirmed if len(tls_confirmed) >= 20 else tls_confirmed + tcp_connected
         if len(reachable_pool) < 20:
             reachable_pool = reachable_pool + tls_killed
+        reachable_pool = reachable_pool + udp_pass
     else:
         with ThreadPoolExecutor(max_workers=min(256, len(probe_pool) or 1)) as pre_pool:
             reach_futs = {pre_pool.submit(check_candidate_reachability, item): item for item in probe_pool}
@@ -2010,7 +2403,8 @@ def main():
     elapsed_pre = round(time.perf_counter() - t_start, 2)
     dropped_count = len(probe_pool) - len(reachable_pool)
     if prefilter_tiers is not None:
-        tier_stats = f"[TLS-ok: {len(prefilter_tiers.get('tls', []))}, TCP-only: {len(prefilter_tiers.get('tcp', []))}, TLS-killed-by-DPI: {len(prefilter_tiers.get('tcp-fail', []))}]"
+        real_tls_count = len([i for i in prefilter_tiers.get("tls", []) if i[4] not in {"hy2", "hysteria2", "tuic", "wireguard"}])
+        tier_stats = f"[TLS-ok: {real_tls_count}, TCP-only: {len(prefilter_tiers.get('tcp', []))}, TLS-killed-by-DPI: {len(prefilter_tiers.get('tcp-fail', []))}, UDP-pass: {len(udp_pass if prefilter_tiers else [])}]"
     else:
         tier_stats = "[fallback TCP mode]"
     print(f"✨ TLS-Handshake Filter finished in {elapsed_pre}s {tier_stats}: {len(reachable_pool)} candidates selected ({dropped_count} dead filtered out)", flush=True)

@@ -47,7 +47,14 @@ jobs:
           path: /usr/local/bin/xray
           key: xray-linux-64-v1.8.24
 
-      - name: Install dependencies & Xray-core
+      - name: Cache Mihomo binary
+        id: cache-mihomo
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/mihomo
+          key: mihomo-linux-amd64-v1.19.30
+
+      - name: Install dependencies & Xray-core & Mihomo
         run: |
           ulimit -n 65536 || true
           python -m pip install --upgrade pip
@@ -56,6 +63,13 @@ jobs:
             curl -L -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
             sudo unzip -o /tmp/xray.zip -d /usr/local/bin/
             sudo chmod +x /usr/local/bin/xray
+          fi
+          if [ ! -f /usr/local/bin/mihomo ]; then
+            MIHOMO_VER=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'].lstrip('v'))")
+            curl -L -s -o /tmp/mihomo.gz "https://github.com/MetaCubeX/mihomo/releases/download/v${MIHOMO_VER}/mihomo-linux-amd64-v${MIHOMO_VER}.gz"
+            sudo sh -c "gunzip -c /tmp/mihomo.gz > /usr/local/bin/mihomo"
+            sudo chmod +x /usr/local/bin/mihomo
+            rm -f /tmp/mihomo.gz
           fi
 
       - name: Set up Node.js
