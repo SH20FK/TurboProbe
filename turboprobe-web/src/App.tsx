@@ -6,6 +6,7 @@ import { NodePreviewList } from './components/NodePreviewList';
 import { QrModal } from './components/QrModal';
 import { normalizeAndIndexNodes } from './utils/nodeIndexer';
 import { generateClashMetaYaml } from './utils/clashExport';
+import { M3Background } from './components/ui/M3Background';
 import { M3Ripple } from './components/ui/M3Ripple';
 import type { NodeItem, PresetItem } from './types';
 
@@ -352,7 +353,10 @@ export default function App() {
   }, [filteredNodes]);
 
   return (
-    <div className="min-h-screen bg-[#141218] text-[#E6E0E9] selection:bg-[#D0BCFF] selection:text-[#381E72] flex flex-col justify-between">
+    <div className="relative min-h-screen bg-[#141218] text-[#E6E0E9] selection:bg-[#D0BCFF] selection:text-[#381E72] flex flex-col justify-between overflow-x-hidden">
+      {/* M3 Expressive Background with Floating Shapes & Dot Matrix */}
+      <M3Background />
+
       {/* 1. Top App Bar */}
       <header className="sticky top-0 z-30 w-full h-16 bg-[#141218]/90 backdrop-blur-md border-b border-[#49454F]/20 px-4 sm:px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -389,7 +393,7 @@ export default function App() {
       </header>
 
       {/* 2. Main Page Content */}
-      <div className="flex-1 flex flex-col justify-center py-6 sm:py-10">
+      <div className="relative z-10 flex-1 flex flex-col justify-center py-6 sm:py-10">
         <div className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4">
           {/* Hero Header */}
           <Header

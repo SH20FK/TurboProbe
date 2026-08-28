@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, HelpCircle, ChevronDown, ChevronUp, ExternalLink, Check } from 'lucide-react';
+import { ShieldCheck, HelpCircle, ChevronDown, ExternalLink, Check } from 'lucide-react';
 import { HappIcon, FlClashIcon } from './ServiceIcons';
 import { M3SplitButton } from './ui/M3SplitButton';
 import { M3Ripple } from './ui/M3Ripple';
@@ -14,6 +14,29 @@ interface ExportPanelProps {
   onOpenQr: () => void;
   onDownloadClash: () => void;
 }
+
+const guideContainer = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.04,
+    },
+  },
+};
+
+const guideItem = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.25,
+      ease: [0.05, 0.7, 0.1, 1.0] as const,
+    },
+  },
+};
 
 export const ExportPanel: React.FC<ExportPanelProps> = ({
   subUrl,
@@ -166,7 +189,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         </div>
       </div>
 
-      {/* 4. Help Accordion Bar */}
+      {/* 4. Help Accordion Bar with Spring Physics */}
       <div className="pt-1">
         <button
           onClick={() => setIsGuideOpen(!isGuideOpen)}
@@ -175,40 +198,64 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         >
           <HelpCircle className="w-3.5 h-3.5" />
           <span>Инструкция по настройке клиентов</span>
-          {isGuideOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          <motion.div
+            animate={{ rotate: isGuideOpen ? 180 : 0 }}
+            transition={{ duration: 0.25, ease: [0.05, 0.7, 0.1, 1.0] }}
+          >
+            <ChevronDown className="w-3.5 h-3.5" />
+          </motion.div>
         </button>
 
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {isGuideOpen && (
             <motion.div
+              key="guide"
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2, ease: [0.05, 0.7, 0.1, 1.0] }}
-              className="overflow-hidden pt-3"
+              animate={{
+                height: 'auto',
+                opacity: 1,
+                transition: {
+                  height: { type: 'spring', stiffness: 350, damping: 32 },
+                  opacity: { duration: 0.22, ease: [0.05, 0.7, 0.1, 1.0] },
+                },
+              }}
+              exit={{
+                height: 0,
+                opacity: 0,
+                transition: {
+                  height: { duration: 0.2, ease: [0.3, 0, 0.8, 0.15] },
+                  opacity: { duration: 0.15 },
+                },
+              }}
+              className="overflow-hidden"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-[#E6E0E9]">
-                <div className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
+              <motion.div
+                variants={guideContainer}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-[#E6E0E9] pt-3"
+              >
+                <motion.div variants={guideItem} className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
                   <span className="font-bold text-[#D0BCFF] block font-display">1. Клиент</span>
                   <p className="text-[#CAC4D0] m-0 leading-relaxed text-[11px]">
                     Android: <strong>v2rayNG</strong> / <strong>Happ</strong><br />
                     iOS: <strong>Streisand</strong><br />
                     Windows: <strong>FlClash</strong>
                   </p>
-                </div>
-                <div className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
+                </motion.div>
+                <motion.div variants={guideItem} className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
                   <span className="font-bold text-[#D0BCFF] block font-display">2. Ссылка</span>
                   <p className="text-[#CAC4D0] m-0 leading-relaxed text-[11px]">
                     Нажмите <strong>«Скопировать подписку»</strong> выше или отсканируйте QR.
                   </p>
-                </div>
-                <div className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
+                </motion.div>
+                <motion.div variants={guideItem} className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
                   <span className="font-bold text-[#D0BCFF] block font-display">3. Старт</span>
                   <p className="text-[#CAC4D0] m-0 leading-relaxed text-[11px]">
                     Вставьте ссылку в клиенте, обновите подписку и включите VPN.
                   </p>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>

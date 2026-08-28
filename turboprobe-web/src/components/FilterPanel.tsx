@@ -8,7 +8,6 @@ import {
   Tv,
   Layers,
   ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 import {
   ChatGptIcon,
@@ -53,6 +52,29 @@ const SERVICES = [
   { id: 'spotify', name: 'Spotify', icon: SpotifyIcon },
   { id: 'github', name: 'GitHub Dev', icon: GitHubIcon },
 ];
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.07,
+      delayChildren: 0.03,
+    },
+  },
+};
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.28,
+      ease: [0.05, 0.7, 0.1, 1.0] as const,
+    },
+  },
+};
 
 export const FilterPanel: React.FC<FilterPanelProps> = ({
   activePreset,
@@ -155,7 +177,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         onSelect={handleSelectSegment}
       />
 
-      {/* 2. M3 Tonal Accordion for Fine-tuning */}
+      {/* 2. M3 Tonal Accordion for Fine-tuning with Fluid Animation */}
       <div className="rounded-[24px] bg-[#1D1B20] border border-[#49454F]/30 overflow-hidden shadow-md">
         <button
           onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
@@ -181,153 +203,175 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             <span className="text-xs text-[#CAC4D0] font-mono hidden sm:inline">
               {isAdvancedOpen ? 'Свернуть' : 'Настроить'}
             </span>
-            {isAdvancedOpen ? (
-              <ChevronUp className="w-4 h-4 text-[#CAC4D0]" />
-            ) : (
+            <motion.div
+              animate={{ rotate: isAdvancedOpen ? 180 : 0 }}
+              transition={{ duration: 0.25, ease: [0.05, 0.7, 0.1, 1.0] }}
+            >
               <ChevronDown className="w-4 h-4 text-[#CAC4D0]" />
-            )}
+            </motion.div>
           </div>
         </button>
 
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {isAdvancedOpen && (
             <motion.div
+              key="content"
               initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.22, ease: [0.05, 0.7, 0.1, 1.0] }}
-              className="overflow-hidden border-t border-[#49454F]/25 p-5 space-y-5 bg-[#141218]"
+              animate={{
+                height: 'auto',
+                opacity: 1,
+                transition: {
+                  height: { type: 'spring', stiffness: 350, damping: 32 },
+                  opacity: { duration: 0.22, ease: [0.05, 0.7, 0.1, 1.0] },
+                },
+              }}
+              exit={{
+                height: 0,
+                opacity: 0,
+                transition: {
+                  height: { duration: 0.2, ease: [0.3, 0, 0.8, 0.15] },
+                  opacity: { duration: 0.15 },
+                },
+              }}
+              className="overflow-hidden border-t border-[#49454F]/25 bg-[#141218]"
             >
-              {/* Services Section */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#CAC4D0] flex items-center gap-1.5 font-semibold">
-                    <Sparkles className="w-3.5 h-3.5 text-[#D0BCFF]" />
-                    Оптимизация под сервисы
-                  </span>
-                  {selectedServices.length > 0 && (
-                    <button
-                      onClick={() => selectedServices.forEach((s) => onToggleService(s))}
-                      type="button"
-                      className="text-[11px] font-mono text-[#D0BCFF] hover:underline"
-                    >
-                      Сбросить ({selectedServices.length})
-                    </button>
-                  )}
-                </div>
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                animate="show"
+                className="p-5 space-y-5"
+              >
+                {/* Services Section */}
+                <motion.div variants={staggerItem} className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-[#CAC4D0] flex items-center gap-1.5 font-semibold">
+                      <Sparkles className="w-3.5 h-3.5 text-[#D0BCFF]" />
+                      Оптимизация под сервисы
+                    </span>
+                    {selectedServices.length > 0 && (
+                      <button
+                        onClick={() => selectedServices.forEach((s) => onToggleService(s))}
+                        type="button"
+                        className="text-[11px] font-mono text-[#D0BCFF] hover:underline"
+                      >
+                        Сбросить ({selectedServices.length})
+                      </button>
+                    )}
+                  </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {SERVICES.map((srv) => {
-                    const isSelected = selectedServices.includes(srv.id);
-                    const Icon = srv.icon;
-                    return (
-                      <M3FilterChip
-                        key={srv.id}
-                        label={srv.name}
-                        selected={isSelected}
-                        onToggle={() => onToggleService(srv.id)}
-                        icon={<Icon className="w-3.5 h-3.5 flex-shrink-0" />}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {SERVICES.map((srv) => {
+                      const isSelected = selectedServices.includes(srv.id);
+                      const Icon = srv.icon;
+                      return (
+                        <M3FilterChip
+                          key={srv.id}
+                          label={srv.name}
+                          selected={isSelected}
+                          onToggle={() => onToggleService(srv.id)}
+                          icon={<Icon className="w-3.5 h-3.5 flex-shrink-0" />}
+                        />
+                      );
+                    })}
+                  </div>
+                </motion.div>
 
-              {/* Protocols Section */}
-              <div className="space-y-2.5 pt-2 border-t border-[#49454F]/20">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#CAC4D0] flex items-center gap-1.5 font-semibold">
-                    <Shield className="w-3.5 h-3.5 text-[#D0BCFF]" />
-                    Протоколы шифрования
-                  </span>
-                  {selectedProtos.length > 0 && (
-                    <button
-                      onClick={onClearProtos}
-                      type="button"
-                      className="text-[11px] font-mono text-[#D0BCFF] hover:underline"
-                    >
-                      Сбросить
-                    </button>
-                  )}
-                </div>
+                {/* Protocols Section */}
+                <motion.div variants={staggerItem} className="space-y-2.5 pt-2 border-t border-[#49454F]/20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-[#CAC4D0] flex items-center gap-1.5 font-semibold">
+                      <Shield className="w-3.5 h-3.5 text-[#D0BCFF]" />
+                      Протоколы шифрования
+                    </span>
+                    {selectedProtos.length > 0 && (
+                      <button
+                        onClick={onClearProtos}
+                        type="button"
+                        className="text-[11px] font-mono text-[#D0BCFF] hover:underline"
+                      >
+                        Сбросить
+                      </button>
+                    )}
+                  </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <M3FilterChip
-                    label="Все протоколы"
-                    selected={selectedProtos.length === 0}
-                    onToggle={onClearProtos}
-                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <M3FilterChip
+                      label="Все протоколы"
+                      selected={selectedProtos.length === 0}
+                      onToggle={onClearProtos}
+                    />
 
-                  {availableProtos.map((p) => {
-                    const isSelected = selectedProtos.includes(p.id);
-                    return (
-                      <M3FilterChip
-                        key={p.id}
-                        label={p.label}
-                        count={p.count}
-                        selected={isSelected}
-                        onToggle={() => onToggleProto(p.id)}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
+                    {availableProtos.map((p) => {
+                      const isSelected = selectedProtos.includes(p.id);
+                      return (
+                        <M3FilterChip
+                          key={p.id}
+                          label={p.label}
+                          count={p.count}
+                          selected={isSelected}
+                          onToggle={() => onToggleProto(p.id)}
+                        />
+                      );
+                    })}
+                  </div>
+                </motion.div>
 
-              {/* Countries Section */}
-              <div className="space-y-2.5 pt-2 border-t border-[#49454F]/20">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#CAC4D0] flex items-center gap-1.5 font-semibold">
-                    <Globe2 className="w-3.5 h-3.5 text-[#D0BCFF]" />
-                    Геолокации и страны
-                  </span>
-                  {selectedCountries.length > 0 && (
-                    <button
-                      onClick={onClearCountries}
-                      type="button"
-                      className="text-[11px] font-mono text-[#D0BCFF] hover:underline"
-                    >
-                      Сбросить
-                    </button>
-                  )}
-                </div>
+                {/* Countries Section */}
+                <motion.div variants={staggerItem} className="space-y-2.5 pt-2 border-t border-[#49454F]/20">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-[#CAC4D0] flex items-center gap-1.5 font-semibold">
+                      <Globe2 className="w-3.5 h-3.5 text-[#D0BCFF]" />
+                      Геолокации и страны
+                    </span>
+                    {selectedCountries.length > 0 && (
+                      <button
+                        onClick={onClearCountries}
+                        type="button"
+                        className="text-[11px] font-mono text-[#D0BCFF] hover:underline"
+                      >
+                        Сбросить
+                      </button>
+                    )}
+                  </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <M3FilterChip
-                    label="Все страны"
-                    selected={selectedCountries.length === 0}
-                    onToggle={onClearCountries}
-                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <M3FilterChip
+                      label="Все страны"
+                      selected={selectedCountries.length === 0}
+                      onToggle={onClearCountries}
+                    />
 
-                  {visibleCountries.map((c) => {
-                    const isSelected = selectedCountries.includes(c.code);
-                    return (
-                      <M3FilterChip
-                        key={c.code}
-                        label={c.label}
-                        count={c.count}
-                        selected={isSelected}
-                        onToggle={() => onToggleCountry(c.code)}
-                        icon={
-                          <CountryFlag
-                            countryCode={c.code}
-                            className="w-3.5 h-2 rounded-[2px] shadow-xs flex-shrink-0"
-                          />
-                        }
-                      />
-                    );
-                  })}
+                    {visibleCountries.map((c) => {
+                      const isSelected = selectedCountries.includes(c.code);
+                      return (
+                        <M3FilterChip
+                          key={c.code}
+                          label={c.label}
+                          count={c.count}
+                          selected={isSelected}
+                          onToggle={() => onToggleCountry(c.code)}
+                          icon={
+                            <CountryFlag
+                              countryCode={c.code}
+                              className="w-3.5 h-2 rounded-[2px] shadow-xs flex-shrink-0"
+                            />
+                          }
+                        />
+                      );
+                    })}
 
-                  {hiddenCountryCount > 0 && (
-                    <button
-                      onClick={() => setIsExpandedCountries(!isExpandedCountries)}
-                      type="button"
-                      className="text-xs font-mono text-[#D0BCFF] hover:underline px-2 py-1 cursor-pointer"
-                    >
-                      {isExpandedCountries ? 'Свернуть' : `+${hiddenCountryCount} стран`}
-                    </button>
-                  )}
-                </div>
-              </div>
+                    {hiddenCountryCount > 0 && (
+                      <button
+                        onClick={() => setIsExpandedCountries(!isExpandedCountries)}
+                        type="button"
+                        className="text-xs font-mono text-[#D0BCFF] hover:underline px-2 py-1 cursor-pointer"
+                      >
+                        {isExpandedCountries ? 'Свернуть' : `+${hiddenCountryCount} стран`}
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Copy, Check, Search, Plus, Loader2, Globe } from 'lucide-react';
+import { ChevronDown, Copy, Check, Search, Plus, Loader2, Globe } from 'lucide-react';
 import { CountryFlag } from './CountryFlags';
 import { extractRemark, computeDisplayTitle } from '../utils/nodeIndexer';
 import { M3Ripple } from './ui/M3Ripple';
@@ -11,6 +11,29 @@ interface NodePreviewListProps {
   isLoading: boolean;
   totalAvailable: number;
 }
+
+const tableContainer = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.03,
+      delayChildren: 0.02,
+    },
+  },
+};
+
+const tableRow = {
+  hidden: { opacity: 0, y: 8 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.22,
+      ease: [0.05, 0.7, 0.1, 1.0] as const,
+    },
+  },
+};
 
 export const NodePreviewList: React.FC<NodePreviewListProps> = ({
   nodes,
@@ -77,20 +100,38 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
           <span className="text-xs text-[#CAC4D0] font-body hidden sm:inline">
             {isExpanded ? 'Скрыть список' : 'Показать список'}
           </span>
-          <div className="p-1 rounded-full bg-[#2B2930] text-[#CAC4D0]">
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </div>
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.25, ease: [0.05, 0.7, 0.1, 1.0] }}
+            className="p-1 rounded-full bg-[#2B2930] text-[#CAC4D0]"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </motion.div>
         </div>
       </button>
 
-      {/* Expandable Table Content */}
-      <AnimatePresence>
+      {/* Expandable Table Content with Spring Physics */}
+      <AnimatePresence initial={false}>
         {isExpanded && (
           <motion.div
+            key="table-content"
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.05, 0.7, 0.1, 1.0] }}
+            animate={{
+              height: 'auto',
+              opacity: 1,
+              transition: {
+                height: { type: 'spring', stiffness: 350, damping: 32 },
+                opacity: { duration: 0.22, ease: [0.05, 0.7, 0.1, 1.0] },
+              },
+            }}
+            exit={{
+              height: 0,
+              opacity: 0,
+              transition: {
+                height: { duration: 0.2, ease: [0.3, 0, 0.8, 0.15] },
+                opacity: { duration: 0.15 },
+              },
+            }}
             className="overflow-hidden border-t border-[#49454F]/25"
           >
             {/* Search Input Bar */}
@@ -134,81 +175,85 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
               )}
 
               {/* 3. Table Rows */}
-              {!isLoading &&
-                visibleNodes.map((node, index) => {
-                  const nodeKey = node.id || node.uri || `node-${index}`;
-                  const ping = typeof node.ping_ms === 'number' && node.ping_ms > 0 ? Math.round(node.ping_ms) : null;
-                  const countryCode = (node.country || 'all').toLowerCase();
-                  const proto = (node.protocol || (node.uri.split('://')[0] || 'vless')).toUpperCase();
-                  const isCopied = copiedKey === nodeKey;
+              {!isLoading && (
+                <motion.div variants={tableContainer} initial="hidden" animate="show">
+                  {visibleNodes.map((node, index) => {
+                    const nodeKey = node.id || node.uri || `node-${index}`;
+                    const ping = typeof node.ping_ms === 'number' && node.ping_ms > 0 ? Math.round(node.ping_ms) : null;
+                    const countryCode = (node.country || 'all').toLowerCase();
+                    const proto = (node.protocol || (node.uri.split('://')[0] || 'vless')).toUpperCase();
+                    const isCopied = copiedKey === nodeKey;
 
-                  let hostDisplay = '';
-                  try {
-                    const parsed = new URL(node.uri.replace(/^[a-z0-9+-.]+:\/\//i, 'http://'));
-                    hostDisplay = parsed.host;
-                  } catch {
-                    hostDisplay = node._index?.displayTitle || computeDisplayTitle(extractRemark(node.uri), node.country);
-                  }
+                    let hostDisplay = '';
+                    try {
+                      const parsed = new URL(node.uri.replace(/^[a-z0-9+-.]+:\/\//i, 'http://'));
+                      hostDisplay = parsed.host;
+                    } catch {
+                      hostDisplay = node._index?.displayTitle || computeDisplayTitle(extractRemark(node.uri), node.country);
+                    }
 
-                  return (
-                    <div
-                      key={nodeKey}
-                      className="group relative flex items-center justify-between gap-3 px-5 py-3 hover:bg-[#2B2930]/60 transition-colors overflow-hidden select-none"
-                    >
-                      {/* Left: Flag + Host */}
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="flex-shrink-0 w-6 flex items-center justify-center">
-                          <CountryFlag countryCode={countryCode} className="w-4 h-2.5 rounded-[2px] shadow-xs flex-shrink-0" />
+                    return (
+                      <motion.div
+                        key={nodeKey}
+                        variants={tableRow}
+                        className="group relative flex items-center justify-between gap-3 px-5 py-3 hover:bg-[#2B2930]/60 transition-colors overflow-hidden select-none"
+                      >
+                        {/* Left: Flag + Host */}
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="flex-shrink-0 w-6 flex items-center justify-center">
+                            <CountryFlag countryCode={countryCode} className="w-4 h-2.5 rounded-[2px] shadow-xs flex-shrink-0" />
+                          </div>
+
+                          <span className="text-xs font-mono text-[#E6E0E9] truncate">
+                            {hostDisplay || `Сервер #${index + 1}`}
+                          </span>
+
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#4A4458] text-[#E8DEF8] font-semibold uppercase flex-shrink-0">
+                            {proto}
+                          </span>
                         </div>
 
-                        <span className="text-xs font-mono text-[#E6E0E9] truncate">
-                          {hostDisplay || `Сервер #${index + 1}`}
-                        </span>
-
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#4A4458] text-[#E8DEF8] font-semibold uppercase flex-shrink-0">
-                          {proto}
-                        </span>
-                      </div>
-
-                      {/* Right: Ping + Copy */}
-                      <div className="flex items-center gap-3.5 flex-shrink-0 relative z-10">
-                        {ping !== null ? (
-                          <div className="flex items-center gap-1.5 font-mono text-xs text-[#CAC4D0]">
-                            <span
-                              className={`w-2 h-2 rounded-full ${
-                                ping < 250
-                                  ? 'bg-[#7BE08F]'
-                                  : ping < 550
-                                  ? 'bg-[#FFD966]'
-                                  : 'bg-[#FF897D]'
-                              }`}
-                            />
-                            <span>{ping} ms</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 font-mono text-xs text-[#7BE08F]">
-                            <span className="w-2 h-2 rounded-full bg-[#7BE08F]" />
-                            <span>ONLINE</span>
-                          </div>
-                        )}
-
-                        <button
-                          onClick={() => handleCopyNode(node.uri, nodeKey)}
-                          type="button"
-                          title="Скопировать ключ"
-                          className="relative w-8 h-8 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#CAC4D0] hover:text-white flex items-center justify-center transition-colors cursor-pointer overflow-hidden border border-[#49454F]/30"
-                        >
-                          {isCopied ? (
-                            <Check className="w-4 h-4 text-[#7BE08F]" />
+                        {/* Right: Ping + Copy */}
+                        <div className="flex items-center gap-3.5 flex-shrink-0 relative z-10">
+                          {ping !== null ? (
+                            <div className="flex items-center gap-1.5 font-mono text-xs text-[#CAC4D0]">
+                              <span
+                                className={`w-2 h-2 rounded-full ${
+                                  ping < 250
+                                    ? 'bg-[#7BE08F]'
+                                    : ping < 550
+                                    ? 'bg-[#FFD966]'
+                                    : 'bg-[#FF897D]'
+                                }`}
+                              />
+                              <span>{ping} ms</span>
+                            </div>
                           ) : (
-                            <Copy className="w-3.5 h-3.5" />
+                            <div className="flex items-center gap-1.5 font-mono text-xs text-[#7BE08F]">
+                              <span className="w-2 h-2 rounded-full bg-[#7BE08F]" />
+                              <span>ONLINE</span>
+                            </div>
                           )}
-                          <M3Ripple />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+
+                          <button
+                            onClick={() => handleCopyNode(node.uri, nodeKey)}
+                            type="button"
+                            title="Скопировать ключ"
+                            className="relative w-8 h-8 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#CAC4D0] hover:text-white flex items-center justify-center transition-colors cursor-pointer overflow-hidden border border-[#49454F]/30"
+                          >
+                            {isCopied ? (
+                              <Check className="w-4 h-4 text-[#7BE08F]" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                            <M3Ripple />
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+              )}
 
               {/* Show More Button */}
               {!isLoading && hasMore && (
