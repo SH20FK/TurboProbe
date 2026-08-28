@@ -1,208 +1,83 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { AnimatedMorph, getShape, toPathD, easeInOutCubic, type ShapeName } from 'shape-morph';
-
-interface MorphingFigureProps {
-  shapes: ShapeName[];
-  className?: string;
-  /** Duration for each shape-to-shape morph (ms) */
-  morphDuration?: number;
-  /** Pause at destination before next morph (ms) */
-  pauseDuration?: number;
-  /** Framer Motion float cycle duration (s) */
-  floatDuration?: number;
-  initialY?: number;
-  initialRotate?: number;
-  /** Initial start delay (ms) to desync figures */
-  startDelay?: number;
-}
-
-const MorphingFigure: React.FC<MorphingFigureProps> = ({
-  shapes,
-  className = '',
-  morphDuration = 3800,
-  pauseDuration = 1200,
-  floatDuration = 14,
-  initialY = -12,
-  initialRotate = 6,
-  startDelay = 0,
-}) => {
-  const [pathD, setPathD] = useState<string>(() =>
-    toPathD(getShape(shapes[0]).cubics, 100),
-  );
-
-  const alive = useRef(true);
-  const morphRef = useRef<AnimatedMorph | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    alive.current = true;
-
-    const cleanup = () => {
-      if (morphRef.current) {
-        morphRef.current.dispose();
-        morphRef.current = null;
-      }
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-
-    const runMorph = (fromIdx: number) => {
-      if (!alive.current) return;
-
-      const toIdx = (fromIdx + 1) % shapes.length;
-
-      if (morphRef.current) {
-        morphRef.current.dispose();
-        morphRef.current = null;
-      }
-
-      morphRef.current = new AnimatedMorph(shapes[fromIdx], shapes[toIdx], {
-        duration: morphDuration,
-        easing: easeInOutCubic,
-        size: 100,
-        onFrame: ({ pathD: d }) => {
-          if (alive.current) setPathD(d);
-        },
-      });
-
-      morphRef.current.progress = 1;
-
-      timerRef.current = setTimeout(() => {
-        if (alive.current) runMorph(toIdx);
-      }, morphDuration + pauseDuration);
-    };
-
-    timerRef.current = setTimeout(() => {
-      if (alive.current) runMorph(0);
-    }, startDelay);
-
-    return () => {
-      alive.current = false;
-      cleanup();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <div className={`absolute ${className}`}>
-      <motion.div
-        animate={{
-          y: [initialY, -initialY, initialY],
-          rotate: [initialRotate, -initialRotate, initialRotate],
-          scale: [0.97, 1.03, 0.97],
-        }}
-        transition={{
-          duration: floatDuration,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="w-full h-full"
-      >
-        <svg
-          viewBox="0 0 100 100"
-          className="w-full h-full overflow-visible"
-          style={{ filter: 'drop-shadow(0 0 28px rgba(194, 94, 48, 0.20))' }}
-        >
-          <path
-            d={pathD}
-            style={{
-              fill: 'var(--bg-shape-fill)',
-              stroke: 'var(--bg-shape-stroke)',
-              strokeWidth: 1.2,
-              willChange: 'auto',
-            }}
-          />
-        </svg>
-      </motion.div>
-    </div>
-  );
-};
-
-// ─── Shape Sequences ───────────────────────────────────────────────────────────
-const topLeft: ShapeName[]     = ['Clover4Leaf', 'Sunny',       'Heart',      'PuffyDiamond',  'Cookie9Sided'];
-const topRight: ShapeName[]    = ['Burst',        'Gem',         'Cookie12Sided', 'Ghostish',   'VerySunny'];
-const bottomLeft: ShapeName[]  = ['Cookie6Sided', 'Boom',        'Bun',        'SoftBurst',     'Flower'];
-const bottomRight: ShapeName[] = ['Puffy',        'ClamShell',   'Diamond',    'Clover8Leaf',   'Pentagon'];
-const midLeft: ShapeName[]     = ['SoftBoom',     'Cookie7Sided','Oval',       'Clover4Leaf',   'Burst'];
 
 export const M3Background: React.FC = () => {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 select-none transition-colors duration-300">
-
-      {/* 1. Subtle Dot-Matrix Grid with Radial Center Mask */}
+      {/* 1. Subtle M3 Dot-Matrix Grid with Center Fade */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 z-10 transition-opacity duration-200"
         style={{
-          backgroundImage: `radial-gradient(circle, var(--bg-dot-color) 1.2px, transparent 1.2px)`,
-          backgroundSize: '28px 28px',
-          maskImage: 'radial-gradient(ellipse 75% 65% at 50% 50%, black 25%, transparent 95%)',
-          WebkitMaskImage: 'radial-gradient(ellipse 75% 65% at 50% 50%, black 25%, transparent 95%)',
+          backgroundImage: `radial-gradient(circle, var(--bg-dot-color) 1.1px, transparent 1.1px)`,
+          backgroundSize: '24px 24px',
+          maskImage: 'radial-gradient(ellipse 80% 70% at 50% 45%, black 20%, transparent 90%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 45%, black 20%, transparent 90%)',
         }}
       />
 
-      {/* 2. Five Shape-Morphing Figures */}
+      {/* 2. Google Pixel / Material You Ambient Living Mesh (Dynamic Tonal Glows) */}
 
-      {/* Top-Left — large, partially outside viewport */}
-      <MorphingFigure
-        shapes={topLeft}
-        className="-top-16 -left-16 w-80 h-80 sm:w-96 sm:h-96 opacity-90 dark:opacity-80"
-        morphDuration={4200}
-        pauseDuration={900}
-        floatDuration={13}
-        initialY={-18}
-        initialRotate={8}
-        startDelay={0}
+      {/* Primary Terracotta Tonal Aura (Centers around the Hero Command Card) */}
+      <motion.div
+        animate={{
+          x: [-40, 40, -40],
+          y: [-30, 30, -30],
+          scale: [0.95, 1.12, 0.95],
+        }}
+        transition={{
+          duration: 18,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+        className="absolute top-[12%] left-1/2 -translate-x-1/2 w-[42rem] h-[32rem] sm:w-[54rem] sm:h-[40rem] rounded-full blur-[110px] pointer-events-none opacity-40 dark:opacity-28"
+        style={{
+          background: 'radial-gradient(circle, #C25E30 0%, #9C3D15 50%, transparent 75%)',
+        }}
       />
 
-      {/* Top-Right — large, partially outside viewport */}
-      <MorphingFigure
-        shapes={topRight}
-        className="-top-12 -right-16 w-72 h-72 sm:w-88 sm:h-88 opacity-90 dark:opacity-80"
-        morphDuration={4600}
-        pauseDuration={1000}
-        floatDuration={15}
-        initialY={14}
-        initialRotate={-10}
-        startDelay={1700}
+      {/* Secondary Warm Amber Orb (Floating across top-right) */}
+      <motion.div
+        animate={{
+          x: [30, -50, 30],
+          y: [-25, 35, -25],
+          scale: [1.05, 0.92, 1.05],
+        }}
+        transition={{
+          duration: 22,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+        className="absolute top-[5%] right-[10%] w-[28rem] h-[28rem] sm:w-[38rem] sm:h-[38rem] rounded-full blur-[120px] pointer-events-none opacity-30 dark:opacity-20"
+        style={{
+          background: 'radial-gradient(circle, #E08244 0%, #B45309 60%, transparent 80%)',
+        }}
       />
 
-      {/* Bottom-Left — large */}
-      <MorphingFigure
-        shapes={bottomLeft}
-        className="-bottom-16 -left-14 w-80 h-80 sm:w-96 sm:h-96 opacity-85 dark:opacity-75"
-        morphDuration={4000}
-        pauseDuration={1100}
-        floatDuration={14}
-        initialY={18}
-        initialRotate={-8}
-        startDelay={900}
+      {/* Tertiary Soft Bronze / Golden Glow (Floating across bottom-left) */}
+      <motion.div
+        animate={{
+          x: [-35, 45, -35],
+          y: [30, -25, 30],
+          scale: [0.92, 1.08, 0.92],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+        className="absolute bottom-[8%] left-[8%] w-[32rem] h-[32rem] sm:w-[42rem] sm:h-[42rem] rounded-full blur-[130px] pointer-events-none opacity-25 dark:opacity-18"
+        style={{
+          background: 'radial-gradient(circle, #D97706 0%, #92400E 60%, transparent 80%)',
+        }}
       />
 
-      {/* Bottom-Right — extra large, bleeds into corner */}
-      <MorphingFigure
-        shapes={bottomRight}
-        className="-bottom-20 -right-16 w-88 h-88 sm:w-[26rem] sm:h-[26rem] opacity-90 dark:opacity-80"
-        morphDuration={5000}
-        pauseDuration={800}
-        floatDuration={16}
-        initialY={-14}
-        initialRotate={10}
-        startDelay={2600}
-      />
-
-      {/* Mid-Left — smaller accent shape for depth */}
-      <MorphingFigure
-        shapes={midLeft}
-        className="top-[38%] -left-20 w-56 h-56 sm:w-72 sm:h-72 opacity-60 dark:opacity-50"
-        morphDuration={5400}
-        pauseDuration={700}
-        floatDuration={18}
-        initialY={10}
-        initialRotate={-6}
-        startDelay={3400}
+      {/* Subtle Micro Vignette Gradient around viewport borders */}
+      <div
+        className="absolute inset-0 z-10 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse at 50% 50%, transparent 50%, var(--bg-app) 100%)',
+        }}
       />
     </div>
   );
