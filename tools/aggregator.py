@@ -1471,7 +1471,7 @@ def main():
             unique_map[canon_key] = uri
             
     raw_unique_uris = list(unique_map.values())
-    unique_uris = filter_by_ip_subnet_quota(raw_unique_uris, max_per_ip=2, max_per_subnet=4)
+    unique_uris = filter_by_ip_subnet_quota(raw_unique_uris, max_per_ip=4, max_per_subnet=24)
     print(f"✨ Deduplication & Anti-Clone Quota complete: {len(unique_uris)} unique nodes (filtered from {len(raw_unique_uris)}).", flush=True)
     
     # 2b. 🚫 Purge known persistent dead keys from blacklist
@@ -1488,10 +1488,29 @@ def main():
     if skipped_dead:
         print(f"  🚫 Purged {skipped_dead} persistent dead keys from crawl pool.")
 
+    def _diverse_candidates(cands: list, cap: int) -> list:
+        if len(cands) <= cap:
+            return cands
+        by_p = {}
+        for u in cands:
+            p = u.split("://", 1)[0].lower() if "://" in u else "vless"
+            by_p.setdefault(p, []).append(u)
+        sel = []
+        for p, items in by_p.items():
+            if p in {"hy2", "hysteria2", "tuic", "trojan", "ss"}:
+                sel.extend(items[:500])
+        seen_sel = set(sel)
+        for u in cands:
+            if u not in seen_sel:
+                sel.append(u)
+                if len(sel) >= cap:
+                    break
+        return sel
+
     if args.fast:
-        candidate_uris = candidate_uris[:5000]
+        candidate_uris = _diverse_candidates(candidate_uris, 5000)
     elif args.limit > 0:
-        candidate_uris = candidate_uris[:args.limit]
+        candidate_uris = _diverse_candidates(candidate_uris, args.limit)
 
     # 3. ⚡ Ultra-Speed AsyncIO SYN / Latency Benchmark (5000 concurrent sockets)
     print(f"🩺 [AsyncIO Latency Engine] Benchmarking {len(candidate_uris)} nodes (timeout: 0.85s, 5000 async sockets)...", flush=True)
@@ -1782,14 +1801,14 @@ def main():
     update_existing_nodes_ru_flags(ru_verified_keys)
 
     # 🌐 Generate sub/preview.json and sub/nodes.json for Instant Frontend Mirroring
-    top_preview_nodes = []
-    for u in alive_nodes[:150]:
+    all_preview_nodes = []
+    for u in alive_nodes:
         cc = detect_country_code(u)
         proto = u.split("://")[0].lower() if "://" in u else "vless"
         p_ms = ping_by_uri.get(u, 45.0)
         is_ai_country = (cc in ai_countries or cc == "GLOBAL")
         
-        top_preview_nodes.append({
+        all_preview_nodes.append({
             "uri": u,
             "ping_ms": p_ms,
             "country": cc,
@@ -1808,14 +1827,17 @@ def main():
             }
         })
 
+    preview_payload = {
+        "version": "1.0",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "total_nodes": len(alive_nodes),
+        "nodes": all_preview_nodes,
+    }
     with open(os.path.join(SUB_DIR, "preview.json"), "w", encoding="utf-8") as f:
-        json.dump({
-            "version": "1.0",
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "total_nodes": len(alive_nodes),
-            "nodes": top_preview_nodes,
-        }, f, indent=2, ensure_ascii=False)
-    print(f"  💾 sub/preview.json         -> Instant Web Preview ({len(top_preview_nodes)} nodes)", flush=True)
+        json.dump(preview_payload, f, indent=2, ensure_ascii=False)
+    with open(os.path.join(SUB_DIR, "nodes.json"), "w", encoding="utf-8") as f:
+        json.dump(preview_payload, f, indent=2, ensure_ascii=False)
+    print(f"  💾 sub/preview.json & nodes.json -> Instant Web Preview ({len(all_preview_nodes)} nodes)", flush=True)
 
     with open(os.path.join(countries_dir, "index.json"), "w", encoding="utf-8") as f:
         json.dump({

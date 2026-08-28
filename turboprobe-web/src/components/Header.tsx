@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import { M3NumberCounter } from './ui/M3NumberCounter';
 import { SparklesText } from './ui/SparklesText';
-import { TextAnimate } from './ui/TextAnimate';
 import { Tooltip } from './ui/Tooltip';
 
 interface HeaderProps {
@@ -64,14 +63,9 @@ export const Header: React.FC<HeaderProps> = ({
           <SparklesText text="Hub" colors={{ first: '#D0BCFF', second: '#7BE08F' }} className="text-[#D0BCFF] font-black" />
         </h1>
 
-        {/* Subtitle with MagicUI TextAnimate */}
+        {/* Subtitle with Clean Unbroken Russian & Protocol Typography */}
         <p className="font-body text-xs sm:text-sm md:text-base text-[#CAC4D0] mt-2.5 mb-6 max-w-lg leading-relaxed font-normal">
-          <TextAnimate
-            text="Суверенный генератор проверенных подписок VLESS Reality и Trojan с обходом ТСПУ"
-            type="blur-in"
-            delay={0.1}
-            duration={0.015}
-          />
+          Суверенный генератор проверенных подписок <span className="text-white font-medium">VLESS Reality</span> и <span className="text-white font-medium">Trojan</span> с обходом ТСПУ
         </p>
 
         {/* 3 Perfectly Balanced KPI Stat Cards with Tooltips */}
