@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, HelpCircle, ChevronDown, ExternalLink, Check } from 'lucide-react';
+import { ShieldCheck, HelpCircle, ChevronDown, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { HappIcon, FlClashIcon } from './ServiceIcons';
+import { HappIcon, FlClashIcon, V2RayIcon, SingBoxIcon } from './ServiceIcons';
 import { M3SplitButton } from './ui/M3SplitButton';
 import { M3Ripple } from './ui/M3Ripple';
 import { M3NumberCounter } from './ui/M3NumberCounter';
@@ -228,7 +228,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                   </motion.span>
                 ) : (
                   <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
-                    <ExternalLink className="w-4 h-4 text-[#EA580C] dark:text-[#FB923C]" />
+                    <V2RayIcon className="w-4 h-4 text-[#EA580C] dark:text-[#FB923C]" />
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -294,7 +294,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                   </motion.span>
                 ) : (
                   <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
-                    <ExternalLink className="w-4 h-4 text-[#F59E0B]" />
+                    <SingBoxIcon className="w-4 h-4 text-[#F59E0B]" />
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -355,8 +355,8 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                   <span className="font-bold text-[#EA580C] dark:text-[#FB923C] block font-display">1. Клиент</span>
                   <p className="text-[var(--text-muted)] m-0 leading-relaxed text-[11px]">
                     Android: <strong>v2rayNG</strong> / <strong>Happ</strong><br />
-                    iOS: <strong>Streisand</strong><br />
-                    Windows: <strong>FlClash</strong>
+                    iOS: <strong>Streisand</strong> / <strong>Sing-box</strong><br />
+                    Windows: <strong>FlClash</strong> / <strong>v2rayN</strong>
                   </p>
                 </motion.div>
                 <motion.div variants={guideItem} className="p-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-main)] space-y-1">
