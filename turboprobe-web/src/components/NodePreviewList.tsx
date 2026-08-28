@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Copy, Check, Search, Plus, Loader2, Globe } from 'lucide-react';
 import { CountryFlag } from './CountryFlags';
 import { extractRemark, computeDisplayTitle } from '../utils/nodeIndexer';
+import { M3Ripple } from './ui/M3Ripple';
 import type { NodeItem } from '../types';
 
 interface NodePreviewListProps {
@@ -27,7 +28,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
       setCopiedKey(key);
       setTimeout(() => setCopiedKey(null), 1500);
     } catch {
-      // ignore clipboard error
+      // ignore
     }
   };
 
@@ -51,7 +52,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
   const remainingCount = searchedNodes.length - displayLimit;
 
   return (
-    <div className="rounded-[28px] bg-[#1D1B20] border border-[#49454F]/40 overflow-hidden shadow-lg">
+    <div className="rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 overflow-hidden shadow-xl">
       {/* Section Header with Toggle */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
@@ -59,15 +60,15 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
         className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-[#2B2930] transition-colors cursor-pointer select-none"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#36343B] flex items-center justify-center text-[#D0BCFF]">
+          <div className="w-8 h-8 rounded-full bg-[#2B2930] border border-white/5 flex items-center justify-center text-[#D0BCFF]">
             <Globe className="w-4 h-4" />
           </div>
           <div>
             <span className="font-display text-xs sm:text-sm font-semibold text-[#E6E0E9]">
-              Список проверенных серверов
+              Телеметрия проверенных узлов
             </span>
             <span className="text-xs font-mono text-[#D0BCFF] ml-2 font-medium">
-              {totalAvailable} узлов
+              {totalAvailable} узлов в базе
             </span>
           </div>
         </div>
@@ -76,7 +77,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
           <span className="text-xs text-[#CAC4D0] font-body hidden sm:inline">
             {isExpanded ? 'Скрыть список' : 'Показать список'}
           </span>
-          <div className="p-1 rounded-full bg-[#36343B] text-[#CAC4D0]">
+          <div className="p-1 rounded-full bg-[#2B2930] text-[#CAC4D0]">
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
         </div>
@@ -89,12 +90,12 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden border-t border-[#49454F]/30"
+            transition={{ duration: 0.2, ease: [0.05, 0.7, 0.1, 1.0] }}
+            className="overflow-hidden border-t border-[#49454F]/25"
           >
-            {/* Search Input Bar (MD3 Outlined Style) */}
-            <div className="p-3.5 bg-[#141218] border-b border-[#49454F]/30 flex items-center gap-3">
-              <Search className="w-4 h-4 text-[#CAC4D0] flex-shrink-0" />
+            {/* Search Input Bar (M3 Outlined Pill Style) */}
+            <div className="p-3 bg-[#141218] border-b border-[#49454F]/25 flex items-center gap-3">
+              <Search className="w-4 h-4 text-[#CAC4D0] flex-shrink-0 ml-1" />
               <input
                 type="text"
                 placeholder="Поиск по стране, хосту, протоколу..."
@@ -113,8 +114,8 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
               )}
             </div>
 
-            {/* Table / List View in MD3 Row Style */}
-            <div className="max-h-[360px] overflow-y-auto divide-y divide-[#49454F]/20">
+            {/* Table / List View in M3 Row Style */}
+            <div className="max-h-[360px] overflow-y-auto divide-y divide-[#49454F]/15">
               {/* 1. Loading State */}
               {isLoading && (
                 <div className="flex flex-col items-center justify-center py-10 gap-2.5">
@@ -132,7 +133,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                 </div>
               )}
 
-              {/* 3. Clean MD3 Table Rows */}
+              {/* 3. Clean M3 Table Rows */}
               {!isLoading &&
                 visibleNodes.map((node, index) => {
                   const nodeKey = node.id || node.uri || `node-${index}`;
@@ -152,12 +153,12 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                   return (
                     <div
                       key={nodeKey}
-                      className="group flex items-center justify-between gap-3 px-5 py-3 hover:bg-[#2B2930] transition-colors"
+                      className="group relative flex items-center justify-between gap-3 px-5 py-3 hover:bg-[#2B2930] transition-colors overflow-hidden select-none"
                     >
                       {/* Left: Flag + Host */}
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="flex-shrink-0 w-6 flex items-center justify-center">
-                          <CountryFlag countryCode={countryCode} className="w-5 h-3 rounded-[2px] shadow-sm flex-shrink-0" />
+                          <CountryFlag countryCode={countryCode} className="w-5 h-3 rounded-[2px] shadow-xs flex-shrink-0" />
                         </div>
 
                         <span className="text-xs sm:text-sm font-mono text-[#E6E0E9] truncate">
@@ -170,7 +171,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                       </div>
 
                       {/* Right: Ping + Copy */}
-                      <div className="flex items-center gap-3.5 flex-shrink-0">
+                      <div className="flex items-center gap-3.5 flex-shrink-0 relative z-10">
                         {ping !== null ? (
                           <div className="flex items-center gap-1.5 font-mono text-xs text-[#CAC4D0]">
                             <span
@@ -187,7 +188,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                         ) : (
                           <div className="flex items-center gap-1.5 font-mono text-xs text-[#7BE08F]">
                             <span className="w-2 h-2 rounded-full bg-[#7BE08F]" />
-                            <span>ON</span>
+                            <span>ONLINE</span>
                           </div>
                         )}
 
@@ -195,13 +196,14 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                           onClick={() => handleCopyNode(node.uri, nodeKey)}
                           type="button"
                           title="Скопировать ключ"
-                          className="w-8 h-8 rounded-full bg-[#36343B] hover:bg-[#49454F] text-[#D0BCFF] flex items-center justify-center transition-colors cursor-pointer"
+                          className="relative w-8 h-8 rounded-full bg-[#36343B] hover:bg-[#49454F] text-[#D0BCFF] flex items-center justify-center transition-colors cursor-pointer overflow-hidden"
                         >
                           {isCopied ? (
                             <Check className="w-4 h-4 text-[#7BE08F]" />
                           ) : (
                             <Copy className="w-3.5 h-3.5" />
                           )}
+                          <M3Ripple />
                         </button>
                       </div>
                     </div>
@@ -214,10 +216,11 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                   <button
                     onClick={() => setDisplayLimit((prev) => prev + 30)}
                     type="button"
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#36343B] hover:bg-[#49454F] text-xs text-[#E6E0E9] transition-colors cursor-pointer font-mono"
+                    className="relative inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#36343B] hover:bg-[#49454F] text-xs text-[#E6E0E9] transition-colors cursor-pointer font-mono overflow-hidden"
                   >
                     <Plus className="w-3.5 h-3.5 text-[#D0BCFF]" />
                     <span>Показать еще ({remainingCount})</span>
+                    <M3Ripple />
                   </button>
                 </div>
               )}
@@ -228,5 +231,3 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
     </div>
   );
 };
-
-

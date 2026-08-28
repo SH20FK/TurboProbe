@@ -51,7 +51,14 @@ jobs:
           path: /usr/local/bin/xray
           key: xray-linux-64-v26.3.27
 
-      - name: Install dependencies & Xray-core
+      - name: Cache Mihomo binary
+        id: cache-mihomo
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/mihomo
+          key: mihomo-linux-amd64-v1.19.30
+
+      - name: Install dependencies, Xray-core & Mihomo
         run: |
           ulimit -n 65536 || true
           python -m pip install --upgrade pip
@@ -62,6 +69,13 @@ jobs:
             sudo chmod +x /usr/local/bin/xray
           fi
           /usr/local/bin/xray version
+          if [ ! -f /usr/local/bin/mihomo ]; then
+            curl -fL --retry 3 -s -o /tmp/mihomo.gz "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.30/mihomo-linux-amd64-v1.19.30.gz"
+            sudo sh -c "gunzip -c /tmp/mihomo.gz > /usr/local/bin/mihomo"
+            sudo chmod +x /usr/local/bin/mihomo
+            rm -f /tmp/mihomo.gz
+          fi
+          /usr/local/bin/mihomo version || true
 
 
       - name: Discover new subscription sources

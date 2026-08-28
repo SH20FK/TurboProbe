@@ -22,6 +22,8 @@ import {
 } from './ServiceIcons';
 import { CountryFlag } from './CountryFlags';
 import { PRESETS, KNOWN_COUNTRIES, KNOWN_PROTOCOLS } from '../constants';
+import { M3SegmentedButton, type SegmentOption } from './ui/M3SegmentedButton';
+import { M3FilterChip } from './ui/M3FilterChip';
 import type { PresetItem } from '../types';
 
 interface FilterPanelProps {
@@ -71,7 +73,42 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false);
   const [isExpandedCountries, setIsExpandedCountries] = useState<boolean>(false);
 
-  // Dynamically compute and sort countries based 100% on live pool availability
+  // Segment Options mapped to M3 Segmented Control
+  const segmentOptions: SegmentOption[] = useMemo(() => {
+    return [
+      {
+        id: 'anti-tspu',
+        label: 'Анти-ТСПУ',
+        desc: 'VLESS Reality',
+        icon: <Shield className="w-3.5 h-3.5 text-[#D0BCFF]" />,
+      },
+      {
+        id: 'ai',
+        label: 'AI Core',
+        desc: 'ChatGPT / Claude',
+        icon: <Sparkles className="w-3.5 h-3.5 text-[#D0BCFF]" />,
+      },
+      {
+        id: 'youtube',
+        label: 'YouTube 4K',
+        desc: 'Без буфера',
+        icon: <Tv className="w-3.5 h-3.5 text-[#D0BCFF]" />,
+      },
+      {
+        id: 'all',
+        label: 'Все узлы',
+        desc: 'Мин. пинг',
+        icon: <Layers className="w-3.5 h-3.5 text-[#D0BCFF]" />,
+      },
+    ];
+  }, []);
+
+  const handleSelectSegment = (id: string) => {
+    const found = PRESETS.find((p) => p.id === id);
+    if (found) onSelectPreset(found);
+  };
+
+  // Dynamically compute and sort countries based on pool availability
   const availableCountries = useMemo(() => {
     const list = Object.keys(countryCounts)
       .filter((code) => countryCounts[code] > 0)
@@ -87,7 +124,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
     });
   }, [countryCounts]);
 
-  // Dynamically compute available protocols based 100% on live pool availability
+  // Dynamically compute available protocols based on pool availability
   const availableProtos = useMemo(() => {
     return Object.keys(protoCounts)
       .filter((id) => protoCounts[id] > 0)
@@ -110,61 +147,15 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
   return (
     <div className="w-full space-y-3">
-      {/* 1. Four Big Interactive Hero Mode Cards (MD3 Bento Cards) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-        {PRESETS.map((preset) => {
-          const isActive = activePreset === preset.id;
+      {/* 1. M3 Expressive Segmented Buttons (Hero Routing Mode Switcher) */}
+      <M3SegmentedButton
+        options={segmentOptions}
+        selectedId={activePreset}
+        onSelect={handleSelectSegment}
+      />
 
-          return (
-            <motion.button
-              key={preset.id}
-              whileTap={{ scale: 0.97 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-              onClick={() => onSelectPreset(preset)}
-              type="button"
-              className={`p-3.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between select-none ${
-                isActive
-                  ? 'bg-[#4F378B] text-[#EADDFF] border-[#D0BCFF] shadow-md ring-2 ring-[#D0BCFF]/20'
-                  : 'bg-[#1D1B20] border-[#49454F]/40 text-[#CAC4D0] hover:border-[#49454F]/80 hover:bg-[#2B2930] hover:text-[#E6E0E9]'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center ${
-                  isActive ? 'bg-[#381E72] text-[#D0BCFF]' : 'bg-[#141218] text-[#CAC4D0] border border-[#49454F]/30'
-                }`}>
-                  {preset.id === 'all' && <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                  {preset.id === 'anti-tspu' && <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                  {preset.id === 'ai' && <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                  {preset.id === 'youtube' && <Tv className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                </div>
-
-                {isActive && (
-                  <span className="w-2 h-2 rounded-full bg-[#7BE08F] shadow-sm shadow-[#7BE08F]/50" />
-                )}
-              </div>
-
-              <div>
-                <span className={`font-display text-xs sm:text-sm font-bold block ${
-                  isActive ? 'text-white' : 'text-[#E6E0E9]'
-                }`}>
-                  {preset.name}
-                </span>
-                <span className={`text-[11px] font-mono block mt-0.5 sm:mt-1 ${
-                  isActive ? 'text-[#EADDFF]/80' : 'text-[#938F99]'
-                }`}>
-                  {preset.id === 'all' && 'Минимальный пинг'}
-                  {preset.id === 'anti-tspu' && 'Обход ТСПУ / РКН'}
-                  {preset.id === 'ai' && 'ChatGPT / Claude'}
-                  {preset.id === 'youtube' && '4K без буфера'}
-                </span>
-              </div>
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* 2. Expandable Advanced Filter Accordion (MD3 Style) */}
-      <div className="rounded-[28px] bg-[#1D1B20] border border-[#49454F]/40 overflow-hidden shadow-md">
+      {/* 2. Expandable Advanced Filter Accordion (M3 Surface Container Low) */}
+      <div className="rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 overflow-hidden shadow-lg">
         <button
           onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
           type="button"
@@ -174,21 +165,21 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             <Sliders className="w-4 h-4 text-[#D0BCFF]" />
             <span>Тонкая настройка (сервисы, протоколы, страны)</span>
             {customFilterCount > 0 && (
-              <span className="px-2.5 py-0.5 rounded-full bg-[#4A4458] text-[#E8DEF8] text-[10px] font-mono font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-[#4A4458] text-[#EADDFF] text-[10px] font-mono font-bold">
                 +{customFilterCount}
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-1.5 text-[#CAC4D0]">
-            <span className="text-[11px] font-body hidden sm:inline">{isAdvancedOpen ? 'Скрыть' : 'Настроить'}</span>
+            <span className="text-[11px] font-body hidden sm:inline">{isAdvancedOpen ? 'Свернуть' : 'Настроить'}</span>
             <div className="p-0.5">
               {isAdvancedOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </div>
           </div>
         </button>
 
-        {/* Collapsible Content */}
+        {/* Collapsible Content with M3 Filter Chips */}
         <AnimatePresence initial={false}>
           {isAdvancedOpen && (
             <motion.div
@@ -196,11 +187,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.2, ease: [0.05, 0.7, 0.1, 1.0] }}
               className="overflow-hidden"
             >
-              <div className="px-5 pb-5 pt-3 border-t border-[#49454F]/30 space-y-4">
-                
+              <div className="px-5 pb-5 pt-3 border-t border-[#49454F]/25 space-y-4">
                 {/* 1. Services Chips */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -215,32 +205,26 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {SERVICES.map((srv) => {
                       const isSelected = selectedServices.includes(srv.id);
                       const Icon = srv.icon;
 
                       return (
-                        <button
+                        <M3FilterChip
                           key={srv.id}
-                          onClick={() => onToggleService(srv.id)}
-                          type="button"
-                          className={`inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer select-none ${
-                            isSelected
-                              ? 'bg-[#4A4458] text-[#E8DEF8] font-semibold border-[#CCC2DC]/50 shadow-sm'
-                              : 'bg-[#141218] border-[#49454F]/30 text-[#CAC4D0] hover:border-[#49454F]/60 hover:text-white hover:bg-[#2B2930]'
-                          }`}
-                        >
-                          <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span>{srv.name}</span>
-                        </button>
+                          label={srv.name}
+                          selected={isSelected}
+                          onToggle={() => onToggleService(srv.id)}
+                          icon={<Icon className="w-3.5 h-3.5 flex-shrink-0" />}
+                        />
                       );
                     })}
                   </div>
                 </div>
 
                 {/* 2. Protocols Chips */}
-                <div className="pt-3 border-t border-[#49454F]/30">
+                <div className="pt-3 border-t border-[#49454F]/25">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-[#CAC4D0] font-mono flex items-center gap-1.5">
                       <Sliders className="w-3.5 h-3.5 text-[#D0BCFF]" />
@@ -248,45 +232,31 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      onClick={onClearProtos}
-                      type="button"
-                      className={`inline-flex items-center justify-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer select-none ${
-                        selectedProtos.length === 0
-                          ? 'bg-[#4A4458] text-[#E8DEF8] font-semibold border-[#CCC2DC]/50'
-                          : 'bg-[#141218] border-[#49454F]/30 text-[#CAC4D0] hover:border-[#49454F]/60 hover:text-white'
-                      }`}
-                    >
-                      <span>Все</span>
-                    </button>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <M3FilterChip
+                      label="Все протоколы"
+                      selected={selectedProtos.length === 0}
+                      onToggle={onClearProtos}
+                    />
 
                     {availableProtos.map((p) => {
                       const isSelected = selectedProtos.includes(p.id);
 
                       return (
-                        <button
+                        <M3FilterChip
                           key={p.id}
-                          onClick={() => onToggleProto(p.id)}
-                          type="button"
-                          className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer select-none ${
-                            isSelected
-                              ? 'bg-[#4A4458] text-[#E8DEF8] font-semibold border-[#CCC2DC]/50 shadow-sm'
-                              : 'bg-[#141218] border-[#49454F]/30 text-[#CAC4D0] hover:border-[#49454F]/60 hover:text-white'
-                          }`}
-                        >
-                          <span>{p.label}</span>
-                          <span className="text-[10px] font-mono opacity-70 ml-0.5">
-                            ({p.count})
-                          </span>
-                        </button>
+                          label={p.label}
+                          count={p.count}
+                          selected={isSelected}
+                          onToggle={() => onToggleProto(p.id)}
+                        />
                       );
                     })}
                   </div>
                 </div>
 
                 {/* 3. Locations Chips */}
-                <div className="pt-3 border-t border-[#49454F]/30">
+                <div className="pt-3 border-t border-[#49454F]/25">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-[#CAC4D0] font-mono flex items-center gap-1.5">
                       <Globe2 className="w-3.5 h-3.5 text-[#D0BCFF]" />
@@ -294,43 +264,32 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     </span>
                   </div>
 
-                  <div className={`flex flex-wrap items-center gap-2 ${
+                  <div className={`flex flex-wrap items-center gap-1.5 ${
                     isExpandedCountries ? 'max-h-[160px] overflow-y-auto pr-1' : ''
                   }`}>
-                    <button
-                      onClick={onClearCountries}
-                      type="button"
-                      className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer select-none ${
-                        selectedCountries.length === 0
-                          ? 'bg-[#4A4458] text-[#E8DEF8] font-semibold border-[#CCC2DC]/50'
-                          : 'bg-[#141218] border-[#49454F]/30 text-[#CAC4D0] hover:border-[#49454F]/60 hover:text-white'
-                      }`}
-                    >
-                      <span>Все страны</span>
-                    </button>
+                    <M3FilterChip
+                      label="Все страны"
+                      selected={selectedCountries.length === 0}
+                      onToggle={onClearCountries}
+                    />
 
                     {visibleCountries.map((c) => {
                       const isSelected = selectedCountries.includes(c.code);
 
                       return (
-                        <button
+                        <M3FilterChip
                           key={c.code}
-                          onClick={() => onToggleCountry(c.code)}
-                          type="button"
-                          className={`inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer select-none ${
-                            isSelected
-                              ? 'bg-[#4A4458] text-[#E8DEF8] font-semibold border-[#CCC2DC]/50 shadow-sm'
-                              : 'bg-[#141218] border-[#49454F]/30 text-[#CAC4D0] hover:border-[#49454F]/60 hover:text-white'
-                          }`}
-                        >
-                          <CountryFlag countryCode={c.code} className="w-3.5 h-2 rounded-[2px] shadow-sm flex-shrink-0" />
-                          <span>{c.label}</span>
-                          {c.count > 0 && (
-                            <span className="text-[10px] font-mono opacity-70">
-                              {c.count}
-                            </span>
-                          )}
-                        </button>
+                          label={c.label}
+                          count={c.count}
+                          selected={isSelected}
+                          onToggle={() => onToggleCountry(c.code)}
+                          icon={
+                            <CountryFlag
+                              countryCode={c.code}
+                              className="w-3.5 h-2 rounded-[2px] shadow-xs flex-shrink-0"
+                            />
+                          }
+                        />
                       );
                     })}
                   </div>
@@ -347,7 +306,6 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     </div>
                   )}
                 </div>
-
               </div>
             </motion.div>
           )}

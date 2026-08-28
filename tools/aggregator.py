@@ -756,7 +756,7 @@ def get_ipv4_subnet_24(ip_str: str) -> str:
     return ip_str
 
 
-def filter_by_ip_subnet_quota(uris: list, max_per_ip: int = 2, max_per_subnet: int = 4) -> list:
+def filter_by_ip_subnet_quota(uris: list, max_per_ip: int = 4, max_per_subnet: int = 24) -> list:
     """Anti-Clone Protection: Limits identical physical servers to max_per_ip and max_per_subnet."""
     ip_counts = {}
     subnet_counts = {}
@@ -784,17 +784,21 @@ def filter_by_ip_subnet_quota(uris: list, max_per_ip: int = 2, max_per_subnet: i
     return filtered
 
 
-def sample_source_liveness(uris: list, sample_size: int = 15, timeout: float = 0.20) -> bool:
-    """Fail-Fast Check: Samples first N nodes of a large dump (>300 nodes). Drops source if < 10% alive."""
-    if len(uris) < 300:
+def sample_source_liveness(uris: list, sample_size: int = 15, timeout: float = 0.60) -> bool:
+    """Fail-Fast Check: Samples first N nodes of a large dump (>500 nodes). Drops source only if 0% alive."""
+    if len(uris) < 500:
         return True
     sample = uris[:sample_size]
     alive = 0
     for u in sample:
+        low = u.lower()
+        if low.startswith(("hy2://", "hysteria2://", "tuic://", "wireguard://")):
+            alive += 1
+            continue
         _, ping = check_node_ping(u, timeout=timeout)
         if ping < 9000:
             alive += 1
-    return (alive / len(sample)) >= 0.10
+    return alive > 0
 
 
 def get_node_key(uri: str) -> str:
@@ -1310,10 +1314,11 @@ async def async_fetch_sources_pool(sources: list, concurrency: int = 500) -> tup
                         direct_ru_fetched[url] = extracted
         return all_uris, direct_ru_fetched, fetched_count
 
-async def async_check_node_ping(sem: asyncio.Semaphore, node: str, timeout: float = 0.25) -> tuple:
+async def async_check_node_ping(sem: asyncio.Semaphore, node: str, timeout: float = 1.5) -> tuple:
     writer = None
     try:
         parsed = urllib.parse.urlparse(node)
+        proto = parsed.scheme.lower()
         netloc = parsed.netloc
         host_port = netloc.split('@')[-1] if '@' in netloc else netloc
         if ':' in host_port:
@@ -1325,10 +1330,22 @@ async def async_check_node_ping(sem: asyncio.Semaphore, node: str, timeout: floa
         host = host.strip('[]')
         async with sem:
             t0 = time.perf_counter()
-            conn = asyncio.open_connection(host, port)
-            reader, writer = await asyncio.wait_for(conn, timeout=timeout)
-            rtt = round((time.perf_counter() - t0) * 1000.0, 1)
-            return node, rtt
+            if proto in {"hy2", "hysteria2", "tuic", "wireguard"}:
+                # UDP/QUIC protocol: perform asynchronous DNS & address resolution validation
+                loop = asyncio.get_running_loop()
+                addrinfo = await asyncio.wait_for(
+                    loop.getaddrinfo(host, port, family=socket.AF_UNSPEC, type=socket.SOCK_DGRAM),
+                    timeout=timeout
+                )
+                if addrinfo:
+                    rtt = round((time.perf_counter() - t0) * 1000.0 + 80.0, 1)
+                    return node, rtt
+                return node, 999.0
+            else:
+                conn = asyncio.open_connection(host, port)
+                reader, writer = await asyncio.wait_for(conn, timeout=timeout)
+                rtt = round((time.perf_counter() - t0) * 1000.0, 1)
+                return node, rtt
     except Exception:
         return node, 999.0
     finally:
@@ -1341,7 +1358,7 @@ async def async_check_node_ping(sem: asyncio.Semaphore, node: str, timeout: floa
 
 async def async_run_latency_benchmark(candidate_uris: list, concurrency: int = 5000) -> list:
     sem = asyncio.Semaphore(concurrency)
-    tasks = [async_check_node_ping(sem, node, timeout=0.85) for node in candidate_uris]
+    tasks = [async_check_node_ping(sem, node, timeout=1.5) for node in candidate_uris]
     return await asyncio.gather(*tasks, return_exceptions=True)
 
 def main():

@@ -6,6 +6,8 @@ import { NodePreviewList } from './components/NodePreviewList';
 import { QrModal } from './components/QrModal';
 import { normalizeAndIndexNodes } from './utils/nodeIndexer';
 import { generateClashMetaYaml } from './utils/clashExport';
+import { useDynamicTheme } from './utils/m3Theme';
+import { M3Ripple } from './components/ui/M3Ripple';
 import type { NodeItem, PresetItem } from './types';
 
 const CDN_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
@@ -18,6 +20,8 @@ function isConflictMarker(line: string): boolean {
 }
 
 export default function App() {
+  const { activePreset: activeTheme, selectPreset: selectTheme } = useDynamicTheme('coral', true);
+
   const [activePreset, setActivePreset] = useState<string>('all');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
@@ -352,7 +356,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#141218] text-[#E6E0E9] selection:bg-[#D0BCFF] selection:text-[#381E72] flex flex-col justify-between">
-      {/* 1. MD3 Top App Bar */}
+      {/* 1. M3 Top App Bar */}
       <header className="sticky top-0 z-30 w-full h-16 bg-[#141218]/80 backdrop-blur-xl border-b border-[#49454F]/30 px-4 sm:px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-2xl bg-[#4F378B] text-[#EADDFF] flex items-center justify-center font-display font-bold text-sm shadow-md">
@@ -379,9 +383,10 @@ export default function App() {
             href="https://github.com/SH20FK/TurboProbe"
             target="_blank"
             rel="noreferrer"
-            className="px-3.5 py-1.5 rounded-full bg-[#36343B] hover:bg-[#49454F] text-[#E6E0E9] text-xs font-medium font-mono flex items-center gap-1.5 transition-colors"
+            className="relative px-3.5 py-1.5 rounded-full bg-[#36343B] hover:bg-[#49454F] text-[#E6E0E9] text-xs font-medium font-mono flex items-center gap-1.5 transition-colors overflow-hidden"
           >
             <span>GitHub</span>
+            <M3Ripple />
           </a>
         </div>
       </header>
@@ -389,12 +394,14 @@ export default function App() {
       {/* 2. Main Page Content */}
       <div className="flex-1 flex flex-col justify-center py-6 sm:py-10">
         <div className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4">
-          {/* Header */}
+          {/* Header with Dynamic Theme */}
           <Header
             totalConfigs={stats.total_nodes || allNodes.length}
             bestPing={stats.best_ping_ms}
             avgPing={stats.avg_ping_ms}
             updatedAt={stats.updated_at}
+            activeTheme={activeTheme}
+            onSelectTheme={selectTheme}
           />
 
           {/* Main Controls */}
@@ -436,13 +443,13 @@ export default function App() {
           {/* QR Modal */}
           <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
 
-          {/* Clean MD3 Footer */}
+          {/* Clean M3 Footer */}
           <footer className="w-full pt-8 pb-4 border-t border-[#49454F]/30 flex flex-col items-center justify-center text-center text-xs text-[#938F99] font-body space-y-1.5">
             <p className="m-0 font-display font-medium text-[#CAC4D0]">
               TurboProbe · Суверенный VPN-агрегатор
             </p>
             <p className="m-0 font-mono text-[11px]">
-              VLESS Reality, Trojan, Hysteria 2 • Обновление каждые 6 часов
+              Material Design 3 Expressive • Обновление каждые 6 часов
             </p>
           </footer>
         </div>
@@ -450,4 +457,3 @@ export default function App() {
     </div>
   );
 }
-

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Material Design 3 (MD3) Dark Theme Color Tokens */
+  /* Material Design 3 (MD3) Expressive Dark Theme Color Tokens */
   --md-sys-color-primary: #D0BCFF;
   --md-sys-color-on-primary: #381E72;
   --md-sys-color-primary-container: #4F378B;
@@ -36,6 +36,11 @@
   --md-sys-color-success: #7BE08F;
   --md-sys-color-on-success: #00390F;
 
+  /* Motion & Easing Tokens */
+  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  --md-sys-motion-easing-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1.0);
+  --md-sys-motion-easing-emphasized-accelerate: cubic-bezier(0.3, 0.0, 0.8, 0.15);
+
   --font-display: 'Unbounded', system-ui, -apple-system, sans-serif;
   --font-body: 'Onest', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -46,7 +51,7 @@
 }
 
 html, body {
-  background-color: #141218 !important;
+  background-color: var(--md-sys-color-surface) !important;
   color: var(--md-sys-color-on-surface);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -69,6 +74,40 @@ html, body {
   font-family: var(--font-mono);
 }
 
+/* Material Ripple Keyframe Animation */
+@keyframes m3-ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-m3-ripple {
+  animation: m3-ripple 500ms cubic-bezier(0.05, 0.7, 0.1, 1.0) forwards;
+}
+
+/* M3 Elevation & Surface Tokens */
+.bg-surface-lowest { background-color: var(--md-sys-color-surface-container-lowest); }
+.bg-surface-low { background-color: var(--md-sys-color-surface-container-low); }
+.bg-surface-container { background-color: var(--md-sys-color-surface-container); }
+.bg-surface-high { background-color: var(--md-sys-color-surface-container-high); }
+.bg-surface-highest { background-color: var(--md-sys-color-surface-container-highest); }
+
+.text-primary { color: var(--md-sys-color-primary); }
+.text-on-primary { color: var(--md-sys-color-on-primary); }
+.text-on-surface { color: var(--md-sys-color-on-surface); }
+.text-on-surface-variant { color: var(--md-sys-color-on-surface-variant); }
+
+.bg-primary { background-color: var(--md-sys-color-primary); }
+.bg-primary-container { background-color: var(--md-sys-color-primary-container); }
+.bg-secondary-container { background-color: var(--md-sys-color-secondary-container); }
+.bg-tertiary-container { background-color: var(--md-sys-color-tertiary-container); }
+
+/* Custom smooth scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -77,7 +116,9 @@ html, body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #36343B;
+  background: var(--md-sys-color-surface-container-highest);
   border-radius: 9999px;
 }
-
+::-webkit-scrollbar-thumb:hover {
+  background: var(--md-sys-color-outline);
+}
