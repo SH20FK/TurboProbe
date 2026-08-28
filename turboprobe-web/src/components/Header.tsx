@@ -9,22 +9,22 @@ interface HeaderProps {
   updatedAt?: string;
 }
 
-export function formatMskTime(isoString?: string): string {
+export function formatTimeParts(isoString?: string): { time: string; date: string } {
   try {
-    const date = isoString ? new Date(isoString) : new Date();
-    const d = date.toLocaleDateString('ru-RU', {
-      timeZone: 'Europe/Moscow',
-      day: '2-digit',
-      month: '2-digit',
-    });
-    const t = date.toLocaleTimeString('ru-RU', {
+    const d = isoString ? new Date(isoString) : new Date();
+    const time = d.toLocaleTimeString('ru-RU', {
       timeZone: 'Europe/Moscow',
       hour: '2-digit',
       minute: '2-digit',
     });
-    return `${d}, ${t} МСК`;
+    const date = d.toLocaleDateString('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      day: 'numeric',
+      month: 'short',
+    });
+    return { time, date: `${date} · МСК` };
   } catch {
-    return 'Сегодня, 14:00 МСК';
+    return { time: '14:00', date: 'Сегодня · МСК' };
   }
 }
 
@@ -34,22 +34,23 @@ export const Header: React.FC<HeaderProps> = ({
   avgPing: _avgPing,
   updatedAt,
 }) => {
-  const mskTime = formatMskTime(updatedAt);
+  const { time, date } = formatTimeParts(updatedAt);
 
   return (
     <div className="w-full select-none">
       {/* Clean Dark Hero Card with Micro-Interactions */}
       <div className="relative rounded-3xl bg-[#1D1B20] border border-[#49454F]/30 p-6 sm:p-8 shadow-xl overflow-hidden flex flex-col items-center text-center">
-        {/* Top Status Badge with Live Radar Pulse */}
+        {/* Top Status Badge with Live Double-Pulse Radar */}
         <div className="w-full flex items-center justify-between mb-5">
           <motion.div
             whileHover={{ scale: 1.03 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#2B2930] text-[#CAC4D0] border border-[#49454F]/30 text-xs font-mono shadow-xs cursor-default"
+            className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#2B2930] text-[#CAC4D0] border border-[#49454F]/30 text-xs font-mono shadow-xs cursor-default"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7BE08F] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7BE08F]" />
-            </span>
+            <div className="relative flex h-2.5 w-2.5 items-center justify-center">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7BE08F] opacity-75 duration-1000" />
+              <span className="animate-pulse absolute inline-flex h-4 w-4 rounded-full bg-[#7BE08F]/20" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7BE08F] shadow-[0_0_8px_#7BE08F]" />
+            </div>
             <span className="font-semibold tracking-tight">RADAR ACTIVE • 6H SYNC</span>
           </motion.div>
 
@@ -84,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
           Суверенный генератор проверенных подписок <span className="text-white font-medium">VLESS Reality</span> и <span className="text-white font-medium">Trojan</span> с обходом ТСПУ
         </p>
 
-        {/* 3 Interactive Stat Cards */}
+        {/* 3 Perfectly Balanced KPI Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full max-w-xl">
           {/* Stat 1: Total Configs */}
           <motion.div
@@ -96,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
               <ShieldCheck className="w-3.5 h-3.5 text-[#7BE08F]" />
               <span>Серверы онлайн</span>
             </div>
-            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white tabular-nums">
               {totalConfigs > 0 ? (
                 totalConfigs.toLocaleString('ru-RU')
               ) : (
@@ -115,7 +116,7 @@ export const Header: React.FC<HeaderProps> = ({
               <Zap className="w-3.5 h-3.5 text-[#7BE08F]" />
               <span>Лучший пинг</span>
             </div>
-            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white tabular-nums">
               {bestPing > 0 ? (
                 <>
                   {bestPing} <span className="text-xs font-normal text-[#938F99]">ms</span>
@@ -136,8 +137,15 @@ export const Header: React.FC<HeaderProps> = ({
               <RefreshCw className="w-3.5 h-3.5 text-[#7BE08F]" />
               <span>Синхронизация</span>
             </div>
-            <div className="font-mono text-xs sm:text-sm font-semibold tracking-tight text-white truncate w-full text-right sm:text-left mt-1">
-              {updatedAt ? mskTime : <span className="inline-block w-20 h-5 bg-white/10 rounded animate-pulse" />}
+            <div className="font-mono text-xl sm:text-2xl font-bold tracking-tight text-white tabular-nums flex items-baseline gap-1.5">
+              {updatedAt ? (
+                <>
+                  <span>{time}</span>
+                  <span className="text-[10px] font-normal text-[#938F99] tracking-normal">{date}</span>
+                </>
+              ) : (
+                <span className="inline-block w-20 h-7 bg-white/10 rounded animate-pulse" />
+              )}
             </div>
           </motion.div>
         </div>
