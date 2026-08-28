@@ -1,11 +1,11 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Material Design 3 Expressive & Pixel Vector Shapes
+// Vector Shapes
 const PARTICLE_SHAPES = [
-  // 4-Point Star (Pixel Clock)
+  // 4-Point Star
   'M50 0 C50 0 53 26 64 36 C74 47 100 50 100 50 C100 50 74 53 64 64 C53 74 50 100 50 100 C50 100 47 74 36 64 C26 53 0 50 0 50 C0 50 26 47 36 36 C47 26 50 0 50 0 Z',
-  // 8-Lobe Scallop / Flower
+  // 8-Lobe Scallop
   'M50,0 C65,0 65,25 85,15 C100,25 85,50 100,65 C85,75 85,100 65,100 C50,85 35,100 20,100 C15,85 0,75 0,50 C15,35 0,25 15,15 C35,25 35,0 50,0 Z',
   // 9-Lobe Cookie
   'M50,0 C65,0 75,10 85,15 C95,20 100,35 100,50 C100,65 90,75 85,85 C80,95 65,100 50,100 C35,100 20,95 15,85 C10,75 0,65 0,50 C0,35 10,20 15,15 C20,10 35,0 50,0 Z',
@@ -13,7 +13,7 @@ const PARTICLE_SHAPES = [
   'M 50 15 C 62 2, 85 8, 85 28 C 85 40, 72 45, 60 50 C 72 55, 85 60, 85 72 C 85 92, 62 98, 50 85 C 38 98, 15 92, 15 72 C 15 60, 28 55, 40 50 C 28 45, 15 40, 15 28 C 15 8, 38 2, 50 15 Z',
 ];
 
-const DEFAULT_M3_COLORS = ['#D0BCFF', '#7BE08F', '#E8DEF8', '#38BDF8', '#F59E0B', '#FF897D'];
+const DEFAULT_CYBER_COLORS = ['#38BDF8', '#34D399', '#0EA5E9', '#60A5FA', '#F59E0B', '#10B981'];
 
 interface Particle {
   id: number;
@@ -41,7 +41,7 @@ interface CoolModeProps {
 export const CoolMode: React.FC<CoolModeProps> = ({
   children,
   particleCount = 14,
-  colors = DEFAULT_M3_COLORS,
+  colors = DEFAULT_CYBER_COLORS,
   particleSize = 16,
   spread = 80,
   className = '',

@@ -66,11 +66,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const getIcon = (type?: ToastType) => {
     switch (type) {
       case 'success':
-        return <CheckCircle2 className="w-4.5 h-4.5 text-[#7BE08F] flex-shrink-0" />;
+        return <CheckCircle2 className="w-4.5 h-4.5 text-[#34D399] flex-shrink-0" />;
       case 'copy':
-        return <Copy className="w-4.5 h-4.5 text-[#D0BCFF] flex-shrink-0" />;
+        return <Copy className="w-4.5 h-4.5 text-[#38BDF8] flex-shrink-0" />;
       case 'error':
-        return <AlertCircle className="w-4.5 h-4.5 text-[#FF897D] flex-shrink-0" />;
+        return <AlertCircle className="w-4.5 h-4.5 text-[#EF4444] flex-shrink-0" />;
       default:
         return <Info className="w-4.5 h-4.5 text-[#38BDF8] flex-shrink-0" />;
     }
@@ -106,23 +106,23 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   }}
                   exit={{ opacity: 0, scale: 0.85, y: 10, transition: { duration: 0.18 } }}
                   transition={{ type: 'spring', stiffness: 420, damping: 28 }}
-                  className="absolute bottom-0 right-0 w-full pointer-events-auto rounded-2xl border border-[#49454F]/40 bg-[#2B2930]/95 backdrop-blur-md p-3.5 shadow-2xl text-[#E6E0E9]"
+                  className="absolute bottom-0 right-0 w-full pointer-events-auto rounded-2xl border border-[var(--border-main)] bg-[var(--bg-card)]/95 backdrop-blur-md p-3.5 shadow-2xl text-[var(--text-main)] transition-colors duration-200"
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5">{getIcon(item.type)}</div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-xs sm:text-sm font-semibold leading-tight font-display text-white">
+                      <h4 className="text-xs sm:text-sm font-semibold leading-tight font-display text-[var(--text-main)]">
                         {item.title}
                       </h4>
                       {item.description && (
-                        <p className="mt-0.5 text-[11px] text-[#CAC4D0] font-mono truncate">
+                        <p className="mt-0.5 text-[11px] text-[var(--text-muted)] font-mono truncate">
                           {item.description}
                         </p>
                       )}
                     </div>
                     <button
                       onClick={() => removeToast(item.id)}
-                      className="text-[#CAC4D0] hover:text-white p-1 -mr-1 -mt-1 rounded-lg transition-colors cursor-pointer"
+                      className="text-[var(--text-muted)] hover:text-[var(--text-main)] p-1 -mr-1 -mt-1 rounded-lg transition-colors cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>

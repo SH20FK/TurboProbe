@@ -19,19 +19,19 @@ const tableContainer = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.03,
-      delayChildren: 0.02,
+      staggerChildren: 0.02,
+      delayChildren: 0.01,
     },
   },
 };
 
 const tableRowItem = {
-  hidden: { opacity: 0, y: 6 },
+  hidden: { opacity: 0, y: 4 },
   show: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.2,
+      duration: 0.18,
       ease: [0.05, 0.7, 0.1, 1.0] as const,
     },
   },
@@ -63,35 +63,35 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
   };
 
   return (
-    <div className="rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 shadow-xl overflow-hidden">
+    <div className="rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] shadow-xl overflow-hidden transition-colors duration-200">
       {/* Accordion Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         type="button"
-        className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-[#2B2930]/50 transition-colors text-left cursor-pointer select-none"
+        className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-[var(--bg-card-hover)]/60 transition-colors text-left cursor-pointer select-none"
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-[#2B2930] border border-white/5 flex items-center justify-center text-[#D0BCFF]">
+          <div className="w-7 h-7 rounded-full bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#38BDF8]">
             <Globe className="w-4 h-4" />
           </div>
           <div>
-            <span className="font-display text-xs sm:text-sm font-semibold text-[#E6E0E9]">
+            <span className="font-display text-xs sm:text-sm font-semibold text-[var(--text-main)]">
               Телеметрия проверенных узлов
             </span>
-            <span className="text-xs font-mono text-[#CAC4D0] ml-2">
+            <span className="text-xs font-mono text-[var(--text-muted)] ml-2">
               (<M3NumberCounter value={nodes.length} formatThousands={false} /> узлов в базе)
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[#CAC4D0] font-body hidden sm:inline">
+          <span className="text-xs text-[var(--text-muted)] font-body hidden sm:inline">
             {isExpanded ? 'Скрыть список' : 'Показать список'}
           </span>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
             transition={{ duration: 0.25, ease: [0.05, 0.7, 0.1, 1.0] }}
-            className="p-1 rounded-full bg-[#2B2930] text-[#CAC4D0]"
+            className="p-1 rounded-full bg-[var(--bg-app)] text-[var(--text-muted)]"
           >
             <ChevronDown className="w-4 h-4" />
           </motion.div>
@@ -120,15 +120,15 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                 opacity: { duration: 0.15 },
               },
             }}
-            className="overflow-hidden border-t border-[#49454F]/25"
+            className="overflow-hidden border-t border-[var(--border-main)]"
           >
             {/* Table / List View */}
-            <div className="max-h-[380px] overflow-y-auto divide-y divide-[#49454F]/15">
+            <div className="max-h-[380px] overflow-y-auto divide-y divide-[var(--border-main)]">
               {/* 1. Loading State */}
               {isLoading && (
                 <div className="flex flex-col items-center justify-center py-10 gap-2.5">
-                  <Loader2 className="w-6 h-6 text-[#D0BCFF] animate-spin" />
-                  <span className="text-xs text-[#CAC4D0] font-mono">
+                  <Loader2 className="w-6 h-6 text-[#38BDF8] animate-spin" />
+                  <span className="text-xs text-[var(--text-muted)] font-mono">
                     Загрузка проверенных серверов...
                   </span>
                 </div>
@@ -136,7 +136,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
               {/* 2. Empty State */}
               {!isLoading && nodes.length === 0 && (
-                <div className="py-8 text-center text-xs text-[#938F99] font-mono">
+                <div className="py-8 text-center text-xs text-[var(--text-muted)] font-mono">
                   По выбранным критериям узлы не найдены
                 </div>
               )}
@@ -147,7 +147,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                   variants={tableContainer}
                   initial="hidden"
                   animate="show"
-                  className="divide-y divide-[#49454F]/15"
+                  className="divide-y divide-[var(--border-main)]"
                 >
                   {displayedNodes.map((node, index) => {
                     const country = (node.country || 'un').toLowerCase();
@@ -166,22 +166,22 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                       <motion.div
                         key={nodeKey}
                         variants={tableRowItem}
-                        className="px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-[#2B2930]/40 transition-colors"
+                        className="px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-[var(--bg-card-hover)]/40 transition-colors"
                       >
                         {/* Left: Flag + Proto + Name */}
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           <CountryFlag countryCode={country} className="w-4.5 h-3.5 flex-shrink-0" />
 
-                          {/* Protocol Badge */}
+                          {/* Protocol Badge in Cyber Slate */}
                           <span
                             className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold flex-shrink-0 ${
                               isVless
-                                ? 'bg-[#4F378B]/40 text-[#D0BCFF] border border-[#D0BCFF]/30'
+                                ? 'bg-[#0284C7]/20 text-[#38BDF8] border border-[#38BDF8]/40'
                                 : isTrojan
-                                ? 'bg-[#7D5260]/40 text-[#FFD8E4] border border-[#FFD8E4]/30'
+                                ? 'bg-[#059669]/20 text-[#34D399] border border-[#34D399]/40'
                                 : isHy2
-                                ? 'bg-[#004D40]/50 text-[#80CBC4] border border-[#80CBC4]/30'
-                                : 'bg-[#36343B] text-[#CAC4D0] border border-[#49454F]/40'
+                                ? 'bg-[#004D40]/30 text-[#67E8F9] border border-[#67E8F9]/40'
+                                : 'bg-[var(--bg-app)] text-[var(--text-muted)] border border-[var(--border-main)]'
                             }`}
                           >
                             {proto}
@@ -189,7 +189,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
                           {/* Node Title */}
                           <div className="min-w-0 flex-1 flex flex-col">
-                            <span className="text-xs font-mono font-medium text-[#E6E0E9] truncate">
+                            <span className="text-xs font-mono font-medium text-[var(--text-main)] truncate">
                               {title}
                             </span>
                           </div>
@@ -199,14 +199,14 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                         <div className="flex items-center gap-3.5 flex-shrink-0 relative z-10">
                           {ping !== null ? (
                             <Tooltip content={`Задержка TCP отклика: ${ping} ms`} side="left">
-                              <div className="flex items-center gap-1.5 font-mono text-xs text-[#CAC4D0] cursor-default">
+                              <div className="flex items-center gap-1.5 font-mono text-xs text-[var(--text-muted)] cursor-default">
                                 <span
                                   className={`w-2 h-2 rounded-full ${
                                     ping < 250
-                                      ? 'bg-[#7BE08F] shadow-[0_0_6px_#7BE08F]'
+                                      ? 'bg-[#34D399] shadow-[0_0_6px_#34D399]'
                                       : ping < 550
-                                      ? 'bg-[#FFD966]'
-                                      : 'bg-[#FF897D]'
+                                      ? 'bg-[#F59E0B]'
+                                      : 'bg-[#EF4444]'
                                   }`}
                                 />
                                 <span>{ping} ms</span>
@@ -214,8 +214,8 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                             </Tooltip>
                           ) : (
                             <Tooltip content="Узел онлайн и доступен" side="left">
-                              <div className="flex items-center gap-1.5 font-mono text-xs text-[#7BE08F] cursor-default">
-                                <span className="w-2 h-2 rounded-full bg-[#7BE08F] shadow-[0_0_6px_#7BE08F]" />
+                              <div className="flex items-center gap-1.5 font-mono text-xs text-[#34D399] cursor-default">
+                                <span className="w-2 h-2 rounded-full bg-[#34D399] shadow-[0_0_6px_#34D399]" />
                                 <span>ONLINE</span>
                               </div>
                             </Tooltip>
@@ -229,7 +229,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                               transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                               type="button"
                               aria-label="Скопировать ключ"
-                              className="relative w-8 h-8 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#CAC4D0] hover:text-white flex items-center justify-center cursor-pointer overflow-hidden border border-[#49454F]/30"
+                              className="relative w-8 h-8 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center justify-center cursor-pointer overflow-hidden border border-[var(--border-main)] transition-colors"
                             >
                               <AnimatePresence mode="wait" initial={false}>
                                 {isCopied ? (
@@ -240,7 +240,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                                     exit={{ scale: 0 }}
                                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                                   >
-                                    <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                                    <Check className="w-4 h-4 text-[#34D399] stroke-[3]" />
                                   </motion.span>
                                 ) : (
                                   <motion.span key="copy" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
@@ -248,7 +248,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                                   </motion.span>
                                 )}
                               </AnimatePresence>
-                              <M3Ripple />
+                              <M3Ripple color="#38BDF8" />
                             </motion.button>
                           </Tooltip>
                         </div>
@@ -260,18 +260,18 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
               {/* Show More Button */}
               {!isLoading && hasMore && (
-                <div className="p-3 bg-[#141218] flex justify-center">
+                <div className="p-3 bg-[var(--bg-app)] flex justify-center">
                   <motion.button
                     onClick={() => setVisibleCount((prev) => prev + 30)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                     type="button"
-                    className="relative px-4 py-1.5 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-xs font-mono text-[#D0BCFF] flex items-center gap-1.5 border border-[#49454F]/30 overflow-hidden cursor-pointer shadow-xs"
+                    className="relative px-4 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-xs font-mono text-[#38BDF8] flex items-center gap-1.5 border border-[var(--border-main)] overflow-hidden cursor-pointer shadow-xs transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Показать еще ({nodes.length - visibleCount})</span>
-                    <M3Ripple color="#D0BCFF" />
+                    <M3Ripple color="#38BDF8" />
                   </motion.button>
                 </div>
               )}

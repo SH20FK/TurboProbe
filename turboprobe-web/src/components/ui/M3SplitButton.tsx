@@ -32,17 +32,17 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
   }, []);
 
   return (
-    <div ref={containerRef} className="relative inline-flex items-center w-full shadow-lg group">
+    <div ref={containerRef} className="relative inline-flex items-center w-full shadow-lg group select-none">
       {/* 1. Main Action Button (Copy Sub) */}
       <motion.button
         onClick={onCopy}
         whileHover={{ scale: 1.005 }}
         whileTap={{ scale: 0.985 }}
         type="button"
-        className={`relative flex-1 h-14 px-6 rounded-l-full font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer select-none overflow-hidden ${
+        className={`relative flex-1 h-14 px-6 rounded-l-full font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer overflow-hidden ${
           copied
-            ? 'bg-[#7BE08F] text-[#00390F] shadow-[0_0_15px_rgba(123,224,143,0.35)]'
-            : 'bg-[#D0BCFF] text-[#381E72] hover:bg-[#EADDFF] hover:shadow-[0_0_15px_rgba(208,188,255,0.25)]'
+            ? 'bg-[#059669] text-white shadow-[0_0_20px_rgba(5,150,105,0.4)]'
+            : 'bg-[#0284C7] text-white hover:bg-[#0369A1] hover:shadow-[0_0_20px_rgba(2,132,199,0.35)]'
         }`}
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -72,11 +72,11 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
             </motion.div>
           )}
         </AnimatePresence>
-        <M3Ripple color={copied ? '#00390F' : '#381E72'} />
+        <M3Ripple color="#FFFFFF" />
       </motion.button>
 
       {/* 2. Vertical Divider */}
-      <div className={`w-[1px] h-9 self-center transition-colors ${copied ? 'bg-[#00390F]/20' : 'bg-[#381E72]/20'}`} />
+      <div className="w-[1px] h-9 self-center bg-white/20" />
 
       {/* 3. Dropdown Menu Toggle */}
       <motion.button
@@ -85,19 +85,19 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
         whileTap={{ scale: 0.95 }}
         type="button"
         aria-label="Больше форматов экспорта"
-        className={`relative px-4.5 h-14 rounded-r-full flex items-center justify-center transition-all duration-200 cursor-pointer select-none overflow-hidden ${
+        className={`relative px-4.5 h-14 rounded-r-full flex items-center justify-center transition-all duration-200 cursor-pointer overflow-hidden ${
           copied
-            ? 'bg-[#7BE08F] text-[#00390F]'
-            : 'bg-[#D0BCFF] text-[#381E72] hover:bg-[#EADDFF]'
+            ? 'bg-[#059669] text-white'
+            : 'bg-[#0284C7] text-white hover:bg-[#0369A1]'
         }`}
       >
         <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2, ease: [0.05, 0.7, 0.1, 1.0] }}>
           <ChevronDown className="w-5 h-5 stroke-[2.5]" />
         </motion.div>
-        <M3Ripple color={copied ? '#00390F' : '#381E72'} />
+        <M3Ripple color="#FFFFFF" />
       </motion.button>
 
-      {/* 4. Dropdown Menu on Surface Container High */}
+      {/* 4. Dropdown Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -105,7 +105,7 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 6 }}
             transition={{ duration: 0.18, ease: [0.05, 0.7, 0.1, 1.0] }}
-            className="absolute right-0 top-full mt-2 w-68 bg-[#2B2930] border border-[#49454F]/40 rounded-3xl p-2 shadow-2xl z-50 overflow-hidden"
+            className="absolute right-0 top-full mt-2 w-68 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-3xl p-2 shadow-2xl z-50 overflow-hidden"
           >
             <motion.button
               onClick={() => {
@@ -115,14 +115,14 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.97 }}
               type="button"
-              className="relative w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold text-[#E6E0E9] hover:bg-[#36343B] transition-colors cursor-pointer text-left"
+              className="relative w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer text-left"
             >
-              <div className="w-7 h-7 rounded-xl bg-[#36343B] flex items-center justify-center text-[#D0BCFF]">
+              <div className="w-7 h-7 rounded-xl bg-[#0284C7]/20 flex items-center justify-center text-[#38BDF8]">
                 <QrCode className="w-4 h-4" />
               </div>
               <div>
                 <span className="block font-display">Показать QR-код</span>
-                <span className="text-[10px] text-[#CAC4D0] font-normal">Для сканирования на телефоне</span>
+                <span className="text-[10px] text-[var(--text-muted)] font-normal">Для сканирования на телефоне</span>
               </div>
               <M3Ripple />
             </motion.button>
@@ -135,14 +135,14 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.97 }}
               type="button"
-              className="relative w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold text-[#E6E0E9] hover:bg-[#36343B] transition-colors cursor-pointer text-left mt-1"
+              className="relative w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer text-left mt-1"
             >
-              <div className="w-7 h-7 rounded-xl bg-[#36343B] flex items-center justify-center text-[#D0BCFF]">
+              <div className="w-7 h-7 rounded-xl bg-[#0284C7]/20 flex items-center justify-center text-[#38BDF8]">
                 <Download className="w-4 h-4" />
               </div>
               <div>
                 <span className="block font-display">Скачать Clash Meta YAML</span>
-                <span className="text-[10px] text-[#CAC4D0] font-normal">Для FlClash, Clash Verge, Mihomo</span>
+                <span className="text-[10px] text-[var(--text-muted)] font-normal">Для FlClash, Clash Verge, Mihomo</span>
               </div>
               <M3Ripple />
             </motion.button>

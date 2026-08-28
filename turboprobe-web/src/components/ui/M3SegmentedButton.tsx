@@ -23,7 +23,7 @@ export const M3SegmentedButton: React.FC<M3SegmentedButtonProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1.5 bg-[#1D1B20] border border-[#49454F]/30 rounded-2xl shadow-lg relative ${className}`}>
+    <div className={`grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1.5 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-2xl shadow-lg relative transition-colors duration-200 ${className}`}>
       {options.map((opt) => {
         const isSelected = opt.id === selectedId;
 
@@ -34,16 +34,16 @@ export const M3SegmentedButton: React.FC<M3SegmentedButtonProps> = ({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             type="button"
-            className={`relative py-3 px-3 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors duration-200 select-none overflow-hidden ${
+            className={`relative py-3 px-3 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors duration-150 select-none overflow-hidden ${
               isSelected
-                ? 'text-[#EADDFF]'
-                : 'text-[#CAC4D0] hover:text-white hover:bg-white/[0.04]'
+                ? 'text-white'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
             }`}
           >
             {isSelected && (
               <motion.div
                 layoutId="m3-active-segment-bg"
-                className="absolute inset-0 bg-[#4F378B] rounded-xl shadow-[0_2px_12px_rgba(208,188,255,0.25)] border border-[#D0BCFF]/40"
+                className="absolute inset-0 bg-[#0284C7] rounded-xl shadow-[0_2px_12px_rgba(2,132,199,0.35)] border border-[#38BDF8]/60"
                 transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
             )}
@@ -69,7 +69,7 @@ export const M3SegmentedButton: React.FC<M3SegmentedButtonProps> = ({
               </span>
             )}
 
-            <M3Ripple color="#D0BCFF" />
+            <M3Ripple color="#38BDF8" />
           </motion.button>
         );
       })}

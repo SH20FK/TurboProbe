@@ -70,12 +70,12 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
       await navigator.clipboard.writeText(subUrl);
       setCopiedUrl(true);
 
-      // Trigger Festive Canvas Confetti
+      // Trigger Festive Canvas Confetti in Cyber Cyan & Emerald
       confetti({
-        particleCount: 35,
-        spread: 55,
+        particleCount: 40,
+        spread: 60,
         origin: { y: 0.82 },
-        colors: ['#D0BCFF', '#7BE08F', '#EADDFF', '#38BDF8', '#F59E0B'],
+        colors: ['#38BDF8', '#34D399', '#0EA5E9', '#F59E0B', '#60A5FA'],
       });
 
       toast.copy(subUrl, `Скопирована подписка (${effectiveCount} узлов)`);
@@ -100,18 +100,18 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   };
 
   return (
-    <div className="p-5 sm:p-6 rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 shadow-xl space-y-4">
+    <div className="p-5 sm:p-6 rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] shadow-xl space-y-4 transition-colors duration-200">
       {/* 1. Header with Sliding Spring Limit Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-[#2B2930] border border-white/5 flex items-center justify-center text-[#D0BCFF]">
+          <div className="w-7 h-7 rounded-full bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#38BDF8]">
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div>
-            <span className="font-display text-xs sm:text-sm font-semibold text-[#E6E0E9]">
+            <span className="font-display text-xs sm:text-sm font-semibold text-[var(--text-main)]">
               Экспорт подписки
             </span>
-            <span className="text-xs font-mono text-[#CAC4D0] ml-2">
+            <span className="text-xs font-mono text-[var(--text-muted)] ml-2">
               (<M3NumberCounter value={effectiveCount} formatThousands={false} />{' '}
               {selectedLimit > 0 && selectedLimit < filteredCount ? (
                 <>из <M3NumberCounter value={filteredCount} formatThousands={false} /> узлов</>
@@ -122,9 +122,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           </div>
         </div>
 
-        {/* M3 Segmented Limit Selector with Sliding Pill */}
-        <div className="flex items-center gap-1 bg-[#141218] p-1 rounded-full border border-[#49454F]/30 text-xs font-mono self-start sm:self-auto shadow-inner relative">
-          <span className="text-[#938F99] px-2 text-[10px] font-semibold uppercase relative z-10">Лимит:</span>
+        {/* Segmented Limit Selector with Sliding Pill */}
+        <div className="flex items-center gap-1 bg-[var(--bg-app)] p-1 rounded-full border border-[var(--border-main)] text-xs font-mono self-start sm:self-auto shadow-inner relative">
+          <span className="text-[var(--text-muted)] px-2 text-[10px] font-semibold uppercase relative z-10">Лимит:</span>
           {[20, 50, 100, 0].map((lim) => {
             const isActive = selectedLimit === lim;
 
@@ -134,27 +134,27 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                 onClick={() => onChangeLimit(lim)}
                 type="button"
                 className={`relative px-3 py-1 rounded-full text-xs font-semibold cursor-pointer select-none overflow-hidden ${
-                  isActive ? 'text-[#EADDFF]' : 'text-[#CAC4D0] hover:text-white'
+                  isActive ? 'text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                 }`}
               >
                 {isActive && (
                   <motion.div
                     layoutId="limit-active-pill"
-                    className="absolute inset-0 bg-[#4F378B] rounded-full shadow-xs border border-[#D0BCFF]/30"
+                    className="absolute inset-0 bg-[#0284C7] rounded-full shadow-xs border border-[#38BDF8]/50"
                     transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
                 )}
                 <span className="relative z-10">{lim === 0 ? 'Все' : lim}</span>
-                <M3Ripple color="#D0BCFF" />
+                <M3Ripple color="#38BDF8" />
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* 2. Hero M3 Split-Button (1-Click Main Action) with CoolMode */}
+      {/* 2. Hero Split-Button (1-Click Main Action) with CoolMode */}
       <div className="w-full">
-        <CoolMode particleCount={16} spread={70} className="w-full">
+        <CoolMode particleCount={16} spread={70} colors={['#38BDF8', '#34D399', '#0EA5E9', '#60A5FA']} className="w-full">
           <M3SplitButton
             onCopy={handleCopyMainUrl}
             copied={copiedUrl}
@@ -165,21 +165,21 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         </CoolMode>
       </div>
 
-      {/* 3. Native App Import Grid with CoolMode & Instant Spring Physics */}
-      <div className="space-y-2 pt-2 border-t border-[#49454F]/25">
-        <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#938F99]">
+      {/* 3. Native App Import Grid with Instant Spring Physics */}
+      <div className="space-y-2 pt-2 border-t border-[var(--border-main)]">
+        <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
           Импорт в 1 клик в ваше приложение:
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {/* Happ */}
-          <CoolMode colors={['#38BDF8', '#D0BCFF', '#7BE08F']} className="w-full">
+          <CoolMode colors={['#38BDF8', '#0EA5E9', '#34D399']} className="w-full">
             <motion.button
               onClick={() => handleClientAction('happ', `happ://add/${subUrl}#TurboProbe`, subUrl)}
               whileHover={{ y: -2, scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 500, damping: 25 }}
               type="button"
-              className="w-full relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#38BDF8]/60 hover:shadow-[0_0_12px_rgba(56,189,248,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#38BDF8]/60 hover:shadow-[0_0_12px_rgba(56,189,248,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {copiedStatus === 'happ' ? (
@@ -191,7 +191,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                     className="flex items-center"
                   >
-                    <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                    <Check className="w-4 h-4 text-[#34D399] stroke-[3]" />
                   </motion.span>
                 ) : (
                   <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
@@ -205,14 +205,14 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           </CoolMode>
 
           {/* v2rayNG / v2rayN */}
-          <CoolMode colors={['#D0BCFF', '#EADDFF', '#7BE08F']} className="w-full">
+          <CoolMode colors={['#38BDF8', '#60A5FA', '#34D399']} className="w-full">
             <motion.button
               onClick={() => handleClientAction('v2ray', `v2rayng://install-config?url=${encodeURIComponent(subUrl)}`, subUrl)}
               whileHover={{ y: -2, scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 500, damping: 25 }}
               type="button"
-              className="w-full relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#D0BCFF]/60 hover:shadow-[0_0_12px_rgba(208,188,255,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#38BDF8]/60 hover:shadow-[0_0_12px_rgba(56,189,248,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {copiedStatus === 'v2ray' ? (
@@ -224,28 +224,28 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                     className="flex items-center"
                   >
-                    <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                    <Check className="w-4 h-4 text-[#34D399] stroke-[3]" />
                   </motion.span>
                 ) : (
                   <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
-                    <ExternalLink className="w-4 h-4 text-[#D0BCFF]" />
+                    <ExternalLink className="w-4 h-4 text-[#38BDF8]" />
                   </motion.span>
                 )}
               </AnimatePresence>
               <span className="font-display font-semibold">v2rayNG / N</span>
-              <M3Ripple color="#D0BCFF" />
+              <M3Ripple color="#38BDF8" />
             </motion.button>
           </CoolMode>
 
           {/* FlClash */}
-          <CoolMode colors={['#10B981', '#7BE08F', '#D0BCFF']} className="w-full">
+          <CoolMode colors={['#10B981', '#34D399', '#38BDF8']} className="w-full">
             <motion.button
               onClick={() => handleClientAction('flclash', `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`, clashSubUrl)}
               whileHover={{ y: -2, scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 500, damping: 25 }}
               type="button"
-              className="w-full relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#10B981]/60 hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#10B981]/60 hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {copiedStatus === 'flclash' ? (
@@ -257,7 +257,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                     className="flex items-center"
                   >
-                    <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                    <Check className="w-4 h-4 text-[#34D399] stroke-[3]" />
                   </motion.span>
                 ) : (
                   <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
@@ -271,14 +271,14 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           </CoolMode>
 
           {/* Sing-box */}
-          <CoolMode colors={['#F59E0B', '#FFD8E4', '#D0BCFF']} className="w-full">
+          <CoolMode colors={['#F59E0B', '#38BDF8', '#34D399']} className="w-full">
             <motion.button
               onClick={() => handleClientAction('singbox', `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}#TurboProbe`, subUrl)}
               whileHover={{ y: -2, scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 500, damping: 25 }}
               type="button"
-              className="w-full relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#F59E0B]/60 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#F59E0B]/60 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {copiedStatus === 'singbox' ? (
@@ -290,7 +290,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                     className="flex items-center"
                   >
-                    <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                    <Check className="w-4 h-4 text-[#34D399] stroke-[3]" />
                   </motion.span>
                 ) : (
                   <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
@@ -305,12 +305,12 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         </div>
       </div>
 
-      {/* 4. Help Accordion Bar with Spring Physics */}
+      {/* 4. Help Accordion Bar */}
       <div className="pt-1">
         <button
           onClick={() => setIsGuideOpen(!isGuideOpen)}
           type="button"
-          className="inline-flex items-center gap-1.5 text-xs text-[#CAC4D0] hover:text-white transition-colors cursor-pointer select-none"
+          className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer select-none"
         >
           <HelpCircle className="w-3.5 h-3.5" />
           <span>Инструкция по настройке клиентов</span>
@@ -349,25 +349,25 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                 variants={guideContainer}
                 initial="hidden"
                 animate="show"
-                className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-[#E6E0E9] pt-3"
+                className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-[var(--text-main)] pt-3"
               >
-                <motion.div variants={guideItem} className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
-                  <span className="font-bold text-[#D0BCFF] block font-display">1. Клиент</span>
-                  <p className="text-[#CAC4D0] m-0 leading-relaxed text-[11px]">
+                <motion.div variants={guideItem} className="p-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-main)] space-y-1">
+                  <span className="font-bold text-[#38BDF8] block font-display">1. Клиент</span>
+                  <p className="text-[var(--text-muted)] m-0 leading-relaxed text-[11px]">
                     Android: <strong>v2rayNG</strong> / <strong>Happ</strong><br />
                     iOS: <strong>Streisand</strong><br />
                     Windows: <strong>FlClash</strong>
                   </p>
                 </motion.div>
-                <motion.div variants={guideItem} className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
-                  <span className="font-bold text-[#D0BCFF] block font-display">2. Ссылка</span>
-                  <p className="text-[#CAC4D0] m-0 leading-relaxed text-[11px]">
+                <motion.div variants={guideItem} className="p-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-main)] space-y-1">
+                  <span className="font-bold text-[#38BDF8] block font-display">2. Ссылка</span>
+                  <p className="text-[var(--text-muted)] m-0 leading-relaxed text-[11px]">
                     Нажмите <strong>«Скопировать подписку»</strong> выше или отсканируйте QR.
                   </p>
                 </motion.div>
-                <motion.div variants={guideItem} className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
-                  <span className="font-bold text-[#D0BCFF] block font-display">3. Старт</span>
-                  <p className="text-[#CAC4D0] m-0 leading-relaxed text-[11px]">
+                <motion.div variants={guideItem} className="p-3 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-main)] space-y-1">
+                  <span className="font-bold text-[#38BDF8] block font-display">3. Старт</span>
+                  <p className="text-[var(--text-muted)] m-0 leading-relaxed text-[11px]">
                     Вставьте ссылку в клиенте, обновите подписку и включите VPN.
                   </p>
                 </motion.div>

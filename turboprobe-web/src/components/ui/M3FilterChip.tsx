@@ -29,8 +29,8 @@ export const M3FilterChip: React.FC<M3FilterChipProps> = ({
       type="button"
       className={`relative inline-flex items-center gap-1.5 h-8.5 px-3 text-xs font-medium rounded-full border select-none cursor-pointer overflow-hidden transition-colors duration-150 ${
         selected
-          ? 'bg-[#4A4458] text-[#E8DEF8] border-[#D0BCFF]/60 shadow-[0_0_10px_rgba(208,188,255,0.15)] font-semibold'
-          : 'bg-[#2B2930] text-[#CAC4D0] border-[#49454F]/40 hover:bg-[#36343B] hover:text-white hover:border-[#CAC4D0]/30'
+          ? 'bg-[#0284C7] text-white border-[#38BDF8]/70 shadow-[0_0_12px_rgba(2,132,199,0.3)] font-semibold'
+          : 'bg-[var(--bg-chip)] text-[var(--text-muted)] border-[var(--border-main)] hover:bg-[var(--bg-chip-hover)] hover:text-[var(--text-main)] hover:border-[var(--border-hover)]'
       } ${className}`}
     >
       {/* Leading Icon / Checkmark with fixed slot to prevent layout shifting */}
@@ -46,7 +46,7 @@ export const M3FilterChip: React.FC<M3FilterChipProps> = ({
                 transition={{ duration: 0.12 }}
                 className="flex items-center justify-center"
               >
-                <Check className="w-3.5 h-3.5 stroke-[3] text-[#D0BCFF]" />
+                <Check className="w-3.5 h-3.5 stroke-[3] text-white" />
               </motion.div>
             ) : (
               <motion.div
@@ -64,7 +64,7 @@ export const M3FilterChip: React.FC<M3FilterChipProps> = ({
         </div>
       ) : selected ? (
         <span className="w-3.5 h-3.5 flex items-center justify-center flex-shrink-0 -ml-0.5">
-          <Check className="w-3.5 h-3.5 stroke-[3] text-[#D0BCFF]" />
+          <Check className="w-3.5 h-3.5 stroke-[3] text-white" />
         </span>
       ) : null}
 
@@ -73,14 +73,14 @@ export const M3FilterChip: React.FC<M3FilterChipProps> = ({
       {typeof count === 'number' && (
         <span
           className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold transition-colors ${
-            selected ? 'bg-[#332D41] text-[#D0BCFF]' : 'bg-[#1D1B20] text-[#938F99]'
+            selected ? 'bg-black/25 text-white' : 'bg-[var(--bg-app)] text-[var(--text-muted)]'
           }`}
         >
           {count}
         </span>
       )}
 
-      <M3Ripple color={selected ? '#D0BCFF' : '#CAC4D0'} />
+      <M3Ripple color={selected ? '#FFFFFF' : '#38BDF8'} />
     </motion.button>
   );
 };
