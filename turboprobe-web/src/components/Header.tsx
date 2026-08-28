@@ -39,29 +39,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <div className="w-full select-none">
-      {/* Clean Dark Hero Card with Micro-Interactions */}
+      {/* Clean Dark Hero Card */}
       <div className="relative rounded-3xl bg-[#1D1B20] border border-[#49454F]/30 p-6 sm:p-8 shadow-xl overflow-hidden flex flex-col items-center text-center">
-        {/* Top Status Badge with Live Double-Pulse Radar */}
-        <div className="w-full flex items-center justify-between mb-5">
-          <motion.div
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-            className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#2B2930] text-[#CAC4D0] border border-[#49454F]/30 text-xs font-mono shadow-xs cursor-default"
-          >
-            <div className="relative flex h-2.5 w-2.5 items-center justify-center">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7BE08F] opacity-75 duration-1000" />
-              <span className="animate-pulse absolute inline-flex h-4 w-4 rounded-full bg-[#7BE08F]/20" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7BE08F] shadow-[0_0_8px_#7BE08F]" />
-            </div>
-            <span className="font-semibold tracking-tight">RADAR ACTIVE • 6H SYNC</span>
-          </motion.div>
-
-          <div className="text-xs font-mono text-[#938F99] px-2.5 py-1 rounded-full bg-[#2B2930]/60 border border-[#49454F]/20">
-            v2.4.0
-          </div>
-        </div>
-
         {/* Brand Logo with Tactile Instant Hover */}
         <motion.div
           whileHover={{ scale: 1.08, rotate: 3 }}
