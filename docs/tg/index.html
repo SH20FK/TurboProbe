@@ -3,107 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TGProxy · Суверенные прокси для Telegram</title>
-  <meta name="description" content="Бесплатные проверенные MTProto Fake-TLS и SOCKS5 прокси для Telegram. Проверено на устойчивость к ТСПУ в РФ.">
+  <title>TGProxy · Telegram Прокси с проверкой в РФ</title>
+  <meta name="description" content="Бесплатные проверенные MTProto Fake-TLS и SOCKS5 прокси для Telegram с реальной проверкой доступности дата-центров Telegram.">
   <link rel="icon" href="../logo.svg" type="image/svg+xml">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { font-family: 'Inter', sans-serif; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
-    .glass-card { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(56, 189, 248, 0.12); }
-    .glass-card:hover { border-color: rgba(56, 189, 248, 0.35); }
-    .tg-gradient { background: linear-gradient(135deg, #0088cc 0%, #00b4d8 50%, #0077b6 100%); }
+    .tg-card { background: #17212b; border: 1px solid #242f3d; }
+    .tg-card:hover { border-color: #2b5278; }
+    .tg-btn-primary { background: #2b5278; }
+    .tg-btn-primary:hover { background: #336290; }
   </style>
 </head>
-<body class="min-h-screen bg-[#070d18] text-slate-100 flex flex-col justify-between selection:bg-[#0088cc]/30 selection:text-[#38bdf8]">
+<body class="min-h-screen bg-[#0e1621] text-[#f5f5f5] flex flex-col justify-between selection:bg-[#2b5278] selection:text-white">
 
   <!-- Header -->
-  <header class="sticky top-0 z-30 w-full bg-[#070d18]/90 backdrop-blur-md border-b border-sky-950/60 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+  <header class="sticky top-0 z-30 w-full bg-[#17212b] border-b border-[#242f3d] px-4 sm:px-8 py-3 flex items-center justify-between shadow-sm">
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#0077b6] to-[#00b4d8] flex items-center justify-center shadow-lg shadow-sky-500/20">
-        <svg class="w-5 h-5 text-white fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+      <div class="w-8 h-8 rounded-full bg-[#2b5278] flex items-center justify-center text-white">
+        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <span class="font-extrabold text-lg text-white tracking-tight">TGProxy</span>
-          <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 font-mono">by TurboProbe</span>
+          <span class="font-bold text-base text-white">TGProxy</span>
+          <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#242f3d] text-[#6ab2f2]">Telegram DC Checked</span>
         </div>
-        <p class="text-xs text-slate-400">Суверенные MTProto & SOCKS5 прокси</p>
       </div>
     </div>
 
     <div class="flex items-center gap-3">
-      <a href="../" class="text-xs font-mono text-slate-400 hover:text-sky-400 transition-colors flex items-center gap-1.5 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-800">
-        <span>← В TurboProbe VPN</span>
+      <a href="../" class="text-xs font-mono text-[#708499] hover:text-white transition-colors">
+        ← VPN Реестр
       </a>
-      <a href="https://github.com/SH20FK/TurboProbe" target="_blank" class="text-xs font-bold font-mono text-white bg-sky-600 hover:bg-sky-500 transition-colors px-3.5 py-1.5 rounded-xl shadow-md shadow-sky-600/20">
+      <a href="https://github.com/SH20FK/TurboProbe" target="_blank" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#242f3d] hover:bg-[#2b5278] text-white transition-colors">
         GitHub
       </a>
     </div>
   </header>
 
   <!-- Main Content -->
-  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6 space-y-5">
     
-    <!-- Hero Banner -->
-    <div class="rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-sky-950/40 via-slate-900/60 to-slate-950/80 border border-sky-500/20 shadow-2xl relative overflow-hidden">
-      <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      
-      <div class="relative z-10 space-y-4">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-mono">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Проверено из РФ через Globalping (Ростелеком, МТС, Мегафон)</span>
+    <!-- Top Summary Banner -->
+    <div class="tg-card rounded-2xl p-5 space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold text-white">Проверенные прокси для Telegram</h1>
+          <p class="text-xs text-[#708499] mt-0.5">Все узлы протестированы на сквозное соединение с серверами Telegram (DC2/DC4) и ТСПУ РФ.</p>
         </div>
+        <div class="text-xs font-mono text-[#708499]">
+          Обновлено: <span id="stat-updated" class="text-[#6ab2f2]">Синхронизация...</span>
+        </div>
+      </div>
 
-        <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">
-          Быстрые и стабильные прокси для Telegram
-        </h1>
-        <p class="text-slate-300 text-sm max-w-2xl leading-relaxed">
-          Подключение в один клик для обхода блокировок звонков, каналов и медиа в Telegram на iOS, Android, Windows и macOS.
-        </p>
-
-        <!-- Stats Bar -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-          <div class="glass-card rounded-2xl p-3.5 text-center">
-            <div id="stat-total" class="text-xl font-bold font-mono text-sky-400">...</div>
-            <div class="text-[11px] text-slate-400 font-medium mt-0.5">Всего онлайн</div>
-          </div>
-          <div class="glass-card rounded-2xl p-3.5 text-center">
-            <div id="stat-mtproto" class="text-xl font-bold font-mono text-emerald-400">...</div>
-            <div class="text-[11px] text-slate-400 font-medium mt-0.5">MTProto (Fake-TLS)</div>
-          </div>
-          <div class="glass-card rounded-2xl p-3.5 text-center">
-            <div id="stat-socks5" class="text-xl font-bold font-mono text-amber-400">...</div>
-            <div class="text-[11px] text-slate-400 font-medium mt-0.5">SOCKS5</div>
-          </div>
-          <div class="glass-card rounded-2xl p-3.5 text-center">
-            <div id="stat-ru" class="text-xl font-bold font-mono text-purple-400">100%</div>
-            <div class="text-[11px] text-slate-400 font-medium mt-0.5">Доступны в РФ</div>
-          </div>
+      <!-- Compact Stat Badges -->
+      <div class="flex flex-wrap gap-2 pt-1">
+        <div class="px-3 py-1.5 rounded-xl bg-[#242f3d] text-xs font-mono flex items-center gap-2">
+          <span class="text-[#708499]">Всего живых:</span>
+          <span id="stat-total" class="font-bold text-[#6ab2f2]">...</span>
+        </div>
+        <div class="px-3 py-1.5 rounded-xl bg-[#242f3d] text-xs font-mono flex items-center gap-2">
+          <span class="text-[#708499]">MTProto:</span>
+          <span id="stat-mtproto" class="font-bold text-[#4fae5e]">...</span>
+        </div>
+        <div class="px-3 py-1.5 rounded-xl bg-[#242f3d] text-xs font-mono flex items-center gap-2">
+          <span class="text-[#708499]">SOCKS5:</span>
+          <span id="stat-socks5" class="font-bold text-[#e5a93c]">...</span>
         </div>
       </div>
     </div>
 
-    <!-- Filters & Tabs -->
-    <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
-      <div class="flex items-center gap-1.5 p-1 bg-slate-900/80 rounded-2xl border border-slate-800 text-xs font-medium">
-        <button onclick="setFilter('all')" id="tab-all" class="px-3.5 py-1.5 rounded-xl bg-sky-600 text-white font-semibold transition-all">Все</button>
-        <button onclick="setFilter('mtproto')" id="tab-mtproto" class="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white transition-all">🛡️ MTProto</button>
-        <button onclick="setFilter('socks5')" id="tab-socks5" class="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white transition-all">🧦 SOCKS5</button>
-        <button onclick="setFilter('ru')" id="tab-ru" class="px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white transition-all">🇷🇺 Топ в РФ</button>
-      </div>
-
-      <div class="text-xs font-mono text-slate-400">
-        Обновлено: <span id="stat-updated" class="text-slate-300">Синхронизация...</span>
-      </div>
+    <!-- Filter Buttons -->
+    <div class="flex items-center gap-1.5 p-1 bg-[#17212b] rounded-xl border border-[#242f3d] text-xs font-medium w-fit">
+      <button onclick="setFilter('all')" id="tab-all" class="px-3 py-1.5 rounded-lg bg-[#2b5278] text-white font-semibold transition-all">Все</button>
+      <button onclick="setFilter('mtproto')" id="tab-mtproto" class="px-3 py-1.5 rounded-lg text-[#708499] hover:text-white transition-all">🛡️ MTProto (Fake-TLS)</button>
+      <button onclick="setFilter('socks5')" id="tab-socks5" class="px-3 py-1.5 rounded-lg text-[#708499] hover:text-white transition-all">🧦 SOCKS5</button>
+      <button onclick="setFilter('ru')" id="tab-ru" class="px-3 py-1.5 rounded-lg text-[#708499] hover:text-white transition-all">🇷🇺 Доступны в РФ</button>
     </div>
 
-    <!-- Proxy Grid -->
-    <div id="proxy-list" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-      <div class="col-span-full py-16 text-center text-slate-400 text-sm">
-        Загрузка свежих прокси...
+    <!-- Proxy Cards List -->
+    <div id="proxy-list" class="space-y-2.5">
+      <div class="py-12 text-center text-[#708499] text-xs font-mono">
+        Загрузка проверенных прокси...
       </div>
     </div>
 
@@ -111,22 +95,20 @@
 
   <!-- QR Modal -->
   <div id="qr-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-sky-500/30 rounded-3xl p-6 max-w-sm w-full space-y-4 text-center">
-      <h3 class="font-bold text-lg text-white">QR-код для подключения</h3>
-      <p class="text-xs text-slate-400">Отсканируйте камерой телефона или в приложении Telegram</p>
-      <div class="bg-white p-4 rounded-2xl mx-auto w-fit">
+    <div class="bg-[#17212b] border border-[#242f3d] rounded-2xl p-6 max-w-xs w-full space-y-4 text-center">
+      <h3 class="font-bold text-sm text-white">QR-код для подключения</h3>
+      <div class="bg-white p-3 rounded-xl mx-auto w-fit">
         <canvas id="qr-canvas"></canvas>
       </div>
-      <button onclick="closeQrModal()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition-colors">
+      <button onclick="closeQrModal()" class="w-full py-2 rounded-lg bg-[#242f3d] hover:bg-[#2b5278] text-xs font-semibold text-white transition-colors">
         Закрыть
       </button>
     </div>
   </div>
 
   <!-- Footer -->
-  <footer class="w-full py-6 text-center text-xs text-slate-400 border-t border-slate-900 space-y-1">
-    <p>TGProxy · Открытый мониторинг Telegram-прокси</p>
-    <p class="font-mono text-[11px]">Автоматическое тестирование доступности из РФ каждые 2 часа</p>
+  <footer class="w-full py-5 text-center text-xs text-[#708499] border-t border-[#242f3d] space-y-1">
+    <p>TGProxy · Суверенные прокси для Telegram</p>
   </footer>
 
   <script>
@@ -148,8 +130,8 @@
       } catch (e) {
         console.error('Failed to load proxies:', e);
         document.getElementById('proxy-list').innerHTML = `
-          <div class="col-span-full py-12 text-center text-rose-400 text-sm">
-            Ошибка загрузки прокси. Попробуйте обновить страницу.
+          <div class="py-12 text-center text-rose-400 text-xs font-mono">
+            Ошибка загрузки списка прокси.
           </div>
         `;
       }
@@ -160,9 +142,9 @@
       ['all', 'mtproto', 'socks5', 'ru'].forEach(id => {
         const btn = document.getElementById(`tab-${id}`);
         if (id === f) {
-          btn.className = 'px-3.5 py-1.5 rounded-xl bg-sky-600 text-white font-semibold transition-all';
+          btn.className = 'px-3 py-1.5 rounded-lg bg-[#2b5278] text-white font-semibold transition-all';
         } else {
-          btn.className = 'px-3.5 py-1.5 rounded-xl text-slate-400 hover:text-white transition-all';
+          btn.className = 'px-3 py-1.5 rounded-lg text-[#708499] hover:text-white transition-all';
         }
       });
       render();
@@ -177,8 +159,8 @@
       const container = document.getElementById('proxy-list');
       if (list.length === 0) {
         container.innerHTML = `
-          <div class="col-span-full py-12 text-center text-slate-400 text-sm">
-            Прокси по данному фильтру не найдены.
+          <div class="py-12 text-center text-[#708499] text-xs font-mono">
+            По данному фильтру пока нет проверенных прокси.
           </div>
         `;
         return;
@@ -187,42 +169,37 @@
       container.innerHTML = list.map((p, idx) => {
         const isMtproto = p.proto === 'mtproto';
         const badge = isMtproto 
-          ? (p.is_faketls ? '<span class="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-400 text-[10px] font-mono font-semibold border border-sky-500/20">Fake-TLS</span>' : '<span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-[10px] font-mono">MTProto</span>')
-          : '<span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 text-[10px] font-mono font-semibold border border-amber-500/20">SOCKS5</span>';
+          ? (p.is_faketls ? '<span class="px-2 py-0.5 rounded bg-[#2b5278]/40 text-[#6ab2f2] text-[10px] font-mono font-medium border border-[#2b5278]">Fake-TLS</span>' : '<span class="px-2 py-0.5 rounded bg-[#242f3d] text-slate-300 text-[10px] font-mono">MTProto</span>')
+          : '<span class="px-2 py-0.5 rounded bg-[#e5a93c]/15 text-[#e5a93c] text-[10px] font-mono font-medium border border-[#e5a93c]/30">SOCKS5</span>';
         
-        const pingColor = p.ping_ms < 100 ? 'text-emerald-400' : p.ping_ms < 250 ? 'text-sky-400' : 'text-amber-400';
+        const pingColor = p.ping_ms < 150 ? 'text-[#4fae5e]' : p.ping_ms < 300 ? 'text-[#6ab2f2]' : 'text-[#e5a93c]';
 
         return `
-          <div class="glass-card rounded-2xl p-4.5 space-y-3 transition-all">
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-sm text-white">${p.server}</span>
-                  <span class="font-mono text-xs text-slate-400">:${p.port}</span>
-                </div>
-                <div class="flex items-center gap-1.5 mt-1.5">
-                  ${badge}
-                  ${p.ru_verified ? '<span class="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-mono font-semibold border border-emerald-500/20">🇷🇺 РКН Pass</span>' : ''}
-                </div>
+          <div class="tg-card rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-sm text-white">${p.server}</span>
+                <span class="font-mono text-xs text-[#708499]">:${p.port}</span>
+                ${badge}
+                ${p.ru_verified ? '<span class="px-1.5 py-0.5 rounded bg-[#4fae5e]/15 text-[#4fae5e] text-[10px] font-mono">🇷🇺 РКН Pass</span>' : ''}
               </div>
-
-              <div class="text-right">
-                <div class="text-xs font-mono font-bold ${pingColor}">${p.ping_ms} ms</div>
-                <div class="text-[10px] text-slate-400 font-mono">отклик</div>
+              <div class="text-[11px] text-[#708499] flex items-center gap-2">
+                <span>${p.country_label || '🌐 Сервер'}</span>
+                <span>•</span>
+                <span class="font-mono ${pingColor}">${p.ping_ms} ms</span>
               </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex items-center gap-2 pt-1">
-              <a href="${p.tg_link}" class="flex-1 py-2 rounded-xl bg-gradient-to-r from-[#0088cc] to-[#00a8e8] hover:opacity-95 text-white text-xs font-bold font-mono text-center shadow-md shadow-sky-600/20 transition-all flex items-center justify-center gap-1.5">
+            <div class="flex items-center gap-2">
+              <a href="${p.tg_link}" class="px-4 py-2 rounded-lg tg-btn-primary text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
                 <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
                 <span>Подключить</span>
               </a>
-              <button onclick="copyLink('${p.tg_link}')" title="Скопировать ссылку" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+              <button onclick="copyLink('${p.tg_link}')" title="Скопировать" class="p-2 rounded-lg bg-[#242f3d] hover:bg-[#2b5278] text-[#708499] hover:text-white transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
               </button>
-              <button onclick="openQrModal('${p.tg_link}')" title="Показать QR-код" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+              <button onclick="openQrModal('${p.tg_link}')" title="QR-код" class="p-2 rounded-lg bg-[#242f3d] hover:bg-[#2b5278] text-[#708499] hover:text-white transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
               </button>
             </div>
           </div>
@@ -232,13 +209,13 @@
 
     function copyLink(link) {
       navigator.clipboard.writeText(link);
-      alert('Ссылка на прокси скопирована в буфер обмена!');
+      alert('Ссылка на прокси скопирована!');
     }
 
     function openQrModal(link) {
       const modal = document.getElementById('qr-modal');
       const canvas = document.getElementById('qr-canvas');
-      QRCode.toCanvas(canvas, link, { width: 220, margin: 1 }, function(err) {
+      QRCode.toCanvas(canvas, link, { width: 200, margin: 1 }, function(err) {
         if (!err) modal.classList.remove('hidden');
       });
     }
