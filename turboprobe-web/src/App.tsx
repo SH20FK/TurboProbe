@@ -8,8 +8,8 @@ import { normalizeAndIndexNodes } from './utils/nodeIndexer';
 import { generateClashMetaYaml } from './utils/clashExport';
 import { M3Background } from './components/ui/M3Background';
 import { ToastProvider } from './components/ui/M3Toast';
-import { InteractiveHoverButton } from './components/ui/InteractiveHoverButton';
 import { AnimatedThemeToggle } from './components/ui/ThemeToggle';
+import { GitHubIcon } from './components/ServiceIcons';
 import type { NodeItem, PresetItem } from './types';
 
 const CDN_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
@@ -389,9 +389,10 @@ export default function App() {
               href="https://github.com/SH20FK/TurboProbe"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex"
+              className="relative px-3.5 py-1.5 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#E6E0E9] hover:text-white text-xs font-semibold font-mono flex items-center gap-1.5 transition-all border border-[#49454F]/30 hover:border-[#D0BCFF]/50 shadow-xs active:scale-95 overflow-hidden select-none cursor-pointer"
             >
-              <InteractiveHoverButton text="GitHub" hoverText="Репозиторий" />
+              <GitHubIcon className="w-4 h-4 text-white flex-shrink-0" />
+              <span>GitHub</span>
             </a>
           </div>
         </header>

@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import { M3NumberCounter } from './ui/M3NumberCounter';
 import { SparklesText } from './ui/SparklesText';
-import { Tooltip } from './ui/Tooltip';
 
 interface HeaderProps {
   totalConfigs?: number;
@@ -68,79 +67,73 @@ export const Header: React.FC<HeaderProps> = ({
           Суверенный генератор проверенных подписок <span className="text-white font-medium">VLESS Reality</span> и <span className="text-white font-medium">Trojan</span> с обходом ТСПУ
         </p>
 
-        {/* 3 Perfectly Balanced KPI Stat Cards with Tooltips */}
+        {/* 3 Perfectly Balanced KPI Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full max-w-xl">
           {/* Stat 1: Total Configs */}
-          <Tooltip content="Количество онлайн-узлов в базе" className="w-full">
-            <motion.div
-              whileHover={{ y: -3, scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-              className="w-full bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 hover:border-[#D0BCFF]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
-            >
-              <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#7BE08F]" />
-                <span>Серверы онлайн</span>
-              </div>
-              <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">
-                {totalConfigs > 0 ? (
-                  <M3NumberCounter value={totalConfigs} />
-                ) : (
-                  <span className="inline-block w-12 h-7 bg-white/10 rounded animate-pulse" />
-                )}
-              </div>
-            </motion.div>
-          </Tooltip>
+          <motion.div
+            whileHover={{ y: -3, scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+            className="w-full bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 hover:border-[#D0BCFF]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
+          >
+            <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#7BE08F]" />
+              <span>Серверы онлайн</span>
+            </div>
+            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">
+              {totalConfigs > 0 ? (
+                <M3NumberCounter value={totalConfigs} />
+              ) : (
+                <span className="inline-block w-12 h-7 bg-white/10 rounded animate-pulse" />
+              )}
+            </div>
+          </motion.div>
 
           {/* Stat 2: Best Ping */}
-          <Tooltip content="Лучший отклик среди серверов" className="w-full">
-            <motion.div
-              whileHover={{ y: -3, scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-              className="w-full bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 hover:border-[#D0BCFF]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
-            >
-              <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
-                <Zap className="w-3.5 h-3.5 text-[#7BE08F]" />
-                <span>Лучший пинг</span>
-              </div>
-              <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-baseline gap-1">
-                {bestPing > 0 ? (
-                  <>
-                    <M3NumberCounter value={bestPing} formatThousands={false} />
-                    <span className="text-xs font-normal text-[#938F99]">ms</span>
-                  </>
-                ) : (
-                  <span className="inline-block w-12 h-7 bg-white/10 rounded animate-pulse" />
-                )}
-              </div>
-            </motion.div>
-          </Tooltip>
+          <motion.div
+            whileHover={{ y: -3, scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+            className="w-full bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 hover:border-[#D0BCFF]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
+          >
+            <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
+              <Zap className="w-3.5 h-3.5 text-[#7BE08F]" />
+              <span>Лучший пинг</span>
+            </div>
+            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-baseline gap-1">
+              {bestPing > 0 ? (
+                <>
+                  <M3NumberCounter value={bestPing} formatThousands={false} />
+                  <span className="text-xs font-normal text-[#938F99]">ms</span>
+                </>
+              ) : (
+                <span className="inline-block w-12 h-7 bg-white/10 rounded animate-pulse" />
+              )}
+            </div>
+          </motion.div>
 
           {/* Stat 3: Sync Time */}
-          <Tooltip content="Время последней проверки базы" className="w-full">
-            <motion.div
-              whileHover={{ y: -3, scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-              className="w-full bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 hover:border-[#D0BCFF]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
-            >
-              <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
-                <RefreshCw className="w-3.5 h-3.5 text-[#7BE08F]" />
-                <span>Синхронизация</span>
-              </div>
-              <div className="font-mono text-xl sm:text-2xl font-bold tracking-tight text-white tabular-nums flex items-baseline gap-1.5">
-                {updatedAt ? (
-                  <>
-                    <span>{time}</span>
-                    <span className="text-[10px] font-normal text-[#938F99] tracking-normal">{date}</span>
-                  </>
-                ) : (
-                  <span className="inline-block w-20 h-7 bg-white/10 rounded animate-pulse" />
-                )}
-              </div>
-            </motion.div>
-          </Tooltip>
+          <motion.div
+            whileHover={{ y: -3, scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+            className="w-full bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 hover:border-[#D0BCFF]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
+          >
+            <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
+              <RefreshCw className="w-3.5 h-3.5 text-[#7BE08F]" />
+              <span>Синхронизация</span>
+            </div>
+            <div className="font-mono text-xl sm:text-2xl font-bold tracking-tight text-white tabular-nums flex items-baseline gap-1.5">
+              {updatedAt ? (
+                <>
+                  <span>{time}</span>
+                  <span className="text-[10px] font-normal text-[#938F99] tracking-normal">{date}</span>
+                </>
+              ) : (
+                <span className="inline-block w-20 h-7 bg-white/10 rounded animate-pulse" />
+              )}
+            </div>
+          </motion.div>
         </div>
       </div>
     </div>
