@@ -2,7 +2,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import { M3NumberCounter } from './ui/M3NumberCounter';
-import { SparklesText } from './ui/SparklesText';
 
 interface HeaderProps {
   totalConfigs?: number;
@@ -40,31 +39,22 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <div className="w-full select-none">
-      {/* Clean Warm Bento Card */}
       <div className="relative rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-6 sm:p-8 shadow-xl overflow-hidden flex flex-col items-center text-center transition-colors duration-200">
-        {/* Brand Logo with Direct Vector Rendering & Perfect Centering */}
-        <motion.div
-          whileHover={{ scale: 1.05, rotate: 2 }}
-          whileTap={{ scale: 0.96 }}
-          transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-          className="relative mb-4 cursor-pointer flex items-center justify-center"
-        >
+        <div className="relative mb-4 flex items-center justify-center">
           <img
             src="./logo.svg"
             alt="TurboProbe"
             className="w-16 h-16 sm:w-18 sm:h-18 object-contain drop-shadow-md"
           />
-        </motion.div>
+        </div>
 
-        {/* Title with MagicUI Sparkles in Muted Terracotta */}
         <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-[var(--text-main)] m-0 flex items-center justify-center gap-2">
           <span>TurboProbe</span>
-          <SparklesText text="Hub" colors={{ first: '#D97736', second: '#C25E30' }} className="text-[#C25E30] dark:text-[#E08244] font-black" />
+          <span className="text-[#C25E30] dark:text-[#E08244] font-black">Hub</span>
         </h1>
 
-        {/* Subtitle with Warm Typography */}
         <p className="font-body text-xs sm:text-sm md:text-base text-[var(--text-muted)] mt-2.5 mb-6 max-w-lg leading-relaxed font-normal">
-          Суверенный генератор проверенных подписок <span className="text-[var(--text-main)] font-semibold">VLESS Reality</span> и <span className="text-[var(--text-main)] font-semibold">Trojan</span> с обходом ТСПУ
+          Генератор проверенных конфигураций <span className="text-[var(--text-main)] font-semibold">VLESS Reality</span> и <span className="text-[var(--text-main)] font-semibold">Trojan</span> с обходом ТСПУ
         </p>
 
         {/* 3 Balanced KPI Stat Cards */}
