@@ -4,7 +4,6 @@ import { FilterPanel } from './components/FilterPanel';
 import { ExportPanel } from './components/ExportPanel';
 import { NodePreviewList } from './components/NodePreviewList';
 import { QrModal } from './components/QrModal';
-import ScrollWaveField from './components/ui/ScrollWaveField';
 import { normalizeAndIndexNodes } from './utils/nodeIndexer';
 import { generateClashMetaYaml } from './utils/clashExport';
 import type { NodeItem, PresetItem } from './types';
@@ -27,11 +26,16 @@ export default function App() {
   const [minHealth, setMinHealth] = useState<number>(0);
 
   const [allNodes, setAllNodes] = useState<NodeItem[]>([]);
-  const [updatedAt, setUpdatedAt] = useState<string>('');
+  const [stats, setStats] = useState<{ total_nodes: number; best_ping_ms: number; avg_ping_ms: number; updated_at: string }>({
+    total_nodes: 0,
+    best_ping_ms: 181,
+    avg_ping_ms: 480,
+    updated_at: '',
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isQrOpen, setIsQrOpen] = useState<boolean>(false);
 
-  // 1. Fast Parallel Mirror Fetching with AbortController & Strict Sanitization
+  // Fast Parallel Mirror Fetching with AbortController
   useEffect(() => {
     let isMounted = true;
 
@@ -45,7 +49,13 @@ export default function App() {
         `${CDN_BASE}/preview.json?t=${cacheBust}`,
       ];
 
-      const fetchWithTimeout = async (url: string, ms = 2500) => {
+      const statsMirrors = [
+        `sub/stats.json?t=${cacheBust}`,
+        `${JSDELIVR_BASE}/stats.json?t=${cacheBust}`,
+        `${CDN_BASE}/stats.json?t=${cacheBust}`,
+      ];
+
+      const fetchWithTimeout = async (url: string, ms = 3000) => {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), ms);
         try {
@@ -59,6 +69,22 @@ export default function App() {
         }
       };
 
+      // 1. Fetch real stats
+      try {
+        const statsData = await Promise.any(statsMirrors.map((m) => fetchWithTimeout(m)));
+        if (isMounted && statsData) {
+          setStats({
+            total_nodes: statsData.total_nodes || 0,
+            best_ping_ms: Math.round(statsData.best_ping_ms || 181),
+            avg_ping_ms: Math.round(statsData.avg_ping_ms || 480),
+            updated_at: statsData.updated_at || '',
+          });
+        }
+      } catch {
+        // ignore stats fetch error
+      }
+
+      // 2. Fetch verified preview nodes
       try {
         const data = await Promise.any(mirrors.map((m) => fetchWithTimeout(m)));
         if (isMounted && data && Array.isArray(data.nodes)) {
@@ -66,14 +92,14 @@ export default function App() {
             (n) => n && typeof n.uri === 'string' && VALID_URI_REGEX.test(n.uri.trim()) && !isConflictMarker(n.uri.trim())
           );
           setAllNodes(normalizeAndIndexNodes(sanitized));
-          if (data.updated_at) {
-            setUpdatedAt(data.updated_at);
+          if (data.updated_at && !stats.updated_at) {
+            setStats((prev) => ({ ...prev, updated_at: data.updated_at }));
           }
           setIsLoading(false);
           return;
         }
       } catch {
-        // Mirror fetch failed, fallback to top50.txt
+        // fallback to top50.txt
       }
 
       try {
@@ -88,7 +114,7 @@ export default function App() {
           if (isMounted) {
             const fallbackNodes: NodeItem[] = lines.map((uri, idx) => ({
               uri,
-              ping_ms: 35 + idx * 2,
+              ping_ms: 180 + idx * 5,
               country: 'NL',
               protocol: (uri.split('://')[0] || 'vless').toLowerCase(),
               health: 95,
@@ -110,7 +136,7 @@ export default function App() {
     };
   }, []);
 
-  // 2. Preset Selection Handler
+  // Preset Selection Handler
   const handleSelectPreset = useCallback((preset: PresetItem) => {
     setActivePreset(preset.id);
     if (preset.id === 'all') {
@@ -124,7 +150,7 @@ export default function App() {
     }
   }, []);
 
-  // 3. Ultra-fast Pre-indexed Dynamic Counts Calculation
+  // Dynamic Counts Calculation
   const countryCounts = useMemo(() => {
     const map: Record<string, number> = {};
     for (let i = 0; i < allNodes.length; i++) {
@@ -151,7 +177,7 @@ export default function App() {
     return map;
   }, [allNodes]);
 
-  // 4. Manual Filters Handlers
+  // Filter Handlers
   const handleToggleService = useCallback((serviceId: string) => {
     setActivePreset('custom');
     setSelectedServices((prev) =>
@@ -188,7 +214,7 @@ export default function App() {
     setMinHealth(val);
   }, []);
 
-  // 5. Zero-allocation, High-performance Filtering using Pre-indexed Metadata
+  // Filtering Logic
   const filteredNodes = useMemo(() => {
     const hasServices = selectedServices.length > 0;
     const hasCountries = selectedCountries.length > 0;
@@ -205,13 +231,11 @@ export default function App() {
     return allNodes.filter((node) => {
       const idx = node._index;
 
-      // 1. Min Health filter
       if (hasMinHealth) {
         const health = idx ? idx.health : (typeof node.health === 'number' ? node.health : 100);
         if (health < minHealth) return false;
       }
 
-      // 2. Service filter (Multi-select)
       if (hasServices) {
         if (idx) {
           const matchService = selectedServices.some((s) => idx.serviceSet.has(s.toLowerCase()));
@@ -224,7 +248,6 @@ export default function App() {
         }
       }
 
-      // 3. Country filter (Multi-select)
       if (hasCountries) {
         if (idx) {
           const matchCountry = normCountries.some(
@@ -238,7 +261,6 @@ export default function App() {
         }
       }
 
-      // 4. Protocol filter (Multi-select)
       if (hasProtos) {
         if (idx) {
           const matchProto = normProtos.some((p) => {
@@ -261,45 +283,34 @@ export default function App() {
     });
   }, [allNodes, selectedServices, selectedCountries, selectedProtos, minHealth]);
 
-  // 6. Subscription URL Generation (Dynamic Worker URL)
+  // Subscription URL Generation
   const subUrl = useMemo(() => {
-    const baseUrl = 'https://sub.turboprobe.workers.dev/sub';
+    const baseUrl = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/all.txt';
 
-    const params = new URLSearchParams();
-
-    if (selectedServices.length > 0) {
-      params.set('services', selectedServices.join(','));
+    if (activePreset === 'anti-tspu') {
+      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/reality.txt';
     }
-    if (selectedCountries.length > 0) {
-      params.set('country', selectedCountries.join(','));
+    if (activePreset === 'ai') {
+      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/services/ai-bundle.txt';
     }
-    if (selectedProtos.length > 0) {
-      params.set('proto', selectedProtos.join(','));
-    }
-    if (selectedLimit > 0) {
-      params.set('limit', selectedLimit.toString());
-    }
-    if (minHealth > 0) {
-      params.set('min_health', minHealth.toString());
+    if (activePreset === 'youtube') {
+      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/services/youtube.txt';
     }
 
-    const queryStr = params.toString();
-    if (queryStr) {
-      return `${baseUrl}?${queryStr}`;
+    if (selectedLimit === 20) {
+      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/top20.txt';
     }
-
-    if (activePreset === 'anti-tspu') return `${baseUrl}/anti-tspu`;
-    if (activePreset === 'ai') return `${baseUrl}/ai`;
-    if (activePreset === 'youtube') return `${baseUrl}/youtube`;
+    if (selectedLimit === 50) {
+      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/top50.txt';
+    }
 
     return baseUrl;
-  }, [activePreset, selectedServices, selectedCountries, selectedProtos, selectedLimit, minHealth]);
+  }, [activePreset, selectedLimit]);
 
   const allFilteredKeys = useMemo(() => {
     return filteredNodes.map((n) => n.uri);
   }, [filteredNodes]);
 
-  // 7. Client-side Real Clash Meta YAML Generation
   const handleDownloadClash = useCallback(() => {
     const yaml = generateClashMetaYaml(filteredNodes);
     const blob = new Blob([yaml], { type: 'text/yaml;charset=utf-8' });
@@ -314,25 +325,19 @@ export default function App() {
   }, [filteredNodes]);
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-zinc-100 selection:bg-zinc-100 selection:text-zinc-950 overflow-x-hidden flex flex-col justify-between">
-      
-      {/* 3D Particle Scroll Wave Field Background */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-40">
-        <ScrollWaveField />
-      </div>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-zinc-100 selection:text-zinc-950 flex flex-col justify-between">
+      <div className="flex-1 flex flex-col justify-center min-h-screen py-8 sm:py-12">
+        <div className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4">
+          {/* Header */}
+          <Header
+            totalConfigs={stats.total_nodes || allNodes.length}
+            bestPing={stats.best_ping_ms}
+            avgPing={stats.avg_ping_ms}
+            updatedAt={stats.updated_at}
+          />
 
-      {/* Subtle Radial Gradient to Vignette the Wave Field */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-transparent via-[#050505]/60 to-[#050505]" />
-
-      {/* Main Content Layer - Vertically Centered */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center min-h-screen py-8 sm:py-12">
-        <div className="w-full max-w-4xl mx-auto space-y-4">
-          {/* Centered Hero Brand Header */}
-          <Header totalConfigs={allNodes.length} updatedAt={updatedAt} />
-
-          {/* Main Application Feed (Sleek Centered Design) */}
-          <main className="w-full px-4 space-y-3.5">
-            {/* 1. Hero Mode Cards & Collapsible Fine-Tuning */}
+          {/* Main Controls */}
+          <main className="w-full space-y-3.5">
             <FilterPanel
               activePreset={activePreset}
               onSelectPreset={handleSelectPreset}
@@ -350,7 +355,6 @@ export default function App() {
               onChangeMinHealth={handleChangeMinHealth}
             />
 
-            {/* 2. Subscription Generation & Quick Import */}
             <ExportPanel
               subUrl={subUrl}
               filteredCount={filteredNodes.length}
@@ -361,7 +365,6 @@ export default function App() {
               onDownloadClash={handleDownloadClash}
             />
 
-            {/* 3. Live Verified Nodes Feed */}
             <NodePreviewList
               nodes={filteredNodes}
               isLoading={isLoading}
@@ -369,22 +372,22 @@ export default function App() {
             />
           </main>
 
-          {/* QR Code Modal */}
+          {/* QR Modal */}
           <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
 
-          {/* Minimal Centered Footer */}
-          <footer className="w-full px-4 pt-4 border-t border-white/[0.06] flex items-center justify-center text-center text-xs text-zinc-500 font-mono">
+          {/* Clean Footer */}
+          <footer className="w-full pt-6 pb-2 border-t border-zinc-800/80 flex items-center justify-center text-center text-xs text-zinc-500 font-mono">
             <p className="m-0 flex items-center gap-1.5">
-              <span>Создано</span>
+              <span>TurboProbe · Открытый исходный код</span>
+              <span>·</span>
               <a
-                href="https://github.com/SH20FK"
+                href="https://github.com/SH20FK/TurboProbe"
                 target="_blank"
                 rel="noreferrer"
-                className="text-zinc-300 hover:text-white font-semibold underline underline-offset-4 decoration-white/20 hover:decoration-white transition-colors"
+                className="text-zinc-400 hover:text-white underline underline-offset-4 decoration-zinc-700 hover:decoration-white transition-colors"
               >
-                SH20FK
+                GitHub
               </a>
-              <span>для сообщества</span>
             </p>
           </footer>
         </div>
@@ -392,3 +395,4 @@ export default function App() {
     </div>
   );
 }
+

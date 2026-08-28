@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Copy, Check, QrCode, ShieldCheck } from 'lucide-react';
+import { Copy, Check, QrCode, ShieldCheck, Download, HelpCircle, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { HappIcon, FlClashIcon } from './ServiceIcons';
 
 interface ExportPanelProps {
@@ -20,17 +20,17 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   onChangeLimit,
   allFilteredKeys: _allFilteredKeys,
   onOpenQr,
-  onDownloadClash: _onDownloadClash,
+  onDownloadClash,
 }) => {
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [copiedHapp, setCopiedHapp] = useState(false);
-  const [copiedFlclash, setCopiedFlclash] = useState(false);
+  const [copiedStatus, setCopiedStatus] = useState<string | null>(null);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const effectiveCount = selectedLimit > 0 ? Math.min(selectedLimit, filteredCount) : filteredCount;
 
   const clashSubUrl = useMemo(() => {
     if (subUrl.includes('raw.githubusercontent.com') || subUrl.includes('.github.io')) {
-      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/docs/sub/clash.yaml';
+      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/clash-meta.yaml';
     }
     return `${subUrl}${subUrl.includes('?') ? '&' : '?'}format=clash`;
   }, [subUrl]);
@@ -45,32 +45,23 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
     }
   };
 
-  const handleCopyHapp = async () => {
+  const handleClientAction = async (clientName: string, schemeUrl: string, copyPayload?: string) => {
     try {
-      await navigator.clipboard.writeText(subUrl);
-      setCopiedHapp(true);
-      setTimeout(() => setCopiedHapp(false), 2500);
-      window.location.href = `happ://add/${subUrl}#TurboProbe`;
-    } catch {
-      // ignore
-    }
-  };
-
-  const handleCopyFlclash = async () => {
-    try {
-      await navigator.clipboard.writeText(clashSubUrl);
-      setCopiedFlclash(true);
-      setTimeout(() => setCopiedFlclash(false), 2500);
-      window.location.href = `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`;
+      if (copyPayload) {
+        await navigator.clipboard.writeText(copyPayload);
+      }
+      setCopiedStatus(clientName);
+      setTimeout(() => setCopiedStatus(null), 2500);
+      window.location.href = schemeUrl;
     } catch {
       // ignore
     }
   };
 
   return (
-    <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/60 backdrop-blur-md border border-white/10 shadow-2xl space-y-3.5">
+    <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/90 border border-zinc-800 shadow-xl space-y-3.5">
       
-      {/* Clean Header with Server Limit Selector */}
+      {/* 1. Header with Server Limit Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-1.5">
@@ -83,7 +74,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         </div>
 
         {/* Server Limit Selector Pills */}
-        <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs font-mono self-start sm:self-auto">
+        <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800 text-xs font-mono self-start sm:self-auto">
           <span className="text-zinc-500 px-1 text-[10px] uppercase font-semibold">Лимит:</span>
           {[20, 50, 100, 0].map((lim) => {
             const isActive = selectedLimit === lim;
@@ -106,8 +97,8 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         </div>
       </div>
 
-      {/* 1. Subscription URL Bar */}
-      <div className="flex items-center gap-2 p-1.5 rounded-xl bg-black/60 border border-white/10">
+      {/* 2. Subscription URL Input Bar */}
+      <div className="flex items-center gap-2 p-1.5 rounded-xl bg-black/80 border border-zinc-800">
         <input
           type="text"
           readOnly
@@ -116,23 +107,21 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         />
         <motion.button
           whileTap={{ scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           onClick={onOpenQr}
           type="button"
-          className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-xs font-medium text-zinc-200 flex items-center gap-1.5 cursor-pointer transition-colors"
+          className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-medium text-zinc-200 flex items-center gap-1.5 cursor-pointer transition-colors"
         >
           <QrCode className="w-3.5 h-3.5 text-zinc-400" />
           <span>QR-код</span>
         </motion.button>
       </div>
 
-      {/* 2. Big Full-Width White Copy Button */}
+      {/* 3. Primary Full-Width Copy Button */}
       <motion.button
         whileTap={{ scale: 0.98 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         onClick={handleCopyMainUrl}
         type="button"
-        className="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-white/5 cursor-pointer transition-all"
+        className="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
       >
         <AnimatePresence mode="wait" initial={false}>
           {copiedUrl ? (
@@ -142,10 +131,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-2 font-bold"
+              className="flex items-center gap-2 font-bold text-emerald-950"
             >
               <Check className="w-4 h-4 stroke-[3]" />
-              <span>Ссылка скопирована в буфер!</span>
+              <span>Ссылка скопирована в буфер обмена!</span>
             </motion.div>
           ) : (
             <motion.div
@@ -163,51 +152,108 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         </AnimatePresence>
       </motion.button>
 
-      {/* 3. Two equal quick-action buttons */}
-      <div className="grid grid-cols-2 gap-2.5">
+      {/* 4. Quick App Import Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {/* Happ */}
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-          onClick={handleCopyHapp}
+        <button
+          onClick={() => handleClientAction('happ', `happ://add/${subUrl}#TurboProbe`, subUrl)}
           type="button"
-          className="py-2.5 px-3 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-white/10 text-zinc-200 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          className="py-2 px-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
         >
-          {copiedHapp ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-white" />
-              <span>Импортировано!</span>
-            </>
-          ) : (
-            <>
-              <HappIcon className="w-3.5 h-3.5 text-zinc-300" />
-              <span>Открыть в Happ</span>
-            </>
-          )}
-        </motion.button>
+          {copiedStatus === 'happ' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <HappIcon className="w-3.5 h-3.5 text-zinc-400" />}
+          <span>Happ</span>
+        </button>
+
+        {/* v2rayNG / v2rayN */}
+        <button
+          onClick={() => handleClientAction('v2ray', `v2rayng://install-config?url=${encodeURIComponent(subUrl)}`, subUrl)}
+          type="button"
+          className="py-2 px-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+        >
+          {copiedStatus === 'v2ray' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />}
+          <span>v2rayNG / N</span>
+        </button>
 
         {/* FlClash */}
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-          onClick={handleCopyFlclash}
+        <button
+          onClick={() => handleClientAction('flclash', `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`, clashSubUrl)}
           type="button"
-          className="py-2.5 px-3 rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-white/10 text-zinc-200 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          className="py-2 px-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
         >
-          {copiedFlclash ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-white" />
-              <span>Импортировано!</span>
-            </>
-          ) : (
-            <>
-              <FlClashIcon className="w-3.5 h-3.5 text-zinc-300" />
-              <span>Открыть в FlClash</span>
-            </>
-          )}
-        </motion.button>
+          {copiedStatus === 'flclash' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <FlClashIcon className="w-3.5 h-3.5 text-zinc-400" />}
+          <span>FlClash</span>
+        </button>
+
+        {/* Sing-box */}
+        <button
+          onClick={() => handleClientAction('singbox', `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}#TurboProbe`, subUrl)}
+          type="button"
+          className="py-2 px-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+        >
+          {copiedStatus === 'singbox' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />}
+          <span>Sing-box</span>
+        </button>
       </div>
+
+      {/* 5. Clash Meta YAML & Quick Help Bar */}
+      <div className="flex items-center justify-between pt-1 text-xs">
+        <button
+          onClick={onDownloadClash}
+          type="button"
+          className="inline-flex items-center gap-1.5 text-zinc-400 hover:text-zinc-200 transition-colors font-mono cursor-pointer"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>Скачать clash-meta.yaml</span>
+        </button>
+
+        <button
+          onClick={() => setIsGuideOpen(!isGuideOpen)}
+          type="button"
+          className="inline-flex items-center gap-1 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+        >
+          <HelpCircle className="w-3.5 h-3.5" />
+          <span>Инструкция по подключению</span>
+          {isGuideOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+
+      {/* 6. Collapsible Step-by-Step Guide */}
+      <AnimatePresence>
+        {isGuideOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-t border-zinc-800 pt-3"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs text-zinc-300">
+              <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-850 space-y-1">
+                <span className="font-semibold text-white block">1. Скачайте приложение</span>
+                <p className="text-zinc-400 m-0 leading-relaxed">
+                  Android: <strong>v2rayNG</strong> или <strong>Happ</strong><br />
+                  iOS: <strong>Streisand</strong>, <strong>FoXray</strong> или <strong>V2Box</strong><br />
+                  Windows: <strong>v2rayN</strong> или <strong>FlClash</strong>
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-850 space-y-1">
+                <span className="font-semibold text-white block">2. Скопируйте ссылку</span>
+                <p className="text-zinc-400 m-0 leading-relaxed">
+                  Нажмите кнопку <strong>«Скопировать ссылку»</strong> выше или отсканируйте QR-код с экрана телефона.
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-850 space-y-1">
+                <span className="font-semibold text-white block">3. Импортируйте и включите</span>
+                <p className="text-zinc-400 m-0 leading-relaxed">
+                  В приложении нажмите <strong>«+» $\to$ «Импорт подписки»</strong>, обновите список и выберите самый быстрый узел.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
 };
+
