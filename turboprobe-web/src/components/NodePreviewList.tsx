@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Copy, Check, Plus, Loader2, Globe } from 'lucide-react';
+import { ChevronDown, Copy, Check, Plus, Globe } from 'lucide-react';
 import { CountryFlag } from './CountryFlags';
 import { extractRemark, computeDisplayTitle } from '../utils/nodeIndexer';
 import { M3Ripple } from './ui/M3Ripple';
 import { M3NumberCounter } from './ui/M3NumberCounter';
 import { Tooltip } from './ui/Tooltip';
+import { ShimmerSkeleton } from './ui/ShimmerSkeleton';
 import type { NodeItem } from '../types';
 
 interface NodePreviewListProps {
@@ -124,13 +125,17 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
           >
             {/* Table / List View */}
             <div className="max-h-[380px] overflow-y-auto divide-y divide-[var(--border-main)]">
-              {/* 1. Loading State */}
+              {/* 1. Loading Shimmer Wave Skeleton */}
               {isLoading && (
-                <div className="flex flex-col items-center justify-center py-10 gap-2.5">
-                  <Loader2 className="w-6 h-6 text-[#EA580C] dark:text-[#FB923C] animate-spin" />
-                  <span className="text-xs text-[var(--text-muted)] font-mono">
-                    Загрузка проверенных серверов...
-                  </span>
+                <div className="py-2">
+                  <div className="flex items-center justify-between px-4 py-2 text-xs font-mono text-[var(--text-muted)]">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[#EA580C] animate-ping" />
+                      <span>Синхронизация телеметрии...</span>
+                    </span>
+                    <span>Подождите</span>
+                  </div>
+                  <ShimmerSkeleton count={5} />
                 </div>
               )}
 

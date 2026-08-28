@@ -25,9 +25,12 @@ export const M3FilterChip: React.FC<M3FilterChipProps> = ({
       onClick={onToggle}
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.96 }}
-      transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+      animate={{
+        borderRadius: selected ? '9999px' : '14px',
+      }}
+      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       type="button"
-      className={`relative inline-flex items-center gap-1.5 h-8.5 px-3 text-xs font-medium rounded-full border select-none cursor-pointer overflow-hidden transition-colors duration-150 ${
+      className={`relative inline-flex items-center gap-1.5 h-8.5 px-3 text-xs font-medium border select-none cursor-pointer overflow-hidden transition-colors duration-150 ${
         selected
           ? 'bg-[#EA580C] text-white border-[#FB923C]/70 shadow-[0_0_12px_rgba(234,88,12,0.3)] font-semibold'
           : 'bg-[var(--bg-chip)] text-[var(--text-muted)] border-[var(--border-main)] hover:bg-[var(--bg-chip-hover)] hover:text-[var(--text-main)] hover:border-[var(--border-hover)]'

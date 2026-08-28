@@ -31,10 +31,14 @@ export const M3SegmentedButton: React.FC<M3SegmentedButtonProps> = ({
           <motion.button
             key={opt.id}
             onClick={() => onSelect(opt.id)}
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ scale: 1.02, y: -1 }}
             whileTap={{ scale: 0.97 }}
+            animate={{
+              borderRadius: isSelected ? '18px' : '12px',
+            }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
             type="button"
-            className={`relative py-3 px-3 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors duration-150 select-none overflow-hidden ${
+            className={`relative py-3 px-3 flex flex-col items-center justify-center text-center cursor-pointer transition-colors duration-150 select-none overflow-hidden ${
               isSelected
                 ? 'text-white'
                 : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
@@ -43,16 +47,16 @@ export const M3SegmentedButton: React.FC<M3SegmentedButtonProps> = ({
             {isSelected && (
               <motion.div
                 layoutId="m3-active-segment-bg"
-                className="absolute inset-0 bg-[#EA580C] rounded-xl shadow-[0_2px_14px_rgba(234,88,12,0.35)] border border-[#FB923C]/60"
-                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                className="absolute inset-0 bg-[#EA580C] rounded-[18px] shadow-[0_2px_14px_rgba(234,88,12,0.35)] border border-[#FB923C]/60"
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
 
             <div className="relative z-10 flex items-center gap-1.5">
               {opt.icon && (
                 <motion.span
-                  animate={{ scale: isSelected ? 1.1 : 1 }}
-                  transition={{ duration: 0.2 }}
+                  animate={{ scale: isSelected ? 1.15 : 1, rotate: isSelected ? [0, -5, 5, 0] : 0 }}
+                  transition={{ duration: 0.25 }}
                   className="text-base leading-none"
                 >
                   {opt.icon}
