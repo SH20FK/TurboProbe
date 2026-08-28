@@ -44,25 +44,24 @@ export const Header: React.FC<HeaderProps> = ({
     <div className="w-full select-none">
       {/* Clean Dark Hero Bento Card */}
       <div className="relative rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 p-6 sm:p-8 shadow-xl overflow-hidden flex flex-col items-center text-center">
-        {/* Brand Logo with Tactile Instant Hover */}
+        {/* Brand Logo with Direct Vector Rendering & Perfect Centering */}
         <motion.div
           whileHover={{ scale: 1.08, rotate: 3 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-          className="relative mb-4 cursor-pointer"
+          className="relative mb-4 cursor-pointer flex items-center justify-center"
         >
-          <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white p-2.5 shadow-xl flex items-center justify-center border border-white/20">
-            <img
-              src="./logo.svg"
-              alt="TurboProbe"
-              className="w-full h-full object-contain"
-            />
-          </div>
+          <img
+            src="./logo.svg"
+            alt="TurboProbe"
+            className="w-16 h-16 sm:w-18 sm:h-18 object-contain drop-shadow-lg"
+          />
         </motion.div>
 
         {/* Title with MagicUI Sparkles */}
-        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-[#E6E0E9] m-0">
-          TurboProbe <SparklesText text="Hub" colors={{ first: '#D0BCFF', second: '#7BE08F' }} className="text-[#D0BCFF] font-black" />
+        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-[#E6E0E9] m-0 flex items-center justify-center gap-2">
+          <span>TurboProbe</span>
+          <SparklesText text="Hub" colors={{ first: '#D0BCFF', second: '#7BE08F' }} className="text-[#D0BCFF] font-black" />
         </h1>
 
         {/* Subtitle with MagicUI TextAnimate */}

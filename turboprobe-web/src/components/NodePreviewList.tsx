@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Copy, Check, Search, Plus, Loader2, Globe } from 'lucide-react';
+import { ChevronDown, Copy, Check, Plus, Loader2, Globe } from 'lucide-react';
 import { CountryFlag } from './CountryFlags';
 import { extractRemark, computeDisplayTitle } from '../utils/nodeIndexer';
 import { M3Ripple } from './ui/M3Ripple';
@@ -25,13 +25,13 @@ const tableContainer = {
   },
 };
 
-const tableRow = {
-  hidden: { opacity: 0, y: 8 },
+const tableRowItem = {
+  hidden: { opacity: 0, y: 6 },
   show: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.22,
+      duration: 0.2,
       ease: [0.05, 0.7, 0.1, 1.0] as const,
     },
   },
@@ -40,60 +40,46 @@ const tableRow = {
 export const NodePreviewList: React.FC<NodePreviewListProps> = ({
   nodes,
   isLoading,
-  totalAvailable,
+  totalAvailable: _totalAvailable,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [displayLimit, setDisplayLimit] = useState<number>(30);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState<number>(30);
 
-  const handleCopyNode = async (uri: string, key: string) => {
+  const displayedNodes = useMemo(() => {
+    return nodes.slice(0, visibleCount);
+  }, [nodes, visibleCount]);
+
+  const hasMore = nodes.length > visibleCount;
+
+  const handleCopyNode = async (uri: string, id: string) => {
     try {
       await navigator.clipboard.writeText(uri);
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey(null), 1500);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
     } catch {
       // ignore
     }
   };
 
-  const searchedNodes = useMemo(() => {
-    if (!searchQuery.trim()) return nodes;
-    const q = searchQuery.toLowerCase().trim();
-    return nodes.filter((n) => {
-      const uriLow = n.uri.toLowerCase();
-      const country = (n.country || '').toLowerCase();
-      const proto = (n.protocol || '').toLowerCase();
-      const title = (n._index?.displayTitle || '').toLowerCase();
-      return uriLow.includes(q) || country.includes(q) || proto.includes(q) || title.includes(q);
-    });
-  }, [nodes, searchQuery]);
-
-  const visibleNodes = useMemo(() => {
-    return searchedNodes.slice(0, displayLimit);
-  }, [searchedNodes, displayLimit]);
-
-  const hasMore = searchedNodes.length > displayLimit;
-  const remainingCount = searchedNodes.length - displayLimit;
-
   return (
-    <div className="rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 overflow-hidden shadow-xl">
-      {/* Section Header with Toggle */}
+    <div className="rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 shadow-xl overflow-hidden">
+      {/* Accordion Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         type="button"
-        className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-[#2B2930] transition-colors cursor-pointer select-none"
+        className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-[#2B2930]/50 transition-colors text-left cursor-pointer select-none"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#2B2930] border border-white/5 flex items-center justify-center text-[#D0BCFF]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-[#2B2930] border border-white/5 flex items-center justify-center text-[#D0BCFF]">
             <Globe className="w-4 h-4" />
           </div>
           <div>
             <span className="font-display text-xs sm:text-sm font-semibold text-[#E6E0E9]">
               Телеметрия проверенных узлов
             </span>
-            <span className="text-xs font-mono text-[#D0BCFF] ml-2 font-medium">
-              <M3NumberCounter value={totalAvailable} /> узлов в базе
+            <span className="text-xs font-mono text-[#CAC4D0] ml-2">
+              (<M3NumberCounter value={nodes.length} formatThousands={false} /> узлов в базе)
             </span>
           </div>
         </div>
@@ -136,29 +122,8 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
             }}
             className="overflow-hidden border-t border-[#49454F]/25"
           >
-            {/* Search Input Bar */}
-            <div className="p-3 bg-[#141218] border-b border-[#49454F]/25 flex items-center gap-3">
-              <Search className="w-4 h-4 text-[#CAC4D0] flex-shrink-0 ml-1" />
-              <input
-                type="text"
-                placeholder="Поиск по стране, хосту, протоколу..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-xs text-[#E6E0E9] placeholder-[#938F99] outline-none font-mono"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  type="button"
-                  className="text-xs text-[#D0BCFF] hover:underline font-mono px-2"
-                >
-                  Очистить
-                </button>
-              )}
-            </div>
-
             {/* Table / List View */}
-            <div className="max-h-[360px] overflow-y-auto divide-y divide-[#49454F]/15">
+            <div className="max-h-[380px] overflow-y-auto divide-y divide-[#49454F]/15">
               {/* 1. Loading State */}
               {isLoading && (
                 <div className="flex flex-col items-center justify-center py-10 gap-2.5">
@@ -170,7 +135,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
               )}
 
               {/* 2. Empty State */}
-              {!isLoading && searchedNodes.length === 0 && (
+              {!isLoading && nodes.length === 0 && (
                 <div className="py-8 text-center text-xs text-[#938F99] font-mono">
                   По выбранным критериям узлы не найдены
                 </div>
@@ -178,41 +143,56 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
               {/* 3. Table Rows */}
               {!isLoading && (
-                <motion.div variants={tableContainer} initial="hidden" animate="show">
-                  {visibleNodes.map((node, index) => {
-                    const nodeKey = node.id || node.uri || `node-${index}`;
-                    const ping = typeof node.ping_ms === 'number' && node.ping_ms > 0 ? Math.round(node.ping_ms) : null;
-                    const countryCode = (node.country || 'all').toLowerCase();
-                    const proto = (node.protocol || (node.uri.split('://')[0] || 'vless')).toUpperCase();
-                    const isCopied = copiedKey === nodeKey;
+                <motion.div
+                  variants={tableContainer}
+                  initial="hidden"
+                  animate="show"
+                  className="divide-y divide-[#49454F]/15"
+                >
+                  {displayedNodes.map((node, index) => {
+                    const country = (node.country || 'un').toLowerCase();
+                    const proto = (node.protocol || 'vless').toUpperCase();
+                    const isVless = proto === 'VLESS';
+                    const isTrojan = proto === 'TROJAN';
+                    const isHy2 = proto === 'HYSTERIA2';
+                    const ping = node.ping_ms || null;
 
-                    let hostDisplay = '';
-                    try {
-                      const parsed = new URL(node.uri.replace(/^[a-z0-9+-.]+:\/\//i, 'http://'));
-                      hostDisplay = parsed.host;
-                    } catch {
-                      hostDisplay = node._index?.displayTitle || computeDisplayTitle(extractRemark(node.uri), node.country);
-                    }
+                    const remark = extractRemark(node.uri);
+                    const title = computeDisplayTitle(remark, node.country || '');
+                    const nodeKey = `${node.uri}-${index}`;
+                    const isCopied = copiedId === nodeKey;
 
                     return (
                       <motion.div
                         key={nodeKey}
-                        variants={tableRow}
-                        className="group relative flex items-center justify-between gap-3 px-5 py-3 hover:bg-[#2B2930]/60 transition-colors overflow-hidden select-none"
+                        variants={tableRowItem}
+                        className="px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-[#2B2930]/40 transition-colors"
                       >
-                        {/* Left: Flag + Host */}
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="flex-shrink-0 w-6 flex items-center justify-center">
-                            <CountryFlag countryCode={countryCode} className="w-4 h-2.5 rounded-[2px] shadow-xs flex-shrink-0" />
-                          </div>
+                        {/* Left: Flag + Proto + Name */}
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <CountryFlag countryCode={country} className="w-4.5 h-3.5 flex-shrink-0" />
 
-                          <span className="text-xs font-mono text-[#E6E0E9] truncate">
-                            {hostDisplay || `Сервер #${index + 1}`}
-                          </span>
-
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#4A4458] text-[#E8DEF8] font-semibold uppercase flex-shrink-0">
+                          {/* Protocol Badge */}
+                          <span
+                            className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold flex-shrink-0 ${
+                              isVless
+                                ? 'bg-[#4F378B]/40 text-[#D0BCFF] border border-[#D0BCFF]/30'
+                                : isTrojan
+                                ? 'bg-[#7D5260]/40 text-[#FFD8E4] border border-[#FFD8E4]/30'
+                                : isHy2
+                                ? 'bg-[#004D40]/50 text-[#80CBC4] border border-[#80CBC4]/30'
+                                : 'bg-[#36343B] text-[#CAC4D0] border border-[#49454F]/40'
+                            }`}
+                          >
                             {proto}
                           </span>
+
+                          {/* Node Title */}
+                          <div className="min-w-0 flex-1 flex flex-col">
+                            <span className="text-xs font-mono font-medium text-[#E6E0E9] truncate">
+                              {title}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Right: Ping + Copy */}
@@ -280,18 +260,18 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
               {/* Show More Button */}
               {!isLoading && hasMore && (
-                <div className="p-3 text-center bg-[#141218]">
+                <div className="p-3 bg-[#141218] flex justify-center">
                   <motion.button
-                    onClick={() => setDisplayLimit((prev) => prev + 30)}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setVisibleCount((prev) => prev + 30)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                     type="button"
-                    className="relative inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-xs text-[#E6E0E9] cursor-pointer font-mono border border-[#49454F]/30 overflow-hidden"
+                    className="relative px-4 py-1.5 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-xs font-mono text-[#D0BCFF] flex items-center gap-1.5 border border-[#49454F]/30 overflow-hidden cursor-pointer shadow-xs"
                   >
-                    <Plus className="w-3.5 h-3.5 text-[#D0BCFF]" />
-                    <span>Показать еще ({remainingCount})</span>
-                    <M3Ripple />
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Показать еще ({nodes.length - visibleCount})</span>
+                    <M3Ripple color="#D0BCFF" />
                   </motion.button>
                 </div>
               )}
