@@ -12,6 +12,7 @@ import { M3Background } from './components/ui/M3Background';
 import { ToastProvider } from './components/ui/M3Toast';
 import { AnimatedThemeToggle } from './components/ui/ThemeToggle';
 import { GitHubIcon } from './components/ServiceIcons';
+import { Shield, Send } from 'lucide-react';
 import type { NodeItem, PresetItem } from './types';
 
 const GITHUB_RAW = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
@@ -602,45 +603,49 @@ export default function App() {
             </span>
           </div>
 
-          {/* Mode Switcher Tabs */}
-          <div className="flex items-center bg-[var(--bg-card)] p-1 rounded-full border border-[var(--border-main)] text-xs font-mono select-none">
-            <button
+          {/* Mode Switcher Tabs (M3 Dynamic Island Style) */}
+          <div className="flex items-center bg-[var(--bg-card)]/90 backdrop-blur-md p-1 rounded-full border border-[var(--border-main)] shadow-xs select-none">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => handleSwitchMode('vpn')}
-              className={`relative px-3 sm:px-3.5 py-1.5 rounded-full transition-colors cursor-pointer ${
+              className={`relative px-3 sm:px-4 py-1.5 rounded-full transition-colors cursor-pointer flex items-center gap-1.5 ${
                 appMode === 'vpn' ? 'text-white font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
             >
               {appMode === 'vpn' && (
                 <motion.div
                   layoutId="app-mode-pill"
-                  className="absolute inset-0 bg-[#C25E30] rounded-full shadow-xs"
-                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                  className="absolute inset-0 bg-gradient-to-r from-[#C25E30] to-[#E08244] rounded-full shadow-[0_2px_10px_rgba(194,94,48,0.35)]"
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
               )}
-              <span className="relative z-10 flex items-center gap-1.5">
-                <span>🛡️</span>
-                <span className="hidden sm:inline">VPN</span>
+              <Shield className="w-3.5 h-3.5 relative z-10 flex-shrink-0" />
+              <span className="relative z-10 font-display text-xs font-semibold tracking-tight">
+                VPN
               </span>
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => handleSwitchMode('tg')}
-              className={`relative px-3 sm:px-3.5 py-1.5 rounded-full transition-colors cursor-pointer ${
+              className={`relative px-3 sm:px-4 py-1.5 rounded-full transition-colors cursor-pointer flex items-center gap-1.5 ${
                 appMode === 'tg' ? 'text-white font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
             >
               {appMode === 'tg' && (
                 <motion.div
                   layoutId="app-mode-pill"
-                  className="absolute inset-0 bg-[#2481CC] rounded-full shadow-xs"
-                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                  className="absolute inset-0 bg-gradient-to-r from-[#2481CC] to-[#2AABEE] rounded-full shadow-[0_2px_10px_rgba(42,171,238,0.35)]"
+                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
               )}
-              <span className="relative z-10 flex items-center gap-1.5">
-                <span>✈️</span>
-                <span className="hidden sm:inline">TG Прокси</span>
+              <Send className="w-3.5 h-3.5 relative z-10 flex-shrink-0" />
+              <span className="relative z-10 font-display text-xs font-semibold tracking-tight">
+                TG Прокси
               </span>
-            </button>
+            </motion.button>
           </div>
 
           <div className="flex items-center gap-2.5">
