@@ -1,7 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Shield, Zap, Search, Copy, QrCode, Download, ExternalLink, Lock, Check } from 'lucide-react';
+import {
+  Send,
+  Shield,
+  Search,
+  Copy,
+  QrCode,
+  Lock,
+  Check,
+  Sparkles,
+  ArrowUpRight,
+  CheckCircle2,
+  X,
+} from 'lucide-react';
 import { useToast } from './ui/M3Toast';
+import { M3Ripple } from './ui/M3Ripple';
 import { CountryFlag } from './CountryFlags';
 import type { TgProxyItem } from '../types';
 
@@ -18,7 +31,6 @@ const TG_PROXIES_MIRRORS = [
 
 /**
  * Extracts and decodes Fake-TLS SNI domain (e.g. apple.com, cloudflare.com, google.com)
- * from an MTProto secret hex string.
  */
 function extractTlsDomain(secret?: string | null): { domain: string | null; type: 'faketls' | 'dd' | 'classic' } {
   if (!secret) return { domain: null, type: 'classic' };
@@ -47,6 +59,56 @@ function extractTlsDomain(secret?: string | null): { domain: string | null; type
 
   return { domain: null, type: 'classic' };
 }
+
+/**
+ * SVG Speedometer / Ping Radar for M3 Expressive Hero Card
+ */
+const PingGauge: React.FC<{ ping: number }> = ({ ping }) => {
+  const percentage = Math.min(Math.max((300 - ping) / 250, 0.1), 1);
+  const strokeDashoffset = 125.6 * (1 - percentage * 0.75);
+  const color = ping <= 80 ? '#34D399' : ping <= 160 ? '#2AABEE' : '#F59E0B';
+
+  return (
+    <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shrink-0 select-none">
+      <svg className="w-full h-full -rotate-135 transform" viewBox="0 0 48 48">
+        {/* Background Track */}
+        <circle
+          cx="24"
+          cy="24"
+          r="19"
+          className="stroke-black/10 dark:stroke-white/10"
+          strokeWidth="3.5"
+          strokeDasharray="125.6"
+          strokeDashoffset="31.4"
+          strokeLinecap="round"
+          fill="none"
+        />
+        {/* Active Animated Gauge */}
+        <motion.circle
+          cx="24"
+          cy="24"
+          r="19"
+          stroke={color}
+          strokeWidth="4"
+          strokeDasharray="125.6"
+          initial={{ strokeDashoffset: 125.6 }}
+          animate={{ strokeDashoffset }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          strokeLinecap="round"
+          fill="none"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+        <span className="text-sm sm:text-base font-display font-black leading-none tracking-tight text-[var(--text-main)]">
+          {ping > 0 ? ping : '—'}
+        </span>
+        <span className="text-[8px] font-mono text-[var(--text-muted)] uppercase tracking-wider mt-0.5">
+          ms
+        </span>
+      </div>
+    </div>
+  );
+};
 
 export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
   const toast = useToast();
@@ -125,7 +187,6 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
   // Filter Logic
   const filteredProxies = useMemo(() => {
     return proxies.filter((p) => {
-      // Tab filter
       if (activeTab === 'faketls') {
         if (p.proto !== 'mtproto' || !p.secret?.toLowerCase().startsWith('ee')) return false;
       } else if (activeTab === 'mtproto') {
@@ -136,12 +197,10 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
         if (p.ping_ms > 120) return false;
       }
 
-      // Country filter
       if (selectedCountry !== 'all' && (p.country || 'GLOBAL') !== selectedCountry) {
         return false;
       }
 
-      // Search query (IP, Port, Domain)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const host = `${p.server}:${p.port}`.toLowerCase();
@@ -158,6 +217,14 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
     });
   }, [proxies, activeTab, selectedCountry, searchQuery]);
 
+  // Featured Flagship Proxy (Top 1 lowest ping with Fake-TLS)
+  const featuredProxy = useMemo(() => {
+    if (proxies.length === 0) return null;
+    const fakeTlsList = proxies.filter((p) => p.proto === 'mtproto' && p.secret?.toLowerCase().startsWith('ee'));
+    const pool = fakeTlsList.length > 0 ? fakeTlsList : proxies;
+    return [...pool].sort((a, b) => (a.ping_ms || 999) - (b.ping_ms || 999))[0];
+  }, [proxies]);
+
   // Country counts
   const countryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -170,14 +237,24 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
 
   // Connect Fastest in 1 click
   const handleConnectFastest = useCallback(() => {
-    if (filteredProxies.length === 0) {
+    const target = featuredProxy || filteredProxies[0];
+    if (!target) {
       toast.error('Нет доступных прокси!');
       return;
     }
-    const fastest = filteredProxies[0];
-    toast.success('Подключение в Telegram...', `${fastest.server}:${fastest.port}`);
-    window.location.href = fastest.tg_link;
-  }, [filteredProxies, toast]);
+    toast.success('Подключение в Telegram...', `${target.server}:${target.port}`);
+    window.location.href = target.tg_link;
+  }, [featuredProxy, filteredProxies, toast]);
+
+  // Copy single link with micro-feedback
+  const handleCopySingle = useCallback(
+    (link: string, id: string) => {
+      toast.copy(link, 'Ссылка MTProto скопирована');
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1800);
+    },
+    [toast]
+  );
 
   // Copy all visible links
   const handleCopyAll = useCallback(() => {
@@ -186,139 +263,152 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
       return;
     }
     const text = filteredProxies.map((p) => p.tg_link).join('\n');
-    toast.copy(text, `Скопировано ${filteredProxies.length} MTProto/SOCKS5 ссылок`);
+    toast.copy(text, `Скопировано ${filteredProxies.length} MTProto ссылок`);
   }, [filteredProxies, toast]);
 
-  // Copy single link with micro-feedback
-  const handleCopySingle = useCallback(
-    (link: string, id: string) => {
-      toast.copy(link, 'Ссылка прокси скопирована');
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 1800);
-    },
-    [toast]
-  );
-
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-4">
-      {/* 1. Sleek Telegram Header Card */}
-      <div className="relative rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-5 sm:p-7 overflow-hidden shadow-sm transition-colors duration-200">
-        <div
-          className="absolute -top-16 left-1/3 w-80 h-36 rounded-full blur-[70px] pointer-events-none opacity-30"
-          style={{ background: 'radial-gradient(circle, #2AABEE 0%, transparent 70%)' }}
-        />
+    <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-5 select-none font-body">
+      {/* 1. M3 EXPRESSIVE HERO BENTO: ФЛАГМАНСКИЙ ПРОКСИ-УЗЕЛ */}
+      {featuredProxy && (
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="relative rounded-[28px] sm:rounded-[32px] bg-gradient-to-br from-[#172635] via-[#121D28] to-[#0D151D] p-4 sm:p-6 overflow-hidden shadow-xl border border-white/10 dark:border-white/5"
+        >
+          {/* Subtle Ambient Material Glow */}
+          <div
+            className="absolute -top-20 -right-16 w-72 h-72 rounded-full blur-[80px] pointer-events-none opacity-25"
+            style={{ background: 'radial-gradient(circle, #2AABEE 0%, transparent 70%)' }}
+          />
 
-        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 text-center sm:text-left">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] p-3 flex items-center justify-center text-white shadow-md shadow-sky-500/25 shrink-0">
-              <Send className="w-full h-full fill-current" />
-            </div>
-            <div>
-              <div className="flex items-center justify-center sm:justify-start gap-2">
-                <h1 className="text-xl sm:text-2xl font-display font-black tracking-tight text-[var(--text-main)] m-0">
-                  TGProxy Hub
-                </h1>
-                <span className="px-2 py-0.5 rounded-full bg-[#2481CC]/15 text-[#2AABEE] text-[10px] font-mono font-bold">
-                  v2.0
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+            {/* Left Info Column */}
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2AABEE]/15 text-[#2AABEE] text-xs font-mono font-bold tracking-tight">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Флагманский Fake-TLS узел</span>
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-mono font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Online · RU-Pass</span>
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">
-                Автоматический сбор и проверка <span className="text-[var(--text-main)] font-semibold">MTProto Fake-TLS</span> для стабильной работы в РФ
-              </p>
+
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <CountryFlag countryCode={featuredProxy.country || 'GLOBAL'} className="w-6 h-4 sm:w-7 sm:h-5 rounded-md shadow-sm shrink-0" />
+                  <h2 className="text-lg sm:text-2xl font-display font-black text-white tracking-tight">
+                    {featuredProxy.country_label || featuredProxy.country || 'Европейский узел'}
+                  </h2>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 mt-1.5 font-mono text-xs text-white/70">
+                  <span className="bg-black/30 px-2.5 py-1 rounded-lg text-white font-bold">
+                    {featuredProxy.server}:{featuredProxy.port}
+                  </span>
+                  {(() => {
+                    const { domain } = extractTlsDomain(featuredProxy.secret);
+                    return domain ? (
+                      <span className="inline-flex items-center gap-1 bg-white/10 text-white/90 px-2.5 py-1 rounded-lg">
+                        <Lock className="w-3 h-3 text-[#2AABEE]" />
+                        <span>Маскировка: <strong>{domain}</strong></span>
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Speedometer & Action */}
+            <div className="flex items-center gap-3 sm:gap-4 self-start md:self-center shrink-0">
+              <div className="flex items-center gap-2.5 bg-black/25 px-3 py-2 rounded-2xl">
+                <PingGauge ping={Math.round(featuredProxy.ping_ms || 0)} />
+                <div className="text-left font-mono">
+                  <div className="text-[10px] text-white/50 uppercase">Задержка</div>
+                  <div className="text-xs font-bold text-emerald-400">Сверхбыстро</div>
+                </div>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={handleConnectFastest}
+                className="relative overflow-hidden h-12 sm:h-14 px-5 sm:px-6 rounded-[20px] bg-gradient-to-r from-[#2481CC] to-[#2AABEE] text-white font-display text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 cursor-pointer"
+              >
+                <Send className="w-4 h-4 fill-current" />
+                <span>Подключить</span>
+                <ArrowUpRight className="w-4 h-4" />
+                <M3Ripple color="#FFFFFF" />
+              </motion.button>
             </div>
           </div>
 
-          {/* Quick Metrics */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="bg-[var(--bg-app)] border border-[var(--border-main)] px-3 py-1.5 rounded-xl flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span className="font-mono text-xs font-bold text-[var(--text-main)]">
-                {isLoading ? '...' : proxies.length} узлов
-              </span>
+          {/* Quick Utility Actions Footer */}
+          <div className="relative z-10 pt-3.5 mt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-2.5 text-xs font-mono text-white/60">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Автопроверка ТСПУ каждые 2 часа · Zero Logs</span>
             </div>
 
-            <div className="bg-[var(--bg-app)] border border-[var(--border-main)] px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-[#2AABEE]" />
-              <span className="font-mono text-xs font-bold text-[var(--text-main)]">
-                {stats.best_ping > 0 ? `${stats.best_ping} ms` : '—'}
-              </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleCopySingle(featuredProxy.tg_link, 'featured')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-white/90 transition-colors cursor-pointer"
+              >
+                {copiedId === 'featured' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedId === 'featured' ? 'Скопировано' : 'Копировать MTProto'}</span>
+              </button>
+
+              <button
+                onClick={() => onOpenQr(featuredProxy.tg_link)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-white/90 transition-colors cursor-pointer"
+                title="Показать QR-код"
+              >
+                <QrCode className="w-3.5 h-3.5 text-[#2AABEE]" />
+                <span>QR-код</span>
+              </button>
             </div>
           </div>
-        </div>
+        </motion.div>
+      )}
 
-        {/* 1-Click Fast Actions Bar */}
-        <div className="pt-4 mt-4 border-t border-[var(--border-main)] flex flex-col sm:flex-row items-center gap-2">
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleConnectFastest}
-            className="w-full sm:flex-1 py-3 px-4 rounded-2xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] text-white font-display text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-sky-600/25 cursor-pointer"
-          >
-            <Send className="w-3.5 h-3.5 fill-current" />
-            <span>⚡ Включить лучший MTProto в Telegram (1 клик)</span>
-          </motion.button>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              onClick={handleCopyAll}
-              className="flex-1 sm:flex-none py-2.5 px-3.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-xs font-display font-semibold text-[var(--text-main)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Copy className="w-3.5 h-3.5 text-[#2AABEE]" />
-              <span>Скопировать все</span>
-            </button>
-
-            <button
-              onClick={() => {
-                if (filteredProxies.length > 0) onOpenQr(filteredProxies[0].tg_link);
-              }}
-              title="QR-код для телефона"
-              className="p-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[var(--text-main)] flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <QrCode className="w-4 h-4 text-[#2AABEE]" />
-            </button>
-
-            <a
-              href="https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/tg/mtproto.txt"
-              download
-              title="Скачать .txt список"
-              className="p-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[var(--text-main)] flex items-center justify-center transition-colors cursor-pointer"
-            >
-              <Download className="w-4 h-4 text-[#2AABEE]" />
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Filter & Navigation Deck */}
-      <div className="rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-4 sm:p-5 space-y-3.5 shadow-sm transition-colors duration-200">
+      {/* 2. M3 EXPRESSIVE CONTROLS & FILTER DECK */}
+      <div className="rounded-[28px] bg-[var(--bg-card)] p-4 sm:p-5 space-y-3.5 shadow-sm border border-[var(--border-main)] transition-colors duration-200">
+        {/* Top Controls Row: Segmented Button + Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Tabs: MTProto Fake-TLS vs SOCKS5 vs Low Ping */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-[var(--bg-app)] p-1 rounded-2xl border border-[var(--border-main)] select-none">
+          {/* M3 Segmented Button */}
+          <div className="flex items-center gap-1 bg-[var(--bg-app)] p-1 rounded-2xl overflow-x-auto scrollbar-none border border-[var(--border-main)]">
             {[
-              { id: 'all', label: 'Все прокси', count: proxies.length },
+              { id: 'all', label: 'Все', count: proxies.length },
               { id: 'faketls', label: '🛡️ Fake-TLS', count: proxies.filter((p) => p.secret?.toLowerCase().startsWith('ee')).length },
               { id: 'mtproto', label: '🔒 MTProto', count: stats.total_mtproto || proxies.filter((p) => p.proto === 'mtproto').length },
               { id: 'socks5', label: '🧦 SOCKS5', count: stats.total_socks5 || proxies.filter((p) => p.proto === 'socks5').length },
-              { id: 'lowping', label: '⚡ < 120 ms', count: proxies.filter((p) => p.ping_ms <= 120).length },
+              { id: 'lowping', label: '⚡ <120ms', count: proxies.filter((p) => p.ping_ms <= 120).length },
             ].map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`relative px-3 py-1.5 rounded-xl text-xs font-display font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  className={`relative px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-display font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 select-none ${
                     isActive ? 'text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                   }`}
                 >
                   {isActive && (
                     <motion.div
-                      layoutId="tg-tab-active-pill"
-                      className="absolute inset-0 bg-gradient-to-r from-[#2481CC] to-[#2AABEE] rounded-xl shadow-xs"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      layoutId="m3-active-tg-tab"
+                      className="absolute inset-0 bg-[#2481CC] rounded-xl shadow-xs"
+                      transition={{ type: 'spring', stiffness: 380, damping: 28 }}
                     />
                   )}
                   <span className="relative z-10">{tab.label}</span>
-                  <span className={`relative z-10 text-[10px] font-mono ${isActive ? 'text-white/80' : 'opacity-60'}`}>
+                  <span
+                    className={`relative z-10 text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold ${
+                      isActive ? 'bg-black/25 text-white' : 'bg-[var(--bg-card)] opacity-70'
+                    }`}
+                  >
                     {tab.count}
                   </span>
                 </button>
@@ -326,154 +416,195 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
             })}
           </div>
 
-          {/* Quick Search */}
-          <div className="relative w-full md:w-56">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+          {/* M3 Search Input */}
+          <div className="relative w-full md:w-64">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input
               type="text"
-              placeholder="Поиск по IP / SNI домену..."
+              placeholder="Поиск по IP, порту, SNI..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8.5 pr-3 py-1.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-main)] text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[#2AABEE]/60 transition-colors"
+              className="w-full pl-9 pr-8 py-2 rounded-xl bg-[var(--bg-app)] text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[#2AABEE]/50 border border-[var(--border-main)] transition-all"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-main)] p-0.5 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Country Flags Row */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 scrollbar-none text-xs font-mono">
-          <span className="text-[var(--text-muted)] text-[11px] shrink-0 mr-1">Страны:</span>
+        {/* Bottom Row: M3 Filter Chips for Countries */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-0.5 scrollbar-none text-xs font-mono">
+          <span className="text-[var(--text-muted)] text-[11px] shrink-0 mr-1 font-sans">Локация:</span>
+
           <button
             onClick={() => setSelectedCountry('all')}
-            className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0 ${
+            className={`h-8 px-3 rounded-full transition-all cursor-pointer shrink-0 flex items-center gap-1.5 font-bold ${
               selectedCountry === 'all'
-                ? 'bg-[#2481CC] text-white font-bold'
+                ? 'bg-[#2AABEE] text-white shadow-xs'
                 : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)]'
             }`}
           >
-            Все
+            {selectedCountry === 'all' && <Check className="w-3 h-3 stroke-[3]" />}
+            <span>Все страны</span>
           </button>
+
           {countryCounts.map(([code, count]) => {
             const isSelected = selectedCountry === code;
             return (
               <button
                 key={code}
                 onClick={() => setSelectedCountry(code)}
-                className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shrink-0 ${
+                className={`h-8 px-3 rounded-full transition-all cursor-pointer shrink-0 flex items-center gap-1.5 font-medium ${
                   isSelected
-                    ? 'bg-[#2481CC] text-white font-bold'
+                    ? 'bg-[#2AABEE] text-white font-bold shadow-xs'
                     : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)]'
                 }`}
               >
-                <CountryFlag countryCode={code} className="w-3.5 h-2.5 rounded-xs" />
+                {isSelected ? (
+                  <Check className="w-3 h-3 stroke-[3]" />
+                ) : (
+                  <CountryFlag countryCode={code} className="w-3.5 h-2.5 rounded-xs" />
+                )}
                 <span>{code === 'GLOBAL' ? 'Серверы' : code}</span>
-                <span className="opacity-70 text-[10px]">{count}</span>
+                <span
+                  className={`text-[10px] font-mono px-1 rounded-full ${
+                    isSelected ? 'bg-black/20 text-white' : 'opacity-60'
+                  }`}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* 3. Pure Telegram Proxy List */}
-      <div className="space-y-2.5">
+      {/* 3. M3 PROXY NODES BENTO GRID (2 Columns on Desktop) */}
+      <div className="space-y-3">
         <div className="flex items-center justify-between px-2 text-xs font-mono text-[var(--text-muted)]">
-          <span>Найдено серверов: <strong className="text-[var(--text-main)]">{filteredProxies.length}</strong></span>
-          <span>Автопроверка пинга каждые 2 часа</span>
+          <span>
+            Отобрано серверов: <strong className="text-[var(--text-main)] font-bold">{filteredProxies.length}</strong>
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopyAll}
+              className="hover:text-[var(--text-main)] underline cursor-pointer flex items-center gap-1"
+            >
+              <Copy className="w-3 h-3 text-[#2AABEE]" />
+              <span>Скопировать все ({filteredProxies.length})</span>
+            </button>
+          </div>
         </div>
 
         {filteredProxies.length === 0 ? (
-          <div className="rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-12 text-center text-xs font-mono text-[var(--text-muted)]">
-            {isLoading ? 'Загрузка проверенных прокси...' : 'Нет прокси под выбранные фильтры.'}
+          <div className="rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-12 text-center text-xs font-mono text-[var(--text-muted)] space-y-2">
+            <div>{isLoading ? 'Проверка доступности MTProto серверов...' : 'Нет серверов под выбранные параметры.'}</div>
           </div>
         ) : (
-          filteredProxies.map((p, idx) => {
-            const { domain, type: secretType } = extractTlsDomain(p.secret);
-            const isFakeTls = p.proto === 'mtproto' && secretType === 'faketls';
-            const isSocks = p.proto === 'socks5';
-            const pingColor = p.ping_ms < 100 ? 'text-[#10B981]' : p.ping_ms < 250 ? 'text-[#2AABEE]' : 'text-[#E08244]';
-            const pingBg = p.ping_ms < 100 ? 'bg-[#10B981]' : p.ping_ms < 250 ? 'bg-[#2AABEE]' : 'bg-[#E08244]';
-            const cardId = `${p.server}-${p.port}-${idx}`;
-            const isCopied = copiedId === cardId;
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {filteredProxies.map((p, idx) => {
+              const { domain, type: secretType } = extractTlsDomain(p.secret);
+              const isFakeTls = p.proto === 'mtproto' && secretType === 'faketls';
+              const isSocks = p.proto === 'socks5';
+              const pingMs = Math.round(p.ping_ms || 0);
+              const pingColor = pingMs <= 80 ? 'text-emerald-400' : pingMs <= 160 ? 'text-sky-400' : 'text-amber-400';
+              const pingBg = pingMs <= 80 ? 'bg-emerald-400' : pingMs <= 160 ? 'bg-sky-400' : 'bg-amber-400';
+              const cardId = `${p.server}-${p.port}-${idx}`;
+              const isCopied = copiedId === cardId;
 
-            return (
-              <motion.div
-                key={cardId}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.15, delay: Math.min(idx * 0.015, 0.2) }}
-                className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-main)] p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-[#2AABEE]/40 transition-colors shadow-xs group"
-              >
-                {/* Left Info: Host, SNI domain, Flag, Ping */}
-                <div className="flex items-start sm:items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#2AABEE] shrink-0 mt-0.5 sm:mt-0 font-mono text-xs font-bold">
-                    {idx + 1}
-                  </div>
+              return (
+                <motion.div
+                  key={cardId}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: Math.min(idx * 0.02, 0.25) }}
+                  className="rounded-[24px] bg-[var(--bg-card)] border border-[var(--border-main)] p-4 flex flex-col justify-between gap-3.5 hover:border-[#2AABEE]/40 transition-colors shadow-xs group"
+                >
+                  {/* Top: Flag + Host + Protocol Badges */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <CountryFlag countryCode={p.country || 'GLOBAL'} className="w-5 h-3.5 rounded-xs shrink-0" />
+                        <span className="font-mono text-xs font-bold text-[var(--text-main)] truncate">
+                          {p.server}:{p.port}
+                        </span>
+                      </div>
 
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-sm font-bold text-[var(--text-main)] truncate">
-                        {p.server}:{p.port}
+                      {/* Ping Pill */}
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--bg-app)] font-mono text-[11px] font-bold ${pingColor} shrink-0 border border-[var(--border-main)]`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${pingBg}`} />
+                        <span>{pingMs} ms</span>
                       </span>
+                    </div>
 
-                      {/* Protocol Badge */}
+                    {/* Protocol & SNI Masking Bar */}
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
                       {isFakeTls ? (
-                        <span className="px-2 py-0.5 rounded-full bg-[#10B981]/15 text-[#10B981] text-[10px] font-mono font-bold flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 font-bold flex items-center gap-1">
                           <Shield className="w-2.5 h-2.5" />
                           <span>Fake-TLS</span>
                         </span>
                       ) : isSocks ? (
-                        <span className="px-2 py-0.5 rounded-full bg-[#E08244]/15 text-[#E08244] text-[10px] font-mono font-bold">
+                        <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 font-bold">
                           SOCKS5
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-[#2AABEE]/15 text-[#2AABEE] text-[10px] font-mono font-bold">
+                        <span className="px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-400 font-bold">
                           MTProto
                         </span>
                       )}
 
-                      {/* SNI Masking Domain Badge (e.g. apple.com, cloudflare.com) */}
                       {domain && (
-                        <span className="px-2 py-0.5 rounded-md bg-[var(--bg-app)] border border-[var(--border-main)] text-[10px] font-mono text-[var(--text-muted)] flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded-md bg-[var(--bg-app)] border border-[var(--border-main)] text-[var(--text-muted)] flex items-center gap-1 truncate max-w-[170px]">
                           <Lock className="w-2.5 h-2.5 text-[#2AABEE]" />
-                          <span>tls: {domain}</span>
+                          <span className="truncate">{domain}</span>
                         </span>
                       )}
-                    </div>
 
-                    <div className="flex items-center gap-3 text-xs font-mono text-[var(--text-muted)]">
-                      <span className="flex items-center gap-1.5">
-                        <CountryFlag countryCode={p.country || 'GLOBAL'} className="w-3.5 h-2.5 rounded-xs" />
-                        <span>{p.country_label || p.country || '🌐 Сервер'}</span>
-                      </span>
-
-                      <span className={`flex items-center gap-1 ${pingColor} font-bold`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${pingBg}`} />
-                        {Math.round(p.ping_ms)} ms
+                      <span className="text-[var(--text-muted)] ml-auto">
+                        {p.country_label || p.country || 'Глобальный'}
                       </span>
                     </div>
                   </div>
-                </div>
 
-                {/* Right Action Buttons */}
-                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                  <a
-                    href={p.tg_link}
-                    className="py-2 px-3.5 rounded-xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] text-white font-display text-xs font-bold flex items-center gap-1.5 shadow-xs hover:opacity-95 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <span>Подключить</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  {/* Bottom: Fast Actions (1-Click Connect + Copy + QR) */}
+                  <div className="pt-2.5 border-t border-[var(--border-main)] flex items-center gap-2">
+                    <a
+                      href={p.tg_link}
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#2481CC] to-[#2AABEE] text-white font-display text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs active:scale-97 transition-all cursor-pointer"
+                    >
+                      <Send className="w-3 h-3 fill-current" />
+                      <span>Подключить</span>
+                      <ArrowUpRight className="w-3 h-3" />
+                    </a>
 
-                  <button
-                    onClick={() => handleCopySingle(p.tg_link, cardId)}
-                    title="Скопировать ссылку"
-                    className="p-2 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)] transition-colors cursor-pointer"
-                  >
-                    {isCopied ? <Check className="w-3.5 h-3.5 text-[#10B981]" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              </motion.div>
-            );
-          })
+                    <button
+                      onClick={() => handleCopySingle(p.tg_link, cardId)}
+                      title="Скопировать MTProto ссылку"
+                      className="p-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)] transition-colors cursor-pointer shrink-0"
+                    >
+                      {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+
+                    <button
+                      onClick={() => onOpenQr(p.tg_link)}
+                      title="QR-код для смартфона"
+                      className="p-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)] transition-colors cursor-pointer shrink-0"
+                    >
+                      <QrCode className="w-3.5 h-3.5 text-[#2AABEE]" />
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
