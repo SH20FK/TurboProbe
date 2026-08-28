@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-⚡ TurboProbe TGProxy - High-Yield Concurrent Harvester & Verifier
-Crawls all verified seed sources and auto-discovered repositories from `discovered_tg_sources.json`.
+⚡ TurboProbe TGProxy - Massive High-Yield Harvester & Verifier
+Crawls 40+ deep-paginated Telegram channels and 50+ curated GitHub pools concurrently.
 """
 
 import asyncio
@@ -25,41 +25,62 @@ if sys.platform == "win32":
 TG_DIR = os.path.dirname(os.path.abspath(__file__))
 DISCOVERED_TG_PATH = os.path.join(TG_DIR, "discovered_tg_sources.json")
 
-TG_SEED_SOURCES = [
-    # Telegram Channels
-    "https://t.me/s/ProxyMTProto",
-    "https://t.me/s/TelMTProto",
-    "https://t.me/s/MTProto",
-    "https://t.me/s/TgProxies",
-    "https://t.me/s/mtprotorus",
-    "https://t.me/s/MTProto_TG",
-    "https://t.me/s/proxy_socks5_tg",
-    "https://t.me/s/MTP_ro",
-    "https://t.me/s/free_tg_proxy",
-    "https://t.me/s/proxyme",
-    "https://t.me/s/FreeMTProxies",
-    "https://t.me/s/DailyProxy",
-    "https://t.me/s/ProxyCenter",
-    "https://t.me/s/MTProxy_Channel",
-    "https://t.me/s/Telegram_Proxies",
-    "https://t.me/s/TG_Proxy_Channel",
-    "https://t.me/s/MTProxies",
-    "https://t.me/s/TgProxyMTProto",
-    "https://t.me/s/Proxy_MTProto_Telegram",
-    "https://t.me/s/TelProxy",
-    "https://t.me/s/V2rayNG_VPNN",
-    "https://t.me/s/proxy_mtproto_free",
-    "https://t.me/s/mtproto_iran",
-    "https://t.me/s/mtproto_free",
-    "https://t.me/s/proxies_free",
-    "https://t.me/s/tg_proxy_mtproto",
-    "https://t.me/s/proxy_for_tg",
-    "https://t.me/s/mtp_free",
-    "https://t.me/s/tg_socks5",
-    "https://t.me/s/socks5_proxy",
-    # Curated RAW Repositories
+# 40+ Curated Public Telegram Channels for Deep Multi-Page Pagination
+TG_CHANNELS = [
+    "ProxyMTProto",
+    "TelMTProto",
+    "MTProto",
+    "TgProxies",
+    "mtprotorus",
+    "MTProto_TG",
+    "proxy_socks5_tg",
+    "MTP_ro",
+    "free_tg_proxy",
+    "proxyme",
+    "FreeMTProxies",
+    "DailyProxy",
+    "ProxyCenter",
+    "MTProxy_Channel",
+    "Telegram_Proxies",
+    "TG_Proxy_Channel",
+    "MTProxies",
+    "TgProxyMTProto",
+    "Proxy_MTProto_Telegram",
+    "TelProxy",
+    "V2rayNG_VPNN",
+    "proxy_mtproto_free",
+    "mtproto_iran",
+    "mtproto_free",
+    "proxies_free",
+    "tg_proxy_mtproto",
+    "proxy_for_tg",
+    "mtp_free",
+    "tg_socks5",
+    "socks5_proxy",
+    "MTG_Proxies",
+    "Free_TG_MTProto",
+    "MTProto_Pool",
+    "TgProxyHub",
+    "Shadowsocks_Proxy",
+    "VPNCenter",
+    "TGProxiesFree",
+    "FastMTProto",
+    "BestTGProxies",
+    "MTProtoRu",
+    "TgSocksProxy",
+]
+
+# 50+ Curated High-Yield GitHub MTProto & SOCKS5 Pools
+RAW_LISTS = [
+    # Dedicated MTProto & TG Proxy Lists
     "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/proxy.txt",
     "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/all_proxies.txt",
+    "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/tg_proxy",
+    "https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/mtproto.txt",
+    "https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/socks5.txt",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-proxies-collector/main/mtproto",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-proxies-collector/main/socks5",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-proxies-collector/main/proxies",
     "https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt",
     "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt",
     "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
@@ -68,6 +89,39 @@ TG_SEED_SOURCES = [
     "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt",
     "https://raw.githubusercontent.com/prxchk/proxy-list/main/socks5.txt",
     "https://raw.githubusercontent.com/Zaeem20/FREE_PROXIES_LIST/master/socks5.txt",
+    "https://raw.githubusercontent.com/Anonym0usWork1221/Free-Proxies/main/proxy_files/socks5_proxies.txt",
+    "https://raw.githubusercontent.com/ErcinDedeoglu/proxies/main/proxies/socks5.txt",
+    "https://raw.githubusercontent.com/MuRongPIG/Proxy-Master/main/socks5.txt",
+    "https://raw.githubusercontent.com/OfficialPutuid/KangProxy/KangProxy/socks5.txt",
+    "https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/generated/socks5_proxies.txt",
+    "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
+    "https://raw.githubusercontent.com/shiftytr/proxy-list/master/socks5.txt",
+    "https://raw.githubusercontent.com/B4RC0D3-YT/custom_proxy_list/main/socks5.txt",
+    "https://raw.githubusercontent.com/tuanminpay/live-proxy/master/socks5.txt",
+    "https://raw.githubusercontent.com/zevtyardt/proxy-list/main/socks5.txt",
+    "https://raw.githubusercontent.com/r00tee/Proxy-List/main/Socks5.txt",
+    "https://raw.githubusercontent.com/Tsprnay/Proxy-lists/master/proxies/socks5.txt",
+    "https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/socks5.txt",
+    "https://raw.githubusercontent.com/andigwandi/free-proxy/main/proxy_list.txt",
+    "https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/socks5.txt",
+    "https://raw.githubusercontent.com/elliottophellia/yakumo/master/results/socks5/global/socks5_checked.txt",
+    "https://raw.githubusercontent.com/hendrikbgr/Free-Proxy-Repo/master/proxy_list.txt",
+    "https://raw.githubusercontent.com/almroot/proxylist/master/list.txt",
+    "https://raw.githubusercontent.com/asdaqq/proxy-list/main/socks5.txt",
+    "https://raw.githubusercontent.com/hanwaytech/free-proxy-list/main/socks5.txt",
+    "https://raw.githubusercontent.com/HyperBeats/proxy-list/main/socks5.txt",
+    "https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-socks5.txt",
+    "https://raw.githubusercontent.com/mmpx12/proxy-list/master/socks5.txt",
+    "https://raw.githubusercontent.com/ObcbO/getproxy/master/socks5.txt",
+    "https://raw.githubusercontent.com/proxy4parsing/proxy-list/main/socks5.txt",
+    "https://raw.githubusercontent.com/saisuiu/Lion-proxy/main/socks5.txt",
+    "https://raw.githubusercontent.com/UptimerBot/proxy-list/main/proxies/socks5.txt",
+    "https://raw.githubusercontent.com/casals-ar/proxy-list/main/socks5",
+    "https://raw.githubusercontent.com/proxy-list-org/proxy-list/main/socks5.txt",
+    "https://raw.githubusercontent.com/im-Justin/free-proxy-list/main/socks5.txt",
+    "https://raw.githubusercontent.com/zloi-user/hideip.me/master/socks5.txt",
+    "https://raw.githubusercontent.com/mahdibland/ShadowsocksAggregator/master/sub/sub_merge.txt",
+    "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
 ]
 
 TG_DC2_IP = "149.154.167.50"
@@ -232,6 +286,34 @@ def test_proxy_sync(p: TGProxy, timeout: float = 2.0) -> Tuple[bool, float]:
         return False, 999.0
 
 
+async def scrape_channel_deep(ch: str, session: aiohttp.ClientSession) -> str:
+    """Scrapes up to 3 pages backwards for a Telegram channel."""
+    collected = []
+    base_url = f"https://t.me/s/{ch}"
+    try:
+        async with session.get(base_url, timeout=4.0) as resp:
+            if resp.status == 200:
+                html = await resp.text()
+                collected.append(html)
+                # Find pagination ID
+                before_ids = re.findall(r'/s/' + ch + r'\?before=(\d+)', html)
+                if before_ids:
+                    p2_url = f"https://t.me/s/{ch}?before={before_ids[0]}"
+                    async with session.get(p2_url, timeout=4.0) as r2:
+                        if r2.status == 200:
+                            h2 = await r2.text()
+                            collected.append(h2)
+                            b2_ids = re.findall(r'/s/' + ch + r'\?before=(\d+)', h2)
+                            if b2_ids:
+                                p3_url = f"https://t.me/s/{ch}?before={b2_ids[0]}"
+                                async with session.get(p3_url, timeout=4.0) as r3:
+                                    if r3.status == 200:
+                                        collected.append(await r3.text())
+    except Exception:
+        pass
+    return "\n".join(collected)
+
+
 async def fetch_source_async(url: str, session: aiohttp.ClientSession) -> str:
     try:
         async with session.get(url, timeout=4.5) as resp:
@@ -243,18 +325,18 @@ async def fetch_source_async(url: str, session: aiohttp.ClientSession) -> str:
 
 
 async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
-    all_sources = list(TG_SEED_SOURCES)
+    all_raw_sources = list(RAW_LISTS)
     if os.path.exists(DISCOVERED_TG_PATH):
         try:
             with open(DISCOVERED_TG_PATH, "r", encoding="utf-8") as f:
                 d = json.load(f)
                 discovered = d.get("sources", [])
-                all_sources = list(set(all_sources + discovered))
+                all_raw_sources = list(set(all_raw_sources + discovered))
                 print(f"📡 [Source Manager] Loaded {len(discovered)} auto-discovered sources from {DISCOVERED_TG_PATH}", flush=True)
         except Exception:
             pass
 
-    print(f"🚀 [TGProxy Harvester] Crawling {len(all_sources)} verified endpoints concurrently...", flush=True)
+    print(f"🚀 [TGProxy Harvester] Crawling {len(TG_CHANNELS)} deep channels and {len(all_raw_sources)} RAW pools concurrently...", flush=True)
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -266,8 +348,10 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
     seen = set()
 
     async with aiohttp.ClientSession(connector=connector, headers=headers) as session:
-        tasks = [fetch_source_async(u, session) for u in all_sources]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        ch_tasks = [scrape_channel_deep(ch, session) for ch in TG_CHANNELS]
+        raw_tasks = [fetch_source_async(u, session) for u in all_raw_sources]
+        all_tasks = ch_tasks + raw_tasks
+        results = await asyncio.gather(*all_tasks, return_exceptions=True)
 
         for text in results:
             if isinstance(text, str) and text:
@@ -319,11 +403,11 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
     socks_cands = [p for p in raw_proxies if p.proto == "socks5"]
     print(f"📊 Harvested {len(raw_proxies)} unique candidates (MTProto: {len(mtproto_cands)}, SOCKS5: {len(socks_cands)}).", flush=True)
 
-    eval_pool = mtproto_cands + (socks_cands[:test_limit] if test_limit > 0 else socks_cands[:1500])
+    eval_pool = mtproto_cands + (socks_cands[:test_limit] if test_limit > 0 else socks_cands[:2500])
 
-    print(f"🔬 [Telegram DC & Fake-TLS Gate] Parallel benchmarking {len(eval_pool)} candidates (50 threads)...", flush=True)
+    print(f"🔬 [Telegram DC & Fake-TLS Gate] Parallel benchmarking {len(eval_pool)} candidates (100 threads)...", flush=True)
     loop = asyncio.get_running_loop()
-    with ThreadPoolExecutor(max_workers=50) as pool:
+    with ThreadPoolExecutor(max_workers=100) as pool:
         bench_tasks = [loop.run_in_executor(pool, test_proxy_sync, p) for p in eval_pool]
         bench_results = await asyncio.gather(*bench_tasks)
 
@@ -344,7 +428,7 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
 
 def main():
     test_mode = "--test" in sys.argv
-    limit = 300 if test_mode else 0
+    limit = 500 if test_mode else 0
 
     t0 = time.time()
     proxies = asyncio.run(run_tg_harvest(test_limit=limit))
