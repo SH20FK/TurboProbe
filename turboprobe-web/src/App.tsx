@@ -238,32 +238,121 @@ export default function App() {
     }
   }, []);
 
-  // Dynamic Counts Calculation
-  const countryCounts = useMemo(() => {
+  // Dynamic Faceted Protocol Counts (calculated against active Services & Countries)
+  const protoCounts = useMemo(() => {
+    const hasServices = selectedServices.length > 0;
+    const hasCountries = selectedCountries.length > 0;
+    const hasMinHealth = minHealth > 0;
+    const normCountries = hasCountries ? selectedCountries.map((c) => c.toLowerCase().trim()) : [];
+
     const map: Record<string, number> = {};
+
     for (let i = 0; i < allNodes.length; i++) {
-      const n = allNodes[i];
-      const c = n._index?.normalizedCountry || (n.country || '').toLowerCase().trim();
+      const node = allNodes[i];
+      const idx = node._index;
+
+      // Min Health Check
+      if (hasMinHealth) {
+        const health = idx ? idx.health : (typeof node.health === 'number' ? node.health : 100);
+        if (health < minHealth) continue;
+      }
+
+      // Services Check
+      if (hasServices) {
+        if (idx) {
+          const matchService = selectedServices.some((s) => idx.serviceSet.has(s.toLowerCase()));
+          if (!matchService) continue;
+        } else if (node.services) {
+          const matchService = selectedServices.some((s) => Boolean(node.services![s]));
+          if (!matchService) continue;
+        } else {
+          continue;
+        }
+      }
+
+      // Countries Check
+      if (hasCountries) {
+        if (idx) {
+          const matchCountry = normCountries.some(
+            (c) => idx.normalizedCountry === c || idx.countryTokens.includes(c)
+          );
+          if (!matchCountry) continue;
+        } else {
+          const c = (node.country || '').toLowerCase().trim();
+          if (!normCountries.includes(c)) continue;
+        }
+      }
+
+      // Count Protocol
+      if (idx) {
+        if (idx.isReality) map['reality'] = (map['reality'] || 0) + 1;
+        else if (idx.isHy2) map['hy2'] = (map['hy2'] || 0) + 1;
+        else if (idx.isTrojan) map['trojan'] = (map['trojan'] || 0) + 1;
+        else if (idx.isSs) map['ss'] = (map['ss'] || 0) + 1;
+        else if (idx.isVless) map['vless'] = (map['vless'] || 0) + 1;
+      }
+    }
+    return map;
+  }, [allNodes, selectedServices, selectedCountries, minHealth]);
+
+  // Dynamic Faceted Country Counts (calculated against active Services & Protocols)
+  const countryCounts = useMemo(() => {
+    const hasServices = selectedServices.length > 0;
+    const hasProtos = selectedProtos.length > 0;
+    const hasMinHealth = minHealth > 0;
+    const normProtos = hasProtos ? selectedProtos.map((p) => p.toLowerCase().trim()) : [];
+
+    const map: Record<string, number> = {};
+
+    for (let i = 0; i < allNodes.length; i++) {
+      const node = allNodes[i];
+      const idx = node._index;
+
+      // Min Health Check
+      if (hasMinHealth) {
+        const health = idx ? idx.health : (typeof node.health === 'number' ? node.health : 100);
+        if (health < minHealth) continue;
+      }
+
+      // Services Check
+      if (hasServices) {
+        if (idx) {
+          const matchService = selectedServices.some((s) => idx.serviceSet.has(s.toLowerCase()));
+          if (!matchService) continue;
+        } else if (node.services) {
+          const matchService = selectedServices.some((s) => Boolean(node.services![s]));
+          if (!matchService) continue;
+        } else {
+          continue;
+        }
+      }
+
+      // Protocols Check
+      if (hasProtos) {
+        if (idx) {
+          const matchProto = normProtos.some((p) => {
+            if (p === 'reality') return idx.isReality;
+            if (p === 'hy2') return idx.isHy2;
+            if (p === 'trojan') return idx.isTrojan;
+            if (p === 'ss') return idx.isSs;
+            if (p === 'vless') return idx.isVless;
+            return idx.normalizedProto.includes(p);
+          });
+          if (!matchProto) continue;
+        } else {
+          const p = (node.protocol || '').toLowerCase();
+          const matchProto = normProtos.some((proto) => p.includes(proto));
+          if (!matchProto) continue;
+        }
+      }
+
+      const c = idx?.normalizedCountry || (node.country || '').toLowerCase().trim();
       if (c && c !== 'global' && c !== 'all') {
         map[c] = (map[c] || 0) + 1;
       }
     }
     return map;
-  }, [allNodes]);
-
-  const protoCounts = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (let i = 0; i < allNodes.length; i++) {
-      const idx = allNodes[i]._index;
-      if (!idx) continue;
-      if (idx.isReality) map['reality'] = (map['reality'] || 0) + 1;
-      else if (idx.isHy2) map['hy2'] = (map['hy2'] || 0) + 1;
-      else if (idx.isTrojan) map['trojan'] = (map['trojan'] || 0) + 1;
-      else if (idx.isSs) map['ss'] = (map['ss'] || 0) + 1;
-      else if (idx.isVless) map['vless'] = (map['vless'] || 0) + 1;
-    }
-    return map;
-  }, [allNodes]);
+  }, [allNodes, selectedServices, selectedProtos, minHealth]);
 
   // Filter Handlers
   const handleToggleService = useCallback((serviceId: string) => {

@@ -186,7 +186,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   // Dynamically compute and sort countries based on pool availability
   const availableCountries = useMemo(() => {
     const list = Object.keys(countryCounts)
-      .filter((code) => countryCounts[code] > 0)
+      .filter((code) => (countryCounts[code] || 0) > 0 || selectedCountries.includes(code))
       .map((code) => ({
         code,
         label: KNOWN_COUNTRIES[code] || code.toUpperCase(),
@@ -197,19 +197,19 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       if (b.count !== a.count) return b.count - a.count;
       return a.label.localeCompare(b.label, 'ru');
     });
-  }, [countryCounts]);
+  }, [countryCounts, selectedCountries]);
 
   // Dynamically compute available protocols based on pool availability
   const availableProtos = useMemo(() => {
     return Object.keys(protoCounts)
-      .filter((id) => protoCounts[id] > 0)
+      .filter((id) => (protoCounts[id] || 0) > 0 || selectedProtos.includes(id))
       .map((id) => ({
         id,
         label: KNOWN_PROTOCOLS[id] || id.toUpperCase(),
         count: protoCounts[id] || 0,
       }))
       .sort((a, b) => b.count - a.count);
-  }, [protoCounts]);
+  }, [protoCounts, selectedProtos]);
 
   const displayedCountries = useMemo(() => {
     if (isExpandedCountries) return availableCountries;
