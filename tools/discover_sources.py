@@ -18,11 +18,19 @@ import sys
 import re
 import json
 import time
+import hashlib
+import random
+import asyncio
 import urllib.request
 import urllib.parse
 import urllib.error
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
 try:
     sys.stdout.reconfigure(encoding='utf-8')
@@ -46,6 +54,8 @@ GITHUB_CODE_QUERIES = [
     "vless:// security=reality extension:txt",
     "hysteria2:// extension:txt",
     "trojan:// extension:txt",
+    "tuic:// extension:txt",
+    "anytls:// extension:txt",
     "vless:// pbk= extension:txt",
     "vless:// fp=chrome extension:txt",
     "filename:reality.txt vless://",
@@ -53,12 +63,19 @@ GITHUB_CODE_QUERIES = [
     "filename:vless.txt vless://",
     "filename:nodes.txt vless://",
     "filename:sub.txt vless://",
+    "filename:hysteria2.txt",
+    "filename:tuic.txt",
     "path:sub extension:txt vless://",
+    "path:category extension:txt",
+    "path:protocols extension:txt",
     "clash.meta proxies: extension:yaml",
     "clash-meta proxies: extension:yaml",
     "vless:// gosuslugi extension:txt",
     "vless:// sber extension:txt",
     "vless:// vk.com extension:txt",
+    "WHITE-CIDR-RU extension:txt",
+    "WHITE-SNI-RU extension:txt",
+    "vless-reality-white-lists",
 ]
 
 # =============================================================================
@@ -72,6 +89,7 @@ DYNAMIC_REPO_QUERIES = [
     "clash-meta sort:updated-desc",
     "clash-meta-config sort:updated-desc",
     "hysteria2 sort:updated-desc",
+    "tuic-v5 sort:updated-desc",
     "sing-box-nodes sort:updated-desc",
     "vpn-subscription sort:updated-desc",
     "free-nodes sort:updated-desc",
@@ -83,17 +101,22 @@ DYNAMIC_REPO_QUERIES = [
     "v2ray-nodes sort:updated-desc",
     "v2ray-config sort:updated-desc",
     "russia-vless sort:updated-desc",
+    "vpn-configs-for-russia sort:updated-desc",
+    "goida-vpn sort:updated-desc",
     "antizapret sort:updated-desc",
     "anti-censor sort:updated-desc",
     "topic:vless",
     "topic:v2ray",
     "topic:hysteria2",
+    "topic:tuic",
     "topic:clash-meta",
     "topic:sing-box",
     "topic:xray",
     "topic:shadowrocket",
     "topic:v2ray-config",
     "topic:free-vpn",
+    "topic:proxy-collector",
+    "topic:free-proxy",
 ]
 
 # Seed baseline of high-yield active proxy repositories (Hourly Auto-Updaters)
@@ -133,6 +156,19 @@ SEED_REPOSITORIES = [
     ("mahdibland/V2RayAggregator", "master"),
     ("aiboboxx/v2rayfree", "main"),
     ("tolinkshare2/tolinkshare2", "main"),
+    ("Argh94/V2RayAutoConfig", "main"),
+    ("Argh94/Proxy-List", "main"),
+    ("nikita29a/FreeProxyList", "main"),
+    ("AvenCores/goida-vpn-configs", "main"),
+    ("kort0881/vpn-vless-configs-russia", "main"),
+    ("igareck/vpn-configs-for-russia", "main"),
+    ("MhdiTaheri/V2rayCollector_Py", "main"),
+    ("Kwinshadow/TelegramV2rayCollector", "main"),
+    ("MatinGhanbari/v2ray-configs", "main"),
+    ("mohamadfg-dev/telegram-v2ray-configs-collector", "main"),
+    ("6b3478/telegram-configs-collector2", "main"),
+    ("iPsycho1/Multi_Configs", "main"),
+    ("rtwo2/FastNodes", "main"),
 ]
 
 # =============================================================================
@@ -153,6 +189,7 @@ TELEGRAM_CHANNELS = [
     "dailyv2ray",
     "vpn_ocean",
     "v2ray_free_conf",
+    "v2ray_free_config",
     "v2ray_outlineir",
     "Server_V2ray",
     "V2ray_Alpha",
@@ -163,6 +200,7 @@ TELEGRAM_CHANNELS = [
     "DirectVPN",
     "v2ray_vpn_ir",
     "free_v2ray_configs",
+    "free_v2ray_channel",
     "VlessConfig",
     "Proxy_Kafe",
     "OutlineVpnOfficial",
@@ -173,6 +211,7 @@ TELEGRAM_CHANNELS = [
     "free_vpn_sub",
     "shadowrocket_configs",
     "vless_nodes",
+    "vless_configs",
     "v2ray_daily",
     "fast_v2ray",
     "v2ray_vip",
@@ -180,6 +219,12 @@ TELEGRAM_CHANNELS = [
     "v2ray_sub_official",
     "v2ray_vpn_free",
     "v2ray_auto_config",
+    "v2tel",
+    "proxynode",
+    "v2ray_freedom",
+    "FreeV2rays",
+    "GozargahAzad",
+    "vpn_reality",
 ]
 
 MIN_NODES_TO_KEEP = 5
@@ -237,8 +282,118 @@ def github_repository_from_source(url: str) -> str:
     return ""
 
 
+SUB_URL_REGEX = re.compile(
+    r'https?://[^\s\'"<>)]+?(?:'
+    r'sub(?:scribe|scription)?s?|'
+    r'api/v1/client/subscribe|'
+    r'clash(?:-meta)?|'
+    r'sing-box|'
+    r'\.txt|\.yaml|\.yml|\.json|'
+    r'raw\.githubusercontent\.com|'
+    r'gitverse\.ru/api/repos/[^/]+/[^/]+/raw|'
+    r'workers\.dev|pages\.dev|vercel\.app|koyeb\.app|deno\.dev|netlify\.app|onrender\.com|railway\.app'
+    r')[^\s\'"<>)]*',
+    re.IGNORECASE
+)
+
+def extract_subscription_urls_from_text(text: str) -> set:
+    """Extracts all candidate subscription URLs from markdown/HTML/text with cleanup."""
+    if not text:
+        return set()
+    found = set()
+    for match in SUB_URL_REGEX.findall(text):
+        u = match.rstrip('.,;()[]`"\'')
+        if "t.me" in u:
+            continue
+        if "github.com" in u and "/blob/" in u:
+            u = u.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+        found.add(u)
+    return found
+
+
+def compute_sha256(data: str) -> str:
+    """Computes SHA-256 hex digest of string content."""
+    return hashlib.sha256(data.encode("utf-8", errors="ignore")).hexdigest()
+
+def calculate_source_schedule(record: dict, yield_count: int, now_ts: float) -> dict:
+    """Calculates adaptive tier, failure count, exponential backoff and Thompson sampling priors."""
+    rec = dict(record or {})
+    prev_failures = rec.get("failures", 0)
+    prev_alpha = rec.get("mab_alpha", 1)
+    prev_beta = rec.get("mab_beta", 1)
+    
+    if yield_count >= 50:
+        tier = 1
+        interval = 2 * 3600  # 2 hours
+        failures = 0
+        new_alpha = prev_alpha + min(yield_count, 100)
+        new_beta = max(1, prev_beta)
+    elif yield_count >= 5:
+        tier = 2
+        interval = 6 * 3600  # 6 hours
+        failures = 0
+        new_alpha = prev_alpha + yield_count
+        new_beta = max(1, prev_beta)
+    elif yield_count > 0:
+        tier = 3
+        interval = 24 * 3600  # 24 hours
+        failures = 0
+        new_alpha = prev_alpha + yield_count
+        new_beta = max(1, prev_beta)
+    else:
+        # Failure case (0 nodes or fetch error)
+        failures = prev_failures + 1
+        tier = 3
+        backoff_multiplier = min(32, 2 ** min(failures - 1, 5))
+        interval = min(7 * 86400, 6 * 3600 * backoff_multiplier)
+        new_alpha = max(1, prev_alpha)
+        new_beta = prev_beta + 10
+
+    rec.update({
+        "tier": tier,
+        "failures": failures,
+        "next_check_due": now_ts + interval,
+        "mab_alpha": new_alpha,
+        "mab_beta": new_beta,
+    })
+    return rec
+
+def thompson_sampling_score(alpha: int, beta: int) -> float:
+    """Draws a success probability sample using Beta distribution."""
+    try:
+        return random.betavariate(max(1, alpha), max(1, beta))
+    except Exception:
+        return 0.5
+
+async def fetch_url_conditional_async(client: httpx.AsyncClient, url: str, etag: str = "", last_modified: str = "", timeout: float = 8.0) -> tuple:
+    """Performs an async HTTP request with conditional ETag & If-Modified-Since headers.
+    Returns: (status_code, content, new_etag, new_last_modified, content_sha256)
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain,*/*;q=0.8",
+    }
+    if etag:
+        headers["If-None-Match"] = etag
+    if last_modified:
+        headers["If-Modified-Since"] = last_modified
+        
+    try:
+        resp = await client.get(url, headers=headers, timeout=timeout, follow_redirects=True)
+        if resp.status_code == 304:
+            return (304, "", etag, last_modified, "")
+        if resp.status_code == 200:
+            text = resp.text
+            new_etag = resp.headers.get("etag", "").strip()
+            new_last_mod = resp.headers.get("last-modified", "").strip()
+            sha256 = compute_sha256(text)
+            return (200, text, new_etag, new_last_mod, sha256)
+        return (resp.status_code, "", "", "", "")
+    except Exception:
+        return (0, "", "", "", "")
+
 def fetch_url(url: str, timeout: int = 8, headers: dict = None) -> str:
-    """Fetches text content from URL with custom headers."""
+    """Fetches text content from URL with custom headers (synchronous fallback)."""
     default_headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain,*/*;q=0.8",
@@ -296,46 +451,74 @@ def discover_from_github_code() -> set:
 # 2. 📦 DYNAMIC GITHUB REPOSITORY CRAWLER (Global Multi-Search + Tree Discovery)
 # =============================================================================
 def crawl_single_repository(full_name: str, branch: str = "main") -> set:
-    """Discovers all possible subscription files & README links in a repository."""
+    """Discovers all possible subscription files via recursive Git Trees API and README links."""
     candidates = set()
+    tree_discovered = False
 
-    # 1. Standard paths
-    common_sub_paths = [
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/all.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/vless.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/reality.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/shadowsocks.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/trojan.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/hysteria2.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/hy2.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/all.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/vless.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/reality.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/subs.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/sub.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/list.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/nodes.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/clash.meta.yaml",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/meta.yaml",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/config.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/All_Configs_Sub.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/All_Configs_base64_Sub.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/vless.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/trojan.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/ss.txt",
-        f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/hysteria2.txt",
-    ]
-    candidates.update(common_sub_paths)
+    # 1. High-accuracy recursive Git Trees API (1 API call discovers 100% of repo files)
+    if GITHUB_TOKEN:
+        try:
+            tree_data = gh_api_get(f"{GITHUB_API}/repos/{full_name}/git/trees/{branch}?recursive=1")
+            tree = tree_data.get("tree", []) if isinstance(tree_data, dict) else []
+            for item in tree:
+                if item.get("type") == "blob":
+                    fpath = item.get("path", "")
+                    fpath_low = fpath.lower()
+                    if fpath_low.endswith((".txt", ".yaml", ".yml", ".json")) or any(
+                        keyword in fpath_low for keyword in ("sub", "config", "node", "vless", "proxy", "reality", "hysteria", "tuic", "mirror", "split", "protocol", "output")
+                    ):
+                        if not any(fpath_low.endswith(x) for x in ("package.json", "package-lock.json", "tsconfig.json", ".eslintrc.json", "requirements.txt")):
+                            candidates.add(f"https://raw.githubusercontent.com/{full_name}/{branch}/{fpath}")
+                            tree_discovered = True
+        except Exception:
+            pass
 
-    # 2. Scrape README for external subscription URLs
+    # 2. Fallback common paths if tree API was not used or failed
+    if not tree_discovered:
+        common_sub_paths = [
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/all.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/vless.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/reality.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/shadowsocks.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/trojan.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/hysteria2.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/hy2.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/sub/tuic.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/all.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/all",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/vless.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/reality.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/subs.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/sub.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/list.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/nodes.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/clash.meta.yaml",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/meta.yaml",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/config.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/configs.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/All_Configs_Sub.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/All_Configs_base64_Sub.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/vless.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/trojan.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/ss.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/Splitted-By-Protocol/hysteria2.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/category/vless.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/category/hysteria2.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/category/xhttp.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/category/httpupgrade.txt",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/protocols/hysteria2",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/protocols/tuic",
+            f"https://raw.githubusercontent.com/{full_name}/{branch}/protocols/vl.txt",
+            *[f"https://raw.githubusercontent.com/{full_name}/{branch}/mirror/{i}.txt" for i in range(1, 27)],
+            *[f"https://raw.githubusercontent.com/{full_name}/{branch}/githubmirror/{i}.txt" for i in range(1, 27)],
+        ]
+        candidates.update(common_sub_paths)
+
+    # 3. Scrape README for external subscription URLs
     readme_url = f"https://raw.githubusercontent.com/{full_name}/{branch}/README.md"
     readme_text = fetch_url(readme_url, timeout=5)
     if readme_text:
-        sub_links = re.findall(r'https?://[^\s\'"<>)]+(?:sub|\.txt|\.yaml|raw|workers\.dev|pages\.dev)[^\s\'"<>)]*', readme_text)
-        for link in sub_links:
-            if "github.com" in link and "/blob/" in link:
-                link = link.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
-            candidates.add(link)
+        candidates.update(extract_subscription_urls_from_text(readme_text))
 
     return candidates
 
@@ -491,11 +674,7 @@ def scrape_telegram_channel_deep(channel: str, max_pages: int = 3) -> tuple:
         if keys:
             all_keys.extend(keys)
         
-        sub_urls = re.findall(r'https?://[^\s\'"<>]+(?:sub|\.txt|raw|workers\.dev|pages\.dev|vercel\.app)[^\s\'"<>]*', html)
-        for u in sub_urls:
-            u = u.rstrip('.,;()[]')
-            if not u.startswith("https://t.me"):
-                all_subs.add(u)
+        all_subs.update(extract_subscription_urls_from_text(html))
                 
         msg_ids = re.findall(r'data-post="' + re.escape(channel) + r'/(\d+)"', html)
         if msg_ids:
@@ -531,8 +710,35 @@ def discover_from_telegram() -> tuple:
     return (all_direct_keys, found_sub_urls)
 
 # =============================================================================
-# 4. 🦊 ALTERNATIVE PLATFORMS & GISTS (Features 4 & 5)
+# 4. 🇷🇺 / 🦊 ALTERNATIVE PLATFORMS & GISTS (GitVerse, GitLab, Codeberg, Gists)
 # =============================================================================
+def discover_from_gitverse() -> set:
+    """Discovers proxy repositories from Russian GitVerse public API (gitverse.ru)."""
+    candidates = set()
+    queries = ["vpn", "vless", "xray", "reality", "hysteria", "clash", "singbox", "antizapret"]
+    for q in queries:
+        url = f"https://gitverse.ru/api/repos/search?q={urllib.parse.quote(q)}&limit=40"
+        try:
+            raw = fetch_url(url, timeout=7)
+            if raw:
+                data = json.loads(raw)
+                for item in data.get("data", []):
+                    full_name = item.get("fullName") or (f"{item.get('owner', {}).get('username')}/{item.get('name')}")
+                    default_branch = item.get("defaultBranch", "master")
+                    if full_name:
+                        for branch in [default_branch, "master", "main"]:
+                            candidates.add(f"https://gitverse.ru/api/repos/{full_name}/raw/branch/{branch}/all.txt")
+                            candidates.add(f"https://gitverse.ru/api/repos/{full_name}/raw/branch/{branch}/all")
+                            candidates.add(f"https://gitverse.ru/api/repos/{full_name}/raw/branch/{branch}/vless.txt")
+                            candidates.add(f"https://gitverse.ru/api/repos/{full_name}/raw/branch/{branch}/configs.txt")
+                            candidates.add(f"https://gitverse.ru/api/repos/{full_name}/raw/branch/{branch}/sub.txt")
+                            candidates.add(f"https://gitverse.ru/api/repos/{full_name}/raw/branch/{branch}/sub/all.txt")
+                            candidates.add(f"https://gitverse.ru/api/repos/{full_name}/raw/branch/{branch}/KvRuVPN/KvRuVPN.txt")
+                            candidates.add(f"https://gitverse.ru/api/repos/{full_name}/raw/branch/{branch}/AetrisVPN.txt")
+        except Exception:
+            pass
+    print(f"  🇷🇺 GitVerse Discovery yielded {len(candidates)} candidate files", flush=True)
+    return candidates
 def discover_from_gitlab() -> set:
     """Discovers proxy repositories from GitLab public API."""
     candidates = set()
@@ -693,7 +899,8 @@ def main():
     # Step B: GitHub Code Search (if token provided or in CI)
     candidate_urls.update(discover_from_github_code())
 
-    # Step C: GitLab & Codeberg Discovery (Feature 4)
+    # Step C: GitVerse, GitLab & Codeberg Discovery (Feature 4)
+    candidate_urls.update(discover_from_gitverse())
     candidate_urls.update(discover_from_gitlab())
     candidate_urls.update(discover_from_codeberg())
 
@@ -744,61 +951,135 @@ def main():
         if identity not in known_source_ids:
             candidates_to_validate[identity] = candidate_url
             candidate_reasons[identity] = "new"
-        elif prior and repository_changed_recently(pushed_at, prior[1].get("repo_pushed_at", ""), now_ts):
-            # Preserve the established branch URL rather than replacing it with a commit snapshot.
-            candidates_to_validate[identity] = prior[0]
-            candidate_reasons[identity] = "repo-updated"
+        elif prior:
+            prior_rec = prior[1]
+            next_due = prior_rec.get("next_check_due", 0)
+            repo_changed = repository_changed_recently(pushed_at, prior_rec.get("repo_pushed_at", ""), now_ts)
+            # Check if source is due for recheck based on its adaptive health tier or repo changed
+            if repo_changed or now_ts >= next_due:
+                candidates_to_validate[identity] = prior[0]
+                candidate_reasons[identity] = "repo-updated" if repo_changed else "adaptive-due"
 
-    print(f"\n🧪 Validating {len(candidates_to_validate)} new or recently changed source identities concurrently...", flush=True)
+    # Multi-Armed Bandit / Thompson Sampling priority sorting
+    sorted_candidate_items = sorted(
+        candidates_to_validate.items(),
+        key=lambda item: thompson_sampling_score(
+            (existing_by_identity.get(item[0], [None, {}])[1]).get("mab_alpha", 1),
+            (existing_by_identity.get(item[0], [None, {}])[1]).get("mab_beta", 1)
+        ),
+        reverse=True
+    )
+    candidates_to_validate = dict(sorted_candidate_items)
+
+    print(f"\n🧪 Validating {len(candidates_to_validate)} source identities (Adaptive Due & Delta Priority)...", flush=True)
+
+    async def _async_validation_pipeline():
+        limits = httpx.Limits(max_connections=120, max_keepalive_connections=30) if httpx else None
+        sem = asyncio.Semaphore(64)
+        results = []
+
+        if httpx:
+            async with httpx.AsyncClient(http2=True, timeout=8.0, limits=limits, verify=False) as client:
+                async def _task(identity, url):
+                    prior = existing_by_identity.get(identity)
+                    prior_rec = prior[1] if prior else {}
+                    async with sem:
+                        etag = prior_rec.get("etag", "")
+                        last_mod = prior_rec.get("last_modified", "")
+                        cached_sha = prior_rec.get("content_sha256", "")
+                        cached_count = prior_rec.get("nodes_at_discovery", 0)
+                        
+                        code, content, new_etag, new_last_mod, new_sha = await fetch_url_conditional_async(
+                            client, url, etag=etag, last_modified=last_mod, timeout=7.0
+                        )
+                        if code == 304:
+                            return (identity, url, cached_count, {"etag": etag, "last_modified": last_mod, "content_sha256": cached_sha, "reused": True})
+                        if code == 200:
+                            if new_sha and cached_sha and new_sha == cached_sha and cached_count > 0:
+                                return (identity, url, cached_count, {"etag": new_etag or etag, "last_modified": new_last_mod or last_mod, "content_sha256": new_sha, "reused": True})
+                            uris = extract_uris_from_content(content)
+                            count = len(uris)
+                            return (identity, url, count if count >= MIN_NODES_TO_KEEP else 0, {"etag": new_etag, "last_modified": new_last_mod, "content_sha256": new_sha, "reused": False})
+                        return (identity, url, 0, {"etag": "", "last_modified": "", "content_sha256": "", "reused": False})
+
+                tasks = [_task(ident, url) for ident, url in candidates_to_validate.items()]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+        else:
+            # Synchronous fallback with ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=min(64, len(candidates_to_validate) or 1)) as pool:
+                def _sync_worker(ident, url):
+                    count = validate_source(url)
+                    return (ident, url, count, {"etag": "", "last_modified": "", "content_sha256": "", "reused": False})
+                futs = [pool.submit(_sync_worker, ident, url) for ident, url in candidates_to_validate.items()]
+                for f in futs:
+                    try:
+                        results.append(f.result())
+                    except Exception as e:
+                        results.append(e)
+        return results
+
+    validation_results = asyncio.run(_async_validation_pipeline())
 
     new_confirmed = 0
     refreshed_confirmed = 0
+    reused_count = 0
     validated_stats = {}
-    with ThreadPoolExecutor(max_workers=min(64, len(candidates_to_validate) or 1)) as pool:
-        future_map = {
-            pool.submit(validate_source, url): identity
-            for identity, url in candidates_to_validate.items()
-        }
-        for fut in as_completed(future_map):
-            identity = future_map[fut]
-            url = candidates_to_validate[identity]
-            prior = existing_by_identity.get(identity)
-            reason = candidate_reasons[identity]
-            repository = github_repository_from_source(url)
-            repo_info = scanned_repos_cache.get(repository.lower(), {}) if repository else {}
-            try:
-                count = fut.result()
-                validated_stats[url] = count
-                if count >= MIN_NODES_TO_KEEP:
-                    record = dict(prior[1]) if prior else {}
-                    record.update({
-                        "discovered_at": record.get("discovered_at") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                        "nodes_at_discovery": count,
-                        "last_checked": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                        "status": "active",
-                        "source_id": identity,
-                        "repository": repository,
-                        "repo_pushed_at": repo_info.get("pushed_at", "") if isinstance(repo_info, dict) else "",
-                    })
-                    existing[url] = record
-                    existing_by_identity[identity] = (url, record)
-                    if reason == "new":
-                        new_confirmed += 1
-                        label = "VALID NEW SOURCE"
-                    else:
-                        refreshed_confirmed += 1
-                        label = "REVALIDATED UPDATED SOURCE"
-                    print(f"  ✅ [{label}] ({count:4d} keys): {url}", flush=True)
-                else:
-                    active_dead_urls[url] = now_ts
-            except Exception:
-                active_dead_urls[url] = now_ts
+
+    for res in validation_results:
+        if isinstance(res, Exception) or not isinstance(res, tuple):
+            continue
+        identity, url, count, meta = res
+        prior = existing_by_identity.get(identity)
+        reason = candidate_reasons.get(identity, "unknown")
+        repository = github_repository_from_source(url)
+        repo_info = scanned_repos_cache.get(repository.lower(), {}) if repository else {}
+        is_reused = meta.get("reused", False)
+        
+        validated_stats[url] = count
+        if count >= MIN_NODES_TO_KEEP:
+            prior_record = dict(prior[1]) if prior else {}
+            # Update adaptive schedule and Thompson Sampling metrics
+            sched = calculate_source_schedule(prior_record, count, now_ts)
+            record = {
+                "discovered_at": prior_record.get("discovered_at") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "nodes_at_discovery": count,
+                "last_checked": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "status": "active",
+                "source_id": identity,
+                "repository": repository,
+                "repo_pushed_at": repo_info.get("pushed_at", "") if isinstance(repo_info, dict) else "",
+                "etag": meta.get("etag") or prior_record.get("etag", ""),
+                "last_modified": meta.get("last_modified") or prior_record.get("last_modified", ""),
+                "content_sha256": meta.get("content_sha256") or prior_record.get("content_sha256", ""),
+                "tier": sched["tier"],
+                "failures": sched["failures"],
+                "next_check_due": sched["next_check_due"],
+                "mab_alpha": sched["mab_alpha"],
+                "mab_beta": sched["mab_beta"],
+            }
+            existing[url] = record
+            existing_by_identity[identity] = (url, record)
+            if is_reused:
+                reused_count += 1
+            if reason == "new":
+                new_confirmed += 1
+                label = "VALID NEW SOURCE"
+            else:
+                refreshed_confirmed += 1
+                label = "REVALIDATED (304 / SHA-CACHED)" if is_reused else "REVALIDATED UPDATED"
+            print(f"  ✅ [{label}] (T{sched['tier']}, {count:4d} keys): {url}", flush=True)
+        else:
+            active_dead_urls[url] = now_ts
+            if prior:
+                sched = calculate_source_schedule(prior[1], 0, now_ts)
+                existing[url]["failures"] = sched["failures"]
+                existing[url]["next_check_due"] = sched["next_check_due"]
+                existing[url]["mab_beta"] = sched["mab_beta"]
 
     # Update Source Quality Index (Feature 12)
     update_source_quality_index(validated_stats)
 
     # Drop inactive records whose own last observation is older than the dead-URL TTL.
-    # Active records retain their existing schema and are never removed by this cleanup.
     pruned_inactive = 0
     retained_existing = {}
     for source_url, record in existing.items():

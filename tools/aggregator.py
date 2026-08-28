@@ -19,6 +19,7 @@ import time
 import socket
 import base64
 import json
+import html
 import asyncio
 import urllib.request
 import urllib.parse
@@ -258,7 +259,7 @@ RU_DIRECT_SOURCES = {
 }
 
 URI_REGEX = re.compile(
-    r'(?:vless|trojan|ss|hy2|hysteria2|tuic|vmess)://[^\s<>"\']+',
+    r'(?:vless|trojan|ss|hy2|hysteria2|tuic|vmess|anytls)://[^\s<>"\']+',
     re.IGNORECASE
 )
 
@@ -272,7 +273,7 @@ def is_basic_proxy_uri(uri: str) -> bool:
     try:
         parsed = urllib.parse.urlparse(str(uri).strip())
         scheme = parsed.scheme.lower()
-        if scheme not in {"vless", "trojan", "ss", "hy2", "hysteria2", "tuic", "vmess"}:
+        if scheme not in {"vless", "trojan", "ss", "hy2", "hysteria2", "tuic", "vmess", "anytls"}:
             return False
         if scheme == "ss" and "@" not in parsed.netloc:
             # SIP002 fully-base64 links are decoded later by the dedicated SS parser.
@@ -293,16 +294,21 @@ def fetch_url(url: str, timeout: int = 8) -> str:
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     }
-    try:
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=timeout, context=SSL_CTX) as resp:
-            content_bytes = resp.read()
-            try:
-                return content_bytes.decode("utf-8")
-            except UnicodeDecodeError:
-                return content_bytes.decode("latin-1", errors="ignore")
-    except Exception:
-        return ""
+    last_exc = None
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout, context=SSL_CTX) as resp:
+                content_bytes = resp.read()
+                try:
+                    return content_bytes.decode("utf-8")
+                except UnicodeDecodeError:
+                    return content_bytes.decode("latin-1", errors="ignore")
+        except Exception as e:
+            last_exc = e
+            if attempt < 2:
+                time.sleep(1.5 ** attempt)
+    return ""
 
 def extract_proxies_from_clash_yaml(content: str) -> list:
     """Extracts standard URIs from Clash/Clash Meta YAML configs (proxies: block)."""
@@ -323,23 +329,9 @@ def extract_proxies_from_clash_yaml(content: str) -> list:
                     server = p.get("server", "")
                     port = p.get("port", 443)
                     name = p.get("name", "Proxy")
-                    
-                    if p_type == "vless":
-                        uuid = p.get("uuid", "")
-                        tls = p.get("tls", False)
-                        sni = p.get("servername", server)
-                        net = p.get("network", "tcp")
-                        fp = p.get("client-fingerprint", "chrome")
-                        reality_opts = p.get("reality-opts", {})
-                        pbk = reality_opts.get("public-key", "") if isinstance(reality_opts, dict) else ""
-                        sid = reality_opts.get("short-id", "") if isinstance(reality_opts, dict) else ""
-                        flow = p.get("flow", "")
-                        sec = "reality" if pbk else ("tls" if tls else "none")
-                        
-                        query = f"security={sec}&sni={sni}&fp={fp}&type={net}"
-                        if flow: query += f"&flow={flow}"
-                        if pbk: query += f"&pbk={pbk}"
-                        if sid: query += f"&sid={sid}"
+
+                    def _transport_query(p, net, query):
+                        """Append transport-specific params (ws/grpc/xhttp/h2/httpupgrade) to query."""
                         if net == "ws":
                             ws_opts = p.get("ws-opts", {})
                             if isinstance(ws_opts, dict):
@@ -354,40 +346,111 @@ def extract_proxies_from_clash_yaml(content: str) -> list:
                                 s_name = grpc_opts.get("grpc-service-name", "")
                                 if s_name:
                                     query += f"&serviceName={urllib.parse.quote(s_name)}"
-                        
+                        elif net in ("xhttp", "splithttp", "httpupgrade", "http-upgrade"):
+                            # xhttp / httpupgrade share the same path+host params
+                            xhttp_opts = p.get("xhttp-opts", p.get("http-opts", p.get("ws-opts", {})))
+                            if isinstance(xhttp_opts, dict):
+                                path = xhttp_opts.get("path", "/")
+                                query += f"&path={urllib.parse.quote(path)}"
+                                xhttp_headers = xhttp_opts.get("headers", {})
+                                if isinstance(xhttp_headers, dict) and "Host" in xhttp_headers:
+                                    query += f"&host={urllib.parse.quote(xhttp_headers['Host'])}"
+                            # Normalise transport name for Xray compatibility
+                            query = query.replace(f"&type={net}", "&type=xhttp") if net != "xhttp" else query
+                        elif net == "h2":
+                            h2_opts = p.get("h2-opts", {})
+                            if isinstance(h2_opts, dict):
+                                hosts = h2_opts.get("host", [])
+                                path = h2_opts.get("path", "/")
+                                if isinstance(hosts, list) and hosts:
+                                    query += f"&host={urllib.parse.quote(hosts[0])}"
+                                query += f"&path={urllib.parse.quote(path)}"
+                        return query
+
+                    if p_type == "vless":
+                        uuid = p.get("uuid", "")
+                        tls = p.get("tls", False)
+                        sni = p.get("servername", server)
+                        net = p.get("network", "tcp")
+                        fp = p.get("client-fingerprint", "chrome")
+                        reality_opts = p.get("reality-opts", {})
+                        pbk = reality_opts.get("public-key", "") if isinstance(reality_opts, dict) else ""
+                        sid = reality_opts.get("short-id", "") if isinstance(reality_opts, dict) else ""
+                        flow = p.get("flow", "")
+                        sec = "reality" if pbk else ("tls" if tls else "none")
+
+                        query = f"security={sec}&sni={sni}&fp={fp}&type={net}"
+                        if flow: query += f"&flow={flow}"
+                        if pbk: query += f"&pbk={pbk}"
+                        if sid: query += f"&sid={sid}"
+                        query = _transport_query(p, net, query)
                         uris.append(f"vless://{uuid}@{server}:{port}?{query}#{urllib.parse.quote(name)}")
+
                     elif p_type == "trojan":
                         pwd = p.get("password", "")
                         sni = p.get("sni", server)
                         net = p.get("network", "tcp")
-                        query = f"sni={sni}&type={net}"
-                        if net == "ws":
-                            ws_opts = p.get("ws-opts", {})
-                            if isinstance(ws_opts, dict):
-                                path = ws_opts.get("path", "/")
-                                query += f"&path={urllib.parse.quote(path)}"
-                        elif net == "grpc":
-                            grpc_opts = p.get("grpc-opts", {})
-                            if isinstance(grpc_opts, dict):
-                                s_name = grpc_opts.get("grpc-service-name", "")
-                                if s_name:
-                                    query += f"&serviceName={urllib.parse.quote(s_name)}"
+                        fp = p.get("client-fingerprint", "")
+                        query = f"security=tls&sni={sni}&type={net}"
+                        if fp: query += f"&fp={fp}"
+                        query = _transport_query(p, net, query)
                         uris.append(f"trojan://{pwd}@{server}:{port}?{query}#{urllib.parse.quote(name)}")
+
                     elif p_type in ["ss", "shadowsocks"]:
                         cipher = p.get("cipher", "aes-256-gcm")
                         pwd = p.get("password", "")
                         userinfo = base64.b64encode(f"{cipher}:{pwd}".encode()).decode()
                         uris.append(f"ss://{userinfo}@{server}:{port}#{urllib.parse.quote(name)}")
+
                     elif p_type in ["hy2", "hysteria2"]:
                         pwd = p.get("password", "")
                         sni = p.get("sni", server)
                         skip_cert = p.get("skip-cert-verify", False)
                         insecure_val = 1 if skip_cert else 0
                         ports_val = p.get("ports", "")
+                        obfs = p.get("obfs", "")
+                        obfs_pw = p.get("obfs-password", "")
                         query = f"sni={sni}&insecure={insecure_val}"
-                        if ports_val:
-                            query += f"&ports={ports_val}"
-                        uris.append(f"hysteria2://{pwd}@{server}:{port}?{query}#{urllib.parse.quote(name)}")
+                        if ports_val: query += f"&ports={ports_val}"
+                        if obfs: query += f"&obfs={obfs}&obfs-password={urllib.parse.quote(obfs_pw)}"
+                        uris.append(f"hysteria2://{urllib.parse.quote(str(pwd))}@{server}:{port}?{query}#{urllib.parse.quote(name)}")
+
+                    elif p_type == "tuic":
+                        uuid = p.get("uuid", "")
+                        pwd = p.get("password", "")
+                        sni = p.get("sni", server)
+                        token = p.get("token", "")
+                        alpn = p.get("alpn", ["h3"])
+                        alpn_str = ",".join(alpn) if isinstance(alpn, list) else str(alpn)
+                        skip_cert = p.get("skip-cert-verify", False)
+                        insecure_val = 1 if skip_cert else 0
+                        cc_algo = p.get("congestion-controller", "bbr")
+                        # TUIC v5 uses uuid+password; v4 uses token
+                        auth = token if token else pwd
+                        query = f"sni={sni}&alpn={alpn_str}&insecure={insecure_val}&congestion_control={cc_algo}"
+                        uris.append(f"tuic://{uuid}:{urllib.parse.quote(str(auth))}@{server}:{port}?{query}#{urllib.parse.quote(name)}")
+
+                    elif p_type == "vmess":
+                        # Clash vmess → vmess:// base64 JSON
+                        uuid = p.get("uuid", "")
+                        alter_id = p.get("alterId", 0)
+                        net = p.get("network", "tcp")
+                        tls_val = "tls" if p.get("tls", False) else ""
+                        sni = p.get("servername", server)
+                        ws_opts = p.get("ws-opts", {}) if isinstance(p.get("ws-opts"), dict) else {}
+                        grpc_opts = p.get("grpc-opts", {}) if isinstance(p.get("grpc-opts"), dict) else {}
+                        path = ws_opts.get("path", grpc_opts.get("grpc-service-name", "/"))
+                        ws_headers = ws_opts.get("headers", {})
+                        host = ws_headers.get("Host", sni) if isinstance(ws_headers, dict) else sni
+                        vmess_cfg = {
+                            "v": "2", "ps": name, "add": server, "port": str(port),
+                            "id": uuid, "aid": str(alter_id), "net": net,
+                            "type": "none", "host": host, "path": path,
+                            "tls": tls_val, "sni": sni,
+                        }
+                        b64 = base64.b64encode(json.dumps(vmess_cfg, separators=(",", ":")).encode()).decode()
+                        uris.append(f"vmess://{b64}")
+
     except Exception:
         pass
     return uris
@@ -416,6 +479,36 @@ def extract_proxies_from_singbox_json(content: str) -> list:
             if not server:
                 continue
 
+            # Shared sing-box transport extractor
+            def _sb_transport(ob, query):
+                transport = ob.get("transport", {}) if isinstance(ob.get("transport"), dict) else {}
+                net_type = transport.get("type", "").lower()
+                if not net_type:
+                    return query, "tcp"
+                if net_type == "ws":
+                    path = transport.get("path", "/")
+                    headers = transport.get("headers", {})
+                    host = headers.get("Host", "") if isinstance(headers, dict) else ""
+                    if path: query += f"&path={urllib.parse.quote(path)}"
+                    if host: query += f"&host={urllib.parse.quote(host)}"
+                elif net_type in ("grpc", "grpc_transport"):
+                    service_name = transport.get("service_name", "")
+                    if service_name: query += f"&serviceName={urllib.parse.quote(service_name)}"
+                    net_type = "grpc"
+                elif net_type in ("http", "h2"):
+                    path = transport.get("path", "/")
+                    host = (transport.get("host") or [""])[0] if isinstance(transport.get("host"), list) else transport.get("host", "")
+                    if path: query += f"&path={urllib.parse.quote(path)}"
+                    if host: query += f"&host={urllib.parse.quote(host)}"
+                    net_type = "h2"
+                elif net_type in ("httpupgrade", "splithttp"):
+                    path = transport.get("path", "/")
+                    host = transport.get("host", "")
+                    if path: query += f"&path={urllib.parse.quote(path)}"
+                    if host: query += f"&host={urllib.parse.quote(host)}"
+                    net_type = "xhttp"
+                return query, net_type or "tcp"
+
             if ob_type == "vless":
                 uuid = ob.get("uuid", "")
                 flow = ob.get("flow", "")
@@ -428,32 +521,25 @@ def extract_proxies_from_singbox_json(content: str) -> list:
                 sid = reality_info.get("short_id", "")
                 utls = tls_info.get("utls", {}) if isinstance(tls_info.get("utls"), dict) else {}
                 fp = utls.get("fingerprint", "chrome")
-                
-                transport = ob.get("transport", {}) if isinstance(ob.get("transport"), dict) else {}
-                net_type = transport.get("type", "tcp").lower()
-                
                 sec = "reality" if (reality_enabled and pbk) else ("tls" if tls_enabled else "none")
-                query = f"security={sec}&sni={sni}&fp={fp}&type={net_type}"
+                query = f"security={sec}&sni={sni}&fp={fp}&type=tcp"
                 if flow: query += f"&flow={flow}"
                 if pbk: query += f"&pbk={pbk}"
                 if sid: query += f"&sid={sid}"
-                if net_type == "ws":
-                    path = transport.get("path", "/")
-                    headers = transport.get("headers", {})
-                    host = headers.get("Host", "") if isinstance(headers, dict) else ""
-                    if path: query += f"&path={urllib.parse.quote(path)}"
-                    if host: query += f"&host={urllib.parse.quote(host)}"
-                elif net_type == "grpc":
-                    service_name = transport.get("service_name", "")
-                    if service_name: query += f"&serviceName={urllib.parse.quote(service_name)}"
-
+                query, net_type = _sb_transport(ob, query)
+                query = query.replace("&type=tcp", f"&type={net_type}", 1)
                 uris.append(f"vless://{uuid}@{server}:{port}?{query}#{urllib.parse.quote(tag)}")
 
             elif ob_type == "trojan":
                 pwd = ob.get("password", "")
                 tls_info = ob.get("tls", {}) if isinstance(ob.get("tls"), dict) else {}
                 sni = tls_info.get("server_name", server)
-                uris.append(f"trojan://{pwd}@{server}:{port}?sni={sni}#{urllib.parse.quote(tag)}")
+                fp = (tls_info.get("utls", {}) or {}).get("fingerprint", "")
+                query = f"security=tls&sni={sni}&type=tcp"
+                if fp: query += f"&fp={fp}"
+                query, net_type = _sb_transport(ob, query)
+                query = query.replace("&type=tcp", f"&type={net_type}", 1)
+                uris.append(f"trojan://{pwd}@{server}:{port}?{query}#{urllib.parse.quote(tag)}")
 
             elif ob_type in ["shadowsocks", "ss"]:
                 method = ob.get("method", "aes-256-gcm")
@@ -466,21 +552,78 @@ def extract_proxies_from_singbox_json(content: str) -> list:
                 tls_info = ob.get("tls", {}) if isinstance(ob.get("tls"), dict) else {}
                 sni = tls_info.get("server_name", server)
                 insecure = 1 if tls_info.get("insecure", False) else 0
-                uris.append(f"hysteria2://{pwd}@{server}:{port}?sni={sni}&insecure={insecure}#{urllib.parse.quote(tag)}")
+                obfs_info = ob.get("obfs", {}) if isinstance(ob.get("obfs"), dict) else {}
+                obfs_type = obfs_info.get("type", "")
+                obfs_pw = obfs_info.get("password", "")
+                query = f"sni={sni}&insecure={insecure}"
+                if obfs_type: query += f"&obfs={obfs_type}&obfs-password={urllib.parse.quote(obfs_pw)}"
+                uris.append(f"hysteria2://{urllib.parse.quote(str(pwd))}@{server}:{port}?{query}#{urllib.parse.quote(tag)}")
+
+            elif ob_type == "tuic":
+                uuid = ob.get("uuid", "")
+                pwd = ob.get("password", "")
+                tls_info = ob.get("tls", {}) if isinstance(ob.get("tls"), dict) else {}
+                sni = tls_info.get("server_name", server)
+                alpn = tls_info.get("alpn", ["h3"])
+                alpn_str = ",".join(alpn) if isinstance(alpn, list) else str(alpn)
+                insecure = 1 if tls_info.get("insecure", False) else 0
+                cc_algo = ob.get("congestion_control", "bbr")
+                query = f"sni={sni}&alpn={alpn_str}&insecure={insecure}&congestion_control={cc_algo}"
+                uris.append(f"tuic://{uuid}:{urllib.parse.quote(str(pwd))}@{server}:{port}?{query}#{urllib.parse.quote(tag)}")
+
+            elif ob_type == "vmess":
+                uuid = ob.get("uuid", "")
+                alter_id = ob.get("alter_id", 0)
+                security = ob.get("security", "auto")
+                tls_info = ob.get("tls", {}) if isinstance(ob.get("tls"), dict) else {}
+                sni = tls_info.get("server_name", server)
+                tls_val = "tls" if tls_info.get("enabled", False) else ""
+                transport = ob.get("transport", {}) if isinstance(ob.get("transport"), dict) else {}
+                net_type = transport.get("type", "tcp").lower()
+                path = transport.get("path", "/")
+                headers = transport.get("headers", {})
+                host = headers.get("Host", sni) if isinstance(headers, dict) else sni
+                vmess_cfg = {
+                    "v": "2", "ps": tag, "add": server, "port": str(port),
+                    "id": uuid, "aid": str(alter_id), "scy": security,
+                    "net": net_type, "type": "none", "host": host,
+                    "path": path, "tls": tls_val, "sni": sni,
+                }
+                b64 = base64.b64encode(json.dumps(vmess_cfg, separators=(",", ":")).encode()).decode()
+                uris.append(f"vmess://{b64}")
+
     except Exception:
         pass
     return uris
 
+def _decode_b64_line(line: str) -> str:
+    """Safely decode a single base64-encoded line if valid."""
+    s = line.strip()
+    if len(s) < 16 or " " in s or s.startswith(("vless://", "trojan://", "ss://", "hy2://", "hysteria2://", "tuic://", "vmess://", "anytls://", "<")):
+        return s
+    normalized = s.replace('-', '+').replace('_', '/')
+    pad = (4 - (len(normalized) % 4)) % 4
+    normalized += "=" * pad
+    try:
+        dec_bytes = base64.b64decode(normalized, validate=False)
+        dec = dec_bytes.decode("utf-8", errors="ignore").strip()
+        if any(proto in dec for proto in ("vless://", "trojan://", "ss://", "hy2://", "hysteria2://", "tuic://", "vmess://", "anytls://", "proxies:", '"outbounds"')):
+            return dec
+    except Exception:
+        pass
+    return s
+
+
 def recursive_decode_subscription(content: str, max_depth: int = 5) -> str:
-    """Multi-layer recursive unpacker (Base64, URL-safe Base64, nested sub strings up to 5 layers)."""
+    """Multi-layer recursive unpacker (Base64, URL-safe Base64, nested sub strings up to 5 layers, plus per-line base64)."""
     if not content:
         return ""
     cur = content.strip()
     for _ in range(max_depth):
         clean = re.sub(r'[\r\n\t\s]+', '', cur)
-        if len(clean) < 16:
+        if len(clean) < 16 or re.search(r'[^A-Za-z0-9+/=_-]', clean):
             break
-        if clean.startswith(("vless://", "trojan://", "hy2://", "hysteria2://", "tuic://", "<html", "<!doctype")):
+        if clean.startswith(("vless://", "trojan://", "hy2://", "hysteria2://", "tuic://", "anytls://")):
             break
         # Normalise URL-safe base64 and pad
         normalized = clean.replace('-', '+').replace('_', '/')
@@ -491,14 +634,29 @@ def recursive_decode_subscription(content: str, max_depth: int = 5) -> str:
             dec = dec_bytes.decode("utf-8", errors="ignore").strip()
             if dec and dec != cur and len(dec) > 8:
                 cur = dec
-                if any(proto in dec for proto in ("vless://", "trojan://", "ss://", "hy2://", "hysteria2://", "proxies:", '"outbounds"')):
+                if any(proto in dec for proto in ("vless://", "trojan://", "ss://", "hy2://", "hysteria2://", "tuic://", "vmess://", "anytls://", "proxies:", '"outbounds"')):
                     if "\n" in dec or " " in dec or dec.startswith(("{", "proxies:", "port:")):
                         return dec
                 continue
         except Exception:
-            break
+            pass
         break
+
+    # If full block decode didn't unpack multiple base64 lines, try per-line decode
+    lines = cur.splitlines()
+    if len(lines) > 1:
+        decoded_lines = []
+        any_decoded = False
+        for line in lines:
+            d_line = _decode_b64_line(line)
+            if d_line != line:
+                any_decoded = True
+            decoded_lines.append(d_line)
+        if any_decoded:
+            cur = "\n".join(decoded_lines)
+
     return cur
+
 
 def extract_uris_from_content(content: str) -> list:
     """Extracts all proxy URIs supporting multi-layer Base64, Clash YAML, Sing-box JSON, and Telegram HTML."""
@@ -527,32 +685,130 @@ def extract_uris_from_content(content: str) -> list:
         if sb_proxies:
             uris.extend(uri for uri in sb_proxies if is_basic_proxy_uri(uri))
             
-    # 4. Telegram Web Parsing
-    if '<div class="tgme_widget_message_text' in content:
+    # 4. Telegram Web & HTML code/pre Parsing
+    if '<div class="tgme_widget_message_text' in content or '<code' in content or '<pre' in content:
         for block in re.findall(r'<div class="tgme_widget_message_text[^>]*>(.*?)</div>', content, re.DOTALL):
-            for match in URI_REGEX.finditer(block):
+            unescaped = html.unescape(block)
+            for match in URI_REGEX.finditer(unescaped):
                 append_if_basic_uri(match.group(0))
+        for block in re.findall(r'<(?:code|pre)[^>]*>(.*?)</(?:code|pre)>', content, re.DOTALL | re.IGNORECASE):
+            unescaped = html.unescape(block)
+            for match in URI_REGEX.finditer(unescaped):
+                append_if_basic_uri(match.group(0))
+            for line in unescaped.splitlines():
+                d_line = _decode_b64_line(line)
+                for match in URI_REGEX.finditer(d_line):
+                    append_if_basic_uri(match.group(0))
                 
-    # 5. Direct Regex
+    # 5. Direct Regex across unpacked content
     for match in URI_REGEX.finditer(content):
         append_if_basic_uri(match.group(0))
         
-    # 6. Line by line
+    # 6. Check individual lines (catch per-line base64 that wasn't unrolled)
     for line in content.splitlines():
         line = line.strip()
-        if any(line.startswith(proto) for proto in ("vless://", "trojan://", "ss://", "hy2://", "hysteria2://", "tuic://", "vmess://")):
-            append_if_basic_uri(line)
+        if not line:
+            continue
+        d_line = _decode_b64_line(line)
+        if d_line != line:
+            for match in URI_REGEX.finditer(d_line):
+                append_if_basic_uri(match.group(0))
             
     return list(dict.fromkeys(uris))
+
+
+def canonicalize_uri(uri: str) -> str:
+    """Canonicalizes URI by lowercasing host, sorting query params, and stripping remark fragments."""
+    try:
+        parsed = urllib.parse.urlparse(uri.strip())
+        proto = parsed.scheme.lower()
+        host = (parsed.hostname or "").strip("[]").lower()
+        port = parsed.port if parsed.port is not None else 443
+        user = parsed.username or (parsed.netloc.split('@')[0] if '@' in parsed.netloc else "")
+        
+        query_dict = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+        sorted_query = urllib.parse.urlencode([(k, v[0]) for k, v in sorted(query_dict.items())])
+        
+        if host:
+            netloc = f"{user}@{host}:{port}" if user else f"{host}:{port}"
+        else:
+            netloc = parsed.netloc.split('?')[0].split('#')[0]
+            
+        return f"{proto}://{netloc}?{sorted_query}" if sorted_query else f"{proto}://{netloc}"
+    except Exception:
+        return uri.split('#')[0].strip().lower()
+
+
+def extract_ip_or_host(uri: str) -> str:
+    """Extracts lowercase server host/IP without brackets."""
+    try:
+        parsed = urllib.parse.urlparse(uri)
+        return (parsed.hostname or "").strip("[]").lower()
+    except Exception:
+        return ""
+
+
+def get_ipv4_subnet_24(ip_str: str) -> str:
+    """Returns /24 CIDR prefix for IPv4 addresses."""
+    parts = ip_str.split('.')
+    if len(parts) == 4 and all(p.isdigit() for p in parts):
+        return f"{parts[0]}.{parts[1]}.{parts[2]}.0/24"
+    return ip_str
+
+
+def filter_by_ip_subnet_quota(uris: list, max_per_ip: int = 2, max_per_subnet: int = 4) -> list:
+    """Anti-Clone Protection: Limits identical physical servers to max_per_ip and max_per_subnet."""
+    ip_counts = {}
+    subnet_counts = {}
+    filtered = []
+    
+    for uri in uris:
+        host = extract_ip_or_host(uri)
+        if not host:
+            filtered.append(uri)
+            continue
+        
+        ip_cnt = ip_counts.get(host, 0)
+        if ip_cnt >= max_per_ip:
+            continue
+            
+        subnet = get_ipv4_subnet_24(host)
+        subnet_cnt = subnet_counts.get(subnet, 0)
+        if subnet_cnt >= max_per_subnet:
+            continue
+            
+        ip_counts[host] = ip_cnt + 1
+        subnet_counts[subnet] = subnet_cnt + 1
+        filtered.append(uri)
+        
+    return filtered
+
+
+def sample_source_liveness(uris: list, sample_size: int = 15, timeout: float = 0.20) -> bool:
+    """Fail-Fast Check: Samples first N nodes of a large dump (>300 nodes). Drops source if < 10% alive."""
+    if len(uris) < 300:
+        return True
+    sample = uris[:sample_size]
+    alive = 0
+    for u in sample:
+        _, ping = check_node_ping(u, timeout=timeout)
+        if ping < 9000:
+            alive += 1
+    return (alive / len(sample)) >= 0.10
+
 
 def get_node_key(uri: str) -> str:
     """Feature 17: Strict IP/Host + Port + UUID deduplication to eliminate server clones."""
     try:
         parsed = urllib.parse.urlparse(uri)
         proto = parsed.scheme.lower()
+        host = (parsed.hostname or "").strip("[]").lower()
+        port = parsed.port if parsed.port is not None else 443
+        user = parsed.username or (parsed.netloc.split('@')[0] if '@' in parsed.netloc else "")
+        if host:
+            return f"{proto}://{user}@{host}:{port}".lower()
         netloc = parsed.netloc.split('@')[-1] if '@' in parsed.netloc else parsed.netloc
-        user = parsed.netloc.split('@')[0] if '@' in parsed.netloc else ""
-        host_port = netloc.split('?')[0].split('/')[0].split('#')[0]
+        host_port = netloc.split('?')[0].split('/')[0].split('#')[0].lower()
         return f"{proto}://{user}@{host_port}".lower()
     except Exception:
         raw = uri.split('#')[0].split('?')[0]
@@ -1044,7 +1300,7 @@ async def async_fetch_sources_pool(sources: list, concurrency: int = 500) -> tup
             if isinstance(r, tuple) and r[1]:
                 url, content = r
                 extracted = extract_uris_from_content(content)
-                if extracted:
+                if extracted and sample_source_liveness(extracted):
                     fetched_count += 1
                     all_uris.extend(extracted)
                     if url in RU_DIRECT_SOURCES:
@@ -1130,7 +1386,7 @@ def main():
                     content = future.result()
                     if content:
                         extracted = extract_uris_from_content(content)
-                        if extracted:
+                        if extracted and sample_source_liveness(extracted):
                             fetched_count += 1
                             all_uris.extend(extracted)
                             if url in RU_DIRECT_SOURCES:
@@ -1155,18 +1411,19 @@ def main():
 
     print(f"\n📊 Total raw keys collected: {len(all_uris)} across {fetched_count} active sources.", flush=True)
     
-    # 2. Deduplication
+    # 2. Canonical Deduplication & Anti-Clone IP/Subnet Quota
     unique_map = {}
     for uri in all_uris:
         uri = uri.strip()
         if not uri:
             continue
-        key = get_node_key(uri)
-        if key not in unique_map:
-            unique_map[key] = uri
+        canon_key = canonicalize_uri(uri)
+        if canon_key not in unique_map:
+            unique_map[canon_key] = uri
             
-    unique_uris = list(unique_map.values())
-    print(f"✨ Deduplication complete: {len(unique_uris)} unique nodes.", flush=True)
+    raw_unique_uris = list(unique_map.values())
+    unique_uris = filter_by_ip_subnet_quota(raw_unique_uris, max_per_ip=2, max_per_subnet=4)
+    print(f"✨ Deduplication & Anti-Clone Quota complete: {len(unique_uris)} unique nodes (filtered from {len(raw_unique_uris)}).", flush=True)
     
     # 2b. 🚫 Purge known persistent dead keys from blacklist
     dead_map = load_dead_nodes()
