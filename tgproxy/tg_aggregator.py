@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-⚡ TurboProbe TGProxy - Ultra-Boosted MTProto & SOCKS5 Harvester & Verifier
-Crawls 100+ deep-paginated Telegram channels and 60+ GitHub repos with base64 decoding.
+⚡ TurboProbe TGProxy - Ultra-Boosted Multi-Forge Harvester & Verifier
+Crawls GitHub, GitLab, Telegram channels and auto-discovered sources concurrently.
 """
 
 import asyncio
@@ -26,7 +26,7 @@ if sys.platform == "win32":
 TG_DIR = os.path.dirname(os.path.abspath(__file__))
 DISCOVERED_TG_PATH = os.path.join(TG_DIR, "discovered_tg_sources.json")
 
-# 100+ Curated Public Telegram Channels for Deep Multi-Page Pagination
+# 60+ Curated Public Telegram Channels
 TG_CHANNELS = [
     "ProxyMTProto", "TelMTProto", "MTProto", "TgProxies", "mtprotorus",
     "MTProto_TG", "proxy_socks5_tg", "MTP_ro", "free_tg_proxy", "proxyme",
@@ -40,14 +40,9 @@ TG_CHANNELS = [
     "MTProto_World", "MTProto_Free_TG", "MTProto_Proxy_RU", "TG_VPN_Proxy", "BestMTProto",
     "ProxyHub_TG", "Fast_TG_Proxy", "TG_Free_Proxy", "MTProto_Nodes", "MTProto_VIP",
     "Proxy_Station", "TG_Proxy_World", "MTProto_Direct", "TG_Bypass_RU", "Telegram_MTProto",
-    "Anti_Filter_Proxy", "Proxy_Finder_TG", "MTProto_Hub", "Top_TG_Proxies", "Proxy_Pulse",
-    "MTG_World", "Proxy_Box_TG", "MTProto_Speed", "RU_TG_Proxy", "Fast_MTProto_Server",
-    "Proxy_Hunter", "MTProto_Planet", "TG_Proxy_Pro", "MTProto_Club", "Proxy_Tunnel_TG",
-    "MTProto_Prime", "Ultra_TG_Proxy", "MTProto_Express", "Safe_TG_Proxy", "Proxy_Wave",
-    "MTProto_Elite", "Super_TG_Proxy", "MTProto_Zone", "Proxy_Master_TG", "TG_Guard_Proxy",
 ]
 
-# 60+ Curated High-Yield GitHub MTProto & SOCKS5 Pools
+# 50+ Curated High-Yield GitHub & GitLab MTProto & SOCKS5 Pools
 RAW_LISTS = [
     "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/proxy.txt",
     "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/all_proxies.txt",
@@ -273,13 +268,13 @@ def test_proxy_sync(p: TGProxy, timeout: float = 2.0) -> Tuple[bool, float]:
         return False, 999.0
 
 
-async def scrape_channel_deep_10pages(ch: str, session: aiohttp.ClientSession) -> str:
-    """Scrapes up to 10 pages backwards for a Telegram channel."""
+async def scrape_channel_deep(ch: str, session: aiohttp.ClientSession) -> str:
+    """Scrapes up to 5 pages backwards for a Telegram channel."""
     collected = []
     base_url = f"https://t.me/s/{ch}"
     current_url = base_url
     try:
-        for _ in range(8):
+        for _ in range(5):
             async with session.get(current_url, timeout=3.5) as resp:
                 if resp.status != 200:
                     break
@@ -299,12 +294,10 @@ async def fetch_source_async(url: str, session: aiohttp.ClientSession) -> str:
         async with session.get(url, timeout=4.5) as resp:
             if resp.status == 200:
                 text = await resp.text()
-                # Base64 check
                 try:
                     cleaned = re.sub(r'[^A-Za-z0-9+/=]', '', text)
                     if len(cleaned) > 50 and len(cleaned) % 4 == 0:
-                        decoded = base64.b64decode(cleaned).decode('utf-8', errors='ignore')
-                        text = text + "\n" + decoded
+                        text = text + "\n" + base64.b64decode(cleaned).decode('utf-8', errors='ignore')
                 except Exception:
                     pass
                 return text
@@ -321,14 +314,14 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
                 d = json.load(f)
                 discovered = d.get("sources", [])
                 all_raw_sources = list(set(all_raw_sources + discovered))
-                print(f"📡 [Source Manager] Loaded {len(discovered)} auto-discovered sources from {DISCOVERED_TG_PATH}", flush=True)
+                print(f"📡 [Source Manager] Loaded {len(discovered)} auto-discovered multi-forge sources from {DISCOVERED_TG_PATH}", flush=True)
         except Exception:
             pass
 
     print(f"🚀 [TGProxy Harvester] Deep-crawling {len(TG_CHANNELS)} channels and {len(all_raw_sources)} RAW pools concurrently...", flush=True)
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     }
     connector = aiohttp.TCPConnector(limit=100, ssl=False)
@@ -337,7 +330,7 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
     seen = set()
 
     async with aiohttp.ClientSession(connector=connector, headers=headers) as session:
-        ch_tasks = [scrape_channel_deep_10pages(ch, session) for ch in TG_CHANNELS]
+        ch_tasks = [scrape_channel_deep(ch, session) for ch in TG_CHANNELS]
         raw_tasks = [fetch_source_async(u, session) for u in all_raw_sources]
         all_tasks = ch_tasks + raw_tasks
         results = await asyncio.gather(*all_tasks, return_exceptions=True)
@@ -345,7 +338,7 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
         for text in results:
             if isinstance(text, str) and text:
                 # 1. MTProto matches
-                matches = re.finditer(r'(?:https?://t\.me/proxy\?|tg://proxy\?)([^\s<>\"\'\)]+)', text)
+                matches = re.finditer(r'(?:https?://t\.me/proxy\?|tg://proxy\?)([^\s<>"\'\)]+)', text)
                 for m in matches:
                     qs = m.group(1).replace("&amp;", "&")
                     parsed = urllib.parse.parse_qs(qs)
@@ -360,7 +353,7 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
                             raw_proxies.append(p)
 
                 # 2. SOCKS5 matches
-                socks_matches = re.finditer(r'(?:https?://t\.me/socks\?|tg://socks\?)([^\s<>\"\'\)]+)', text)
+                socks_matches = re.finditer(r'(?:https?://t\.me/socks\?|tg://socks\?)([^\s<>"\'\)]+)', text)
                 for m in socks_matches:
                     qs = m.group(1).replace("&amp;", "&")
                     parsed = urllib.parse.parse_qs(qs)
@@ -392,7 +385,7 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
     socks_cands = [p for p in raw_proxies if p.proto == "socks5"]
     print(f"📊 Harvested {len(raw_proxies)} unique candidates (MTProto: {len(mtproto_cands)}, SOCKS5: {len(socks_cands)}).", flush=True)
 
-    # Benchmark ALL MTProto candidates + up to test_limit SOCKS5
+    # Benchmark all MTProto candidates + up to test_limit SOCKS5
     eval_pool = mtproto_cands + (socks_cands[:test_limit] if test_limit > 0 else socks_cands[:3000])
 
     print(f"🔬 [Telegram DC & Fake-TLS Gate] Parallel benchmarking {len(eval_pool)} candidates (100 threads)...", flush=True)
