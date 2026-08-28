@@ -463,7 +463,7 @@ export default function App() {
   // Subscription URL Generation
   const subUrl = useMemo(() => {
     const RAW_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
-    const WORKER_BASE = 'https://api.turboprobe.workers.dev/sub';
+    const WORKER_BASE = 'https://sub.turboprobe.workers.dev/sub';
 
     const hasServices = selectedServices.length > 0;
     const hasCountries = selectedCountries.length > 0;
@@ -498,6 +498,7 @@ export default function App() {
       if (!hasServices && !hasCountries && hasProtos && selectedProtos.length === 1) {
         const p = selectedProtos[0].toLowerCase();
         if (p === 'reality') return `${RAW_BASE}/reality.txt`;
+        if (p === 'hy2' || p === 'hysteria2') return `${RAW_BASE}/hysteria2.txt`;
         if (p === 'trojan') return `${RAW_BASE}/trojan.txt`;
         if (p === 'ss' || p === 'shadowsocks') return `${RAW_BASE}/shadowsocks.txt`;
       }
