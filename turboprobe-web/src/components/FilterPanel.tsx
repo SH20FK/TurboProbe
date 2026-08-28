@@ -7,11 +7,13 @@ import {
   Sparkles,
   Tv,
   Layers,
-  Flame,
+  Globe,
+  Gauge,
   RotateCcw,
 } from 'lucide-react';
 import { M3SegmentedButton, type SegmentOption } from './ui/M3SegmentedButton';
 import { M3FilterChip } from './ui/M3FilterChip';
+import { M3PingSlider } from './ui/M3PingSlider';
 import { CountryFlag } from './CountryFlags';
 import {
   ChatGptIcon,
@@ -38,8 +40,8 @@ interface FilterPanelProps {
   onClearProtos: () => void;
   countryCounts: Record<string, number>;
   protoCounts: Record<string, number>;
-  minHealth?: number;
-  onChangeMinHealth?: (val: number) => void;
+  maxPing?: number;
+  onChangeMaxPing?: (val: number) => void;
 }
 
 const PRESETS: PresetItem[] = [
@@ -51,7 +53,7 @@ const PRESETS: PresetItem[] = [
     country: 'all',
     proto: 'reality',
     services: [],
-    maxPing: 350,
+    maxPing: 0,
   },
   {
     id: 'ai',
@@ -61,7 +63,7 @@ const PRESETS: PresetItem[] = [
     country: 'us',
     proto: 'all',
     services: ['chatgpt', 'claude', 'gemini'],
-    maxPing: 450,
+    maxPing: 0,
   },
   {
     id: 'youtube',
@@ -71,7 +73,7 @@ const PRESETS: PresetItem[] = [
     country: 'all',
     proto: 'all',
     services: ['youtube'],
-    maxPing: 400,
+    maxPing: 0,
   },
   {
     id: 'all',
@@ -81,7 +83,7 @@ const PRESETS: PresetItem[] = [
     country: 'all',
     proto: 'all',
     services: [],
-    maxPing: 999,
+    maxPing: 0,
   },
 ];
 
@@ -140,8 +142,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   onClearProtos,
   countryCounts,
   protoCounts,
-  minHealth: _minHealth,
-  onChangeMinHealth: _onChangeMinHealth,
+  maxPing = 0,
+  onChangeMaxPing,
 }) => {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false);
   const [isExpandedCountries, setIsExpandedCountries] = useState<boolean>(false);
@@ -217,7 +219,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   }, [availableCountries, isExpandedCountries]);
 
   const activeFiltersCount =
-    selectedServices.length + selectedCountries.length + selectedProtos.length;
+    selectedServices.length +
+    selectedCountries.length +
+    selectedProtos.length +
+    (maxPing > 0 ? 1 : 0);
 
   return (
     <div className="space-y-3 w-full">
@@ -245,7 +250,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 Тонкая настройка
               </span>
               <span className="text-xs text-[var(--text-muted)] ml-2 hidden sm:inline">
-                (сервисы, протоколы, страны)
+                (сервисы, протоколы, страны, пинг)
               </span>
             </div>
           </div>
@@ -294,23 +299,28 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               className="overflow-hidden border-t border-[var(--border-main)]"
             >
               <div className="p-4 sm:p-6 space-y-6">
-                {/* 1. Services Chips */}
+                {/* 1. Services Section */}
                 <div className="space-y-2.5">
-                  <div className="flex items-center justify-between text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />
-                      <span>Оптимизация под сервисы</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-[#EA580C]/10 border border-[#EA580C]/20 flex items-center justify-center text-[#EA580C] dark:text-[#FB923C]">
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-display text-xs sm:text-sm font-bold text-[var(--text-main)]">
+                        Оптимизация под сервисы
+                      </span>
                     </div>
+
                     {selectedServices.length > 0 && (
                       <button
                         onClick={() => {
                           selectedServices.forEach((s) => onToggleService(s));
                         }}
                         type="button"
-                        className="text-[11px] font-mono text-[#EA580C] dark:text-[#FB923C] hover:underline flex items-center gap-1 cursor-pointer lowercase"
+                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#EA580C] dark:text-[#FB923C] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
                       >
                         <RotateCcw className="w-3 h-3" />
-                        <span>сброс</span>
+                        <span>Сбросить ({selectedServices.length})</span>
                       </button>
                     )}
                   </div>
@@ -331,21 +341,26 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   </div>
                 </div>
 
-                {/* 2. Protocols Chips */}
+                {/* 2. Protocols Section */}
                 <div className="space-y-2.5 pt-4 border-t border-[var(--border-main)]">
-                  <div className="flex items-center justify-between text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                    <div className="flex items-center gap-1.5">
-                      <Shield className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />
-                      <span>Протоколы шифрования</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-[#10B981]/10 border border-[#10B981]/20 flex items-center justify-center text-[#10B981]">
+                        <Shield className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-display text-xs sm:text-sm font-bold text-[var(--text-main)]">
+                        Протоколы шифрования
+                      </span>
                     </div>
+
                     {selectedProtos.length > 0 && (
                       <button
                         onClick={onClearProtos}
                         type="button"
-                        className="text-[11px] font-mono text-[#EA580C] dark:text-[#FB923C] hover:underline flex items-center gap-1 cursor-pointer lowercase"
+                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#EA580C] dark:text-[#FB923C] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
                       >
                         <RotateCcw className="w-3 h-3" />
-                        <span>все протоколы</span>
+                        <span>Все протоколы</span>
                       </button>
                     )}
                   </div>
@@ -371,21 +386,26 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   </div>
                 </div>
 
-                {/* 3. Countries Chips with Flags */}
+                {/* 3. Countries Section */}
                 <div className="space-y-2.5 pt-4 border-t border-[var(--border-main)]">
-                  <div className="flex items-center justify-between text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                    <div className="flex items-center gap-1.5">
-                      <Flame className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />
-                      <span>Геолокации и страны</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-[#D97706]/10 border border-[#D97706]/20 flex items-center justify-center text-[#D97706] dark:text-[#FBBF24]">
+                        <Globe className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-display text-xs sm:text-sm font-bold text-[var(--text-main)]">
+                        Геолокации и страны
+                      </span>
                     </div>
+
                     {selectedCountries.length > 0 && (
                       <button
                         onClick={onClearCountries}
                         type="button"
-                        className="text-[11px] font-mono text-[#EA580C] dark:text-[#FB923C] hover:underline flex items-center gap-1 cursor-pointer lowercase"
+                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#EA580C] dark:text-[#FB923C] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
                       >
                         <RotateCcw className="w-3 h-3" />
-                        <span>все страны</span>
+                        <span>Все страны</span>
                       </button>
                     )}
                   </div>
@@ -412,15 +432,50 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     })}
 
                     {availableCountries.length > 8 && (
-                      <button
+                      <motion.button
                         onClick={() => setIsExpandedCountries(!isExpandedCountries)}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.96 }}
                         type="button"
-                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-mono text-[#EA580C] dark:text-[#FB923C] hover:underline cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-xs font-semibold font-display text-[#EA580C] dark:text-[#FB923C] border border-[var(--border-main)] hover:border-[#EA580C]/40 shadow-xs cursor-pointer select-none transition-colors"
                       >
-                        <span>{isExpandedCountries ? 'Свернуть страны' : `Еще ${availableCountries.length - 8}...`}</span>
+                        <span>{isExpandedCountries ? 'Свернуть список' : `+ Еще ${availableCountries.length - 8} стран`}</span>
+                        <motion.div
+                          animate={{ rotate: isExpandedCountries ? 180 : 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </motion.div>
+                      </motion.button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 4. Ping Threshold Slider Section */}
+                <div className="space-y-2.5 pt-4 border-t border-[var(--border-main)]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-[#059669]/10 border border-[#059669]/20 flex items-center justify-center text-[#059669] dark:text-[#34D399]">
+                        <Gauge className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-display text-xs sm:text-sm font-bold text-[var(--text-main)]">
+                        Порог задержки отклика (Пинг)
+                      </span>
+                    </div>
+
+                    {maxPing > 0 && (
+                      <button
+                        onClick={() => onChangeMaxPing?.(0)}
+                        type="button"
+                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#EA580C] dark:text-[#FB923C] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Без лимита</span>
                       </button>
                     )}
                   </div>
+
+                  <M3PingSlider maxPing={maxPing} onChangeMaxPing={onChangeMaxPing || (() => {})} />
                 </div>
               </div>
             </motion.div>

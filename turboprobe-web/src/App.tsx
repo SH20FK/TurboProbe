@@ -25,7 +25,7 @@ export default function App() {
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [selectedProtos, setSelectedProtos] = useState<string[]>(['reality']);
   const [selectedLimit, setSelectedLimit] = useState<number>(50);
-  const [minHealth, setMinHealth] = useState<number>(0);
+  const [maxPing, setMaxPing] = useState<number>(0);
 
   // Instant SWR: Load cached nodes & stats from localStorage on mount (0ms delay)
   const [allNodes, setAllNodes] = useState<NodeItem[]>(() => {
@@ -227,6 +227,7 @@ export default function App() {
 
   const handleSelectPreset = useCallback((preset: PresetItem) => {
     setActivePreset(preset.id);
+    setMaxPing(preset.maxPing || 0);
     if (preset.id === 'all') {
       setSelectedServices([]);
       setSelectedCountries([]);
@@ -238,11 +239,11 @@ export default function App() {
     }
   }, []);
 
-  // Dynamic Faceted Protocol Counts (calculated against active Services & Countries)
+  // Dynamic Faceted Protocol Counts (calculated against active Services, Countries & MaxPing)
   const protoCounts = useMemo(() => {
     const hasServices = selectedServices.length > 0;
     const hasCountries = selectedCountries.length > 0;
-    const hasMinHealth = minHealth > 0;
+    const hasMaxPing = maxPing > 0;
     const normCountries = hasCountries ? selectedCountries.map((c) => c.toLowerCase().trim()) : [];
 
     const map: Record<string, number> = {};
@@ -251,10 +252,10 @@ export default function App() {
       const node = allNodes[i];
       const idx = node._index;
 
-      // Min Health Check
-      if (hasMinHealth) {
-        const health = idx ? idx.health : (typeof node.health === 'number' ? node.health : 100);
-        if (health < minHealth) continue;
+      // Max Ping Check
+      if (hasMaxPing) {
+        const ping = idx ? idx.ping : (typeof node.ping_ms === 'number' ? node.ping_ms : 0);
+        if (ping > 0 && ping > maxPing) continue;
       }
 
       // Services Check
@@ -289,19 +290,17 @@ export default function App() {
         else if (idx.isHy2) map['hy2'] = (map['hy2'] || 0) + 1;
         else if (idx.isTrojan) map['trojan'] = (map['trojan'] || 0) + 1;
         else if (idx.isSs) map['ss'] = (map['ss'] || 0) + 1;
-        else if (idx.isVmess) map['vmess'] = (map['vmess'] || 0) + 1;
-        else if (idx.isTuic) map['tuic'] = (map['tuic'] || 0) + 1;
         else if (idx.isVless) map['vless'] = (map['vless'] || 0) + 1;
       }
     }
     return map;
-  }, [allNodes, selectedServices, selectedCountries, minHealth]);
+  }, [allNodes, selectedServices, selectedCountries, maxPing]);
 
-  // Dynamic Faceted Country Counts (calculated against active Services & Protocols)
+  // Dynamic Faceted Country Counts (calculated against active Services, Protocols & MaxPing)
   const countryCounts = useMemo(() => {
     const hasServices = selectedServices.length > 0;
     const hasProtos = selectedProtos.length > 0;
-    const hasMinHealth = minHealth > 0;
+    const hasMaxPing = maxPing > 0;
     const normProtos = hasProtos ? selectedProtos.map((p) => p.toLowerCase().trim()) : [];
 
     const map: Record<string, number> = {};
@@ -310,10 +309,10 @@ export default function App() {
       const node = allNodes[i];
       const idx = node._index;
 
-      // Min Health Check
-      if (hasMinHealth) {
-        const health = idx ? idx.health : (typeof node.health === 'number' ? node.health : 100);
-        if (health < minHealth) continue;
+      // Max Ping Check
+      if (hasMaxPing) {
+        const ping = idx ? idx.ping : (typeof node.ping_ms === 'number' ? node.ping_ms : 0);
+        if (ping > 0 && ping > maxPing) continue;
       }
 
       // Services Check
@@ -337,8 +336,6 @@ export default function App() {
             if (p === 'hy2') return idx.isHy2;
             if (p === 'trojan') return idx.isTrojan;
             if (p === 'ss' || p === 'shadowsocks') return idx.isSs;
-            if (p === 'vmess') return idx.isVmess;
-            if (p === 'tuic') return idx.isTuic;
             if (p === 'vless') return idx.isVless;
             return idx.normalizedProto.includes(p);
           });
@@ -356,7 +353,7 @@ export default function App() {
       }
     }
     return map;
-  }, [allNodes, selectedServices, selectedProtos, minHealth]);
+  }, [allNodes, selectedServices, selectedProtos, maxPing]);
 
   // Filter Handlers
   const handleToggleService = useCallback((serviceId: string) => {
@@ -390,9 +387,9 @@ export default function App() {
     setSelectedProtos([]);
   }, []);
 
-  const handleChangeMinHealth = useCallback((val: number) => {
+  const handleChangeMaxPing = useCallback((val: number) => {
     setActivePreset('custom');
-    setMinHealth(val);
+    setMaxPing(val);
   }, []);
 
   // Filtering Logic
@@ -400,9 +397,9 @@ export default function App() {
     const hasServices = selectedServices.length > 0;
     const hasCountries = selectedCountries.length > 0;
     const hasProtos = selectedProtos.length > 0;
-    const hasMinHealth = minHealth > 0;
+    const hasMaxPing = maxPing > 0;
 
-    if (!hasServices && !hasCountries && !hasProtos && !hasMinHealth) {
+    if (!hasServices && !hasCountries && !hasProtos && !hasMaxPing) {
       return allNodes;
     }
 
@@ -412,9 +409,9 @@ export default function App() {
     return allNodes.filter((node) => {
       const idx = node._index;
 
-      if (hasMinHealth) {
-        const health = idx ? idx.health : (typeof node.health === 'number' ? node.health : 100);
-        if (health < minHealth) return false;
+      if (hasMaxPing) {
+        const ping = idx ? idx.ping : (typeof node.ping_ms === 'number' ? node.ping_ms : 0);
+        if (ping > 0 && ping > maxPing) return false;
       }
 
       if (hasServices) {
@@ -448,8 +445,6 @@ export default function App() {
             if (p === 'hy2') return idx.isHy2;
             if (p === 'trojan') return idx.isTrojan;
             if (p === 'ss' || p === 'shadowsocks') return idx.isSs;
-            if (p === 'vmess') return idx.isVmess;
-            if (p === 'tuic') return idx.isTuic;
             if (p === 'vless') return idx.isVless;
             return idx.normalizedProto.includes(p);
           });
@@ -463,61 +458,64 @@ export default function App() {
 
       return true;
     });
-  }, [allNodes, selectedServices, selectedCountries, selectedProtos, minHealth]);
+  }, [allNodes, selectedServices, selectedCountries, selectedProtos, maxPing]);
 
   // Subscription URL Generation
   const subUrl = useMemo(() => {
     const RAW_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
-    const WORKER_BASE = 'https://sub.turboprobe.workers.dev/sub';
+    const WORKER_BASE = 'https://api.turboprobe.workers.dev/sub';
 
     const hasServices = selectedServices.length > 0;
     const hasCountries = selectedCountries.length > 0;
     const hasProtos = selectedProtos.length > 0;
+    const hasMaxPing = maxPing > 0;
 
-    // 1. Static Presets
-    if (activePreset === 'anti-tspu') {
-      return `${RAW_BASE}/reality.txt`;
-    }
-    if (activePreset === 'ai') {
-      return `${RAW_BASE}/services/ai-bundle.txt`;
-    }
-    if (activePreset === 'youtube') {
-      return `${RAW_BASE}/services/youtube.txt`;
+    // 1. Static Presets (when no ping limit is customized)
+    if (!hasMaxPing) {
+      if (activePreset === 'anti-tspu') {
+        return `${RAW_BASE}/reality.txt`;
+      }
+      if (activePreset === 'ai') {
+        return `${RAW_BASE}/services/ai-bundle.txt`;
+      }
+      if (activePreset === 'youtube') {
+        return `${RAW_BASE}/services/youtube.txt`;
+      }
+
+      // 2. Single Country shortcut (Direct verified feed)
+      if (!hasServices && hasCountries && selectedCountries.length === 1 && !hasProtos) {
+        const code = selectedCountries[0].toLowerCase();
+        return `${RAW_BASE}/countries/${code}.txt`;
+      }
+
+      // 3. Single Service shortcut (Direct verified feed)
+      if (hasServices && selectedServices.length === 1 && !hasCountries && !hasProtos) {
+        const s = selectedServices[0].toLowerCase();
+        return `${RAW_BASE}/services/${s}.txt`;
+      }
+
+      // 4. Single Protocol shortcut
+      if (!hasServices && !hasCountries && hasProtos && selectedProtos.length === 1) {
+        const p = selectedProtos[0].toLowerCase();
+        if (p === 'reality') return `${RAW_BASE}/reality.txt`;
+        if (p === 'trojan') return `${RAW_BASE}/trojan.txt`;
+        if (p === 'ss' || p === 'shadowsocks') return `${RAW_BASE}/shadowsocks.txt`;
+      }
+
+      // 5. Preset "All" with Limit selector
+      if (activePreset === 'all' && !hasServices && !hasCountries && !hasProtos) {
+        if (selectedLimit === 20) return `${RAW_BASE}/top20.txt`;
+        if (selectedLimit === 50) return `${RAW_BASE}/top50.txt`;
+        return `${RAW_BASE}/all.txt`;
+      }
     }
 
-    // 2. Single Protocol shortcut (Direct Raw Feed)
-    if (hasProtos && selectedProtos.length === 1 && !hasServices && !hasCountries) {
-      const p = selectedProtos[0].toLowerCase();
-      if (p === 'reality') return `${RAW_BASE}/reality.txt`;
-      if (p === 'hy2' || p === 'hysteria2') return `${RAW_BASE}/hysteria2.txt`;
-      if (p === 'trojan') return `${RAW_BASE}/trojan.txt`;
-      if (p === 'ss' || p === 'shadowsocks') return `${RAW_BASE}/shadowsocks.txt`;
-    }
-
-    // 3. Single Country shortcut (Direct Raw Feed)
-    if (hasCountries && selectedCountries.length === 1 && !hasServices && !hasProtos) {
-      const code = selectedCountries[0].toLowerCase();
-      return `${RAW_BASE}/countries/${code}.txt`;
-    }
-
-    // 4. Single Service shortcut (Direct Raw Feed)
-    if (hasServices && selectedServices.length === 1 && !hasCountries && !hasProtos) {
-      const s = selectedServices[0].toLowerCase();
-      return `${RAW_BASE}/services/${s}.txt`;
-    }
-
-    // 5. Preset "All" with Limit selector
-    if (activePreset === 'all' && !hasServices && !hasCountries && !hasProtos) {
-      if (selectedLimit === 20) return `${RAW_BASE}/top20.txt`;
-      if (selectedLimit === 50) return `${RAW_BASE}/top50.txt`;
-      return `${RAW_BASE}/all.txt`;
-    }
-
-    // 6. Custom Multi-filter combination (Live Cloudflare Edge Worker API)
+    // 6. Custom Multi-filter combination (Cloudflare Edge Worker API)
     const params = new URLSearchParams();
     if (hasServices) params.set('services', selectedServices.join(','));
     if (hasCountries) params.set('country', selectedCountries.join(','));
     if (hasProtos) params.set('proto', selectedProtos.join(','));
+    if (hasMaxPing) params.set('max_ping', String(maxPing));
     if (selectedLimit > 0) params.set('limit', String(selectedLimit));
 
     const qs = params.toString();
@@ -525,8 +523,10 @@ export default function App() {
       return `${WORKER_BASE}?${qs}`;
     }
 
+    if (selectedLimit === 20) return `${RAW_BASE}/top20.txt`;
+    if (selectedLimit === 50) return `${RAW_BASE}/top50.txt`;
     return `${RAW_BASE}/all.txt`;
-  }, [activePreset, selectedServices, selectedCountries, selectedProtos, selectedLimit]);
+  }, [activePreset, selectedServices, selectedCountries, selectedProtos, maxPing, selectedLimit]);
 
   const allFilteredKeys = useMemo(() => {
     return filteredNodes.map((n) => n.uri);
@@ -614,8 +614,8 @@ export default function App() {
                 onClearProtos={handleClearProtos}
                 countryCounts={countryCounts}
                 protoCounts={protoCounts}
-                minHealth={minHealth}
-                onChangeMinHealth={handleChangeMinHealth}
+                maxPing={maxPing}
+                onChangeMaxPing={handleChangeMaxPing}
               />
 
               <ExportPanel
