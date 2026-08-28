@@ -12,7 +12,8 @@ import { AnimatedThemeToggle } from './components/ui/ThemeToggle';
 import { GitHubIcon } from './components/ServiceIcons';
 import type { NodeItem, PresetItem } from './types';
 
-const CDN_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
+const GITHUB_RAW = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
+const JSDELIVR_CDN = 'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub';
 const VALID_URI_REGEX = /^[a-z0-9+-.]+:\/\/[^\s]+/i;
 
 function isConflictMarker(line: string): boolean {
@@ -77,24 +78,26 @@ export default function App() {
         `./sub/nodes.json?t=${cacheBust}`,
         `sub/preview.json?t=${cacheBust}`,
         `./sub/preview.json?t=${cacheBust}`,
-        `${CDN_BASE}/nodes.json?t=${cacheBust}`,
-        `${CDN_BASE}/preview.json?t=${cacheBust}`,
+        `${JSDELIVR_CDN}/nodes.json?t=${cacheBust}`,
+        `${JSDELIVR_CDN}/preview.json?t=${cacheBust}`,
+        `${GITHUB_RAW}/nodes.json?t=${cacheBust}`,
+        `${GITHUB_RAW}/preview.json?t=${cacheBust}`,
       ];
 
       const statsMirrors = [
         `sub/stats.json?t=${cacheBust}`,
         `./sub/stats.json?t=${cacheBust}`,
-        `${CDN_BASE}/stats.json?t=${cacheBust}`,
+        `${JSDELIVR_CDN}/stats.json?t=${cacheBust}`,
+        `${GITHUB_RAW}/stats.json?t=${cacheBust}`,
       ];
 
       const fetchWithTimeout = async (url: string, ms = 4000) => {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), ms);
         try {
+          // Standard simple GET request without custom headers to prevent CORS OPTIONS preflight
           const res = await fetch(url, {
             signal: ctrl.signal,
-            cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' },
           });
           clearTimeout(tid);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -168,10 +171,11 @@ export default function App() {
         const rawMirrors = [
           `sub/all.txt?t=${cacheBust}`,
           `./sub/all.txt?t=${cacheBust}`,
-          `${CDN_BASE}/all.txt?t=${cacheBust}`,
+          `${JSDELIVR_CDN}/all.txt?t=${cacheBust}`,
+          `${GITHUB_RAW}/all.txt?t=${cacheBust}`,
         ];
         const res = await Promise.any(rawMirrors.map(async (m) => {
-          const r = await fetch(m, { cache: 'no-store' });
+          const r = await fetch(m);
           if (!r.ok) throw new Error('Not ok');
           return await r.text();
         }));
