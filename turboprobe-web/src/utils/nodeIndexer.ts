@@ -67,8 +67,10 @@ export function indexNode(node: NodeItem, index: number): NodeItem {
   const isReality = lowerUri.includes('pbk=') || rawProto.includes('reality');
   const isHy2 = rawProto.includes('hy2') || rawProto.includes('hysteria2') || lowerUri.startsWith('hy2://') || lowerUri.startsWith('hysteria2://');
   const isTrojan = rawProto.includes('trojan') || lowerUri.startsWith('trojan://');
-  const isSs = rawProto.includes('ss') || lowerUri.startsWith('ss://');
+  const isSs = rawProto.includes('ss') || rawProto.includes('shadowsocks') || lowerUri.startsWith('ss://');
   const isVless = rawProto.includes('vless') || lowerUri.startsWith('vless://');
+  const isVmess = rawProto.includes('vmess') || lowerUri.startsWith('vmess://');
+  const isTuic = rawProto.includes('tuic') || lowerUri.startsWith('tuic://');
 
   const cleanTag = extractRemark(uri);
   const normalizedCountry = (node.country || '').toLowerCase().trim();
@@ -99,6 +101,8 @@ export function indexNode(node: NodeItem, index: number): NodeItem {
     isTrojan,
     isSs,
     isVless,
+    isVmess,
+    isTuic,
     ping,
     health,
     serviceSet,

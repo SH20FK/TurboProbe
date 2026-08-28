@@ -24,6 +24,8 @@ export interface NodeIndexMetadata {
   isTrojan: boolean;
   isSs: boolean;
   isVless: boolean;
+  isVmess: boolean;
+  isTuic: boolean;
   ping: number;
   health: number;
   serviceSet: Set<string>;

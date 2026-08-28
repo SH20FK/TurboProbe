@@ -289,6 +289,8 @@ export default function App() {
         else if (idx.isHy2) map['hy2'] = (map['hy2'] || 0) + 1;
         else if (idx.isTrojan) map['trojan'] = (map['trojan'] || 0) + 1;
         else if (idx.isSs) map['ss'] = (map['ss'] || 0) + 1;
+        else if (idx.isVmess) map['vmess'] = (map['vmess'] || 0) + 1;
+        else if (idx.isTuic) map['tuic'] = (map['tuic'] || 0) + 1;
         else if (idx.isVless) map['vless'] = (map['vless'] || 0) + 1;
       }
     }
@@ -334,7 +336,9 @@ export default function App() {
             if (p === 'reality') return idx.isReality;
             if (p === 'hy2') return idx.isHy2;
             if (p === 'trojan') return idx.isTrojan;
-            if (p === 'ss') return idx.isSs;
+            if (p === 'ss' || p === 'shadowsocks') return idx.isSs;
+            if (p === 'vmess') return idx.isVmess;
+            if (p === 'tuic') return idx.isTuic;
             if (p === 'vless') return idx.isVless;
             return idx.normalizedProto.includes(p);
           });
@@ -443,7 +447,9 @@ export default function App() {
             if (p === 'reality') return idx.isReality;
             if (p === 'hy2') return idx.isHy2;
             if (p === 'trojan') return idx.isTrojan;
-            if (p === 'ss') return idx.isSs;
+            if (p === 'ss' || p === 'shadowsocks') return idx.isSs;
+            if (p === 'vmess') return idx.isVmess;
+            if (p === 'tuic') return idx.isTuic;
             if (p === 'vless') return idx.isVless;
             return idx.normalizedProto.includes(p);
           });
