@@ -1,0 +1,80 @@
+name: TGProxy - Telegram Proxy Pipeline
+
+on:
+  schedule:
+    # Run every 2 hours
+    - cron: '15 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Limit proxies to harvest (0 for unlimited)'
+        required: false
+        default: '0'
+
+concurrency:
+  group: tgproxy-pipeline
+  cancel-in-progress: true
+
+jobs:
+  harvest-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install aiohttp requests pyyaml
+
+      - name: Harvest & Validate Telegram Proxies
+        run: |
+          python tgproxy/tg_aggregator.py
+        env:
+          PYTHONUNBUFFERED: "1"
+
+      - name: Run Full Pipeline Exporter
+        run: |
+          python -c "
+          import asyncio
+          from tgproxy.tg_aggregator import run_tg_harvest
+          from tgproxy.ru_verifier import verify_batch_globalping
+          from tgproxy.exporter import export_all
+
+          async def main():
+              proxies = await run_tg_harvest(test_limit=0)
+              proxies = await verify_batch_globalping(proxies, max_nodes=50)
+              export_all(proxies)
+
+          asyncio.run(main())
+          "
+        env:
+          PYTHONUNBUFFERED: "1"
+
+      - name: Commit and Push TGProxy Updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sub/tg/ docs/tg/
+          if git diff --staged --quiet; then
+            echo "No TGProxy changes to commit."
+          else
+            git commit -m "chore(tgproxy): auto-update telegram proxies with RU verification [skip ci]"
+            for i in {1..5}; do
+              git pull --rebase origin main || true
+              git push origin main && break || sleep 5
+            done
+          fi
