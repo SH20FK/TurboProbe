@@ -112,13 +112,13 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               type="button"
               className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between select-none ${
                 isActive
-                  ? 'bg-zinc-100 text-zinc-950 border-white shadow-xl shadow-white/10 ring-1 ring-white/20'
-                  : 'bg-zinc-900/70 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:bg-zinc-850'
+                  ? 'bg-zinc-800/90 text-white border-zinc-500 shadow-md ring-1 ring-zinc-500/20'
+                  : 'bg-zinc-900/60 border-zinc-800/80 text-zinc-400 hover:border-zinc-700 hover:bg-zinc-850/60 hover:text-zinc-200'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${
-                  isActive ? 'bg-zinc-950 text-white' : 'bg-zinc-800 text-zinc-300 border border-white/10'
+                  isActive ? 'bg-zinc-700 text-white border border-zinc-600' : 'bg-zinc-950 text-zinc-400 border border-zinc-800'
                 }`}>
                   {preset.id === 'all' && <Layers className="w-3.5 h-3.5" />}
                   {preset.id === 'anti-tspu' && <Shield className="w-3.5 h-3.5" />}
@@ -127,18 +127,18 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 </div>
 
                 {isActive && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/40" />
                 )}
               </div>
 
               <div>
-                <span className={`text-xs sm:text-sm font-bold block ${
-                  isActive ? 'text-zinc-950' : 'text-zinc-100'
+                <span className={`text-xs sm:text-sm font-semibold block ${
+                  isActive ? 'text-white' : 'text-zinc-300'
                 }`}>
                   {preset.name}
                 </span>
                 <span className={`text-[11px] font-mono block mt-0.5 ${
-                  isActive ? 'text-zinc-700' : 'text-zinc-400'
+                  isActive ? 'text-zinc-300' : 'text-zinc-500'
                 }`}>
                   {preset.id === 'all' && 'Минимальный пинг'}
                   {preset.id === 'anti-tspu' && 'Обход ТСПУ / РКН'}
@@ -151,8 +151,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         })}
       </div>
 
-      {/* 2. Expandable Advanced Filter Accordion with Smooth Open & Close Animations */}
-      <div className="rounded-2xl bg-zinc-900/60 backdrop-blur-md border border-white/10 overflow-hidden shadow-lg">
+      {/* 2. Expandable Advanced Filter Accordion */}
+      <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800/80 overflow-hidden shadow-md">
         <button
           onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
           type="button"

@@ -325,7 +325,7 @@ export default function App() {
   }, [filteredNodes]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-zinc-100 selection:text-zinc-950 flex flex-col justify-between">
+    <div className="min-h-screen bg-[#0c0d10] text-zinc-100 selection:bg-zinc-800 selection:text-white flex flex-col justify-between">
       <div className="flex-1 flex flex-col justify-center min-h-screen py-8 sm:py-12">
         <div className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4">
           {/* Header */}

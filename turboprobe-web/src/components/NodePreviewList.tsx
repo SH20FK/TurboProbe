@@ -146,50 +146,50 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                     return (
                       <div
                         key={nodeKey}
-                        className="group flex items-center justify-between gap-2 p-2 rounded-xl bg-zinc-950/60 hover:bg-zinc-950 border border-zinc-850 transition-colors"
+                        className="group flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-zinc-950/40 hover:bg-zinc-900/60 border border-zinc-850/50 transition-colors"
                       >
+                        {/* Left: Flag + Host/Name + Protocol */}
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className="flex-shrink-0 w-6 flex items-center justify-center">
+                          <div className="flex-shrink-0 w-5 flex items-center justify-center">
                             <CountryFlag countryCode={countryCode} />
                           </div>
 
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono font-medium text-zinc-200 truncate">
-                                {hostDisplay || `Сервер #${index + 1}`}
+                          <div className="min-w-0 flex-1 flex items-center gap-2">
+                            <span className="text-xs font-mono text-zinc-200 truncate">
+                              {hostDisplay || `Узел #${index + 1}`}
+                            </span>
+                            {isRu && (
+                              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-blue-950/60 text-blue-300 border border-blue-800/40">
+                                🇷🇺 RU
                               </span>
-                              {isRu && (
-                                <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-blue-950 text-blue-300 border border-blue-800">
-                                  🇷🇺 RU OK
-                                </span>
-                              )}
-                            </div>
+                            )}
                           </div>
 
-                          <span className="flex-shrink-0 text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
+                          <span className="flex-shrink-0 text-[10px] font-mono text-zinc-500 uppercase">
                             {proto}
                           </span>
                         </div>
 
-                        {/* Right: Real Ping Badge + Copy Button */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span
-                            className={`text-[11px] font-mono font-medium px-2 py-0.5 rounded ${
-                              ping < 250
-                                ? 'bg-emerald-950/70 text-emerald-300 border border-emerald-800/60'
-                                : ping < 550
-                                ? 'bg-amber-950/70 text-amber-300 border border-amber-800/60'
-                                : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
-                            }`}
-                          >
-                            {ping} ms
-                          </span>
+                        {/* Right: Clean Ping Text + Copy Icon */}
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="flex items-center gap-1.5 font-mono text-xs">
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                ping < 250
+                                  ? 'bg-emerald-400'
+                                  : ping < 550
+                                  ? 'bg-amber-400'
+                                  : 'bg-zinc-500'
+                              }`}
+                            />
+                            <span className="text-zinc-400">{ping} ms</span>
+                          </div>
 
                           <button
                             onClick={() => handleCopyNode(node.uri, nodeKey)}
                             type="button"
                             title="Скопировать ключ сервера"
-                            className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                            className="p-1 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
                           >
                             {isCopied ? (
                               <Check className="w-3.5 h-3.5 text-emerald-400" />

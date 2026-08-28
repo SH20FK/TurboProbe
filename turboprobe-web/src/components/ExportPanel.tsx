@@ -84,10 +84,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                 key={lim}
                 onClick={() => onChangeLimit(lim)}
                 type="button"
-                className={`px-2 py-0.5 rounded-lg text-xs font-semibold transition-all cursor-pointer select-none ${
+                className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition-all cursor-pointer select-none ${
                   isActive
-                    ? 'bg-white text-zinc-950 font-bold shadow-sm'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                    ? 'bg-zinc-800 text-white border border-zinc-600 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
                 }`}
               >
                 {lim === 0 ? 'Все' : lim}
@@ -98,30 +98,30 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
       </div>
 
       {/* 2. Subscription URL Input Bar */}
-      <div className="flex items-center gap-2 p-1.5 rounded-xl bg-black/80 border border-zinc-800">
+      <div className="flex items-center gap-2 p-1.5 rounded-xl bg-zinc-950/80 border border-zinc-800">
         <input
           type="text"
           readOnly
           value={subUrl}
-          className="w-full bg-transparent text-xs sm:text-sm font-mono text-zinc-200 outline-none px-2 select-all overflow-ellipsis"
+          className="w-full bg-transparent text-xs sm:text-sm font-mono text-zinc-300 outline-none px-2 select-all overflow-ellipsis"
         />
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={onOpenQr}
           type="button"
-          className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-medium text-zinc-200 flex items-center gap-1.5 cursor-pointer transition-colors"
+          className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-medium text-zinc-300 flex items-center gap-1.5 cursor-pointer transition-colors"
         >
           <QrCode className="w-3.5 h-3.5 text-zinc-400" />
           <span>QR-код</span>
         </motion.button>
       </div>
 
-      {/* 3. Primary Full-Width Copy Button */}
+      {/* 3. Primary Full-Width Copy Button (Soft Dark Linear Style) */}
       <motion.button
         whileTap={{ scale: 0.98 }}
         onClick={handleCopyMainUrl}
         type="button"
-        className="w-full py-3 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
+        className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-750 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-2 border border-zinc-700 shadow-sm cursor-pointer transition-all hover:border-zinc-600"
       >
         <AnimatePresence mode="wait" initial={false}>
           {copiedUrl ? (
@@ -131,9 +131,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-2 font-bold text-emerald-950"
+              className="flex items-center gap-2 font-medium text-emerald-400"
             >
-              <Check className="w-4 h-4 stroke-[3]" />
+              <Check className="w-4 h-4 stroke-[2.5]" />
               <span>Ссылка скопирована в буфер обмена!</span>
             </motion.div>
           ) : (
@@ -143,9 +143,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-2 font-bold"
+              className="flex items-center gap-2 font-medium text-zinc-200"
             >
-              <Copy className="w-4 h-4" />
+              <Copy className="w-4 h-4 text-zinc-400" />
               <span>Скопировать ссылку на подписку</span>
             </motion.div>
           )}

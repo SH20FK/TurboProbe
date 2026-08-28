@@ -38,9 +38,9 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="w-full max-w-3xl mx-auto pt-6 pb-2 px-4 flex flex-col items-center text-center select-none">
-      {/* 1. Clean Logo Badge */}
-      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-b from-zinc-100 to-zinc-300 text-zinc-950 flex items-center justify-center shadow-lg shadow-white/10 mb-3 border border-white/40">
-        <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.2]" />
+      {/* 1. Clean Dark Logo Badge */}
+      <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-200 flex items-center justify-center shadow-md mb-3">
+        <ShieldCheck className="w-6 h-6 stroke-[2]" />
       </div>
 
       {/* 2. Main Title */}
