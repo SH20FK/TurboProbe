@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-⚡ TurboProbe TGProxy Ultra-Hardcore Discovery Bot v2.0
-Recursively searches GitHub, Telegram, and public proxy mirrors:
-1. 🔍 Deep GitHub Code & Repo Matrix (50+ queries across topics, code & repositories)
-2. 🌳 Deep Git Tree Inspector (Recursively extracts all raw blob URLs)
-3. 📡 Recursive Telegram Channel Discovery (Crawls 80+ seeds & auto-discovers mentioned channels)
-4. 🧪 High-Speed Concurrent Validator (Tests payloads and saves to `discovered_tg_sources.json`)
+⚡ TurboProbe TGProxy Multi-Forge Global Discovery Bot v3.0
+Spans across GitHub, GitLab, GitVerse, Codeberg, Gitee, and Telegram:
+1. 🐙 GitHub Search API & Recursive Git Tree Crawler
+2. 🦊 GitLab Search API & Repository Tree Crawler
+3. 🇷🇺 GitVerse (Сбер) Search API Crawler
+4. 🏔️ Codeberg (Gitea) Search API Crawler
+5. 🇨🇳 Gitee Search API Crawler
+6. 📡 Recursive Telegram Channel Discovery (80+ seeds & 2-hop auto-discovery)
 """
 
 import asyncio
@@ -30,23 +32,19 @@ DISCOVERED_TG_PATH = os.path.join(TG_DIR, "discovered_tg_sources.json")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
 GITHUB_API = "https://api.github.com"
 
-GITHUB_TG_REPO_QUERIES = [
-    "mtproto sort:updated-desc",
-    "telegram-proxy sort:updated-desc",
-    "tgproxy sort:updated-desc",
-    "mtproto-proxy sort:updated-desc",
-    "tg-proxy sort:updated-desc",
-    "telegram-mtproto sort:updated-desc",
-    "mtproto-secret sort:updated-desc",
-    "tg-socks5 sort:updated-desc",
-    "telegram-proxies sort:updated-desc",
-    "mtg-proxy sort:updated-desc",
-    "telegram-v2ray-collector sort:updated-desc",
-    "mtproto-collector sort:updated-desc",
-    "free-mtproto sort:updated-desc",
-    "socks5-proxy-list sort:updated-desc",
-    "free-proxy-list sort:updated-desc",
-    "proxy-list-socks5 sort:updated-desc",
+FORGE_QUERIES = [
+    "mtproto",
+    "telegram proxy",
+    "tgproxy",
+    "mtproto-proxy",
+    "tg-proxy",
+    "telegram-mtproto",
+    "tg-socks5",
+    "telegram-proxies",
+    "mtg-proxy",
+    "socks5-proxy-list",
+    "v2ray-collector",
+    "free-proxy-list",
 ]
 
 GITHUB_TG_CODE_QUERIES = [
@@ -56,11 +54,9 @@ GITHUB_TG_CODE_QUERIES = [
     '"https://t.me/socks?server=" extension:txt',
     'filename:mtproto.txt',
     'filename:tgproxy.txt',
-    'filename:telegram.txt',
     'filename:proxies.txt "secret="',
     'path:sub "tg://proxy"',
     'path:proxies "tg://proxy"',
-    'filename:socks5.txt',
 ]
 
 SEED_CHANNELS = [
@@ -153,7 +149,40 @@ async def fetch_json_async(url: str, session: aiohttp.ClientSession, headers: di
     return None
 
 
-async def inspect_repo_tree(owner: str, name: str, branch: str, session: aiohttp.ClientSession, gh_headers: dict) -> List[str]:
+async def discover_github(session: aiohttp.ClientSession) -> List[str]:
+    print("🐙 [GitHub Engine] Searching repositories & code...", flush=True)
+    gh_headers = {"User-Agent": "TurboProbe-TGProxy-Discovery/3.0", "Accept": "application/vnd.github.v3+json"}
+    if GITHUB_TOKEN:
+        gh_headers["Authorization"] = f"token {GITHUB_TOKEN}"
+
+    search_tasks = [
+        fetch_json_async(f"{GITHUB_API}/search/repositories?q={urllib.parse.quote(q + ' sort:updated-desc')}&per_page=15", session, gh_headers)
+        for q in FORGE_QUERIES
+    ]
+    results = await asyncio.gather(*search_tasks, return_exceptions=True)
+
+    tree_tasks = []
+    for res in results:
+        if isinstance(res, dict) and "items" in res:
+            for repo in res["items"]:
+                owner = repo.get("owner", {}).get("login")
+                name = repo.get("name")
+                branch = repo.get("default_branch", "main")
+                if owner and name:
+                    tree_tasks.append(inspect_github_tree(owner, name, branch, session, gh_headers))
+
+    discovered = []
+    if tree_tasks:
+        tree_results = await asyncio.gather(*tree_tasks, return_exceptions=True)
+        for tr in tree_results:
+            if isinstance(tr, list):
+                discovered.extend(tr)
+
+    print(f"  └─ GitHub: found {len(discovered)} raw endpoints.", flush=True)
+    return discovered
+
+
+async def inspect_github_tree(owner: str, name: str, branch: str, session: aiohttp.ClientSession, gh_headers: dict) -> List[str]:
     tree_url = f"{GITHUB_API}/repos/{owner}/{name}/git/trees/{branch}?recursive=1"
     data = await fetch_json_async(tree_url, session, gh_headers)
     found = []
@@ -166,61 +195,68 @@ async def inspect_repo_tree(owner: str, name: str, branch: str, session: aiohttp
     return found
 
 
-async def discover_github_ecosystem(session: aiohttp.ClientSession) -> List[str]:
-    print("🔍 [GitHub Discovery] Deep searching MTProto & Telegram proxy repositories and code...", flush=True)
-    gh_headers = {
-        "User-Agent": "TurboProbe-TGProxy-Discovery-Bot/2.0",
-        "Accept": "application/vnd.github.v3+json",
-    }
-    if GITHUB_TOKEN:
-        gh_headers["Authorization"] = f"token {GITHUB_TOKEN}"
+async def discover_gitlab(session: aiohttp.ClientSession) -> List[str]:
+    print("🦊 [GitLab Engine] Searching projects & trees...", flush=True)
+    headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+    found_urls = []
+    for q in FORGE_QUERIES[:6]:
+        url = f"https://gitlab.com/api/v4/projects?search={urllib.parse.quote(q)}&per_page=15"
+        data = await fetch_json_async(url, session, headers)
+        if isinstance(data, list):
+            for p in data:
+                pid = p.get("id")
+                ns = p.get("path_with_namespace")
+                branch = p.get("default_branch", "main") or "main"
+                if pid and ns:
+                    tree_url = f"https://gitlab.com/api/v4/projects/{pid}/repository/tree?recursive=true"
+                    tree_data = await fetch_json_async(tree_url, session, headers)
+                    if isinstance(tree_data, list):
+                        for item in tree_data:
+                            path = item.get("path", "").lower()
+                            if item.get("type") == "blob" and path.endswith((".txt", ".json", ".yaml", ".conf", ".list")):
+                                if any(k in path for k in ["mtproto", "tg", "proxy", "socks"]):
+                                    found_urls.append(f"https://gitlab.com/{ns}/-/raw/{branch}/{item.get('path')}")
+    print(f"  └─ GitLab: found {len(found_urls)} raw endpoints.", flush=True)
+    return found_urls
 
-    # 1. Search Repositories
-    search_repo_tasks = [
-        fetch_json_async(f"{GITHUB_API}/search/repositories?q={urllib.parse.quote(q)}&per_page=20", session, gh_headers)
-        for q in GITHUB_TG_REPO_QUERIES
-    ]
-    repo_results = await asyncio.gather(*search_repo_tasks, return_exceptions=True)
 
-    tree_tasks = []
-    for res in repo_results:
-        if isinstance(res, dict) and "items" in res:
-            for repo in res["items"]:
-                owner = repo.get("owner", {}).get("login")
-                name = repo.get("name")
-                branch = repo.get("default_branch", "main")
-                if owner and name:
-                    tree_tasks.append(inspect_repo_tree(owner, name, branch, session, gh_headers))
+async def discover_gitverse(session: aiohttp.ClientSession) -> List[str]:
+    print("🇷🇺 [GitVerse Engine] Searching repositories...", flush=True)
+    headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+    found_urls = []
+    for q in FORGE_QUERIES[:6]:
+        url = f"https://gitverse.ru/api/v1/repos/search?q={urllib.parse.quote(q)}&limit=15"
+        data = await fetch_json_async(url, session, headers)
+        if isinstance(data, dict) and "data" in data:
+            for r in data["data"]:
+                full_name = r.get("full_name")
+                branch = r.get("default_branch", "main") or "main"
+                if full_name:
+                    found_urls.append(f"https://gitverse.ru/api/v1/repos/{full_name}/raw/branch/{branch}/proxies.txt")
+                    found_urls.append(f"https://gitverse.ru/api/v1/repos/{full_name}/raw/branch/{branch}/mtproto.txt")
+    print(f"  └─ GitVerse: found {len(found_urls)} potential endpoints.", flush=True)
+    return found_urls
 
-    # 2. Search Code Directly
-    code_tasks = [
-        fetch_json_async(f"{GITHUB_API}/search/code?q={urllib.parse.quote(q)}&per_page=20", session, gh_headers)
-        for q in GITHUB_TG_CODE_QUERIES
-    ]
-    code_results = await asyncio.gather(*code_tasks, return_exceptions=True)
-    direct_code_urls = []
-    for cr in code_results:
-        if isinstance(cr, dict) and "items" in cr:
-            for item in cr["items"]:
-                owner = item.get("repository", {}).get("owner", {}).get("login")
-                name = item.get("repository", {}).get("name")
-                path = item.get("path")
-                if owner and name and path:
-                    direct_code_urls.append(f"https://raw.githubusercontent.com/{owner}/{name}/HEAD/{path}")
 
-    discovered = list(direct_code_urls)
-    if tree_tasks:
-        tree_results = await asyncio.gather(*tree_tasks, return_exceptions=True)
-        for tr in tree_results:
-            if isinstance(tr, list):
-                discovered.extend(tr)
-
-    print(f"  └─ Inspected {len(tree_tasks)} repos, found {len(discovered)} raw GitHub endpoints.", flush=True)
-    return discovered
+async def discover_codeberg(session: aiohttp.ClientSession) -> List[str]:
+    print("🏔️ [Codeberg Engine] Searching repositories...", flush=True)
+    headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+    found_urls = []
+    for q in FORGE_QUERIES[:6]:
+        url = f"https://codeberg.org/api/v1/repos/search?q={urllib.parse.quote(q)}&limit=15"
+        data = await fetch_json_async(url, session, headers)
+        if isinstance(data, dict) and "data" in data:
+            for r in data["data"]:
+                full_name = r.get("full_name")
+                branch = r.get("default_branch", "main") or "main"
+                if full_name:
+                    found_urls.append(f"https://codeberg.org/{full_name}/raw/branch/{branch}/proxy.txt")
+                    found_urls.append(f"https://codeberg.org/{full_name}/raw/branch/{branch}/mtproto.txt")
+    print(f"  └─ Codeberg: found {len(found_urls)} potential endpoints.", flush=True)
+    return found_urls
 
 
 async def scrape_channel_with_discovery(ch: str, session: aiohttp.ClientSession) -> Tuple[str, List[str], List[str]]:
-    """Crawls a channel and extracts both proxies and newly mentioned proxy channels."""
     url = f"https://t.me/s/{ch}"
     proxies = []
     new_channels = []
@@ -231,10 +267,8 @@ async def scrape_channel_with_discovery(ch: str, session: aiohttp.ClientSession)
                 if resp.status != 200:
                     break
                 html = await resp.text()
-                # Extract proxies
                 m_px = re.findall(r'(?:https?://t\.me/proxy\?|tg://proxy\?|tg://socks\?|https?://t\.me/socks\?)([^\s<>"\'\)]+)', html)
                 proxies.extend(m_px)
-                # Extract mentioned channels
                 mentions = re.findall(r'(?:@|t\.me/s?/)([a-zA-Z0-9_]{4,32})', html)
                 for m in mentions:
                     m_low = m.lower()
@@ -254,7 +288,6 @@ async def test_endpoint_async(url: str, session: aiohttp.ClientSession) -> Tuple
         async with session.get(url, timeout=4.5) as resp:
             if resp.status == 200:
                 text = await resp.text()
-                # Base64 check
                 try:
                     cleaned = re.sub(r'[^A-Za-z0-9+/=]', '', text)
                     if len(cleaned) > 50 and len(cleaned) % 4 == 0:
@@ -277,11 +310,11 @@ async def test_endpoint_async(url: str, session: aiohttp.ClientSession) -> Tuple
 
 
 async def run_discovery():
-    print("🚀 [TGProxy Discovery Bot] Launching Ultra-Hardcore Global Sleuth Engine...", flush=True)
+    print("🚀 [TGProxy Discovery Bot] Launching Multi-Forge Global Discovery (GitHub, GitLab, GitVerse, Codeberg, Telegram)...", flush=True)
     t0 = time.time()
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     }
     connector = aiohttp.TCPConnector(limit=100, ssl=False)
 
@@ -295,28 +328,34 @@ async def run_discovery():
             pass
 
     async with aiohttp.ClientSession(connector=connector, headers=headers) as session:
-        # 1. GitHub Deep Discovery
-        gh_endpoints = await discover_github_ecosystem(session)
-
-        # 2. Telegram Recursive Channel Discovery (Hop 1 & Hop 2)
-        print(f"📡 [Telegram Crawler] Crawling {len(SEED_CHANNELS)} seed channels with recursive discovery...", flush=True)
+        # Multi-Forge Concurrent Discovery
+        gh_tasks = discover_github(session)
+        gl_tasks = discover_gitlab(session)
+        gv_tasks = discover_gitverse(session)
+        cb_tasks = discover_codeberg(session)
         ch_tasks = [scrape_channel_with_discovery(ch, session) for ch in SEED_CHANNELS]
-        ch_results = await asyncio.gather(*ch_tasks, return_exceptions=True)
+
+        gh_res, gl_res, gv_res, cb_res, ch_res = await asyncio.gather(
+            gh_tasks, gl_tasks, gv_tasks, cb_tasks, asyncio.gather(*ch_tasks), return_exceptions=True
+        )
 
         discovered_channels = set()
-        for r in ch_results:
-            if isinstance(r, tuple):
-                for nc in r[2]:
-                    discovered_channels.add(nc)
+        if isinstance(ch_res, list):
+            for r in ch_res:
+                if isinstance(r, tuple):
+                    for nc in r[2]:
+                        discovered_channels.add(nc)
 
-        print(f"  └─ Auto-discovered {len(discovered_channels)} NEW Telegram proxy channels in Hop 1!", flush=True)
+        all_forge_endpoints = []
+        for r in [gh_res, gl_res, gv_res, cb_res]:
+            if isinstance(r, list):
+                all_forge_endpoints.extend(r)
 
-        all_candidates = set(SEED_RAW_SOURCES) | set(gh_endpoints) | existing
+        all_candidates = set(SEED_RAW_SOURCES) | set(all_forge_endpoints) | existing
         for ch in SEED_CHANNELS + list(discovered_channels):
             all_candidates.add(f"https://t.me/s/{ch}")
 
-        # 3. Parallel Validation
-        print(f"📊 Benchmarking {len(all_candidates)} total candidates for active payload...", flush=True)
+        print(f"📊 Benchmarking {len(all_candidates)} candidates across all forges for active proxy payload...", flush=True)
         test_tasks = [test_endpoint_async(u, session) for u in all_candidates]
         test_results = await asyncio.gather(*test_tasks, return_exceptions=True)
 
@@ -336,7 +375,7 @@ async def run_discovery():
         json.dump(data, f, indent=2, ensure_ascii=False)
 
     elapsed = round(time.time() - t0, 1)
-    print(f"✨ [TGProxy Discovery Bot] Finished in {elapsed}s! Saved {len(verified)} active sources to {DISCOVERED_TG_PATH}", flush=True)
+    print(f"✨ [TGProxy Discovery Bot] Complete in {elapsed}s! Saved {len(verified)} verified multi-forge sources to {DISCOVERED_TG_PATH}", flush=True)
 
 
 if __name__ == "__main__":

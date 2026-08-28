@@ -60,6 +60,22 @@ export interface StatsData {
   updated_at?: string;
 }
 
+export interface TgProxyItem {
+  proto: 'mtproto' | 'socks5' | string;
+  server: string;
+  port: number;
+  secret?: string | null;
+  user?: string | null;
+  pass?: string | null;
+  is_faketls?: boolean;
+  country?: string;
+  country_label?: string;
+  ping_ms: number;
+  ru_verified?: boolean;
+  tg_link: string;
+  https_link?: string;
+}
+
 export interface PresetItem {
   id: string;
   name: string;

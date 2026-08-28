@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from './components/Header';
 import { FilterPanel } from './components/FilterPanel';
 import { ExportPanel } from './components/ExportPanel';
 import { NodePreviewList } from './components/NodePreviewList';
+import { TGProxyView } from './components/TGProxyView';
 import { QrModal } from './components/QrModal';
 import { normalizeAndIndexNodes } from './utils/nodeIndexer';
 import { generateClashMetaYaml } from './utils/clashExport';
@@ -21,6 +23,27 @@ function isConflictMarker(line: string): boolean {
 }
 
 export default function App() {
+  const [appMode, setAppMode] = useState<'vpn' | 'tg'>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.hash === '#tg' || window.location.pathname.includes('/tg')) {
+        return 'tg';
+      }
+      const saved = localStorage.getItem('tp_active_hub_mode');
+      if (saved === 'tg' || saved === 'vpn') return saved;
+    }
+    return 'vpn';
+  });
+
+  const [customQrUrl, setCustomQrUrl] = useState<string>('');
+
+  const handleSwitchMode = (mode: 'vpn' | 'tg') => {
+    setAppMode(mode);
+    try {
+      localStorage.setItem('tp_active_hub_mode', mode);
+      window.history.replaceState(null, '', mode === 'tg' ? '#tg' : '#vpn');
+    } catch {}
+  };
+
   const [activePreset, setActivePreset] = useState<string>('anti-tspu');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
@@ -552,7 +575,11 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className="relative min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] flex flex-col justify-between overflow-x-hidden transition-colors duration-200">
+      <div
+        className={`relative min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] flex flex-col justify-between overflow-x-hidden transition-colors duration-200 ${
+          appMode === 'tg' ? 'theme-tg' : ''
+        }`}
+      >
         {/* Dynamic Background with Floating Shapes & Dot Matrix */}
         <M3Background />
 
@@ -560,100 +587,175 @@ export default function App() {
         <header className="sticky top-0 z-30 w-full h-16 bg-[var(--bg-app)]/90 backdrop-blur-md border-b border-[var(--border-main)] px-4 sm:px-6 flex items-center justify-between transition-colors duration-200">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-white p-1 shadow-md flex items-center justify-center">
-              <img src="./logo.svg" alt="TurboProbe" className="w-full h-full object-contain" />
+              {appMode === 'tg' ? (
+                <div className="w-full h-full rounded-lg bg-[#2481CC] p-1 flex items-center justify-center text-white">
+                  <svg className="w-full h-full fill-current" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+                  </svg>
+                </div>
+              ) : (
+                <img src="./logo.svg" alt="TurboProbe" className="w-full h-full object-contain" />
+              )}
             </div>
             <span className="font-display font-black text-base sm:text-lg text-[var(--text-main)] tracking-tight">
-              TurboProbe
+              {appMode === 'tg' ? 'TGProxy' : 'TurboProbe'}
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-card)] text-xs font-mono text-[var(--text-muted)] border border-[var(--border-main)]">
-              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span>
-                {(stats.total_nodes || allNodes.length) > 0 ? (
-                  `${(stats.total_nodes || allNodes.length).toLocaleString('ru-RU')} проверенных узлов`
-                ) : (
-                  'Синхронизация...'
-                )}
+          {/* Mode Switcher Tabs */}
+          <div className="flex items-center bg-[var(--bg-card)] p-1 rounded-full border border-[var(--border-main)] text-xs font-mono select-none">
+            <button
+              onClick={() => handleSwitchMode('vpn')}
+              className={`relative px-3 sm:px-3.5 py-1.5 rounded-full transition-colors cursor-pointer ${
+                appMode === 'vpn' ? 'text-white font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+              }`}
+            >
+              {appMode === 'vpn' && (
+                <motion.div
+                  layoutId="app-mode-pill"
+                  className="absolute inset-0 bg-[#C25E30] rounded-full shadow-xs"
+                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <span>🛡️</span>
+                <span className="hidden sm:inline">VPN</span>
               </span>
-            </div>
+            </button>
 
+            <button
+              onClick={() => handleSwitchMode('tg')}
+              className={`relative px-3 sm:px-3.5 py-1.5 rounded-full transition-colors cursor-pointer ${
+                appMode === 'tg' ? 'text-white font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+              }`}
+            >
+              {appMode === 'tg' && (
+                <motion.div
+                  layoutId="app-mode-pill"
+                  className="absolute inset-0 bg-[#2481CC] rounded-full shadow-xs"
+                  transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <span>✈️</span>
+                <span className="hidden sm:inline">TG Прокси</span>
+              </span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2.5">
             <AnimatedThemeToggle />
 
             <a
               href="https://github.com/SH20FK/TurboProbe"
               target="_blank"
               rel="noreferrer"
-              className="relative px-3.5 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-main)] hover:text-white text-xs font-semibold font-mono flex items-center gap-1.5 transition-all border border-[var(--border-main)] hover:border-[#C25E30]/40 shadow-xs active:scale-95 overflow-hidden select-none cursor-pointer"
+              className="relative px-3.5 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-main)] hover:text-white text-xs font-semibold font-mono flex items-center gap-1.5 transition-all border border-[var(--border-main)] hover:border-[var(--primary-accent)] shadow-xs active:scale-95 overflow-hidden select-none cursor-pointer"
             >
               <GitHubIcon className="w-4 h-4 text-current flex-shrink-0" />
-              <span>GitHub</span>
+              <span className="hidden sm:inline">GitHub</span>
             </a>
           </div>
         </header>
 
         {/* 2. Main Page Content */}
         <div className="relative z-10 flex-1 flex flex-col justify-center py-6 sm:py-10">
-          <div className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4">
-            {/* Hero Header */}
-            <Header
-              totalConfigs={stats.total_nodes || allNodes.length}
-              bestPing={stats.best_ping_ms}
-              avgPing={stats.avg_ping_ms}
-              updatedAt={stats.updated_at}
-            />
+          <AnimatePresence mode="wait">
+            {appMode === 'tg' ? (
+              <motion.div
+                key="tg-view"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="w-full px-3 sm:px-4"
+              >
+                <TGProxyView
+                  onOpenQr={(url) => {
+                    setCustomQrUrl(url);
+                    setIsQrOpen(true);
+                  }}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="vpn-view"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4"
+              >
+                {/* Hero Header */}
+                <Header
+                  totalConfigs={stats.total_nodes || allNodes.length}
+                  bestPing={stats.best_ping_ms}
+                  avgPing={stats.avg_ping_ms}
+                  updatedAt={stats.updated_at}
+                />
 
-            {/* Main Controls */}
-            <main className="w-full space-y-4">
-              <FilterPanel
-                activePreset={activePreset}
-                onSelectPreset={handleSelectPreset}
-                selectedServices={selectedServices}
-                onToggleService={handleToggleService}
-                selectedCountries={selectedCountries}
-                onToggleCountry={handleToggleCountry}
-                onClearCountries={handleClearCountries}
-                selectedProtos={selectedProtos}
-                onToggleProto={handleToggleProto}
-                onClearProtos={handleClearProtos}
-                countryCounts={countryCounts}
-                protoCounts={protoCounts}
-                maxPing={maxPing}
-                onChangeMaxPing={handleChangeMaxPing}
-              />
+                {/* Main Controls */}
+                <main className="w-full space-y-4">
+                  <FilterPanel
+                    activePreset={activePreset}
+                    onSelectPreset={handleSelectPreset}
+                    selectedServices={selectedServices}
+                    onToggleService={handleToggleService}
+                    selectedCountries={selectedCountries}
+                    onToggleCountry={handleToggleCountry}
+                    onClearCountries={handleClearCountries}
+                    selectedProtos={selectedProtos}
+                    onToggleProto={handleToggleProto}
+                    onClearProtos={handleClearProtos}
+                    countryCounts={countryCounts}
+                    protoCounts={protoCounts}
+                    maxPing={maxPing}
+                    onChangeMaxPing={handleChangeMaxPing}
+                  />
 
-              <ExportPanel
-                subUrl={subUrl}
-                filteredCount={filteredNodes.length}
-                selectedLimit={selectedLimit}
-                onChangeLimit={setSelectedLimit}
-                allFilteredKeys={allFilteredKeys}
-                onOpenQr={() => setIsQrOpen(true)}
-                onDownloadClash={handleDownloadClash}
-              />
+                  <ExportPanel
+                    subUrl={subUrl}
+                    filteredCount={filteredNodes.length}
+                    selectedLimit={selectedLimit}
+                    onChangeLimit={setSelectedLimit}
+                    allFilteredKeys={allFilteredKeys}
+                    onOpenQr={() => {
+                      setCustomQrUrl('');
+                      setIsQrOpen(true);
+                    }}
+                    onDownloadClash={handleDownloadClash}
+                  />
 
-              <NodePreviewList
-                nodes={filteredNodes}
-                isLoading={isLoading}
-                totalAvailable={filteredNodes.length}
-              />
-            </main>
+                  <NodePreviewList
+                    nodes={filteredNodes}
+                    isLoading={isLoading}
+                    totalAvailable={filteredNodes.length}
+                  />
+                </main>
 
-            {/* QR Modal */}
-            <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
-
-            {/* Clean Footer */}
-            <footer className="w-full pt-8 pb-4 border-t border-[var(--border-main)] flex flex-col items-center justify-center text-center text-xs text-[var(--text-muted)] font-body space-y-1">
-              <p className="m-0 font-display font-medium text-[var(--text-main)]">
-                TurboProbe · Суверенный VPN-агрегатор
-              </p>
-              <p className="m-0 font-mono text-[11px]">
-                Телеметрия VLESS Reality & Trojan • Обновление каждые 6 часов
-              </p>
-            </footer>
-          </div>
+                {/* Clean Footer */}
+                <footer className="w-full pt-8 pb-4 border-t border-[var(--border-main)] flex flex-col items-center justify-center text-center text-xs text-[var(--text-muted)] font-body space-y-1">
+                  <p className="m-0 font-display font-medium text-[var(--text-main)]">
+                    TurboProbe · Суверенный VPN-агрегатор
+                  </p>
+                  <p className="m-0 font-mono text-[11px]">
+                    Телеметрия VLESS Reality & Trojan • Обновление каждые 6 часов
+                  </p>
+                </footer>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+
+        {/* QR Modal */}
+        <QrModal
+          isOpen={isQrOpen}
+          onClose={() => {
+            setIsQrOpen(false);
+            setCustomQrUrl('');
+          }}
+          subUrl={customQrUrl || subUrl}
+        />
       </div>
     </ToastProvider>
   );
