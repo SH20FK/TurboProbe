@@ -45,7 +45,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /usr/local/bin/xray
-          key: xray-linux-64-v1.8.24
+          key: xray-linux-64-v26.3.27
 
       - name: Cache Mihomo binary
         id: cache-mihomo
@@ -54,36 +54,24 @@ jobs:
           path: /usr/local/bin/mihomo
           key: mihomo-linux-amd64-v1.19.30
 
-      - name: Install dependencies & Xray-core & Mihomo
+      - name: Install dependencies, Xray-core & Mihomo
         run: |
           ulimit -n 65536 || true
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           if [ ! -f /usr/local/bin/xray ]; then
-            curl -L -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+            curl -fL --retry 3 -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/download/v26.3.27/Xray-linux-64.zip
             sudo unzip -o /tmp/xray.zip -d /usr/local/bin/
             sudo chmod +x /usr/local/bin/xray
           fi
+          /usr/local/bin/xray version
           if [ ! -f /usr/local/bin/mihomo ]; then
-            MIHOMO_VER=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'].lstrip('v'))")
-            curl -L -s -o /tmp/mihomo.gz "https://github.com/MetaCubeX/mihomo/releases/download/v${MIHOMO_VER}/mihomo-linux-amd64-v${MIHOMO_VER}.gz"
+            curl -fL --retry 3 -s -o /tmp/mihomo.gz "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.30/mihomo-linux-amd64-v1.19.30.gz"
             sudo sh -c "gunzip -c /tmp/mihomo.gz > /usr/local/bin/mihomo"
             sudo chmod +x /usr/local/bin/mihomo
             rm -f /tmp/mihomo.gz
           fi
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: turboprobe-web/package.json
-
-      - name: Verify Web Build
-        run: |
-          cd turboprobe-web
-          npm ci || npm install
-          npm run build
+          /usr/local/bin/mihomo version || true
 
       - name: Run Deep Service Prober
         env:

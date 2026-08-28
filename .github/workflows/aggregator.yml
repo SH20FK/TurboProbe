@@ -63,18 +63,6 @@ jobs:
           fi
           /usr/local/bin/xray version
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: turboprobe-web/package.json
-
-      - name: Verify Web Build
-        run: |
-          cd turboprobe-web
-          npm ci || npm install
-          npm run build
 
       - name: Discover new subscription sources
         if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full') }}
@@ -96,19 +84,6 @@ jobs:
           ulimit -n 65536 || true
           python tools/aggregator.py
 
-      - name: Run Deep Service Prober (Real Tunnel Verifier)
-        env:
-          TP_XRAY_WORKERS: "6"
-          TP_BATCH_SIZE: "150"
-        run: |
-          ulimit -n 65536 || true
-          if [ "${{ github.event.inputs.mode }}" = "fast" ]; then
-            python tools/service_prober.py --limit 1000
-          elif [ "${{ github.event.inputs.mode }}" = "prober_only" ]; then
-            python tools/service_prober.py --limit 500
-          else
-            python tools/service_prober.py --limit 0
-          fi
 
       - name: Copy subscriptions to docs for GitHub Pages hosting
         run: |

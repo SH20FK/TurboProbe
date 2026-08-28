@@ -2270,18 +2270,33 @@ def main():
                         if u and u not in candidates:
                             candidates.append(u)
 
-    # 1c. Check tools/node_history.json
-    if not candidates:
-        hist_path = os.path.join(TOOLS_DIR, "node_history.json")
-        if os.path.isfile(hist_path):
-            try:
-                with open(hist_path, "r", encoding="utf-8") as f:
-                    hist_data = json.load(f)
+    # 1c. Check tools/node_history.json as last-resort fallback OR to
+    #     supplement with hy2/tuic nodes that are never in sub/*.txt yet.
+    hist_path = os.path.join(TOOLS_DIR, "node_history.json")
+    UDP_PROTOS_SEED = {"hy2://", "hysteria2://", "tuic://"}
+    if os.path.isfile(hist_path):
+        try:
+            with open(hist_path, "r", encoding="utf-8") as f:
+                hist_data = json.load(f)
+            if not candidates:
+                # Pure fallback — load everything from history
                 for k in hist_data.keys():
                     if "://" in k and k not in candidates:
                         candidates.append(k)
-            except Exception:
-                pass
+            else:
+                # Supplement: always add hy2/tuic/hysteria2 nodes from history
+                # so they get a chance to be verified via Mihomo even when
+                # sub/hysteria2.txt was empty (circular-dependency break).
+                existing_set = set(candidates)
+                hy2_from_hist = [
+                    k for k in hist_data.keys()
+                    if any(k.lower().startswith(p) for p in UDP_PROTOS_SEED)
+                    and k not in existing_set
+                ]
+                candidates.extend(hy2_from_hist[:500])  # cap to avoid bloat
+        except Exception:
+            pass
+
 
     # 1d. Auto-run aggregator --fast if still no candidates
     if not candidates:
@@ -2627,10 +2642,17 @@ def main():
     proto_ss = [format_verified_remark(n["uri"], n["country"], "SS", idx) for idx, n in enumerate([n for n in verified_alive_nodes if n["uri"].lower().startswith("ss://") or "ss" in n.get("protocol", "").lower()], start=1)]
 
     for fname, p_nodes in [("reality.txt", proto_reality), ("hysteria2.txt", proto_hy2), ("trojan.txt", proto_trojan), ("shadowsocks.txt", proto_ss)]:
+        # If the prober verified 0 nodes of this protocol it means none passed
+        # through (most likely the input had no such nodes, not that they're all
+        # dead). Keep the previous file so the aggregator-populated content
+        # (which may have fresh hy2/tuic URIs) survives into the next run.
+        if not p_nodes:
+            continue
         with open(os.path.join(SUB_DIR, fname), "w", encoding="utf-8") as f:
             f.write("\n".join(p_nodes))
         with open(os.path.join(docs_sub_dir, fname), "w", encoding="utf-8") as f:
             f.write("\n".join(p_nodes))
+
 
     # Base64 export
     import base64

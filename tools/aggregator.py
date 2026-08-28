@@ -224,6 +224,16 @@ SOURCES = [
     "https://t.me/s/vless_configs",
     "https://t.me/s/Shadowsocks_v2ray",
     "https://t.me/s/v2ray_free_config",
+
+    # ⚡ Hysteria2 / TUIC dedicated feeds (for Mihomo-based real probing)
+    "https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/configs/Hysteria2.txt",
+    "https://raw.githubusercontent.com/Argh94/Proxy-List/main/All_Config.txt",
+    "https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector_Py/main/sub/Mix/mix.txt",
+    "https://raw.githubusercontent.com/mahdibland/ShadowsocksAggregator/master/Eternity.txt",
+    "https://raw.githubusercontent.com/Kwinshadow/TelegramV2rayCollector/main/sublinks/mix.txt",
+    "https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/row-url/all.txt",
+    "https://raw.githubusercontent.com/mohamadfg-dev/telegram-v2ray-configs-collector/main/category/hysteria2.txt",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-configs-collector/main/splitted/mixed",
 ]
 
 RU_DIRECT_SOURCES = {
