@@ -8,6 +8,7 @@ import { normalizeAndIndexNodes } from './utils/nodeIndexer';
 import { generateClashMetaYaml } from './utils/clashExport';
 import { M3Background } from './components/ui/M3Background';
 import { M3Ripple } from './components/ui/M3Ripple';
+import { ToastProvider } from './components/ui/M3Toast';
 import type { NodeItem, PresetItem } from './types';
 
 const CDN_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
@@ -353,106 +354,108 @@ export default function App() {
   }, [filteredNodes]);
 
   return (
-    <div className="relative min-h-screen bg-[#141218] text-[#E6E0E9] selection:bg-[#D0BCFF] selection:text-[#381E72] flex flex-col justify-between overflow-x-hidden">
-      {/* M3 Expressive Background with Floating Shapes & Dot Matrix */}
-      <M3Background />
+    <ToastProvider>
+      <div className="relative min-h-screen bg-[#141218] text-[#E6E0E9] selection:bg-[#D0BCFF] selection:text-[#381E72] flex flex-col justify-between overflow-x-hidden">
+        {/* M3 Expressive Background with Floating Shapes & Dot Matrix */}
+        <M3Background />
 
-      {/* 1. Top App Bar */}
-      <header className="sticky top-0 z-30 w-full h-16 bg-[#141218]/90 backdrop-blur-md border-b border-[#49454F]/20 px-4 sm:px-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-white p-1 shadow-md flex items-center justify-center">
-            <img src="./logo.svg" alt="TurboProbe" className="w-full h-full object-contain" />
-          </div>
-          <span className="font-display font-black text-base sm:text-lg text-white tracking-tight">
-            TurboProbe
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2B2930] text-xs font-mono text-[#CAC4D0] border border-[#49454F]/20">
-            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-            <span>
-              {(stats.total_nodes || allNodes.length) > 0 ? (
-                `${(stats.total_nodes || allNodes.length).toLocaleString('ru-RU')} проверенных узлов`
-              ) : (
-                'Синхронизация...'
-              )}
+        {/* 1. Top App Bar */}
+        <header className="sticky top-0 z-30 w-full h-16 bg-[#141218]/90 backdrop-blur-md border-b border-[#49454F]/20 px-4 sm:px-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-white p-1 shadow-md flex items-center justify-center">
+              <img src="./logo.svg" alt="TurboProbe" className="w-full h-full object-contain" />
+            </div>
+            <span className="font-display font-black text-base sm:text-lg text-white tracking-tight">
+              TurboProbe
             </span>
           </div>
 
-          <a
-            href="https://github.com/SH20FK/TurboProbe"
-            target="_blank"
-            rel="noreferrer"
-            className="relative px-3.5 py-1.5 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#E6E0E9] text-xs font-medium font-mono flex items-center gap-1.5 transition-colors overflow-hidden border border-[#49454F]/30"
-          >
-            <span>GitHub</span>
-            <M3Ripple />
-          </a>
-        </div>
-      </header>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2B2930] text-xs font-mono text-[#CAC4D0] border border-[#49454F]/20">
+              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+              <span>
+                {(stats.total_nodes || allNodes.length) > 0 ? (
+                  `${(stats.total_nodes || allNodes.length).toLocaleString('ru-RU')} проверенных узлов`
+                ) : (
+                  'Синхронизация...'
+                )}
+              </span>
+            </div>
 
-      {/* 2. Main Page Content */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center py-6 sm:py-10">
-        <div className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4">
-          {/* Hero Header */}
-          <Header
-            totalConfigs={stats.total_nodes || allNodes.length}
-            bestPing={stats.best_ping_ms}
-            avgPing={stats.avg_ping_ms}
-            updatedAt={stats.updated_at}
-          />
+            <a
+              href="https://github.com/SH20FK/TurboProbe"
+              target="_blank"
+              rel="noreferrer"
+              className="relative px-3.5 py-1.5 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#E6E0E9] text-xs font-medium font-mono flex items-center gap-1.5 transition-colors overflow-hidden border border-[#49454F]/30"
+            >
+              <span>GitHub</span>
+              <M3Ripple />
+            </a>
+          </div>
+        </header>
 
-          {/* Main Controls */}
-          <main className="w-full space-y-4">
-            <FilterPanel
-              activePreset={activePreset}
-              onSelectPreset={handleSelectPreset}
-              selectedServices={selectedServices}
-              onToggleService={handleToggleService}
-              selectedCountries={selectedCountries}
-              onToggleCountry={handleToggleCountry}
-              onClearCountries={handleClearCountries}
-              selectedProtos={selectedProtos}
-              onToggleProto={handleToggleProto}
-              onClearProtos={handleClearProtos}
-              countryCounts={countryCounts}
-              protoCounts={protoCounts}
-              minHealth={minHealth}
-              onChangeMinHealth={handleChangeMinHealth}
+        {/* 2. Main Page Content */}
+        <div className="relative z-10 flex-1 flex flex-col justify-center py-6 sm:py-10">
+          <div className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4">
+            {/* Hero Header */}
+            <Header
+              totalConfigs={stats.total_nodes || allNodes.length}
+              bestPing={stats.best_ping_ms}
+              avgPing={stats.avg_ping_ms}
+              updatedAt={stats.updated_at}
             />
 
-            <ExportPanel
-              subUrl={subUrl}
-              filteredCount={filteredNodes.length}
-              selectedLimit={selectedLimit}
-              onChangeLimit={setSelectedLimit}
-              allFilteredKeys={allFilteredKeys}
-              onOpenQr={() => setIsQrOpen(true)}
-              onDownloadClash={handleDownloadClash}
-            />
+            {/* Main Controls */}
+            <main className="w-full space-y-4">
+              <FilterPanel
+                activePreset={activePreset}
+                onSelectPreset={handleSelectPreset}
+                selectedServices={selectedServices}
+                onToggleService={handleToggleService}
+                selectedCountries={selectedCountries}
+                onToggleCountry={handleToggleCountry}
+                onClearCountries={handleClearCountries}
+                selectedProtos={selectedProtos}
+                onToggleProto={handleToggleProto}
+                onClearProtos={handleClearProtos}
+                countryCounts={countryCounts}
+                protoCounts={protoCounts}
+                minHealth={minHealth}
+                onChangeMinHealth={handleChangeMinHealth}
+              />
 
-            <NodePreviewList
-              nodes={filteredNodes}
-              isLoading={isLoading}
-              totalAvailable={filteredNodes.length}
-            />
-          </main>
+              <ExportPanel
+                subUrl={subUrl}
+                filteredCount={filteredNodes.length}
+                selectedLimit={selectedLimit}
+                onChangeLimit={setSelectedLimit}
+                allFilteredKeys={allFilteredKeys}
+                onOpenQr={() => setIsQrOpen(true)}
+                onDownloadClash={handleDownloadClash}
+              />
 
-          {/* QR Modal */}
-          <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
+              <NodePreviewList
+                nodes={filteredNodes}
+                isLoading={isLoading}
+                totalAvailable={filteredNodes.length}
+              />
+            </main>
 
-          {/* Clean Footer */}
-          <footer className="w-full pt-8 pb-4 border-t border-[#49454F]/20 flex flex-col items-center justify-center text-center text-xs text-[#938F99] font-body space-y-1">
-            <p className="m-0 font-display font-medium text-[#CAC4D0]">
-              TurboProbe · Суверенный VPN-агрегатор
-            </p>
-            <p className="m-0 font-mono text-[11px]">
-              Material Design 3 • Обновление каждые 6 часов
-            </p>
-          </footer>
+            {/* QR Modal */}
+            <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
+
+            {/* Clean Footer */}
+            <footer className="w-full pt-8 pb-4 border-t border-[#49454F]/20 flex flex-col items-center justify-center text-center text-xs text-[#938F99] font-body space-y-1">
+              <p className="m-0 font-display font-medium text-[#CAC4D0]">
+                TurboProbe · Суверенный VPN-агрегатор
+              </p>
+              <p className="m-0 font-mono text-[11px]">
+                Material Design 3 • Обновление каждые 6 часов
+              </p>
+            </footer>
+          </div>
         </div>
       </div>
-    </div>
+    </ToastProvider>
   );
 }

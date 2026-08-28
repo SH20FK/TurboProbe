@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import { M3NumberCounter } from './ui/M3NumberCounter';
+import { SparklesText } from './ui/SparklesText';
+import { SpotlightCard } from './ui/SpotlightCard';
 
 interface HeaderProps {
   totalConfigs?: number;
@@ -39,8 +41,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <div className="w-full select-none">
-      {/* Clean Dark Hero Card */}
-      <div className="relative rounded-3xl bg-[#1D1B20] border border-[#49454F]/30 p-6 sm:p-8 shadow-xl overflow-hidden flex flex-col items-center text-center">
+      {/* Clean Dark Hero Card with Spotlight & Sparkles */}
+      <SpotlightCard className="p-6 sm:p-8 flex flex-col items-center text-center">
         {/* Brand Logo with Tactile Instant Hover */}
         <motion.div
           whileHover={{ scale: 1.08, rotate: 3 }}
@@ -57,9 +59,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </motion.div>
 
-        {/* Title */}
+        {/* Title with MagicUI Sparkles */}
         <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-[#E6E0E9] m-0">
-          TurboProbe <span className="text-white/60 font-light">Hub</span>
+          TurboProbe <SparklesText text="Hub" colors={{ first: '#D0BCFF', second: '#7BE08F' }} className="text-[#D0BCFF] font-black" />
         </h1>
 
         {/* Subtitle */}
@@ -135,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </motion.div>
         </div>
-      </div>
+      </SpotlightCard>
     </div>
   );
 };

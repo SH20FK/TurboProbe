@@ -1,10 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, HelpCircle, ChevronDown, ExternalLink, Check } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { HappIcon, FlClashIcon } from './ServiceIcons';
 import { M3SplitButton } from './ui/M3SplitButton';
 import { M3Ripple } from './ui/M3Ripple';
 import { M3NumberCounter } from './ui/M3NumberCounter';
+import { CoolMode } from './ui/CoolMode';
+import { SpotlightCard } from './ui/SpotlightCard';
+import { useToast } from './ui/M3Toast';
 
 interface ExportPanelProps {
   subUrl: string;
@@ -51,6 +55,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [copiedStatus, setCopiedStatus] = useState<string | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const toast = useToast();
 
   const effectiveCount = selectedLimit > 0 ? Math.min(selectedLimit, filteredCount) : filteredCount;
 
@@ -65,9 +70,19 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
     try {
       await navigator.clipboard.writeText(subUrl);
       setCopiedUrl(true);
+
+      // Trigger Festive Canvas Confetti
+      confetti({
+        particleCount: 35,
+        spread: 55,
+        origin: { y: 0.82 },
+        colors: ['#D0BCFF', '#7BE08F', '#EADDFF', '#38BDF8', '#F59E0B'],
+      });
+
+      toast.copy(subUrl, `Скопирована подписка (${effectiveCount} узлов)`);
       setTimeout(() => setCopiedUrl(false), 2000);
     } catch {
-      // ignore
+      toast.error('Не удалось скопировать ссылку');
     }
   };
 
@@ -77,15 +92,16 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         await navigator.clipboard.writeText(copyPayload);
       }
       setCopiedStatus(clientName);
+      toast.success(`Открываем в ${clientName.toUpperCase()}`, 'Ссылка скопирована в буфер');
       setTimeout(() => setCopiedStatus(null), 2500);
       window.location.href = schemeUrl;
     } catch {
-      // ignore
+      toast.error('Ошибка открытия приложения');
     }
   };
 
   return (
-    <div className="p-5 sm:p-6 rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 shadow-xl space-y-4">
+    <SpotlightCard className="p-5 sm:p-6 space-y-4">
       {/* 1. Header with Sliding Spring Limit Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div className="flex items-center gap-2">
@@ -137,146 +153,156 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         </div>
       </div>
 
-      {/* 2. Hero M3 Split-Button (1-Click Main Action) */}
+      {/* 2. Hero M3 Split-Button (1-Click Main Action) with CoolMode */}
       <div className="w-full">
-        <M3SplitButton
-          onCopy={handleCopyMainUrl}
-          copied={copiedUrl}
-          onOpenQr={onOpenQr}
-          onDownloadYaml={onDownloadClash}
-          count={effectiveCount}
-        />
+        <CoolMode particleCount={16} spread={70} className="w-full">
+          <M3SplitButton
+            onCopy={handleCopyMainUrl}
+            copied={copiedUrl}
+            onOpenQr={onOpenQr}
+            onDownloadYaml={onDownloadClash}
+            count={effectiveCount}
+          />
+        </CoolMode>
       </div>
 
-      {/* 3. Native App Import Grid with Instant Spring Physics & Animated Checkmarks */}
+      {/* 3. Native App Import Grid with CoolMode & Instant Spring Physics */}
       <div className="space-y-2 pt-2 border-t border-[#49454F]/25">
         <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#938F99]">
           Импорт в 1 клик в ваше приложение:
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {/* Happ */}
-          <motion.button
-            onClick={() => handleClientAction('happ', `happ://add/${subUrl}#TurboProbe`, subUrl)}
-            whileHover={{ y: -2, scale: 1.02 }}
-            whileTap={{ scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-            type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#38BDF8]/60 hover:shadow-[0_0_12px_rgba(56,189,248,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {copiedStatus === 'happ' ? (
-                <motion.span
-                  key="check"
-                  initial={{ scale: 0, rotate: -45 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  exit={{ scale: 0 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                  className="flex items-center"
-                >
-                  <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
-                </motion.span>
-              ) : (
-                <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
-                  <HappIcon className="w-4 h-4 text-[#38BDF8]" />
-                </motion.span>
-              )}
-            </AnimatePresence>
-            <span className="font-display font-semibold">Happ</span>
-            <M3Ripple color="#38BDF8" />
-          </motion.button>
+          <CoolMode colors={['#38BDF8', '#D0BCFF', '#7BE08F']} className="w-full">
+            <motion.button
+              onClick={() => handleClientAction('happ', `happ://add/${subUrl}#TurboProbe`, subUrl)}
+              whileHover={{ y: -2, scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              type="button"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#38BDF8]/60 hover:shadow-[0_0_12px_rgba(56,189,248,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {copiedStatus === 'happ' ? (
+                  <motion.span
+                    key="check"
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    className="flex items-center"
+                  >
+                    <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                  </motion.span>
+                ) : (
+                  <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
+                    <HappIcon className="w-4 h-4 text-[#38BDF8]" />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              <span className="font-display font-semibold">Happ</span>
+              <M3Ripple color="#38BDF8" />
+            </motion.button>
+          </CoolMode>
 
           {/* v2rayNG / v2rayN */}
-          <motion.button
-            onClick={() => handleClientAction('v2ray', `v2rayng://install-config?url=${encodeURIComponent(subUrl)}`, subUrl)}
-            whileHover={{ y: -2, scale: 1.02 }}
-            whileTap={{ scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-            type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#D0BCFF]/60 hover:shadow-[0_0_12px_rgba(208,188,255,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {copiedStatus === 'v2ray' ? (
-                <motion.span
-                  key="check"
-                  initial={{ scale: 0, rotate: -45 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  exit={{ scale: 0 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                  className="flex items-center"
-                >
-                  <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
-                </motion.span>
-              ) : (
-                <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
-                  <ExternalLink className="w-4 h-4 text-[#D0BCFF]" />
-                </motion.span>
-              )}
-            </AnimatePresence>
-            <span className="font-display font-semibold">v2rayNG / N</span>
-            <M3Ripple color="#D0BCFF" />
-          </motion.button>
+          <CoolMode colors={['#D0BCFF', '#EADDFF', '#7BE08F']} className="w-full">
+            <motion.button
+              onClick={() => handleClientAction('v2ray', `v2rayng://install-config?url=${encodeURIComponent(subUrl)}`, subUrl)}
+              whileHover={{ y: -2, scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              type="button"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#D0BCFF]/60 hover:shadow-[0_0_12px_rgba(208,188,255,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {copiedStatus === 'v2ray' ? (
+                  <motion.span
+                    key="check"
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    className="flex items-center"
+                  >
+                    <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                  </motion.span>
+                ) : (
+                  <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
+                    <ExternalLink className="w-4 h-4 text-[#D0BCFF]" />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              <span className="font-display font-semibold">v2rayNG / N</span>
+              <M3Ripple color="#D0BCFF" />
+            </motion.button>
+          </CoolMode>
 
           {/* FlClash */}
-          <motion.button
-            onClick={() => handleClientAction('flclash', `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`, clashSubUrl)}
-            whileHover={{ y: -2, scale: 1.02 }}
-            whileTap={{ scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-            type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#10B981]/60 hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {copiedStatus === 'flclash' ? (
-                <motion.span
-                  key="check"
-                  initial={{ scale: 0, rotate: -45 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  exit={{ scale: 0 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                  className="flex items-center"
-                >
-                  <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
-                </motion.span>
-              ) : (
-                <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
-                  <FlClashIcon className="w-4 h-4 text-[#10B981]" />
-                </motion.span>
-              )}
-            </AnimatePresence>
-            <span className="font-display font-semibold">FlClash</span>
-            <M3Ripple color="#10B981" />
-          </motion.button>
+          <CoolMode colors={['#10B981', '#7BE08F', '#D0BCFF']} className="w-full">
+            <motion.button
+              onClick={() => handleClientAction('flclash', `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`, clashSubUrl)}
+              whileHover={{ y: -2, scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              type="button"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#10B981]/60 hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {copiedStatus === 'flclash' ? (
+                  <motion.span
+                    key="check"
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    className="flex items-center"
+                  >
+                    <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                  </motion.span>
+                ) : (
+                  <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
+                    <FlClashIcon className="w-4 h-4 text-[#10B981]" />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              <span className="font-display font-semibold">FlClash</span>
+              <M3Ripple color="#10B981" />
+            </motion.button>
+          </CoolMode>
 
           {/* Sing-box */}
-          <motion.button
-            onClick={() => handleClientAction('singbox', `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}#TurboProbe`, subUrl)}
-            whileHover={{ y: -2, scale: 1.02 }}
-            whileTap={{ scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-            type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#F59E0B]/60 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {copiedStatus === 'singbox' ? (
-                <motion.span
-                  key="check"
-                  initial={{ scale: 0, rotate: -45 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  exit={{ scale: 0 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                  className="flex items-center"
-                >
-                  <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
-                </motion.span>
-              ) : (
-                <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
-                  <ExternalLink className="w-4 h-4 text-[#F59E0B]" />
-                </motion.span>
-              )}
-            </AnimatePresence>
-            <span className="font-display font-semibold">Sing-box</span>
-            <M3Ripple color="#F59E0B" />
-          </motion.button>
+          <CoolMode colors={['#F59E0B', '#FFD8E4', '#D0BCFF']} className="w-full">
+            <motion.button
+              onClick={() => handleClientAction('singbox', `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}#TurboProbe`, subUrl)}
+              whileHover={{ y: -2, scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              type="button"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#F59E0B]/60 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {copiedStatus === 'singbox' ? (
+                  <motion.span
+                    key="check"
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    className="flex items-center"
+                  >
+                    <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                  </motion.span>
+                ) : (
+                  <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
+                    <ExternalLink className="w-4 h-4 text-[#F59E0B]" />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              <span className="font-display font-semibold">Sing-box</span>
+              <M3Ripple color="#F59E0B" />
+            </motion.button>
+          </CoolMode>
         </div>
       </div>
 
@@ -351,6 +377,6 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </SpotlightCard>
   );
 };
