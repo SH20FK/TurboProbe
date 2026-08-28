@@ -22,10 +22,10 @@ function isConflictMarker(line: string): boolean {
 }
 
 export default function App() {
-  const [activePreset, setActivePreset] = useState<string>('all');
+  const [activePreset, setActivePreset] = useState<string>('anti-tspu');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
-  const [selectedProtos, setSelectedProtos] = useState<string[]>([]);
+  const [selectedProtos, setSelectedProtos] = useState<string[]>(['reality']);
   const [selectedLimit, setSelectedLimit] = useState<number>(50);
   const [minHealth, setMinHealth] = useState<number>(0);
 
@@ -319,27 +319,67 @@ export default function App() {
 
   // Subscription URL Generation
   const subUrl = useMemo(() => {
-    const baseUrl = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/all.txt';
+    const RAW_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
+    const WORKER_BASE = 'https://api.turboprobe.workers.dev/sub';
 
+    const hasServices = selectedServices.length > 0;
+    const hasCountries = selectedCountries.length > 0;
+    const hasProtos = selectedProtos.length > 0;
+
+    // 1. Static Presets
     if (activePreset === 'anti-tspu') {
-      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/reality.txt';
+      return `${RAW_BASE}/reality.txt`;
     }
     if (activePreset === 'ai') {
-      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/services/ai-bundle.txt';
+      return `${RAW_BASE}/services/ai-bundle.txt`;
     }
     if (activePreset === 'youtube') {
-      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/services/youtube.txt';
+      return `${RAW_BASE}/services/youtube.txt`;
     }
 
-    if (selectedLimit === 20) {
-      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/top20.txt';
-    }
-    if (selectedLimit === 50) {
-      return 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/top50.txt';
+    // 2. Single Country shortcut (Direct verified feed)
+    if (!hasServices && hasCountries && selectedCountries.length === 1 && !hasProtos) {
+      const code = selectedCountries[0].toLowerCase();
+      return `${RAW_BASE}/countries/${code}.txt`;
     }
 
-    return baseUrl;
-  }, [activePreset, selectedLimit]);
+    // 3. Single Service shortcut (Direct verified feed)
+    if (hasServices && selectedServices.length === 1 && !hasCountries && !hasProtos) {
+      const s = selectedServices[0].toLowerCase();
+      return `${RAW_BASE}/services/${s}.txt`;
+    }
+
+    // 4. Single Protocol shortcut
+    if (!hasServices && !hasCountries && hasProtos && selectedProtos.length === 1) {
+      const p = selectedProtos[0].toLowerCase();
+      if (p === 'reality') return `${RAW_BASE}/reality.txt`;
+      if (p === 'trojan') return `${RAW_BASE}/trojan.txt`;
+      if (p === 'ss' || p === 'shadowsocks') return `${RAW_BASE}/shadowsocks.txt`;
+    }
+
+    // 5. Preset "All" with Limit selector
+    if (activePreset === 'all' && !hasServices && !hasCountries && !hasProtos) {
+      if (selectedLimit === 20) return `${RAW_BASE}/top20.txt`;
+      if (selectedLimit === 50) return `${RAW_BASE}/top50.txt`;
+      return `${RAW_BASE}/all.txt`;
+    }
+
+    // 6. Custom Multi-filter combination (Cloudflare Edge Worker API)
+    const params = new URLSearchParams();
+    if (hasServices) params.set('services', selectedServices.join(','));
+    if (hasCountries) params.set('country', selectedCountries.join(','));
+    if (hasProtos) params.set('proto', selectedProtos.join(','));
+    if (selectedLimit > 0) params.set('limit', String(selectedLimit));
+
+    const qs = params.toString();
+    if (qs) {
+      return `${WORKER_BASE}?${qs}`;
+    }
+
+    if (selectedLimit === 20) return `${RAW_BASE}/top20.txt`;
+    if (selectedLimit === 50) return `${RAW_BASE}/top50.txt`;
+    return `${RAW_BASE}/all.txt`;
+  }, [activePreset, selectedServices, selectedCountries, selectedProtos, selectedLimit]);
 
   const allFilteredKeys = useMemo(() => {
     return filteredNodes.map((n) => n.uri);

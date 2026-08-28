@@ -44,16 +44,6 @@ interface FilterPanelProps {
 
 const PRESETS: PresetItem[] = [
   {
-    id: 'all',
-    name: 'Все узлы',
-    desc: 'Полный пул',
-    icon: 'layers',
-    country: 'all',
-    proto: 'all',
-    services: [],
-    maxPing: 999,
-  },
-  {
     id: 'anti-tspu',
     name: 'Анти-ТСПУ',
     desc: 'VLESS Reality',
@@ -82,6 +72,16 @@ const PRESETS: PresetItem[] = [
     proto: 'all',
     services: ['youtube'],
     maxPing: 400,
+  },
+  {
+    id: 'all',
+    name: 'Все узлы',
+    desc: 'Мин. пинг',
+    icon: 'layers',
+    country: 'all',
+    proto: 'all',
+    services: [],
+    maxPing: 999,
   },
 ];
 
