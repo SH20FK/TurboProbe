@@ -152,17 +152,17 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       </div>
 
       {/* 2. Expandable Advanced Filter Accordion */}
-      <div className="rounded-2xl bg-zinc-900/70 border border-zinc-800/80 overflow-hidden shadow-md">
+      <div className="rounded-2xl bg-zinc-900/40 border border-zinc-800/60 overflow-hidden">
         <button
           onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
           type="button"
-          className="w-full px-4 py-3 flex items-center justify-between text-xs font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer select-none"
+          className="w-full px-4 py-3 flex items-center justify-between text-xs font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer select-none hover:bg-zinc-850/30"
         >
           <div className="flex items-center gap-2">
             <Sliders className="w-3.5 h-3.5 text-zinc-400" />
             <span className="font-semibold text-zinc-200">Тонкая настройка (сервисы, протоколы, страны)</span>
             {customFilterCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-[10px] text-zinc-200 border border-white/10 font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-[10px] text-zinc-200 border border-zinc-700 font-bold">
                 Активно: {customFilterCount}
               </span>
             )}
@@ -170,16 +170,13 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
           <div className="flex items-center gap-1 text-zinc-400">
             <span className="text-[11px] hidden sm:inline">{isAdvancedOpen ? 'Скрыть' : 'Настроить'}</span>
-            <motion.div
-              animate={{ rotate: isAdvancedOpen ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronDown className="w-4 h-4" />
-            </motion.div>
+            <div className="p-0.5">
+              {isAdvancedOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </div>
           </div>
         </button>
 
-        {/* Collapsible Content with Full AnimatePresence Exit Support */}
+        {/* Collapsible Content */}
         <AnimatePresence initial={false}>
           {isAdvancedOpen && (
             <motion.div
@@ -187,20 +184,20 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-4 pt-2 border-t border-white/[0.06] space-y-3.5">
+              <div className="px-4 pb-4 pt-3 border-t border-zinc-800/60 space-y-4">
                 
                 {/* 1. Services */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-1.5">
-                      <Sparkles className="w-3 h-3 text-zinc-300" />
-                      Целевые сервисы
+                      <Sparkles className="w-3 h-3 text-zinc-400" />
+                      Сервисы
                     </span>
                     {selectedServices.length > 0 && (
-                      <span className="text-[10px] text-zinc-300 font-mono">
+                      <span className="text-[10px] text-zinc-400 font-mono">
                         Выбрано: {selectedServices.length}
                       </span>
                     )}
@@ -212,37 +209,31 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                       const Icon = srv.icon;
 
                       return (
-                        <motion.button
+                        <button
                           key={srv.id}
-                          whileTap={{ scale: 0.95 }}
                           onClick={() => onToggleService(srv.id)}
                           type="button"
                           className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
                             isSelected
-                              ? 'bg-zinc-100 text-zinc-950 font-bold border-white shadow-sm'
-                              : 'bg-zinc-800/50 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white hover:bg-zinc-800'
+                              ? 'bg-zinc-800 text-white font-semibold border-zinc-600 shadow-sm'
+                              : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 hover:bg-zinc-900'
                           }`}
                         >
                           <Icon className="w-3.5 h-3.5 flex-shrink-0" />
                           <span>{srv.name}</span>
-                        </motion.button>
+                        </button>
                       );
                     })}
                   </div>
                 </div>
 
                 {/* 2. Protocols */}
-                <div className="pt-2 border-t border-white/[0.06]">
+                <div className="pt-3 border-t border-zinc-800/60">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-1.5">
-                      <Sliders className="w-3 h-3 text-zinc-300" />
+                      <Sliders className="w-3 h-3 text-zinc-400" />
                       Протокол
                     </span>
-                    {selectedProtos.length > 0 && (
-                      <span className="text-[10px] text-zinc-300 font-mono">
-                        {selectedProtos.length}
-                      </span>
-                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -251,8 +242,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                       type="button"
                       className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
                         selectedProtos.length === 0
-                          ? 'bg-zinc-100 text-zinc-950 font-bold border-white'
-                          : 'bg-zinc-800/50 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white'
+                          ? 'bg-zinc-800 text-white font-semibold border-zinc-600'
+                          : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
                       }`}
                     >
                       <span>Все</span>
@@ -269,16 +260,14 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                           type="button"
                           className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
                             isSelected
-                              ? 'bg-zinc-100 text-zinc-950 font-bold border-white shadow-sm'
-                              : 'bg-zinc-800/50 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white'
+                              ? 'bg-zinc-800 text-white font-semibold border-zinc-600 shadow-sm'
+                              : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
                           }`}
                         >
                           <span>{p.label}</span>
                           {count > 0 && (
-                            <span className={`text-[10px] px-1 rounded font-mono ${
-                              isSelected ? 'bg-zinc-300 text-zinc-950' : 'bg-zinc-800 text-zinc-400'
-                            }`}>
-                              {count}
+                            <span className="text-[10px] font-mono text-zinc-500 ml-0.5">
+                              ({count})
                             </span>
                           )}
                         </button>
@@ -287,18 +276,13 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   </div>
                 </div>
 
-                {/* 3. Locations (Full Width Balanced Grid) */}
-                <div className="pt-2 border-t border-white/[0.06]">
+                {/* 3. Locations */}
+                <div className="pt-3 border-t border-zinc-800/60">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-1.5">
-                      <Globe2 className="w-3 h-3 text-zinc-300" />
-                      Локация (Страны)
+                      <Globe2 className="w-3 h-3 text-zinc-400" />
+                      Страны
                     </span>
-                    {selectedCountries.length > 0 && (
-                      <span className="text-[10px] text-zinc-300 font-mono">
-                        Выбрано: {selectedCountries.length}
-                      </span>
-                    )}
                   </div>
 
                   <div className={`flex flex-wrap items-center gap-1.5 ${
@@ -309,12 +293,11 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                       type="button"
                       className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
                         selectedCountries.length === 0
-                          ? 'bg-zinc-100 text-zinc-950 font-bold border-white'
-                          : 'bg-zinc-800/50 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white'
+                          ? 'bg-zinc-800 text-white font-semibold border-zinc-600'
+                          : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
                       }`}
                     >
-                      <CountryFlag countryCode="all" className="w-3.5 h-2 rounded-[1px] shadow-sm flex-shrink-0" />
-                      <span>Все</span>
+                      <span>Все страны</span>
                     </button>
 
                     {visibleCountries.map((c) => {
@@ -327,16 +310,14 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                           type="button"
                           className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer select-none ${
                             isSelected
-                              ? 'bg-zinc-100 text-zinc-950 font-bold border-white shadow-sm'
-                              : 'bg-zinc-800/50 border-white/[0.08] text-zinc-300 hover:border-white/20 hover:text-white'
+                              ? 'bg-zinc-800 text-white font-semibold border-zinc-600 shadow-sm'
+                              : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
                           }`}
                         >
                           <CountryFlag countryCode={c.code} className="w-3.5 h-2 rounded-[1px] shadow-sm flex-shrink-0" />
                           <span>{c.label}</span>
                           {c.count > 0 && (
-                            <span className={`text-[10px] px-1 rounded font-mono ${
-                              isSelected ? 'bg-zinc-300 text-zinc-950' : 'bg-zinc-800 text-zinc-400'
-                            }`}>
+                            <span className="text-[10px] font-mono text-zinc-500">
                               {c.count}
                             </span>
                           )}
@@ -346,35 +327,27 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                   </div>
 
                   {hiddenCountryCount > 0 && (
-                    <button
-                      onClick={() => setIsExpandedCountries(!isExpandedCountries)}
-                      type="button"
-                      className="mt-2 text-zinc-400 hover:text-white text-[11px] font-mono flex items-center gap-1 cursor-pointer"
-                    >
-                      {isExpandedCountries ? (
-                        <>
-                          <ChevronUp className="w-3 h-3" />
-                          <span>Свернуть список стран</span>
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="w-3 h-3" />
-                          <span>Показать все страны (+{hiddenCountryCount})</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="mt-2 text-left">
+                      <button
+                        onClick={() => setIsExpandedCountries(!isExpandedCountries)}
+                        type="button"
+                        className="text-[11px] font-mono text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                      >
+                        {isExpandedCountries ? 'Свернуть список стран' : `Показать все страны (+${hiddenCountryCount})`}
+                      </button>
+                    </div>
                   )}
                 </div>
 
                 {/* 4. Health / Uptime Slider */}
-                <div className="pt-2 border-t border-white/[0.06]">
-                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/[0.06]">
+                <div className="pt-2 border-t border-zinc-800/60">
+                  <div className="p-2.5 rounded-xl bg-black/20 border border-zinc-800">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-mono flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3 text-zinc-300" />
+                        <ShieldCheck className="w-3 h-3 text-zinc-400" />
                         Минимальный аптайм (Health Score)
                       </span>
-                      <span className="text-[11px] font-mono font-semibold text-zinc-200 px-1.5 py-0.5 rounded bg-zinc-800 border border-white/10">
+                      <span className="text-[11px] font-mono font-semibold text-zinc-200 px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700">
                         {minHealth === 0 ? 'Любой' : `≥ ${minHealth}%`}
                       </span>
                     </div>

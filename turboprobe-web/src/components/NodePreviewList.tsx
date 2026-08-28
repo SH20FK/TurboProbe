@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Copy, Check, Radio, Search, Plus, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Check, Search, Plus, Loader2, Globe } from 'lucide-react';
 import { CountryFlag } from './CountryFlags';
 import { extractRemark, computeDisplayTitle } from '../utils/nodeIndexer';
 import type { NodeItem } from '../types';
@@ -16,9 +16,9 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
   isLoading,
   totalAvailable,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [displayLimit, setDisplayLimit] = useState<number>(40);
+  const [displayLimit, setDisplayLimit] = useState<number>(30);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const handleCopyNode = async (uri: string, key: string) => {
@@ -51,47 +51,34 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
   const remainingCount = searchedNodes.length - displayLimit;
 
   return (
-    <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/90 border border-zinc-800 shadow-xl space-y-3">
-      {/* Section Header with Toggle & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 py-0.5">
-        <div
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2.5 cursor-pointer select-none"
-        >
-          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-2">
-            <Radio className="w-3.5 h-3.5 text-zinc-200" />
-            Проверенные серверы
+    <div className="rounded-2xl bg-zinc-900/40 border border-zinc-800/60 overflow-hidden">
+      {/* Section Header with Toggle */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        type="button"
+        className="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-zinc-850/30 transition-colors cursor-pointer select-none"
+      >
+        <div className="flex items-center gap-2.5">
+          <Globe className="w-4 h-4 text-zinc-400" />
+          <span className="text-xs font-semibold text-zinc-300">
+            Список проверенных серверов
           </span>
-          <span className="text-xs px-2 py-0.5 rounded font-mono bg-zinc-950 text-zinc-400 border border-zinc-800">
-            {Math.min(visibleNodes.length, searchedNodes.length)} из {totalAvailable}
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-400">
+            {totalAvailable} нод
           </span>
         </div>
 
-        {/* Live Search Input */}
-        {isExpanded && (
-          <div className="relative flex-1 max-w-xs sm:ml-auto">
-            <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Поиск по стране, хосту, протоколу..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-8 pr-3 py-1 text-xs text-zinc-200 placeholder-zinc-500 outline-none focus:border-zinc-600 transition-colors font-mono"
-            />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-500 font-mono hidden sm:inline">
+            {isExpanded ? 'Скрыть список' : 'Показать список'}
+          </span>
+          <div className="p-1 rounded-md text-zinc-400">
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
-        )}
+        </div>
+      </button>
 
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setIsExpanded(!isExpanded)}
-          type="button"
-          className="p-1 rounded-lg bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800 self-end sm:self-auto cursor-pointer"
-        >
-          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </motion.button>
-      </div>
-
-      {/* Expandable Node Panel */}
+      {/* Expandable Table Content */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -99,9 +86,31 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            className="overflow-hidden border-t border-zinc-800/60"
           >
-            <div className="mt-2 pt-3 border-t border-zinc-800/80 space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
+            {/* Search Input Bar */}
+            <div className="p-3 bg-zinc-950/40 border-b border-zinc-800/50 flex items-center gap-2">
+              <Search className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Фильтр по стране, хосту, протоколу..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-xs text-zinc-200 placeholder-zinc-500 outline-none font-mono"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  type="button"
+                  className="text-[11px] text-zinc-500 hover:text-zinc-300 font-mono px-1.5"
+                >
+                  Очистить
+                </button>
+              )}
+            </div>
+
+            {/* Table / List View */}
+            <div className="max-h-[340px] overflow-y-auto divide-y divide-zinc-800/40">
               {/* 1. Loading State */}
               {isLoading && (
                 <div className="flex flex-col items-center justify-center py-10 gap-2.5">
@@ -114,17 +123,12 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
               {/* 2. Empty State */}
               {!isLoading && searchedNodes.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
-                  <p className="text-xs font-semibold text-zinc-300 m-0">
-                    Серверы не найдены
-                  </p>
-                  <p className="text-[11px] text-zinc-500 m-0">
-                    Попробуйте изменить поисковый запрос или фильтры выше
-                  </p>
+                <div className="py-8 text-center text-xs text-zinc-500 font-mono">
+                  По выбранным критериям узлы не найдены
                 </div>
               )}
 
-              {/* 3. Node List Rows */}
+              {/* 3. Clean Table Rows */}
               {!isLoading &&
                 visibleNodes.map((node, index) => {
                   const nodeKey = node.id || node.uri || `node-${index}`;
@@ -141,80 +145,71 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                     hostDisplay = node._index?.displayTitle || computeDisplayTitle(extractRemark(node.uri), node.country);
                   }
 
-                  const isRu = node.ru_verified;
-
-                    return (
-                      <div
-                        key={nodeKey}
-                        className="group flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-zinc-950/40 hover:bg-zinc-900/60 border border-zinc-850/50 transition-colors"
-                      >
-                        {/* Left: Flag + Host/Name + Protocol */}
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className="flex-shrink-0 w-5 flex items-center justify-center">
-                            <CountryFlag countryCode={countryCode} />
-                          </div>
-
-                          <div className="min-w-0 flex-1 flex items-center gap-2">
-                            <span className="text-xs font-mono text-zinc-200 truncate">
-                              {hostDisplay || `Узел #${index + 1}`}
-                            </span>
-                            {isRu && (
-                              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-blue-950/60 text-blue-300 border border-blue-800/40">
-                                🇷🇺 RU
-                              </span>
-                            )}
-                          </div>
-
-                          <span className="flex-shrink-0 text-[10px] font-mono text-zinc-500 uppercase">
-                            {proto}
-                          </span>
-                        </div>
-
-                        {/* Right: Clean Ping Text + Copy Icon */}
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          <div className="flex items-center gap-1.5 font-mono text-xs">
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                ping < 250
-                                  ? 'bg-emerald-400'
-                                  : ping < 550
-                                  ? 'bg-amber-400'
-                                  : 'bg-zinc-500'
-                              }`}
-                            />
-                            <span className="text-zinc-400">{ping} ms</span>
-                          </div>
-
-                          <button
-                            onClick={() => handleCopyNode(node.uri, nodeKey)}
-                            type="button"
-                            title="Скопировать ключ сервера"
-                            className="p-1 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
-                          >
-                            {isCopied ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                {/* Show More Button */}
-                {!isLoading && hasMore && (
-                  <div className="pt-2 text-center">
-                    <button
-                      onClick={() => setDisplayLimit((prev) => prev + 40)}
-                      type="button"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                  return (
+                    <div
+                      key={nodeKey}
+                      className="group flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-zinc-800/40 transition-colors"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Показать еще ({remainingCount})</span>
-                    </button>
-                  </div>
-                )}
+                      {/* Left: Flag + Host */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex-shrink-0 w-5 flex items-center justify-center">
+                          <CountryFlag countryCode={countryCode} />
+                        </div>
+
+                        <span className="text-xs font-mono text-zinc-200 truncate">
+                          {hostDisplay || `Сервер #${index + 1}`}
+                        </span>
+
+                        <span className="text-[10px] font-mono text-zinc-500 uppercase flex-shrink-0">
+                          {proto}
+                        </span>
+                      </div>
+
+                      {/* Right: Ping + Copy */}
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="flex items-center gap-1.5 font-mono text-xs text-zinc-400">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              ping < 250
+                                ? 'bg-emerald-400'
+                                : ping < 550
+                                ? 'bg-amber-400'
+                                : 'bg-zinc-500'
+                            }`}
+                          />
+                          <span>{ping} ms</span>
+                        </div>
+
+                        <button
+                          onClick={() => handleCopyNode(node.uri, nodeKey)}
+                          type="button"
+                          title="Скопировать ключ"
+                          className="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer"
+                        >
+                          {isCopied ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {/* Show More Button */}
+              {!isLoading && hasMore && (
+                <div className="p-2.5 text-center bg-zinc-950/20">
+                  <button
+                    onClick={() => setDisplayLimit((prev) => prev + 30)}
+                    type="button"
+                    className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer font-mono"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Показать еще ({remainingCount})</span>
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -222,3 +217,4 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
     </div>
   );
 };
+
