@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 ⚡ TurboProbe TGProxy - High-Yield Concurrent Harvester & Verifier
-Crawls 30+ Telegram channels and GitHub repos concurrently via HTTP/2 and validates handshakes.
+Crawls all verified seed sources and auto-discovered repositories from `discovered_tg_sources.json`.
 """
 
 import asyncio
@@ -22,7 +22,11 @@ import aiohttp
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
 
-TG_CHANNELS = [
+TG_DIR = os.path.dirname(os.path.abspath(__file__))
+DISCOVERED_TG_PATH = os.path.join(TG_DIR, "discovered_tg_sources.json")
+
+TG_SEED_SOURCES = [
+    # Telegram Channels
     "https://t.me/s/ProxyMTProto",
     "https://t.me/s/TelMTProto",
     "https://t.me/s/MTProto",
@@ -52,9 +56,8 @@ TG_CHANNELS = [
     "https://t.me/s/proxy_for_tg",
     "https://t.me/s/mtp_free",
     "https://t.me/s/tg_socks5",
-]
-
-RAW_LISTS = [
+    "https://t.me/s/socks5_proxy",
+    # Curated RAW Repositories
     "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/proxy.txt",
     "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/all_proxies.txt",
     "https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt",
@@ -64,6 +67,7 @@ RAW_LISTS = [
     "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks5/data.txt",
     "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt",
     "https://raw.githubusercontent.com/prxchk/proxy-list/main/socks5.txt",
+    "https://raw.githubusercontent.com/Zaeem20/FREE_PROXIES_LIST/master/socks5.txt",
 ]
 
 TG_DC2_IP = "149.154.167.50"
@@ -239,7 +243,18 @@ async def fetch_source_async(url: str, session: aiohttp.ClientSession) -> str:
 
 
 async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
-    print("🚀 [TGProxy Harvester] Crawling 35+ Telegram channels and RAW pools concurrently...", flush=True)
+    all_sources = list(TG_SEED_SOURCES)
+    if os.path.exists(DISCOVERED_TG_PATH):
+        try:
+            with open(DISCOVERED_TG_PATH, "r", encoding="utf-8") as f:
+                d = json.load(f)
+                discovered = d.get("sources", [])
+                all_sources = list(set(all_sources + discovered))
+                print(f"📡 [Source Manager] Loaded {len(discovered)} auto-discovered sources from {DISCOVERED_TG_PATH}", flush=True)
+        except Exception:
+            pass
+
+    print(f"🚀 [TGProxy Harvester] Crawling {len(all_sources)} verified endpoints concurrently...", flush=True)
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -247,7 +262,6 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
     }
     connector = aiohttp.TCPConnector(limit=100, ssl=False)
 
-    all_sources = TG_CHANNELS + RAW_LISTS
     raw_proxies: List[TGProxy] = []
     seen = set()
 
@@ -305,7 +319,7 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
     socks_cands = [p for p in raw_proxies if p.proto == "socks5"]
     print(f"📊 Harvested {len(raw_proxies)} unique candidates (MTProto: {len(mtproto_cands)}, SOCKS5: {len(socks_cands)}).", flush=True)
 
-    eval_pool = mtproto_cands + (socks_cands[:test_limit] if test_limit > 0 else socks_cands[:1000])
+    eval_pool = mtproto_cands + (socks_cands[:test_limit] if test_limit > 0 else socks_cands[:1500])
 
     print(f"🔬 [Telegram DC & Fake-TLS Gate] Parallel benchmarking {len(eval_pool)} candidates (50 threads)...", flush=True)
     loop = asyncio.get_running_loop()
