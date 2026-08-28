@@ -1288,11 +1288,8 @@ async def async_fetch_single_url(client: httpx.AsyncClient, url: str, timeout: f
 
 async def async_fetch_sources_pool(sources: list, concurrency: int = 500) -> tuple:
     limits = httpx.Limits(max_keepalive_connections=concurrency, max_connections=concurrency)
-    try:
-        client_ctx = httpx.AsyncClient(limits=limits, timeout=timeout, verify=False, http2=True)
-    except Exception:
-        client_ctx = httpx.AsyncClient(limits=limits, timeout=timeout, verify=False, http2=False)
-    async with client_ctx as client:
+    timeout = httpx.Timeout(6.0, connect=3.0)
+    async with httpx.AsyncClient(limits=limits, timeout=timeout, verify=False) as client:
         tasks = [async_fetch_single_url(client, u) for u in sources]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
