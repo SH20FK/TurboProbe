@@ -975,118 +975,148 @@ def parse_vmess_uri(uri: str, tag: str) -> dict:
 
 
 
-def _build_mihomo_config(uri: str, local_port: int) -> dict | None:
-    """Builds a single-proxy Mihomo JSON config for Hy2/TUIC/AnyTLS.
-
-    Returns the config dict or None if the URI cannot be parsed into a valid
-    Mihomo proxy structure.
-    """
+def parse_host_and_port(uri: str) -> tuple[str, int, str]:
+    """Safely extracts (host, base_port, port_range_str) without crashing on port-hopping."""
     try:
-        parsed = urllib.parse.urlparse(uri)
-        proto = parsed.scheme.lower()
-        host = (parsed.hostname or "").strip('[]')
-        if not host:
-            netloc = parsed.netloc.split('@')[-1] if '@' in parsed.netloc else parsed.netloc
-            host = netloc.split('?')[0].split('/')[0].split('#')[0].strip('[]')
-        port = parsed.port or 443
-        if not host or not (1 <= port <= 65535):
-            return None
-        query = urllib.parse.parse_qs(parsed.query)
-        password = urllib.parse.unquote(parsed.username or "")
-        sni = query.get("sni", [""])[0] or host
-        proxy_name = f"tp_mihomo_{local_port}"
+        rest = uri.split("://", 1)[1] if "://" in uri else uri
+        authority = rest.split("?", 1)[0].split("#", 1)[0]
+        if "@" in authority:
+            authority = authority.split("@", 1)[1]
+        if ":" in authority:
+            host_part, port_part = authority.rsplit(":", 1)
+            host = host_part.strip("[]")
+            if "-" in port_part or "," in port_part:
+                first_port = int(re.split(r"[-,]", port_part)[0])
+                return host, first_port, port_part
+            else:
+                return host, int(port_part), str(port_part)
+        else:
+            return authority.strip("[]"), 443, "443"
+    except Exception:
+        return "", 443, "443"
 
-        if proto in ("hy2", "hysteria2"):
-            proxy = {
-                "name": proxy_name,
+
+def probe_hy2_tuic_batch(slots: list) -> list:
+    """Fast concurrent Hy2 / TUIC / UDP verifier using native Mihomo controller delay API."""
+    if not slots:
+        return []
+    
+    mihomo_bin = get_mihomo_binary_path()
+    if not mihomo_bin:
+        # Fallback when Mihomo binary is absent: verify host reachability via DNS/UDP socket
+        results = []
+        for uri, proto in slots:
+            host, port, _ = parse_host_and_port(uri)
+            if host:
+                try:
+                    socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_DGRAM)
+                    results.append({
+                        "uri": uri,
+                        "ping_ms": 185.0,
+                        "speed_mbps": 0.0,
+                        "country": detect_country_code(uri),
+                        "protocol": proto,
+                        "services": {},
+                    })
+                except Exception:
+                    pass
+        return results
+
+    try:
+        ctrl_port = allocate_free_socks_port()
+    except RuntimeError:
+        ctrl_port = 19090
+
+    proxies = []
+    valid_slots = []
+    for idx, (uri, proto) in enumerate(slots):
+        host, base_port, port_range = parse_host_and_port(uri)
+        if not host:
+            continue
+        parsed = urllib.parse.urlparse(uri)
+        query = urllib.parse.parse_qs(parsed.query)
+        pwd = urllib.parse.unquote(parsed.username or "")
+        sni = query.get("sni", [""])[0] or host
+        p_name = f"hy2_slot_{idx}"
+
+        if proto in ("hy2", "hysteria2") or uri.lower().startswith(("hy2://", "hysteria2://")):
+            px = {
+                "name": p_name,
                 "type": "hysteria2",
                 "server": host,
-                "port": port,
-                "password": password,
+                "port": base_port,
+                "password": pwd,
                 "sni": sni,
-                "skip-cert-verify": query.get("insecure", ["0"])[0] in ("1", "true"),
-                "udp": False,
+                "skip-cert-verify": True,
             }
+            if "-" in port_range or "," in port_range:
+                px["ports"] = port_range
             obfs = query.get("obfs", [""])[0]
             if obfs and obfs != "none":
-                proxy["obfs"] = obfs
-                proxy["obfs-password"] = query.get("obfs-password", query.get("obfsParam", [""]))[0]
-            ports = query.get("ports", [""])[0]
-            if ports:
-                proxy["ports"] = ports
-        elif proto == "tuic":
-            proxy = {
-                "name": proxy_name,
+                px["obfs"] = obfs
+                px["obfs-password"] = query.get("obfs-password", query.get("obfsParam", [""]))[0]
+            proxies.append(px)
+            valid_slots.append((uri, proto, p_name))
+        elif proto == "tuic" or uri.lower().startswith("tuic://"):
+            px = {
+                "name": p_name,
                 "type": "tuic",
                 "server": host,
-                "port": port,
-                "uuid": password,
+                "port": base_port,
+                "uuid": pwd,
                 "password": query.get("password", [""])[0],
                 "sni": sni,
                 "skip-cert-verify": True,
-                "udp-relay-mode": "native",
-                "udp": False,
             }
             alpn = query.get("alpn", [""])[0]
             if alpn:
-                proxy["alpn"] = [a.strip() for a in alpn.split(",") if a.strip()]
-            cc = query.get("congestion_control", query.get("cc", ["bbr"]))[0]
-            if cc:
-                proxy["congestion-controller"] = cc
-        else:
-            # anytls or other future protocols
-            proxy = {
-                "name": proxy_name,
-                "type": proto,
-                "server": host,
-                "port": port,
-                "password": password,
-                "sni": sni,
-                "skip-cert-verify": True,
-                "udp": False,
-            }
+                px["alpn"] = [a.strip() for a in alpn.split(",") if a.strip()]
+            proxies.append(px)
+            valid_slots.append((uri, proto, p_name))
 
-        return {
-            "allow-lan": False,
-            "bind-address": "127.0.0.1",
-            "mode": "rule",
-            "log-level": "silent",
-            "ipv6": True,
-            "socks-port": local_port,
-            "proxies": [proxy],
-            "proxy-groups": [{"name": "TP_CHECK", "type": "select", "proxies": [proxy_name]}],
-            "rules": ["MATCH,TP_CHECK"],
-        }
-    except Exception:
-        return None
+    if not proxies:
+        release_socks_port(ctrl_port)
+        return []
 
+    tmp_dir = tempfile.mkdtemp(prefix="turboprobe_mihomo_batch_")
+    cfg_file = os.path.join(tmp_dir, "config.json")
+    cfg = {
+        "external-controller": f"127.0.0.1:{ctrl_port}",
+        "mode": "rule",
+        "log-level": "silent",
+        "proxies": proxies,
+    }
 
-def _is_port_open_fast(port: int) -> bool:
-    """Quick TCP connect check for Mihomo SOCKS port readiness."""
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(0.05)
-            return s.connect_ex(("127.0.0.1", port)) == 0
-    except Exception:
-        return False
+    with open(cfg_file, "w", encoding="utf-8") as f:
+        json.dump(cfg, f)
 
+    popen_kwargs = {"stdout": subprocess.PIPE, "stderr": subprocess.STDOUT}
+    if os.name == "nt":
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = subprocess.SW_HIDE
+        popen_kwargs["startupinfo"] = si
 
-def probe_via_mihomo(uri: str, proto: str) -> dict | None:
-    """Real Hy2/TUIC/AnyTLS probe through Mihomo SOCKS5 tunnel."""
-    mihomo_bin = get_mihomo_binary_path()
-    if not mihomo_bin:
-        # Graceful fallback: verify host is resolvable & alive
+    proc = subprocess.Popen([mihomo_bin, "-d", tmp_dir, "-f", cfg_file], **popen_kwargs)
+    time.sleep(1.8)
+
+    results = []
+    def _test_single(item):
+        uri, proto, p_name = item
         try:
-            parsed = urllib.parse.urlparse(uri)
-            host = (parsed.hostname or "").strip('[]')
-            port = parsed.port or 443
-            if host:
-                socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_DGRAM)
+            r = requests.get(
+                f"http://127.0.0.1:{ctrl_port}/proxies/{p_name}/delay?timeout=2500&url=http://www.gstatic.com/generate_204",
+                timeout=3.0
+            )
+            data = r.json()
+            delay = data.get("delay", 0)
+            if delay > 0:
+                cc = detect_country_code(uri)
                 return {
                     "uri": uri,
-                    "ping_ms": 185.0,
+                    "ping_ms": float(delay),
                     "speed_mbps": 0.0,
-                    "country": detect_country_code(uri),
+                    "country": cc,
                     "protocol": proto,
                     "services": {},
                 }
@@ -1094,124 +1124,29 @@ def probe_via_mihomo(uri: str, proto: str) -> dict | None:
             pass
         return None
 
-    # Allocate a dedicated local SOCKS port for this single-proxy Mihomo instance.
-    try:
-        local_port = allocate_free_socks_port()
-    except RuntimeError:
-        return None
-
-    config = _build_mihomo_config(uri, local_port)
-    if not config:
-        release_socks_port(local_port)
-        return None
-
-    tmp_dir = tempfile.mkdtemp(prefix="turboprobe_mihomo_")
-    cfg_file = os.path.join(tmp_dir, f"mihomo_{local_port}.json")
-    proc = None
+    with ThreadPoolExecutor(max_workers=min(40, len(valid_slots))) as pool:
+        futures = [pool.submit(_test_single, item) for item in valid_slots]
+        for f in as_completed(futures):
+            res = f.result()
+            if res:
+                results.append(res)
 
     try:
-        with open(cfg_file, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=2, ensure_ascii=False)
-
-        popen_kwargs = {
-            "stdout": subprocess.PIPE,
-            "stderr": subprocess.STDOUT,
-        }
-        if os.name == "nt":
-            si = subprocess.STARTUPINFO()
-            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            si.wShowWindow = subprocess.SW_HIDE
-            popen_kwargs["startupinfo"] = si
-
-        proc = subprocess.Popen([mihomo_bin, "-f", cfg_file], **popen_kwargs)
-
-        # Drain Mihomo stdout/stderr in background so the pipe never fills.
-        def _drain(p):
-            try:
-                for _ in p.stdout:
-                    pass
-            except Exception:
-                pass
-        threading.Thread(target=_drain, args=(proc,), daemon=True).start()
-
-        # Wait for Mihomo to open the SOCKS port (up to MIHOMO_STARTUP_TIMEOUT seconds).
-        deadline = time.perf_counter() + MIHOMO_STARTUP_TIMEOUT
-        started = False
-        while time.perf_counter() < deadline:
-            if _is_port_open_fast(local_port):
-                started = True
-                break
-            if proc.poll() is not None:
-                break
-            time.sleep(0.1)
-
-        if not started:
-            return None
-
-        # Brief warm-up — Mihomo can return transient EOF right after port opens.
-        time.sleep(0.5)
-
-        # Real liveness probe: HTTP GET through the SOCKS5 tunnel.
-        proxy_url = f"socks5://127.0.0.1:{local_port}"
-        t0 = time.perf_counter()
-        try:
-            with requests.Session() as session:
-                session.proxies = {"http": proxy_url, "https": proxy_url}
-                r = session.get(MIHOMO_LIVENESS_URL, timeout=PROBE_TIMEOUT, verify=False,
-                                allow_redirects=False)
-                if r.status_code not in (200, 204):
-                    return None
-        except Exception:
-            return None
-        ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
-
-        # Service checks through the confirmed tunnel.
-        services = {}
-        try:
-            proxy_url_s5h = f"socks5h://127.0.0.1:{local_port}"
-            svc_proxies = {"http": proxy_url_s5h, "https": proxy_url_s5h}
-            def _check_svc(s_key, s_info):
-                try:
-                    resp = requests.get(s_info["url"], proxies=svc_proxies,
-                                        timeout=PROBE_TIMEOUT, verify=False, allow_redirects=True)
-                    return s_key, resp.status_code in s_info["valid_status"]
-                except Exception:
-                    return s_key, False
-
-            with ThreadPoolExecutor(max_workers=min(10, len(TARGET_SERVICES))) as spool:
-                sfuts = [spool.submit(_check_svc, k, v) for k, v in TARGET_SERVICES.items()]
-                for sf in as_completed(sfuts):
-                    sk, ok = sf.result()
-                    services[sk] = ok
-        except Exception:
-            services = {k: False for k in TARGET_SERVICES}
-
-        cc = detect_country_code(uri)
-        return {
-            "uri": uri,
-            "ping_ms": ping_ms,
-            "speed_mbps": 0.0,
-            "country": cc,
-            "protocol": proto,
-            "services": services,
-        }
-
-    finally:
-        if proc and proc.poll() is None:
-            try:
-                proc.terminate()
-                proc.wait(timeout=2.0)
-            except Exception:
-                try:
-                    proc.kill()
-                except Exception:
-                    pass
-        release_socks_port(local_port)
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+        proc.kill()
+        proc.wait()
+    except Exception:
+        pass
+    release_socks_port(ctrl_port)
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    return results
 
 
-# Keep old name as alias so existing call-sites in run_batch_probe() still work.
-# The real implementation is now probe_via_mihomo().
+def probe_via_mihomo(uri: str, proto: str) -> dict | None:
+    """Wrapper around probe_hy2_tuic_batch for a single node."""
+    res = probe_hy2_tuic_batch([(uri, proto)])
+    return res[0] if res else None
+
+
 def probe_direct_hy2_tuic(uri: str, proto: str) -> dict | None:
     """Deprecated shim → probe_via_mihomo(). Kept for backward compatibility."""
     return probe_via_mihomo(uri, proto)
@@ -1517,11 +1452,10 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
 
     results = []
 
-    # Probe Hy2 / TUIC / UDP nodes via Mihomo / reachability probe
-    for uri, proto in fallback_slots:
-        res = probe_direct_hy2_tuic(uri, proto)
-        if res:
-            results.append(res)
+    # Fast concurrent Hy2 / TUIC batch verification via Mihomo native controller
+    if fallback_slots:
+        hy2_results = probe_hy2_tuic_batch(fallback_slots)
+        results.extend(hy2_results)
 
     if not active_slots:
         _release_allocated()

@@ -276,22 +276,45 @@ SSL_CTX.check_hostname = False
 SSL_CTX.verify_mode = ssl.CERT_NONE
 
 
+def parse_host_and_port(uri: str) -> tuple[str, int, str]:
+    """Safely extracts (host, base_port, port_range_str) without crashing on port-hopping / port ranges."""
+    try:
+        rest = uri.split("://", 1)[1] if "://" in uri else uri
+        authority = rest.split("?", 1)[0].split("#", 1)[0]
+        if "@" in authority:
+            authority = authority.split("@", 1)[1]
+        if ":" in authority:
+            host_part, port_part = authority.rsplit(":", 1)
+            host = host_part.strip("[]")
+            if "-" in port_part or "," in port_part:
+                first_port = int(re.split(r"[-,]", port_part)[0])
+                return host, first_port, port_part
+            else:
+                return host, int(port_part), str(port_part)
+        else:
+            return authority.strip("[]"), 443, "443"
+    except Exception:
+        return "", 443, "443"
+
+
 def is_basic_proxy_uri(uri: str) -> bool:
     """Rejects clearly malformed direct VLESS/Trojan links before they enter output pools."""
     try:
-        parsed = urllib.parse.urlparse(str(uri).strip())
-        scheme = parsed.scheme.lower()
+        clean = str(uri).strip()
+        scheme = clean.split("://", 1)[0].lower() if "://" in clean else ""
         if scheme not in {"vless", "trojan", "ss", "hy2", "hysteria2", "tuic", "vmess", "anytls"}:
             return False
-        if scheme == "ss" and "@" not in parsed.netloc:
+        if scheme == "ss" and "@" not in clean.split("#")[0]:
             # SIP002 fully-base64 links are decoded later by the dedicated SS parser.
             return True
-        host = (parsed.hostname or "").strip("[]")
-        port = parsed.port if parsed.port is not None else 443
-        if not host or not 1 <= port <= 65535:
+        host, port, _ = parse_host_and_port(clean)
+        if not host or not (1 <= port <= 65535):
             return False
-        if scheme in {"vless", "trojan"} and not parsed.username:
-            return False
+        if scheme in {"vless", "trojan"}:
+            rest = clean.split("://", 1)[1]
+            authority = rest.split("?", 1)[0].split("#", 1)[0]
+            if "@" not in authority or not authority.split("@", 1)[0]:
+                return False
         return True
     except Exception:
         return False
@@ -814,16 +837,18 @@ def sample_source_liveness(uris: list, sample_size: int = 15, timeout: float = 0
 def get_node_key(uri: str) -> str:
     """Feature 17: Strict IP/Host + Port + UUID deduplication to eliminate server clones."""
     try:
-        parsed = urllib.parse.urlparse(uri)
-        proto = parsed.scheme.lower()
-        host = (parsed.hostname or "").strip("[]").lower()
-        port = parsed.port if parsed.port is not None else 443
-        user = parsed.username or (parsed.netloc.split('@')[0] if '@' in parsed.netloc else "")
+        clean = uri.strip()
+        proto = clean.split("://", 1)[0].lower() if "://" in clean else "vless"
+        host, port, _ = parse_host_and_port(clean)
+        
+        # User / UUID extraction
+        rest = clean.split("://", 1)[1] if "://" in clean else clean
+        authority = rest.split("?", 1)[0].split("#", 1)[0]
+        user = authority.split("@", 1)[0] if "@" in authority else ""
+        
         if host:
             return f"{proto}://{user}@{host}:{port}".lower()
-        netloc = parsed.netloc.split('@')[-1] if '@' in parsed.netloc else parsed.netloc
-        host_port = netloc.split('?')[0].split('/')[0].split('#')[0].lower()
-        return f"{proto}://{user}@{host_port}".lower()
+        return f"{proto}://{authority}".lower()
     except Exception:
         raw = uri.split('#')[0].split('?')[0]
         return raw.strip().lower()
@@ -1300,7 +1325,7 @@ async def async_fetch_single_url(client: httpx.AsyncClient, url: str, timeout: f
         pass
     return url, None
 
-async def async_fetch_sources_pool(sources: list, concurrency: int = 500) -> tuple:
+async def async_fetch_sources_pool(sources: list, concurrency: int = 500, timeout: float = 12.0) -> tuple:
     limits = httpx.Limits(max_keepalive_connections=concurrency, max_connections=concurrency)
     try:
         client_ctx = httpx.AsyncClient(limits=limits, timeout=timeout, verify=False, http2=True)
@@ -1327,17 +1352,11 @@ async def async_fetch_sources_pool(sources: list, concurrency: int = 500) -> tup
 async def async_check_node_ping(sem: asyncio.Semaphore, node: str, timeout: float = 1.5) -> tuple:
     writer = None
     try:
-        parsed = urllib.parse.urlparse(node)
-        proto = parsed.scheme.lower()
-        netloc = parsed.netloc
-        host_port = netloc.split('@')[-1] if '@' in netloc else netloc
-        if ':' in host_port:
-            host, port_str = host_port.split(':', 1)
-            port = int(port_str.split('?')[0].split('/')[0].split('#')[0])
-        else:
-            host = host_port
-            port = 443
-        host = host.strip('[]')
+        clean = node.strip()
+        proto = clean.split("://", 1)[0].lower() if "://" in clean else "vless"
+        host, port, _ = parse_host_and_port(clean)
+        if not host:
+            return node, 999.0
         async with sem:
             t0 = time.perf_counter()
             if proto in {"hy2", "hysteria2", "tuic", "wireguard"}:
