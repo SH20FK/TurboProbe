@@ -547,7 +547,7 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className="relative min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] selection:bg-[#EA580C]/25 selection:text-[#EA580C] flex flex-col justify-between overflow-x-hidden transition-colors duration-200">
+      <div className="relative min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] selection:bg-[#C25E30]/20 selection:text-[#E08244] flex flex-col justify-between overflow-x-hidden transition-colors duration-200">
         {/* Dynamic Background with Floating Shapes & Dot Matrix */}
         <M3Background />
 
@@ -580,7 +580,7 @@ export default function App() {
               href="https://github.com/SH20FK/TurboProbe"
               target="_blank"
               rel="noreferrer"
-              className="relative px-3.5 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-main)] hover:text-white text-xs font-semibold font-mono flex items-center gap-1.5 transition-all border border-[var(--border-main)] hover:border-[#EA580C]/50 shadow-xs active:scale-95 overflow-hidden select-none cursor-pointer"
+              className="relative px-3.5 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-main)] hover:text-white text-xs font-semibold font-mono flex items-center gap-1.5 transition-all border border-[var(--border-main)] hover:border-[#C25E30]/40 shadow-xs active:scale-95 overflow-hidden select-none cursor-pointer"
             >
               <GitHubIcon className="w-4 h-4 text-current flex-shrink-0" />
               <span>GitHub</span>

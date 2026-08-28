@@ -47,7 +47,7 @@ export const M3SegmentedButton: React.FC<M3SegmentedButtonProps> = ({
             {isSelected && (
               <motion.div
                 layoutId="m3-active-segment-bg"
-                className="absolute inset-0 bg-[#EA580C] rounded-[16px] shadow-[0_2px_14px_rgba(234,88,12,0.35)] border border-[#FB923C]/60"
+                className="absolute inset-0 bg-[#C25E30] rounded-[16px] shadow-[0_2px_12px_rgba(194,94,48,0.25)] border border-[#E08244]/50"
                 transition={{ type: 'spring', stiffness: 280, damping: 28, mass: 0.8 }}
               />
             )}

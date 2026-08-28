@@ -21,7 +21,7 @@ export const ShimmerSkeleton: React.FC<ShimmerSkeletonProps> = ({
           className="relative h-11 w-full overflow-hidden rounded-2xl bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center px-4 justify-between"
         >
           {/* Shimmer Light Sweep Overlay */}
-          <div className="pointer-events-none absolute inset-0 -translate-x-full animate-shimmer-wave bg-gradient-to-r from-transparent via-[#EA580C]/10 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 -translate-x-full animate-shimmer-wave bg-gradient-to-r from-transparent via-[#C25E30]/10 to-transparent" />
 
           {/* Left Dummy Content */}
           <div className="flex items-center gap-3">

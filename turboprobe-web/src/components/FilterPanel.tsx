@@ -162,25 +162,25 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         id: 'anti-tspu',
         label: 'Анти-ТСПУ',
         desc: 'VLESS Reality',
-        icon: <Shield className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />,
+        icon: <Shield className="w-3.5 h-3.5 text-[#C25E30] dark:text-[#E08244]" />,
       },
       {
         id: 'ai',
         label: 'AI Core',
         desc: 'ChatGPT / Claude',
-        icon: <Sparkles className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />,
+        icon: <Sparkles className="w-3.5 h-3.5 text-[#C25E30] dark:text-[#E08244]" />,
       },
       {
         id: 'youtube',
         label: 'YouTube 4K',
         desc: 'Без буфера',
-        icon: <Tv className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />,
+        icon: <Tv className="w-3.5 h-3.5 text-[#C25E30] dark:text-[#E08244]" />,
       },
       {
         id: 'all',
         label: 'Все узлы',
         desc: 'Мин. пинг',
-        icon: <Layers className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />,
+        icon: <Layers className="w-3.5 h-3.5 text-[#C25E30] dark:text-[#E08244]" />,
       },
     ];
   }, []);
@@ -258,7 +258,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-[var(--bg-card-hover)]/60 transition-colors text-left cursor-pointer select-none"
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#EA580C] dark:text-[#FB923C]">
+            <div className="w-7 h-7 rounded-full bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#C25E30] dark:text-[#E08244]">
               <SlidersHorizontal className="w-4 h-4" />
             </div>
             <div>
@@ -273,7 +273,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
           <div className="flex items-center gap-2">
             {activeFiltersCount > 0 && (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#EA580C]/15 text-[#EA580C] dark:text-[#FB923C] border border-[#EA580C]/35 font-bold">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#C25E30]/15 text-[#C25E30] dark:text-[#E08244] border border-[#C25E30]/30 font-bold">
                 Активно: {activeFiltersCount}
               </span>
             )}
@@ -319,7 +319,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-[#EA580C]/10 border border-[#EA580C]/20 flex items-center justify-center text-[#EA580C] dark:text-[#FB923C]">
+                      <div className="w-6 h-6 rounded-lg bg-[#C25E30]/10 border border-[#C25E30]/20 flex items-center justify-center text-[#C25E30] dark:text-[#E08244]">
                         <Sparkles className="w-3.5 h-3.5" />
                       </div>
                       <span className="font-display text-xs sm:text-sm font-bold text-[var(--text-main)]">
@@ -333,7 +333,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                           selectedServices.forEach((s) => onToggleService(s));
                         }}
                         type="button"
-                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#EA580C] dark:text-[#FB923C] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#C25E30] dark:text-[#E08244] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>Сбросить ({selectedServices.length})</span>
@@ -373,7 +373,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                       <button
                         onClick={onClearProtos}
                         type="button"
-                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#EA580C] dark:text-[#FB923C] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#C25E30] dark:text-[#E08244] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>Все протоколы</span>
@@ -418,7 +418,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                       <button
                         onClick={onClearCountries}
                         type="button"
-                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#EA580C] dark:text-[#FB923C] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#C25E30] dark:text-[#E08244] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>Все страны</span>
@@ -453,7 +453,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         type="button"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-xs font-semibold font-display text-[#EA580C] dark:text-[#FB923C] border border-[var(--border-main)] hover:border-[#EA580C]/40 shadow-xs cursor-pointer select-none transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-xs font-semibold font-display text-[#C25E30] dark:text-[#E08244] border border-[var(--border-main)] hover:border-[#C25E30]/40 shadow-xs cursor-pointer select-none transition-colors"
                       >
                         <span>{isExpandedCountries ? 'Свернуть список' : `+ Еще ${availableCountries.length - 8} стран`}</span>
                         <motion.div
@@ -483,7 +483,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                       <button
                         onClick={() => onChangeMaxPing?.(0)}
                         type="button"
-                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#EA580C] dark:text-[#FB923C] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                        className="px-2.5 py-1 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-medium text-[#C25E30] dark:text-[#E08244] flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>Без лимита</span>

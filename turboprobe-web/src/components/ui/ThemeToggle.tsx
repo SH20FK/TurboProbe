@@ -123,7 +123,7 @@ export const AnimatedThemeToggle: React.FC<AnimatedThemeToggleProps> = ({
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             exit={{ scale: 0, rotate: -90, opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="flex items-center justify-center text-[#FB923C]"
+            className="flex items-center justify-center text-[#E08244]"
           >
             <Moon className="w-4 h-4" />
           </motion.div>
@@ -134,7 +134,7 @@ export const AnimatedThemeToggle: React.FC<AnimatedThemeToggleProps> = ({
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             exit={{ scale: 0, rotate: 90, opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="flex items-center justify-center text-[#EA580C]"
+            className="flex items-center justify-center text-[#C25E30]"
           >
             <Sun className="w-4 h-4" />
           </motion.div>

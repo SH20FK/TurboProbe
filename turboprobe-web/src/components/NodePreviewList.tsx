@@ -49,7 +49,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
         className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-[var(--bg-card-hover)]/60 transition-colors text-left cursor-pointer select-none"
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#EA580C] dark:text-[#FB923C]">
+          <div className="w-7 h-7 rounded-full bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#C25E30] dark:text-[#E08244]">
             <Globe className="w-4 h-4" />
           </div>
           <div>
@@ -107,7 +107,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                 <div className="py-2">
                   <div className="flex items-center justify-between px-4 py-2 text-xs font-mono text-[var(--text-muted)]">
                     <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#EA580C] animate-ping" />
+                      <span className="w-2 h-2 rounded-full bg-[#C25E30] animate-ping" />
                       <span>Синхронизация телеметрии...</span>
                     </span>
                     <span>Подождите</span>
@@ -152,11 +152,11 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                           <span
                             className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold flex-shrink-0 ${
                               isVless
-                                ? 'bg-[#EA580C]/15 text-[#EA580C] dark:text-[#FB923C] border border-[#EA580C]/35'
+                                ? 'bg-[#C25E30]/15 text-[#C25E30] dark:text-[#E08244] border border-[#C25E30]/30'
                                 : isTrojan
-                                ? 'bg-[#059669]/15 text-[#059669] dark:text-[#34D399] border border-[#059669]/35'
+                                ? 'bg-[#059669]/15 text-[#059669] dark:text-[#34D399] border border-[#059669]/30'
                                 : isHy2
-                                ? 'bg-[#D97706]/15 text-[#D97706] dark:text-[#FBBF24] border border-[#D97706]/35'
+                                ? 'bg-[#D97706]/15 text-[#D97706] dark:text-[#FBBF24] border border-[#D97706]/30'
                                 : 'bg-[var(--bg-app)] text-[var(--text-muted)] border border-[var(--border-main)]'
                             }`}
                           >
@@ -228,7 +228,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                                 </motion.div>
                               )}
                             </AnimatePresence>
-                            <M3Ripple color={isCopied ? '#FFFFFF' : '#EA580C'} />
+                            <M3Ripple color={isCopied ? '#FFFFFF' : '#C25E30'} />
                           </motion.button>
                         </div>
                       </div>
@@ -245,7 +245,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     type="button"
-                    className="px-4 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-xs font-mono text-[#EA580C] dark:text-[#FB923C] border border-[var(--border-main)] hover:border-[#EA580C]/40 inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    className="px-4 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-xs font-mono text-[#C25E30] dark:text-[#E08244] border border-[var(--border-main)] hover:border-[#C25E30]/40 inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Показать еще ({nodes.length - visibleCount})</span>

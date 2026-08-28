@@ -32,11 +32,11 @@ export const M3FilterChip: React.FC<M3FilterChipProps> = ({
       type="button"
       className={`relative inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium border select-none cursor-pointer overflow-hidden transition-colors duration-150 ${
         selected
-          ? 'bg-[#EA580C] text-white border-[#FB923C]/70 shadow-[0_0_12px_rgba(234,88,12,0.25)] font-semibold'
+          ? 'bg-[#C25E30] text-white border-[#E08244]/60 shadow-[0_0_10px_rgba(194,94,48,0.2)] font-semibold'
           : 'bg-[var(--bg-chip)] text-[var(--text-muted)] border-[var(--border-main)] hover:bg-[var(--bg-chip-hover)] hover:text-[var(--text-main)] hover:border-[var(--border-hover)]'
       } ${className}`}
     >
-      {/* Leading Icon / Checkmark in a stable 16x16 container to prevent horizontal twitching */}
+      {/* Leading Icon / Checkmark in a stable 16x16 container */}
       {icon ? (
         <div className="w-4 h-4 flex items-center justify-center flex-shrink-0 relative">
           <AnimatePresence mode="wait" initial={false}>
@@ -79,7 +79,7 @@ export const M3FilterChip: React.FC<M3FilterChipProps> = ({
         </span>
       )}
 
-      <M3Ripple color={selected ? '#FFFFFF' : '#EA580C'} />
+      <M3Ripple color={selected ? '#FFFFFF' : '#C25E30'} />
     </motion.button>
   );
 };

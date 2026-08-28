@@ -44,22 +44,22 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="relative rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-6 sm:p-8 shadow-xl overflow-hidden flex flex-col items-center text-center transition-colors duration-200">
         {/* Brand Logo with Direct Vector Rendering & Perfect Centering */}
         <motion.div
-          whileHover={{ scale: 1.08, rotate: 3 }}
-          whileTap={{ scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+          whileHover={{ scale: 1.05, rotate: 2 }}
+          whileTap={{ scale: 0.96 }}
+          transition={{ type: 'spring', stiffness: 350, damping: 25 }}
           className="relative mb-4 cursor-pointer flex items-center justify-center"
         >
           <img
             src="./logo.svg"
             alt="TurboProbe"
-            className="w-16 h-16 sm:w-18 sm:h-18 object-contain drop-shadow-lg"
+            className="w-16 h-16 sm:w-18 sm:h-18 object-contain drop-shadow-md"
           />
         </motion.div>
 
-        {/* Title with MagicUI Sparkles in Warm Terracotta & Amber */}
+        {/* Title with MagicUI Sparkles in Muted Terracotta */}
         <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-[var(--text-main)] m-0 flex items-center justify-center gap-2">
           <span>TurboProbe</span>
-          <SparklesText text="Hub" colors={{ first: '#F97316', second: '#F59E0B' }} className="text-[#EA580C] dark:text-[#FB923C] font-black" />
+          <SparklesText text="Hub" colors={{ first: '#D97736', second: '#C25E30' }} className="text-[#C25E30] dark:text-[#E08244] font-black" />
         </h1>
 
         {/* Subtitle with Warm Typography */}
@@ -71,10 +71,10 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full max-w-xl">
           {/* Stat 1: Total Configs */}
           <motion.div
-            whileHover={{ y: -3, scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#EA580C]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
+            whileHover={{ y: -2, scale: 1.01 }}
+            whileTap={{ scale: 0.985 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#C25E30]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
           >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
               <ShieldCheck className="w-3.5 h-3.5 text-[#10B981]" />
@@ -91,13 +91,13 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Stat 2: Best Ping */}
           <motion.div
-            whileHover={{ y: -3, scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#EA580C]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
+            whileHover={{ y: -2, scale: 1.01 }}
+            whileTap={{ scale: 0.985 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#C25E30]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
           >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
-              <Zap className="w-3.5 h-3.5 text-[#F59E0B]" />
+              <Zap className="w-3.5 h-3.5 text-[#D97706]" />
               <span>Лучший пинг</span>
             </div>
             <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-main)] flex items-baseline gap-1">
@@ -114,10 +114,10 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Stat 3: Sync Time */}
           <motion.div
-            whileHover={{ y: -3, scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#EA580C]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
+            whileHover={{ y: -2, scale: 1.01 }}
+            whileTap={{ scale: 0.985 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#C25E30]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
           >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
               <RefreshCw className="w-3.5 h-3.5 text-[#10B981]" />

@@ -39,10 +39,10 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
         whileHover={{ scale: 1.005 }}
         whileTap={{ scale: 0.985 }}
         type="button"
-        className={`relative flex-1 h-14 px-6 rounded-l-full font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer overflow-hidden ${
+        className={`relative flex-1 h-14 px-6 rounded-l-full font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-colors duration-200 cursor-pointer overflow-hidden ${
           copied
-            ? 'bg-[#059669] text-white shadow-[0_0_20px_rgba(5,150,105,0.4)]'
-            : 'bg-[#EA580C] text-white hover:bg-[#C2410C] hover:shadow-[0_0_20px_rgba(234,88,12,0.35)]'
+            ? 'bg-[#059669] text-white shadow-[0_0_18px_rgba(5,150,105,0.35)]'
+            : 'bg-[#C25E30] text-white hover:bg-[#A84A1E] hover:shadow-[0_0_14px_rgba(194,94,48,0.25)]'
         }`}
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -52,7 +52,7 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
               initial={{ opacity: 0, scale: 0.7 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.7 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
               className="flex items-center gap-2 font-black"
             >
               <Check className="w-5 h-5 stroke-[3]" />
@@ -76,7 +76,7 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
       </motion.button>
 
       {/* 2. Vertical Divider */}
-      <div className="w-[1px] h-9 self-center bg-white/25" />
+      <div className="w-[1px] h-9 self-center bg-white/20" />
 
       {/* 3. Dropdown Menu Toggle */}
       <motion.button
@@ -85,13 +85,13 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
         whileTap={{ scale: 0.95 }}
         type="button"
         aria-label="Больше форматов экспорта"
-        className={`relative px-4.5 h-14 rounded-r-full flex items-center justify-center transition-all duration-200 cursor-pointer overflow-hidden ${
+        className={`relative px-4.5 h-14 rounded-r-full flex items-center justify-center transition-colors duration-200 cursor-pointer overflow-hidden ${
           copied
             ? 'bg-[#059669] text-white'
-            : 'bg-[#EA580C] text-white hover:bg-[#C2410C]'
+            : 'bg-[#C25E30] text-white hover:bg-[#A84A1E]'
         }`}
       >
-        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2, ease: [0.05, 0.7, 0.1, 1.0] }}>
+        <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}>
           <ChevronDown className="w-5 h-5 stroke-[2.5]" />
         </motion.div>
         <M3Ripple color="#FFFFFF" />
@@ -101,10 +101,10 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 6 }}
+            initial={{ opacity: 0, scale: 0.94, y: 6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 6 }}
-            transition={{ duration: 0.18, ease: [0.05, 0.7, 0.1, 1.0] }}
+            exit={{ opacity: 0, scale: 0.94, y: 6 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             className="absolute right-0 top-full mt-2 w-68 bg-[var(--bg-card)] border border-[var(--border-main)] rounded-3xl p-2 shadow-2xl z-50 overflow-hidden"
           >
             <motion.button
@@ -112,12 +112,12 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
                 onOpenQr();
                 setIsOpen(false);
               }}
-              whileHover={{ scale: 1.02, x: 2 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.015, x: 2 }}
+              whileTap={{ scale: 0.98 }}
               type="button"
               className="relative w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer text-left"
             >
-              <div className="w-7 h-7 rounded-xl bg-[#EA580C]/15 flex items-center justify-center text-[#EA580C] dark:text-[#FB923C]">
+              <div className="w-7 h-7 rounded-xl bg-[#C25E30]/15 flex items-center justify-center text-[#C25E30] dark:text-[#E08244]">
                 <QrCode className="w-4 h-4" />
               </div>
               <div>
@@ -132,12 +132,12 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
                 onDownloadYaml();
                 setIsOpen(false);
               }}
-              whileHover={{ scale: 1.02, x: 2 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.015, x: 2 }}
+              whileTap={{ scale: 0.98 }}
               type="button"
               className="relative w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer text-left mt-1"
             >
-              <div className="w-7 h-7 rounded-xl bg-[#EA580C]/15 flex items-center justify-center text-[#EA580C] dark:text-[#FB923C]">
+              <div className="w-7 h-7 rounded-xl bg-[#C25E30]/15 flex items-center justify-center text-[#C25E30] dark:text-[#E08244]">
                 <Download className="w-4 h-4" />
               </div>
               <div>

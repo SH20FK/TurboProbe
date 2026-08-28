@@ -20,7 +20,7 @@ const PING_PRESETS = [
     val: 300,
     label: '< 300 ms',
     desc: 'Комфорт',
-    color: '#EA580C',
+    color: '#C25E30',
     icon: <Gauge className="w-3.5 h-3.5" />,
   },
   {
@@ -34,7 +34,7 @@ const PING_PRESETS = [
     val: 0,
     label: 'Все узлы',
     desc: 'Без лимита',
-    color: '#FB923C',
+    color: '#E08244',
     icon: <Check className="w-3.5 h-3.5" />,
   },
 ];
@@ -59,14 +59,14 @@ export const M3PingSlider: React.FC<M3PingSliderProps> = ({
               type="button"
               className={`relative p-2.5 rounded-2xl flex flex-col items-center justify-center gap-1 text-center border transition-colors duration-150 cursor-pointer overflow-hidden select-none shadow-xs ${
                 isSelected
-                  ? 'bg-[var(--bg-card)] border-[#EA580C] shadow-[0_0_16px_rgba(234,88,12,0.22)]'
+                  ? 'bg-[var(--bg-card)] border-[#C25E30] shadow-[0_0_12px_rgba(194,94,48,0.18)]'
                   : 'bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border-[var(--border-main)]'
               }`}
             >
               {isSelected && (
                 <motion.div
                   layoutId="ping-pill-indicator"
-                  className="absolute inset-0 bg-[#EA580C]/10 rounded-2xl border border-[#EA580C]"
+                  className="absolute inset-0 bg-[#C25E30]/10 rounded-2xl border border-[#C25E30]"
                   transition={{ type: 'spring', stiffness: 280, damping: 28, mass: 0.8 }}
                 />
               )}
