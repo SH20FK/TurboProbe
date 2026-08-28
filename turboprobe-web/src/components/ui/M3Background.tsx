@@ -27,7 +27,6 @@ const MorphingFigure: React.FC<MorphingFigureProps> = ({
   initialRotate = 6,
   startDelay = 0,
 }) => {
-  // Initialize with the computed SVG path of the first shape
   const [pathD, setPathD] = useState<string>(() =>
     toPathD(getShape(shapes[0]).cubics, 100),
   );
@@ -50,17 +49,11 @@ const MorphingFigure: React.FC<MorphingFigureProps> = ({
       }
     };
 
-    /**
-     * Smoothly morph from shapes[fromIdx] → shapes[toIdx],
-     * then after pauseDuration kick off the next morph automatically.
-     * This creates a seamless, gapless chain with NO state resets.
-     */
     const runMorph = (fromIdx: number) => {
       if (!alive.current) return;
 
       const toIdx = (fromIdx + 1) % shapes.length;
 
-      // Dispose previous morph instance before creating a new one
       if (morphRef.current) {
         morphRef.current.dispose();
         morphRef.current = null;
@@ -75,16 +68,13 @@ const MorphingFigure: React.FC<MorphingFigureProps> = ({
         },
       });
 
-      // Trigger the morph: animate progress 0 → 1
       morphRef.current.progress = 1;
 
-      // After morph + pause, chain the next one seamlessly
       timerRef.current = setTimeout(() => {
         if (alive.current) runMorph(toIdx);
       }, morphDuration + pauseDuration);
     };
 
-    // Stagger start so all 4 figures begin at different times
     timerRef.current = setTimeout(() => {
       if (alive.current) runMorph(0);
     }, startDelay);
@@ -94,11 +84,10 @@ const MorphingFigure: React.FC<MorphingFigureProps> = ({
       cleanup();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Intentionally stable — shapes/durations don't change after mount
+  }, []);
 
   return (
     <div className={`absolute ${className}`}>
-      {/* Outer Floating & Breathing Layer (Framer Motion) */}
       <motion.div
         animate={{
           y: [initialY, -initialY, initialY],
@@ -112,15 +101,13 @@ const MorphingFigure: React.FC<MorphingFigureProps> = ({
         }}
         className="w-full h-full"
       >
-        {/* SVG Shape — path is updated by AnimatedMorph each frame */}
         <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
           <path
             d={pathD}
             style={{
               fill: 'var(--bg-shape-fill)',
               stroke: 'var(--bg-shape-stroke)',
-              strokeWidth: 1.3,
-              // Hardware-accelerate the SVG path repaints
+              strokeWidth: 1.2,
               willChange: 'auto',
             }}
           />
@@ -131,13 +118,11 @@ const MorphingFigure: React.FC<MorphingFigureProps> = ({
 };
 
 // ─── Shape Sequences ───────────────────────────────────────────────────────────
-// Curated from the official 35-shape AndroidX / Material 3 catalog.
-// Each set is offset by 1 shape so the 4 figures are always in different states.
-
-const topLeft: ShapeName[]    = ['Clover4Leaf', 'Sunny', 'Heart', 'PuffyDiamond', 'Cookie9Sided'];
-const topRight: ShapeName[]   = ['Burst',       'Gem',   'Cookie12Sided', 'Ghostish', 'VerySunny'];
-const bottomLeft: ShapeName[] = ['Cookie6Sided', 'Boom',  'Bun',  'SoftBurst',   'Flower'];
-const bottomRight: ShapeName[]= ['Puffy',        'ClamShell', 'Diamond', 'Clover8Leaf', 'Pentagon'];
+const topLeft: ShapeName[]     = ['Clover4Leaf', 'Sunny',       'Heart',      'PuffyDiamond',  'Cookie9Sided'];
+const topRight: ShapeName[]    = ['Burst',        'Gem',         'Cookie12Sided', 'Ghostish',   'VerySunny'];
+const bottomLeft: ShapeName[]  = ['Cookie6Sided', 'Boom',        'Bun',        'SoftBurst',     'Flower'];
+const bottomRight: ShapeName[] = ['Puffy',        'ClamShell',   'Diamond',    'Clover8Leaf',   'Pentagon'];
+const midLeft: ShapeName[]     = ['SoftBoom',     'Cookie7Sided','Oval',       'Clover4Leaf',   'Burst'];
 
 export const M3Background: React.FC = () => {
   return (
@@ -154,54 +139,66 @@ export const M3Background: React.FC = () => {
         }}
       />
 
-      {/* 2. Four Corner Shapes — AnimatedMorph + Floating */}
+      {/* 2. Five Shape-Morphing Figures */}
 
-      {/* Top-Left: Clover → Sunny → Heart → PuffyDiamond → Cookie9 */}
+      {/* Top-Left — large, partially outside viewport */}
       <MorphingFigure
         shapes={topLeft}
-        className="top-[5%] left-[3%] w-44 h-44 sm:w-56 sm:h-56 opacity-80 dark:opacity-70"
+        className="-top-16 -left-16 w-80 h-80 sm:w-96 sm:h-96 opacity-90 dark:opacity-80"
         morphDuration={4200}
         pauseDuration={900}
         floatDuration={13}
-        initialY={-14}
+        initialY={-18}
         initialRotate={8}
         startDelay={0}
       />
 
-      {/* Top-Right: Burst → Gem → Cookie12 → Ghostish → VerySunny */}
+      {/* Top-Right — large, partially outside viewport */}
       <MorphingFigure
         shapes={topRight}
-        className="top-[9%] right-[3%] w-40 h-40 sm:w-52 sm:h-52 opacity-80 dark:opacity-70"
+        className="-top-12 -right-16 w-72 h-72 sm:w-88 sm:h-88 opacity-90 dark:opacity-80"
         morphDuration={4600}
         pauseDuration={1000}
         floatDuration={15}
-        initialY={12}
+        initialY={14}
         initialRotate={-10}
         startDelay={1700}
       />
 
-      {/* Bottom-Left: Cookie6 → Boom → Bun → SoftBurst → Flower */}
+      {/* Bottom-Left — large */}
       <MorphingFigure
         shapes={bottomLeft}
-        className="bottom-[7%] left-[4%] w-44 h-44 sm:w-56 sm:h-56 opacity-75 dark:opacity-65"
+        className="-bottom-16 -left-14 w-80 h-80 sm:w-96 sm:h-96 opacity-85 dark:opacity-75"
         morphDuration={4000}
         pauseDuration={1100}
         floatDuration={14}
-        initialY={15}
+        initialY={18}
         initialRotate={-8}
         startDelay={900}
       />
 
-      {/* Bottom-Right: Puffy → ClamShell → Diamond → Clover8 → Pentagon */}
+      {/* Bottom-Right — extra large, bleeds into corner */}
       <MorphingFigure
         shapes={bottomRight}
-        className="bottom-[5%] right-[3%] w-48 h-48 sm:w-60 sm:h-60 opacity-80 dark:opacity-70"
+        className="-bottom-20 -right-16 w-88 h-88 sm:w-[26rem] sm:h-[26rem] opacity-90 dark:opacity-80"
         morphDuration={5000}
         pauseDuration={800}
         floatDuration={16}
-        initialY={-12}
+        initialY={-14}
         initialRotate={10}
         startDelay={2600}
+      />
+
+      {/* Mid-Left — smaller accent shape for depth */}
+      <MorphingFigure
+        shapes={midLeft}
+        className="top-[38%] -left-20 w-56 h-56 sm:w-72 sm:h-72 opacity-60 dark:opacity-50"
+        morphDuration={5400}
+        pauseDuration={700}
+        floatDuration={18}
+        initialY={10}
+        initialRotate={-6}
+        startDelay={3400}
       />
     </div>
   );
