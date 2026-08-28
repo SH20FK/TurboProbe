@@ -355,24 +355,24 @@ export default function App() {
   }, [filteredNodes]);
 
   return (
-    <div className="min-h-screen bg-[#141218] text-[#E6E0E9] selection:bg-[#D0BCFF] selection:text-[#381E72] flex flex-col justify-between">
-      {/* 1. M3 Top App Bar */}
-      <header className="sticky top-0 z-30 w-full h-16 bg-[#141218]/80 backdrop-blur-xl border-b border-[#49454F]/30 px-4 sm:px-6 flex items-center justify-between">
+    <div className="min-h-screen bg-[#0D0C12] text-[#E6E0E9] selection:bg-[#38BDF8] selection:text-black flex flex-col justify-between">
+      {/* 1. Glass Top App Bar with Real Logo */}
+      <header className="sticky top-0 z-30 w-full h-16 bg-[#0D0C12]/80 backdrop-blur-2xl border-b border-white/[0.08] px-4 sm:px-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-[#4F378B] text-[#EADDFF] flex items-center justify-center font-display font-bold text-sm shadow-md">
-            TP
+          <div className="w-8 h-8 rounded-xl bg-white p-1 shadow-md flex items-center justify-center">
+            <img src="./logo.svg" alt="TurboProbe" className="w-full h-full object-contain" />
           </div>
-          <span className="font-display font-bold text-sm sm:text-base text-white tracking-tight">
+          <span className="font-display font-black text-base sm:text-lg text-white tracking-tight">
             TurboProbe
           </span>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#211F26] text-xs font-mono text-[#CAC4D0] border border-[#49454F]/30">
-            <span className="w-2 h-2 rounded-full bg-[#7BE08F] animate-pulse" />
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] text-xs font-mono text-[#94A3B8] border border-white/[0.08]">
+            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
             <span>
               {(stats.total_nodes || allNodes.length) > 0 ? (
-                `${(stats.total_nodes || allNodes.length).toLocaleString('ru-RU')} узлов`
+                `${(stats.total_nodes || allNodes.length).toLocaleString('ru-RU')} проверенных узлов`
               ) : (
                 'Синхронизация...'
               )}
@@ -383,7 +383,7 @@ export default function App() {
             href="https://github.com/SH20FK/TurboProbe"
             target="_blank"
             rel="noreferrer"
-            className="relative px-3.5 py-1.5 rounded-full bg-[#36343B] hover:bg-[#49454F] text-[#E6E0E9] text-xs font-medium font-mono flex items-center gap-1.5 transition-colors overflow-hidden"
+            className="relative px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white text-xs font-medium font-mono flex items-center gap-1.5 transition-colors overflow-hidden"
           >
             <span>GitHub</span>
             <M3Ripple />
@@ -391,10 +391,10 @@ export default function App() {
         </div>
       </header>
 
-      {/* 2. Main Page Content */}
+      {/* 2. Bento Command Center Container */}
       <div className="flex-1 flex flex-col justify-center py-6 sm:py-10">
-        <div className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4">
-          {/* Header with Dynamic Theme */}
+        <div className="w-full max-w-5xl mx-auto space-y-5 px-4 sm:px-6">
+          {/* Header Bento Banner */}
           <Header
             totalConfigs={stats.total_nodes || allNodes.length}
             bestPing={stats.best_ping_ms}
@@ -404,52 +404,59 @@ export default function App() {
             onSelectTheme={selectTheme}
           />
 
-          {/* Main Controls */}
-          <main className="w-full space-y-4">
-            <FilterPanel
-              activePreset={activePreset}
-              onSelectPreset={handleSelectPreset}
-              selectedServices={selectedServices}
-              onToggleService={handleToggleService}
-              selectedCountries={selectedCountries}
-              onToggleCountry={handleToggleCountry}
-              onClearCountries={handleClearCountries}
-              selectedProtos={selectedProtos}
-              onToggleProto={handleToggleProto}
-              onClearProtos={handleClearProtos}
-              countryCounts={countryCounts}
-              protoCounts={protoCounts}
-              minHealth={minHealth}
-              onChangeMinHealth={handleChangeMinHealth}
-            />
+          {/* 2-Column Bento Grid on Desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            {/* Left Column: Preset & Dynamic Filters */}
+            <div className="lg:col-span-6 flex flex-col">
+              <FilterPanel
+                activePreset={activePreset}
+                onSelectPreset={handleSelectPreset}
+                selectedServices={selectedServices}
+                onToggleService={handleToggleService}
+                selectedCountries={selectedCountries}
+                onToggleCountry={handleToggleCountry}
+                onClearCountries={handleClearCountries}
+                selectedProtos={selectedProtos}
+                onToggleProto={handleToggleProto}
+                onClearProtos={handleClearProtos}
+                countryCounts={countryCounts}
+                protoCounts={protoCounts}
+                minHealth={minHealth}
+                onChangeMinHealth={handleChangeMinHealth}
+              />
+            </div>
 
-            <ExportPanel
-              subUrl={subUrl}
-              filteredCount={filteredNodes.length}
-              selectedLimit={selectedLimit}
-              onChangeLimit={setSelectedLimit}
-              allFilteredKeys={allFilteredKeys}
-              onOpenQr={() => setIsQrOpen(true)}
-              onDownloadClash={handleDownloadClash}
-            />
+            {/* Right Column: 1-Click Export Command Hub */}
+            <div className="lg:col-span-6 flex flex-col">
+              <ExportPanel
+                subUrl={subUrl}
+                filteredCount={filteredNodes.length}
+                selectedLimit={selectedLimit}
+                onChangeLimit={setSelectedLimit}
+                allFilteredKeys={allFilteredKeys}
+                onOpenQr={() => setIsQrOpen(true)}
+                onDownloadClash={handleDownloadClash}
+              />
+            </div>
+          </div>
 
-            <NodePreviewList
-              nodes={filteredNodes}
-              isLoading={isLoading}
-              totalAvailable={filteredNodes.length}
-            />
-          </main>
+          {/* Full-Width Telemetry Drawer */}
+          <NodePreviewList
+            nodes={filteredNodes}
+            isLoading={isLoading}
+            totalAvailable={filteredNodes.length}
+          />
 
           {/* QR Modal */}
           <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
 
-          {/* Clean M3 Footer */}
-          <footer className="w-full pt-8 pb-4 border-t border-[#49454F]/30 flex flex-col items-center justify-center text-center text-xs text-[#938F99] font-body space-y-1.5">
-            <p className="m-0 font-display font-medium text-[#CAC4D0]">
+          {/* Clean Bento Footer */}
+          <footer className="w-full pt-8 pb-4 border-t border-white/[0.08] flex flex-col items-center justify-center text-center text-xs text-[#64748B] font-body space-y-1.5">
+            <p className="m-0 font-display font-medium text-[#94A3B8]">
               TurboProbe · Суверенный VPN-агрегатор
             </p>
             <p className="m-0 font-mono text-[11px]">
-              Material Design 3 Expressive • Обновление каждые 6 часов
+              Material Design 3 Expressive • Bento Command Architecture • Обновление каждые 6 часов
             </p>
           </footer>
         </div>
