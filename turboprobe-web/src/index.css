@@ -45,8 +45,12 @@
   color-scheme: light;
 }
 
-.theme-tg.dark,
-.theme-tg:not(.light) {
+/* Telegram Dark Mode */
+.theme-tg,
+.dark .theme-tg,
+:root.dark .theme-tg,
+:root.theme-tg.dark,
+:root.theme-tg:not(.light) {
   --bg-app: #0E1621;
   --bg-card: #17212B;
   --bg-card-hover: #202E3D;
@@ -64,7 +68,10 @@
   --bg-dot-color: rgba(255, 255, 255, 0.05);
 }
 
-.theme-tg.light {
+/* Telegram Light Mode */
+.light .theme-tg,
+:root.light .theme-tg,
+:root.theme-tg.light {
   --bg-app: #F0F4F8;
   --bg-card: #FFFFFF;
   --bg-card-hover: #E8EFF6;
