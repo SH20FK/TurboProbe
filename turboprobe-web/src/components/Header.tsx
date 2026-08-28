@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 import { M3NumberCounter } from './ui/M3NumberCounter';
 import { SparklesText } from './ui/SparklesText';
-import { SpotlightCard } from './ui/SpotlightCard';
 
 interface HeaderProps {
   totalConfigs?: number;
@@ -41,8 +40,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <div className="w-full select-none">
-      {/* Clean Dark Hero Card with Spotlight & Sparkles */}
-      <SpotlightCard className="p-6 sm:p-8 flex flex-col items-center text-center">
+      {/* Clean Dark Hero Bento Card */}
+      <div className="relative rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 p-6 sm:p-8 shadow-xl overflow-hidden flex flex-col items-center text-center">
         {/* Brand Logo with Tactile Instant Hover */}
         <motion.div
           whileHover={{ scale: 1.08, rotate: 3 }}
@@ -137,7 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </motion.div>
         </div>
-      </SpotlightCard>
+      </div>
     </div>
   );
 };

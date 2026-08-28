@@ -7,7 +7,6 @@ import { M3SplitButton } from './ui/M3SplitButton';
 import { M3Ripple } from './ui/M3Ripple';
 import { M3NumberCounter } from './ui/M3NumberCounter';
 import { CoolMode } from './ui/CoolMode';
-import { SpotlightCard } from './ui/SpotlightCard';
 import { useToast } from './ui/M3Toast';
 
 interface ExportPanelProps {
@@ -101,7 +100,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   };
 
   return (
-    <SpotlightCard className="p-5 sm:p-6 space-y-4">
+    <div className="p-5 sm:p-6 rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 shadow-xl space-y-4">
       {/* 1. Header with Sliding Spring Limit Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div className="flex items-center gap-2">
@@ -377,6 +376,6 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           )}
         </AnimatePresence>
       </div>
-    </SpotlightCard>
+    </div>
   );
 };
