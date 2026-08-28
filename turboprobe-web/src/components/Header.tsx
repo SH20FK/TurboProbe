@@ -62,9 +62,9 @@ export const Header: React.FC<HeaderProps> = ({
           <SparklesText text="Hub" colors={{ first: '#F97316', second: '#F59E0B' }} className="text-[#EA580C] dark:text-[#FB923C] font-black" />
         </h1>
 
-        {/* Subtitle with Warm Typography */}
-        <p className="font-body text-xs sm:text-sm md:text-base text-[var(--text-muted)] mt-2.5 mb-6 max-w-lg leading-relaxed font-normal">
-          Суверенный генератор проверенных подписок <span className="text-[var(--text-main)] font-semibold">VLESS Reality</span> и <span className="text-[var(--text-main)] font-semibold">Trojan</span> с обходом ТСПУ
+        {/* Subtitle with Clean MD3 Typography */}
+        <p className="font-body text-xs sm:text-sm md:text-base text-[var(--text-muted)] mt-2.5 mb-6 max-w-xl leading-relaxed font-normal">
+          Суверенный генератор проверенных подписок <span className="text-[var(--text-main)] font-semibold">VLESS Reality</span>, <span className="text-[var(--text-main)] font-semibold">Hysteria 2</span>, <span className="text-[var(--text-main)] font-semibold">Trojan</span> и <span className="text-[var(--text-main)] font-semibold">Shadowsocks</span> с защитой от блокировок
         </p>
 
         {/* 3 Balanced KPI Stat Cards */}

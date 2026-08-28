@@ -22,10 +22,10 @@ function isConflictMarker(line: string): boolean {
 }
 
 export default function App() {
-  const [activePreset, setActivePreset] = useState<string>('anti-tspu');
+  const [activePreset, setActivePreset] = useState<string>('all');
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
-  const [selectedProtos, setSelectedProtos] = useState<string[]>(['reality']);
+  const [selectedProtos, setSelectedProtos] = useState<string[]>([]);
   const [selectedLimit, setSelectedLimit] = useState<number>(50);
   const [minHealth, setMinHealth] = useState<number>(0);
 
