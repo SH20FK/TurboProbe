@@ -29,7 +29,7 @@ export function formatMskTime(isoString?: string): string {
 
 export const Header: React.FC<HeaderProps> = ({
   totalConfigs = 0,
-  bestPing = 181,
+  bestPing = 0,
   avgPing: _avgPing,
   updatedAt,
 }) => {
@@ -64,10 +64,14 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="bg-[#4F378B] text-[#EADDFF] p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-sm">
             <div className="flex items-center gap-1.5 opacity-80 text-[11px] font-display font-semibold uppercase tracking-wider">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Серверы</span>
+              <span>Серверы онлайн</span>
             </div>
             <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              {totalConfigs > 0 ? totalConfigs.toLocaleString('ru-RU') : '1 107'}
+              {totalConfigs > 0 ? (
+                totalConfigs.toLocaleString('ru-RU')
+              ) : (
+                <span className="inline-block w-12 h-7 bg-white/20 rounded animate-pulse" />
+              )}
             </div>
           </div>
 
@@ -78,7 +82,13 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Лучший пинг</span>
             </div>
             <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              {bestPing > 0 ? bestPing : 181} <span className="text-xs font-normal opacity-80">ms</span>
+              {bestPing > 0 ? (
+                <>
+                  {bestPing} <span className="text-xs font-normal opacity-80">ms</span>
+                </>
+              ) : (
+                <span className="inline-block w-12 h-7 bg-white/20 rounded animate-pulse" />
+              )}
             </div>
           </div>
 
@@ -89,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Обновлено</span>
             </div>
             <div className="font-mono text-xs sm:text-sm font-semibold tracking-tight text-white truncate w-full text-right sm:text-left mt-1">
-              {mskTime}
+              {updatedAt ? mskTime : <span className="inline-block w-24 h-4 bg-white/20 rounded animate-pulse" />}
             </div>
           </div>
         </div>

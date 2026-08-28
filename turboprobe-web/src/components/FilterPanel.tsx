@@ -21,7 +21,7 @@ import {
   GitHubIcon,
 } from './ServiceIcons';
 import { CountryFlag } from './CountryFlags';
-import { PRESETS, KNOWN_COUNTRIES, DEFAULT_POPULAR_COUNTRIES, PROTOCOLS } from '../constants';
+import { PRESETS, KNOWN_COUNTRIES, KNOWN_PROTOCOLS } from '../constants';
 import type { PresetItem } from '../types';
 
 interface FilterPanelProps {
@@ -71,20 +71,33 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false);
   const [isExpandedCountries, setIsExpandedCountries] = useState<boolean>(false);
 
-  // Dynamically compute and sort countries based on live pool availability
+  // Dynamically compute and sort countries based 100% on live pool availability
   const availableCountries = useMemo(() => {
-    const codes = new Set<string>([...DEFAULT_POPULAR_COUNTRIES, ...Object.keys(countryCounts)]);
-    const list = Array.from(codes).map((code) => ({
-      code,
-      label: KNOWN_COUNTRIES[code] || code.toUpperCase(),
-      count: countryCounts[code] || 0,
-    }));
+    const list = Object.keys(countryCounts)
+      .filter((code) => countryCounts[code] > 0)
+      .map((code) => ({
+        code,
+        label: KNOWN_COUNTRIES[code] || code.toUpperCase(),
+        count: countryCounts[code] || 0,
+      }));
 
     return list.sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
       return a.label.localeCompare(b.label, 'ru');
     });
   }, [countryCounts]);
+
+  // Dynamically compute available protocols based 100% on live pool availability
+  const availableProtos = useMemo(() => {
+    return Object.keys(protoCounts)
+      .filter((id) => protoCounts[id] > 0)
+      .map((id) => ({
+        id,
+        label: KNOWN_PROTOCOLS[id] || id.toUpperCase(),
+        count: protoCounts[id] || 0,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [protoCounts]);
 
   const visibleCountries = isExpandedCountries ? availableCountries : availableCountries.slice(0, 10);
   const hiddenCountryCount = Math.max(0, availableCountries.length - 10);
@@ -248,9 +261,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                       <span>Все</span>
                     </button>
 
-                    {PROTOCOLS.map((p) => {
+                    {availableProtos.map((p) => {
                       const isSelected = selectedProtos.includes(p.id);
-                      const count = protoCounts[p.id] || 0;
 
                       return (
                         <button
@@ -264,11 +276,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                           }`}
                         >
                           <span>{p.label}</span>
-                          {count > 0 && (
-                            <span className="text-[10px] font-mono opacity-70 ml-0.5">
-                              ({count})
-                            </span>
-                          )}
+                          <span className="text-[10px] font-mono opacity-70 ml-0.5">
+                            ({p.count})
+                          </span>
                         </button>
                       );
                     })}

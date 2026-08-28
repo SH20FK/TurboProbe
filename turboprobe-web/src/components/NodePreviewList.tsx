@@ -136,7 +136,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
               {!isLoading &&
                 visibleNodes.map((node, index) => {
                   const nodeKey = node.id || node.uri || `node-${index}`;
-                  const ping = typeof node.ping_ms === 'number' && node.ping_ms > 0 ? Math.round(node.ping_ms) : 220;
+                  const ping = typeof node.ping_ms === 'number' && node.ping_ms > 0 ? Math.round(node.ping_ms) : null;
                   const countryCode = (node.country || 'all').toLowerCase();
                   const proto = (node.protocol || (node.uri.split('://')[0] || 'vless')).toUpperCase();
                   const isCopied = copiedKey === nodeKey;
@@ -171,18 +171,25 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
                       {/* Right: Ping + Copy */}
                       <div className="flex items-center gap-3.5 flex-shrink-0">
-                        <div className="flex items-center gap-1.5 font-mono text-xs text-[#CAC4D0]">
-                          <span
-                            className={`w-2 h-2 rounded-full ${
-                              ping < 250
-                                ? 'bg-[#7BE08F]'
-                                : ping < 550
-                                ? 'bg-[#EFB8C8]'
-                                : 'bg-[#938F99]'
-                            }`}
-                          />
-                          <span>{ping} ms</span>
-                        </div>
+                        {ping !== null ? (
+                          <div className="flex items-center gap-1.5 font-mono text-xs text-[#CAC4D0]">
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                ping < 250
+                                  ? 'bg-[#7BE08F]'
+                                  : ping < 550
+                                  ? 'bg-[#EFB8C8]'
+                                  : 'bg-[#938F99]'
+                              }`}
+                            />
+                            <span>{ping} ms</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 font-mono text-xs text-[#7BE08F]">
+                            <span className="w-2 h-2 rounded-full bg-[#7BE08F]" />
+                            <span>ON</span>
+                          </div>
+                        )}
 
                         <button
                           onClick={() => handleCopyNode(node.uri, nodeKey)}

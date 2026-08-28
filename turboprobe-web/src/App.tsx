@@ -28,40 +28,40 @@ export default function App() {
   const [allNodes, setAllNodes] = useState<NodeItem[]>([]);
   const [stats, setStats] = useState<{ total_nodes: number; best_ping_ms: number; avg_ping_ms: number; updated_at: string }>({
     total_nodes: 0,
-    best_ping_ms: 181,
-    avg_ping_ms: 480,
+    best_ping_ms: 0,
+    avg_ping_ms: 0,
     updated_at: '',
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isQrOpen, setIsQrOpen] = useState<boolean>(false);
 
-  // Fast Parallel Mirror Fetching with AbortController
+  // Fast Parallel Mirror Fetching with AbortController and Auto-revalidation
   useEffect(() => {
     let isMounted = true;
 
     async function loadData() {
-      setIsLoading(true);
-
       const cacheBust = Date.now();
-      const mirrors = [
+      const previewMirrors = [
         `sub/preview.json?t=${cacheBust}`,
+        `./sub/preview.json?t=${cacheBust}`,
         `${JSDELIVR_BASE}/preview.json?t=${cacheBust}`,
         `${CDN_BASE}/preview.json?t=${cacheBust}`,
       ];
 
       const statsMirrors = [
         `sub/stats.json?t=${cacheBust}`,
+        `./sub/stats.json?t=${cacheBust}`,
         `${JSDELIVR_BASE}/stats.json?t=${cacheBust}`,
         `${CDN_BASE}/stats.json?t=${cacheBust}`,
       ];
 
-      const fetchWithTimeout = async (url: string, ms = 3000) => {
+      const fetchWithTimeout = async (url: string, ms = 4000) => {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), ms);
         try {
-          const res = await fetch(url, { signal: ctrl.signal });
+          const res = await fetch(url, { signal: ctrl.signal, cache: 'no-cache' });
           clearTimeout(tid);
-          if (!res.ok) throw new Error('Not ok');
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return await res.json();
         } catch (err) {
           clearTimeout(tid);
@@ -69,70 +69,96 @@ export default function App() {
         }
       };
 
-      // 1. Fetch real stats
+      // 1. Fetch real dynamic stats
       try {
         const statsData = await Promise.any(statsMirrors.map((m) => fetchWithTimeout(m)));
         if (isMounted && statsData) {
           setStats({
-            total_nodes: statsData.total_nodes || 0,
-            best_ping_ms: Math.round(statsData.best_ping_ms || 181),
-            avg_ping_ms: Math.round(statsData.avg_ping_ms || 480),
+            total_nodes: statsData.total_nodes || statsData.alive_verified_nodes || 0,
+            best_ping_ms: statsData.best_ping_ms > 0 ? Math.round(statsData.best_ping_ms) : 0,
+            avg_ping_ms: statsData.avg_ping_ms > 0 ? Math.round(statsData.avg_ping_ms) : 0,
             updated_at: statsData.updated_at || '',
           });
         }
       } catch {
-        // ignore stats fetch error
+        // ignore stats error
       }
 
       // 2. Fetch verified preview nodes
       try {
-        const data = await Promise.any(mirrors.map((m) => fetchWithTimeout(m)));
-        if (isMounted && data && Array.isArray(data.nodes)) {
+        const data = await Promise.any(previewMirrors.map((m) => fetchWithTimeout(m)));
+        if (isMounted && data && Array.isArray(data.nodes) && data.nodes.length > 0) {
           const sanitized = (data.nodes as NodeItem[]).filter(
             (n) => n && typeof n.uri === 'string' && VALID_URI_REGEX.test(n.uri.trim()) && !isConflictMarker(n.uri.trim())
           );
           setAllNodes(normalizeAndIndexNodes(sanitized));
-          if (data.updated_at && !stats.updated_at) {
-            setStats((prev) => ({ ...prev, updated_at: data.updated_at }));
+          if (data.updated_at) {
+            setStats((prev) => ({
+              ...prev,
+              total_nodes: prev.total_nodes || sanitized.length,
+              updated_at: prev.updated_at || data.updated_at,
+            }));
           }
           setIsLoading(false);
           return;
         }
       } catch {
-        // fallback to top50.txt
+        // fallback to raw node list
       }
 
+      // 3. Fallback: Parse raw verified pool without fabricated data
       try {
-        const res = await fetch(`${JSDELIVR_BASE}/top50.txt`);
-        if (res.ok) {
-          const text = await res.text();
-          const lines = text
+        const rawMirrors = [
+          `sub/all.txt?t=${cacheBust}`,
+          `./sub/all.txt?t=${cacheBust}`,
+          `${JSDELIVR_BASE}/all.txt?t=${cacheBust}`,
+          `${CDN_BASE}/all.txt?t=${cacheBust}`,
+        ];
+        const res = await Promise.any(rawMirrors.map(async (m) => {
+          const r = await fetch(m, { cache: 'no-cache' });
+          if (!r.ok) throw new Error('Not ok');
+          return await r.text();
+        }));
+
+        if (res && isMounted) {
+          const lines = res
             .split('\n')
             .map((l) => l.trim())
             .filter((l) => l.length > 0 && VALID_URI_REGEX.test(l) && !isConflictMarker(l));
 
-          if (isMounted) {
-            const fallbackNodes: NodeItem[] = lines.map((uri, idx) => ({
-              uri,
-              ping_ms: 180 + idx * 5,
-              country: 'NL',
-              protocol: (uri.split('://')[0] || 'vless').toLowerCase(),
-              health: 95,
-              services: { chatgpt: true, youtube: true, discord: true },
+          if (lines.length > 0) {
+            const parsedNodes: NodeItem[] = lines.map((uri) => {
+              const proto = (uri.split('://')[0] || 'vless').toLowerCase();
+              return {
+                uri,
+                protocol: proto,
+                health: 100,
+                country: 'GLOBAL',
+                services: {},
+              };
+            });
+            setAllNodes(normalizeAndIndexNodes(parsedNodes));
+            setStats((prev) => ({
+              ...prev,
+              total_nodes: prev.total_nodes || parsedNodes.length,
             }));
-            setAllNodes(normalizeAndIndexNodes(fallbackNodes));
           }
         }
       } catch {
-        // fallback failed
+        // raw pool error
       } finally {
         if (isMounted) setIsLoading(false);
       }
     }
 
     loadData();
+
+    // Background auto-refresh every 2 minutes
+    const interval = setInterval(loadData, 120000);
+
     return () => {
       isMounted = false;
+      clearInterval(interval);
     };
   }, []);
 
@@ -340,7 +366,13 @@ export default function App() {
         <div className="flex items-center gap-2.5">
           <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#211F26] text-xs font-mono text-[#CAC4D0] border border-[#49454F]/30">
             <span className="w-2 h-2 rounded-full bg-[#7BE08F] animate-pulse" />
-            <span>{stats.total_nodes || allNodes.length} узлов</span>
+            <span>
+              {(stats.total_nodes || allNodes.length) > 0 ? (
+                `${(stats.total_nodes || allNodes.length).toLocaleString('ru-RU')} узлов`
+              ) : (
+                'Синхронизация...'
+              )}
+            </span>
           </div>
 
           <a

@@ -84,7 +84,7 @@ export function indexNode(node: NodeItem, index: number): NodeItem {
     }
   }
 
-  const ping = typeof node.ping_ms === 'number' ? node.ping_ms : (35 + index * 2);
+  const ping = typeof node.ping_ms === 'number' && node.ping_ms > 0 ? node.ping_ms : 0;
   const health = typeof node.health === 'number' ? node.health : 100;
   const id = node.id || uri || `node-${index}`;
 

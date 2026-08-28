@@ -103,12 +103,12 @@ export const KNOWN_COUNTRIES: Record<string, string> = {
   mt: 'Мальта',
 };
 
-export const DEFAULT_POPULAR_COUNTRIES = ['de', 'nl', 'kz', 'fi', 'tr', 'ru', 'se', 'us', 'gb', 'fr', 'sg', 'jp'];
-
-export const PROTOCOLS = [
-  { id: 'reality', label: 'VLESS Reality' },
-  { id: 'hy2', label: 'Hysteria 2' },
-  { id: 'trojan', label: 'Trojan TLS' },
-  { id: 'ss', label: 'Shadowsocks' },
-  { id: 'vless', label: 'VLESS' },
-];
+export const KNOWN_PROTOCOLS: Record<string, string> = {
+  reality: 'VLESS Reality',
+  hy2: 'Hysteria 2',
+  trojan: 'Trojan TLS',
+  ss: 'Shadowsocks',
+  vless: 'VLESS',
+  vmess: 'VMess',
+  tuic: 'TUIC',
+};
