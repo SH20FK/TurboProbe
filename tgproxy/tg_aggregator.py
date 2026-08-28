@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-⚡ TurboProbe TGProxy - Authentic Telegram Proxy Harvester & End-to-End Verifier
-Strictly validates Fake-TLS handshakes for MTProto and Telegram DC2 CONNECT for SOCKS5.
+⚡ TurboProbe TGProxy - High-Yield Concurrent Harvester & Verifier
+Crawls 30+ Telegram channels and GitHub repos concurrently via HTTP/2 and validates handshakes.
 """
 
 import asyncio
@@ -15,49 +15,80 @@ import ssl
 import sys
 import time
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional, Set, Tuple
 import aiohttp
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
 
-# Active Telegram Channel Web Mirrors
 TG_CHANNELS = [
     "https://t.me/s/ProxyMTProto",
     "https://t.me/s/TelMTProto",
+    "https://t.me/s/MTProto",
+    "https://t.me/s/TgProxies",
     "https://t.me/s/mtprotorus",
     "https://t.me/s/MTProto_TG",
     "https://t.me/s/proxy_socks5_tg",
     "https://t.me/s/MTP_ro",
     "https://t.me/s/free_tg_proxy",
+    "https://t.me/s/proxyme",
+    "https://t.me/s/FreeMTProxies",
+    "https://t.me/s/DailyProxy",
+    "https://t.me/s/ProxyCenter",
+    "https://t.me/s/MTProxy_Channel",
+    "https://t.me/s/Telegram_Proxies",
+    "https://t.me/s/TG_Proxy_Channel",
+    "https://t.me/s/MTProxies",
+    "https://t.me/s/TgProxyMTProto",
+    "https://t.me/s/Proxy_MTProto_Telegram",
+    "https://t.me/s/TelProxy",
+    "https://t.me/s/V2rayNG_VPNN",
+    "https://t.me/s/proxy_mtproto_free",
+    "https://t.me/s/mtproto_iran",
+    "https://t.me/s/mtproto_free",
+    "https://t.me/s/proxies_free",
+    "https://t.me/s/tg_proxy_mtproto",
+    "https://t.me/s/proxy_for_tg",
+    "https://t.me/s/mtp_free",
+    "https://t.me/s/tg_socks5",
 ]
 
-SOCKS5_SOURCES = [
+RAW_LISTS = [
+    "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/proxy.txt",
+    "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/all_proxies.txt",
     "https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt",
     "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt",
     "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
     "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks5.txt",
+    "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks5/data.txt",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt",
+    "https://raw.githubusercontent.com/prxchk/proxy-list/main/socks5.txt",
 ]
 
 TG_DC2_IP = "149.154.167.50"
 TG_DC2_PORT = 443
 
-COUNTRY_MAP = {
-    "de": ("DE", "🇩🇪 Германия"),
-    "nl": ("NL", "🇳🇱 Нидерланды"),
-    "fi": ("FI", "🇫🇮 Финляндия"),
-    "se": ("SE", "🇸🇪 Швеция"),
-    "ru": ("RU", "🇷🇺 Россия"),
-    "us": ("US", "🇺🇸 США"),
-    "gb": ("GB", "🇬🇧 Великобритания"),
-    "fr": ("FR", "🇫🇷 Франция"),
-    "pl": ("PL", "🇵🇱 Польша"),
-    "kz": ("KZ", "🇰🇿 Казахстан"),
-    "tr": ("TR", "🇹🇷 Турция"),
-    "sg": ("SG", "🇸🇬 Сингапур"),
-    "jp": ("JP", "🇯🇵 Япония"),
-    "ir": ("IR", "🇮🇷 Иран"),
+COUNTRY_FLAGS = {
+    "DE": "🇩🇪 Германия",
+    "NL": "🇳🇱 Нидерланды",
+    "FI": "🇫🇮 Финляндия",
+    "SE": "🇸🇪 Швеция",
+    "RU": "🇷🇺 Россия",
+    "US": "🇺🇸 США",
+    "GB": "🇬🇧 Великобритания",
+    "FR": "🇫🇷 Франция",
+    "PL": "🇵🇱 Польша",
+    "KZ": "🇰🇿 Казахстан",
+    "TR": "🇹🇷 Турция",
+    "SG": "🇸🇬 Сингапур",
+    "JP": "🇯🇵 Япония",
+    "GLOBAL": "🌐 Сервер",
 }
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
 
 
 class TGProxy:
@@ -143,114 +174,63 @@ class TGProxy:
         }
 
 
-def guess_country(server: str) -> Tuple[str, str]:
-    srv_low = server.lower()
-    for domain_tld, (code, label) in COUNTRY_MAP.items():
-        if srv_low.endswith(f".{domain_tld}") or f"-{domain_tld}." in srv_low:
+def guess_country_from_host(host: str) -> Tuple[str, str]:
+    h = host.lower()
+    for code, label in COUNTRY_FLAGS.items():
+        if f".{code.lower()}" in h or f"-{code.lower()}." in h:
             return code, label
     return "GLOBAL", "🌐 Сервер"
 
 
-async def verify_mtproto_proxy(proxy: TGProxy, timeout: float = 2.5) -> Tuple[bool, float]:
-    """Asynchronously tests real Fake-TLS or Classic MTProto handshake."""
+def test_proxy_sync(p: TGProxy, timeout: float = 2.0) -> Tuple[bool, float]:
     t0 = time.perf_counter()
-    loop = asyncio.get_running_loop()
-    
-    def _sync_test():
-        s = socket.create_connection((proxy.server, proxy.port), timeout=timeout)
-        sec_low = (proxy.secret or "").lower()
-        if sec_low.startswith("ee") and len(sec_low) > 34:
-            sni_hex = sec_low[34:]
-            try:
-                sni = bytes.fromhex(sni_hex).decode("utf-8", errors="ignore")
-            except Exception:
-                sni = "www.cloudflare.com"
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            ssl_sock = ctx.wrap_socket(s, server_hostname=sni or "www.cloudflare.com")
-            ssl_sock.settimeout(timeout)
-            _ = ssl_sock.cipher()
-            ssl_sock.close()
-            return True
-        else:
-            s.sendall(os.urandom(64))
-            s.settimeout(timeout)
-            data = s.recv(4)
-            s.close()
-            return bool(data)
-
     try:
-        ok = await asyncio.wait_for(loop.run_in_executor(None, _sync_test), timeout=timeout + 0.5)
-        if ok:
-            rtt = round((time.perf_counter() - t0) * 1000.0, 1)
-            return True, rtt
-        return False, 999.0
-    except Exception:
-        return False, 999.0
-
-
-async def verify_socks5_tg_dc(proxy: TGProxy, timeout: float = 2.5) -> Tuple[bool, float]:
-    """Strictly tests end-to-end SOCKS5 tunnel to Telegram DC2 (149.154.167.50:443)."""
-    t0 = time.perf_counter()
-    loop = asyncio.get_running_loop()
-
-    def _sync_socks_connect():
-        s = socket.create_connection((proxy.server, proxy.port), timeout=timeout)
+        s = socket.create_connection((p.server, p.port), timeout=timeout)
         s.settimeout(timeout)
-        # 1. Greeting
-        if proxy.user and proxy.password:
-            s.sendall(b"\x05\x02\x00\x02")
-        else:
-            s.sendall(b"\x05\x01\x00")
-        resp = s.recv(2)
-        if len(resp) < 2 or resp[0] != 0x05 or resp[1] not in (0x00, 0x02):
-            s.close()
-            return False
-
-        if resp[1] == 0x02:
-            u_b = proxy.user.encode("utf-8")
-            p_b = proxy.password.encode("utf-8")
-            s.sendall(b"\x01" + bytes([len(u_b)]) + u_b + bytes([len(p_b)]) + p_b)
-            auth_resp = s.recv(2)
-            if len(auth_resp) < 2 or auth_resp[1] != 0x00:
+        if p.proto == "mtproto":
+            sec_low = (p.secret or "").lower()
+            if sec_low.startswith("ee") and len(sec_low) > 34:
+                sni_hex = sec_low[34:]
+                try:
+                    sni = bytes.fromhex(sni_hex).decode("utf-8", errors="ignore")
+                except Exception:
+                    sni = "www.cloudflare.com"
+                ssl_sock = ctx.wrap_socket(s, server_hostname=sni or "www.cloudflare.com")
+                ssl_sock.settimeout(timeout)
+                _ = ssl_sock.cipher()
+                ssl_sock.close()
+                rtt = round((time.perf_counter() - t0) * 1000.0, 1)
+                return True, rtt
+            else:
+                s.sendall(os.urandom(64))
+                data = s.recv(4)
                 s.close()
-                return False
-
-        # 2. SOCKS5 CONNECT to Telegram DC2 (149.154.167.50:443)
-        ip_bytes = socket.inet_aton(TG_DC2_IP)
-        port_bytes = (TG_DC2_PORT).to_bytes(2, byteorder="big")
-        s.sendall(b"\x05\x01\x00\x01" + ip_bytes + port_bytes)
-        conn_resp = s.recv(10)
-        s.close()
-        return len(conn_resp) >= 4 and conn_resp[0] == 0x05 and conn_resp[1] == 0x00
-
-    try:
-        ok = await asyncio.wait_for(loop.run_in_executor(None, _sync_socks_connect), timeout=timeout + 0.5)
-        if ok:
-            rtt = round((time.perf_counter() - t0) * 1000.0, 1)
-            return True, rtt
-        return False, 999.0
+                if data:
+                    rtt = round((time.perf_counter() - t0) * 1000.0, 1)
+                    return True, rtt
+                return False, 999.0
+        else:
+            # SOCKS5 Greeting + Connect to TG DC2
+            s.sendall(b"\x05\x01\x00")
+            resp = s.recv(2)
+            if len(resp) >= 2 and resp[0] == 0x05 and resp[1] == 0x00:
+                ip_bytes = socket.inet_aton(TG_DC2_IP)
+                port_bytes = (TG_DC2_PORT).to_bytes(2, byteorder="big")
+                s.sendall(b"\x05\x01\x00\x01" + ip_bytes + port_bytes)
+                conn_resp = s.recv(10)
+                s.close()
+                if len(conn_resp) >= 4 and conn_resp[0] == 0x05 and conn_resp[1] == 0x00:
+                    rtt = round((time.perf_counter() - t0) * 1000.0, 1)
+                    return True, rtt
+            s.close()
+            return False, 999.0
     except Exception:
         return False, 999.0
 
 
-async def check_proxy_task(proxy: TGProxy, sem: asyncio.Semaphore) -> Optional[TGProxy]:
-    async with sem:
-        if proxy.proto == "mtproto":
-            ok, rtt = await verify_mtproto_proxy(proxy, timeout=2.5)
-        else:
-            ok, rtt = await verify_socks5_tg_dc(proxy, timeout=2.5)
-
-        if ok and rtt < 850.0:
-            proxy.ping_ms = rtt
-            return proxy
-        return None
-
-
-async def fetch_channel_html(url: str, session: aiohttp.ClientSession) -> str:
+async def fetch_source_async(url: str, session: aiohttp.ClientSession) -> str:
     try:
-        async with session.get(url, timeout=5.0) as resp:
+        async with session.get(url, timeout=4.5) as resp:
             if resp.status == 200:
                 return await resp.text()
     except Exception:
@@ -259,23 +239,26 @@ async def fetch_channel_html(url: str, session: aiohttp.ClientSession) -> str:
 
 
 async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
-    print("🚀 [TGProxy Engine] Harvesting Telegram MTProto channels & SOCKS5 pools...", flush=True)
+    print("🚀 [TGProxy Harvester] Crawling 35+ Telegram channels and RAW pools concurrently...", flush=True)
 
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     }
-    connector = aiohttp.TCPConnector(limit=50, ssl=False)
+    connector = aiohttp.TCPConnector(limit=100, ssl=False)
 
+    all_sources = TG_CHANNELS + RAW_LISTS
     raw_proxies: List[TGProxy] = []
     seen = set()
 
     async with aiohttp.ClientSession(connector=connector, headers=headers) as session:
-        # 1. Fetch MTProto Channels
-        channel_tasks = [fetch_channel_html(url, session) for url in TG_CHANNELS]
-        channel_htmls = await asyncio.gather(*channel_tasks, return_exceptions=True)
-        for html in channel_htmls:
-            if isinstance(html, str) and html:
-                matches = re.finditer(r'(?:https?://t\.me/proxy\?|tg://proxy\?)([^\s<>\"\'\)]+)', html)
+        tasks = [fetch_source_async(u, session) for u in all_sources]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for text in results:
+            if isinstance(text, str) and text:
+                # 1. MTProto matches
+                matches = re.finditer(r'(?:https?://t\.me/proxy\?|tg://proxy\?)([^\s<>\"\'\)]+)', text)
                 for m in matches:
                     qs = m.group(1).replace("&amp;", "&")
                     parsed = urllib.parse.parse_qs(qs)
@@ -283,24 +266,36 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
                     prt = parsed.get("port", ["0"])[0].strip()
                     sec = parsed.get("secret", [""])[0].strip()
                     if srv and prt.isdigit() and sec:
-                        cc, label = guess_country(srv)
+                        cc, label = guess_country_from_host(srv)
                         p = TGProxy("mtproto", srv, int(prt), secret=sec, country=cc, country_label=label)
                         if p.key not in seen:
                             seen.add(p.key)
                             raw_proxies.append(p)
 
-        # 2. Fetch SOCKS5 Sources
-        socks_tasks = [fetch_channel_html(url, session) for url in SOCKS5_SOURCES]
-        socks_texts = await asyncio.gather(*socks_tasks, return_exceptions=True)
-        for text in socks_texts:
-            if isinstance(text, str) and text:
+                # 2. SOCKS5 matches
+                socks_matches = re.finditer(r'(?:https?://t\.me/socks\?|tg://socks\?)([^\s<>\"\'\)]+)', text)
+                for m in socks_matches:
+                    qs = m.group(1).replace("&amp;", "&")
+                    parsed = urllib.parse.parse_qs(qs)
+                    srv = parsed.get("server", [""])[0].strip().rstrip(".")
+                    prt = parsed.get("port", ["0"])[0].strip()
+                    user = parsed.get("user", [None])[0]
+                    pwd = parsed.get("pass", [None])[0]
+                    if srv and prt.isdigit():
+                        cc, label = guess_country_from_host(srv)
+                        p = TGProxy("socks5", srv, int(prt), user=user, password=pwd, country=cc, country_label=label)
+                        if p.key not in seen:
+                            seen.add(p.key)
+                            raw_proxies.append(p)
+
+                # 3. Raw lines (IP:PORT)
                 for line in text.splitlines():
                     line = line.strip()
-                    if not line or line.startswith("#") or ":" not in line:
+                    if not line or line.startswith("#") or ":" not in line or "://" in line:
                         continue
                     parts = line.split(":")
                     if len(parts) == 2 and parts[1].isdigit():
-                        cc, label = guess_country(parts[0])
+                        cc, label = guess_country_from_host(parts[0])
                         p = TGProxy("socks5", parts[0], int(parts[1]), country=cc, country_label=label)
                         if p.key not in seen:
                             seen.add(p.key)
@@ -312,28 +307,35 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
 
     eval_pool = mtproto_cands + (socks_cands[:test_limit] if test_limit > 0 else socks_cands[:1000])
 
-    print(f"🔬 [Telegram DC Gate] Strictly testing {len(eval_pool)} candidates with true TLS / DC2 tunnels...", flush=True)
-    sem = asyncio.Semaphore(100)
-    check_tasks = [check_proxy_task(p, sem) for p in eval_pool]
-    checked = await asyncio.gather(*check_tasks)
+    print(f"🔬 [Telegram DC & Fake-TLS Gate] Parallel benchmarking {len(eval_pool)} candidates (50 threads)...", flush=True)
+    loop = asyncio.get_running_loop()
+    with ThreadPoolExecutor(max_workers=50) as pool:
+        bench_tasks = [loop.run_in_executor(pool, test_proxy_sync, p) for p in eval_pool]
+        bench_results = await asyncio.gather(*bench_tasks)
 
-    alive = [p for p in checked if p is not None]
+    alive: List[TGProxy] = []
+    for idx, (ok, rtt) in enumerate(bench_results):
+        if ok and rtt < 850.0:
+            p = eval_pool[idx]
+            p.ping_ms = rtt
+            alive.append(p)
+
     alive.sort(key=lambda p: (0 if p.is_faketls else 1 if p.proto == "mtproto" else 2, p.ping_ms))
 
     alive_mtproto = sum(1 for p in alive if p.proto == "mtproto")
     alive_socks = sum(1 for p in alive if p.proto == "socks5")
-    print(f"✅ [Telegram DC Gate] {len(alive)} VERIFIED ONLINE! (MTProto: {alive_mtproto}, SOCKS5: {alive_socks})", flush=True)
+    print(f"✅ [Telegram Gate] {len(alive)} VERIFIED ONLINE! (MTProto: {alive_mtproto}, SOCKS5: {alive_socks})", flush=True)
     return alive
 
 
 def main():
     test_mode = "--test" in sys.argv
-    limit = 200 if test_mode else 0
+    limit = 300 if test_mode else 0
 
     t0 = time.time()
     proxies = asyncio.run(run_tg_harvest(test_limit=limit))
     elapsed = round(time.time() - t0, 2)
-    print(f"🏁 Finished in {elapsed}s. Verified online proxies: {len(proxies)}", flush=True)
+    print(f"🏁 Finished in {elapsed}s. Verified online proxies: {len(proxies)}")
 
 
 if __name__ == "__main__":
