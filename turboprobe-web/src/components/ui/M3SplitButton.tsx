@@ -42,7 +42,7 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
         className={`relative flex-1 h-14 px-6 rounded-l-full font-display font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer overflow-hidden ${
           copied
             ? 'bg-[#059669] text-white shadow-[0_0_20px_rgba(5,150,105,0.4)]'
-            : 'bg-[#0284C7] text-white hover:bg-[#0369A1] hover:shadow-[0_0_20px_rgba(2,132,199,0.35)]'
+            : 'bg-[#EA580C] text-white hover:bg-[#C2410C] hover:shadow-[0_0_20px_rgba(234,88,12,0.35)]'
         }`}
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -76,7 +76,7 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
       </motion.button>
 
       {/* 2. Vertical Divider */}
-      <div className="w-[1px] h-9 self-center bg-white/20" />
+      <div className="w-[1px] h-9 self-center bg-white/25" />
 
       {/* 3. Dropdown Menu Toggle */}
       <motion.button
@@ -88,7 +88,7 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
         className={`relative px-4.5 h-14 rounded-r-full flex items-center justify-center transition-all duration-200 cursor-pointer overflow-hidden ${
           copied
             ? 'bg-[#059669] text-white'
-            : 'bg-[#0284C7] text-white hover:bg-[#0369A1]'
+            : 'bg-[#EA580C] text-white hover:bg-[#C2410C]'
         }`}
       >
         <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2, ease: [0.05, 0.7, 0.1, 1.0] }}>
@@ -117,7 +117,7 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
               type="button"
               className="relative w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer text-left"
             >
-              <div className="w-7 h-7 rounded-xl bg-[#0284C7]/20 flex items-center justify-center text-[#38BDF8]">
+              <div className="w-7 h-7 rounded-xl bg-[#EA580C]/15 flex items-center justify-center text-[#EA580C] dark:text-[#FB923C]">
                 <QrCode className="w-4 h-4" />
               </div>
               <div>
@@ -137,7 +137,7 @@ export const M3SplitButton: React.FC<M3SplitButtonProps> = ({
               type="button"
               className="relative w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer text-left mt-1"
             >
-              <div className="w-7 h-7 rounded-xl bg-[#0284C7]/20 flex items-center justify-center text-[#38BDF8]">
+              <div className="w-7 h-7 rounded-xl bg-[#EA580C]/15 flex items-center justify-center text-[#EA580C] dark:text-[#FB923C]">
                 <Download className="w-4 h-4" />
               </div>
               <div>

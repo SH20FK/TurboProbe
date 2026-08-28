@@ -40,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <div className="w-full select-none">
-      {/* Clean Cyber Bento Card */}
+      {/* Clean Warm Bento Card */}
       <div className="relative rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-6 sm:p-8 shadow-xl overflow-hidden flex flex-col items-center text-center transition-colors duration-200">
         {/* Brand Logo with Direct Vector Rendering & Perfect Centering */}
         <motion.div
@@ -56,13 +56,13 @@ export const Header: React.FC<HeaderProps> = ({
           />
         </motion.div>
 
-        {/* Title with MagicUI Sparkles in Cyber Cyan & Emerald */}
+        {/* Title with MagicUI Sparkles in Warm Terracotta & Amber */}
         <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-[var(--text-main)] m-0 flex items-center justify-center gap-2">
           <span>TurboProbe</span>
-          <SparklesText text="Hub" colors={{ first: '#38BDF8', second: '#34D399' }} className="text-[#38BDF8] font-black" />
+          <SparklesText text="Hub" colors={{ first: '#F97316', second: '#F59E0B' }} className="text-[#EA580C] dark:text-[#FB923C] font-black" />
         </h1>
 
-        {/* Subtitle with Clean Russian Typography */}
+        {/* Subtitle with Warm Typography */}
         <p className="font-body text-xs sm:text-sm md:text-base text-[var(--text-muted)] mt-2.5 mb-6 max-w-lg leading-relaxed font-normal">
           Суверенный генератор проверенных подписок <span className="text-[var(--text-main)] font-semibold">VLESS Reality</span> и <span className="text-[var(--text-main)] font-semibold">Trojan</span> с обходом ТСПУ
         </p>
@@ -74,10 +74,10 @@ export const Header: React.FC<HeaderProps> = ({
             whileHover={{ y: -3, scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#38BDF8]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
+            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#EA580C]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
           >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#34D399]" />
+              <ShieldCheck className="w-3.5 h-3.5 text-[#10B981]" />
               <span>Серверы онлайн</span>
             </div>
             <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-main)]">
@@ -94,10 +94,10 @@ export const Header: React.FC<HeaderProps> = ({
             whileHover={{ y: -3, scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#38BDF8]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
+            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#EA580C]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
           >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
-              <Zap className="w-3.5 h-3.5 text-[#38BDF8]" />
+              <Zap className="w-3.5 h-3.5 text-[#F59E0B]" />
               <span>Лучший пинг</span>
             </div>
             <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-main)] flex items-baseline gap-1">
@@ -117,10 +117,10 @@ export const Header: React.FC<HeaderProps> = ({
             whileHover={{ y: -3, scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#38BDF8]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
+            className="w-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#EA580C]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default transition-colors duration-150"
           >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
-              <RefreshCw className="w-3.5 h-3.5 text-[#34D399]" />
+              <RefreshCw className="w-3.5 h-3.5 text-[#10B981]" />
               <span>Синхронизация</span>
             </div>
             <div className="font-mono text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-main)] tabular-nums flex items-baseline gap-1.5">

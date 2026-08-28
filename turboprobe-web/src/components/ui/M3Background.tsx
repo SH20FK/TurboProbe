@@ -37,24 +37,24 @@ export const M3Background: React.FC = () => {
   }, [mouseX, mouseY]);
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 select-none">
-      {/* 1. Subtle M3 Dot Matrix Grid with Radial Mask */}
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 select-none transition-colors duration-200">
+      {/* 1. Subtle Dot Matrix Grid with Radial Mask (Adapts to Light & Dark Mode) */}
       <div
-        className="absolute inset-0 opacity-[0.045]"
+        className="absolute inset-0 transition-opacity duration-200"
         style={{
-          backgroundImage: `radial-gradient(circle, #FFFFFF 1px, transparent 1px)`,
+          backgroundImage: `radial-gradient(circle, var(--bg-dot-color) 1.5px, transparent 1.5px)`,
           backgroundSize: '28px 28px',
           maskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 100%)',
           WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, black 30%, transparent 100%)',
         }}
       />
 
-      {/* 2. Interactive Parallax Floating Shapes */}
+      {/* 2. Interactive Parallax Floating Shapes (Adapts to Light & Dark Mode) */}
 
       {/* Shape 1: Top-Left Floating 4-leaf Clover */}
       <motion.div
         style={{ x: smoothX, y: smoothY }}
-        className="absolute top-[8%] left-[5%] w-48 h-48 opacity-[0.045]"
+        className="absolute top-[8%] left-[5%] w-48 h-48"
       >
         <motion.div
           animate={{
@@ -68,7 +68,7 @@ export const M3Background: React.FC = () => {
           }}
           className="w-full h-full"
         >
-          <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
+          <svg viewBox="0 0 100 100" className="w-full h-full fill-none stroke-[1.4]" style={{ stroke: 'var(--bg-shape-stroke)' }}>
             <path d={M3_SHAPES.clover} />
           </svg>
         </motion.div>
@@ -77,7 +77,7 @@ export const M3Background: React.FC = () => {
       {/* Shape 2: Top-Right Floating 4-Point Star */}
       <motion.div
         style={{ x: smoothX, y: smoothY }}
-        className="absolute top-[14%] right-[6%] w-40 h-40 opacity-[0.04]"
+        className="absolute top-[14%] right-[6%] w-40 h-40"
       >
         <motion.div
           animate={{
@@ -91,7 +91,7 @@ export const M3Background: React.FC = () => {
           }}
           className="w-full h-full"
         >
-          <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
+          <svg viewBox="0 0 100 100" className="w-full h-full fill-none stroke-[1.4]" style={{ stroke: 'var(--bg-shape-stroke)' }}>
             <path d={M3_SHAPES.star4} />
           </svg>
         </motion.div>
@@ -100,36 +100,12 @@ export const M3Background: React.FC = () => {
       {/* Shape 3: Mid-Left Floating Scallop Cookie */}
       <motion.div
         style={{ x: smoothX, y: smoothY }}
-        className="absolute top-[48%] -left-12 w-56 h-56 opacity-[0.035]"
+        className="absolute top-[52%] left-[4%] w-44 h-44"
       >
         <motion.div
           animate={{
-            y: [-15, 15, -15],
-            rotate: [0, 15, 0],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className="w-full h-full"
-        >
-          <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
-            <path d={M3_SHAPES.scallop8} />
-          </svg>
-        </motion.div>
-      </motion.div>
-
-      {/* Shape 4: Bottom-Right Floating Squircle */}
-      <motion.div
-        style={{ x: smoothX, y: smoothY }}
-        className="absolute bottom-[10%] right-[8%] w-52 h-52 opacity-[0.04]"
-      >
-        <motion.div
-          animate={{
-            y: [15, -15, 15],
-            rotate: [0, -8, 8, 0],
-            scale: [1, 1.04, 1],
+            y: [10, -10, 10],
+            rotate: [0, -6, 6, 0],
           }}
           transition={{
             duration: 20,
@@ -138,7 +114,30 @@ export const M3Background: React.FC = () => {
           }}
           className="w-full h-full"
         >
-          <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
+          <svg viewBox="0 0 100 100" className="w-full h-full fill-none stroke-[1.4]" style={{ stroke: 'var(--bg-shape-stroke)' }}>
+            <path d={M3_SHAPES.scallop8} />
+          </svg>
+        </motion.div>
+      </motion.div>
+
+      {/* Shape 4: Bottom-Right Floating Squircle */}
+      <motion.div
+        style={{ x: smoothX, y: smoothY }}
+        className="absolute bottom-[10%] right-[5%] w-52 h-52"
+      >
+        <motion.div
+          animate={{
+            y: [-14, 14, -14],
+            rotate: [0, 10, -10, 0],
+          }}
+          transition={{
+            duration: 24,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="w-full h-full"
+        >
+          <svg viewBox="0 0 100 100" className="w-full h-full fill-none stroke-[1.4]" style={{ stroke: 'var(--bg-shape-stroke)' }}>
             <path d={M3_SHAPES.squircle} />
           </svg>
         </motion.div>

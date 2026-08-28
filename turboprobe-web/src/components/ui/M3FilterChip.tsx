@@ -29,7 +29,7 @@ export const M3FilterChip: React.FC<M3FilterChipProps> = ({
       type="button"
       className={`relative inline-flex items-center gap-1.5 h-8.5 px-3 text-xs font-medium rounded-full border select-none cursor-pointer overflow-hidden transition-colors duration-150 ${
         selected
-          ? 'bg-[#0284C7] text-white border-[#38BDF8]/70 shadow-[0_0_12px_rgba(2,132,199,0.3)] font-semibold'
+          ? 'bg-[#EA580C] text-white border-[#FB923C]/70 shadow-[0_0_12px_rgba(234,88,12,0.3)] font-semibold'
           : 'bg-[var(--bg-chip)] text-[var(--text-muted)] border-[var(--border-main)] hover:bg-[var(--bg-chip-hover)] hover:text-[var(--text-main)] hover:border-[var(--border-hover)]'
       } ${className}`}
     >
@@ -73,14 +73,14 @@ export const M3FilterChip: React.FC<M3FilterChipProps> = ({
       {typeof count === 'number' && (
         <span
           className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-bold transition-colors ${
-            selected ? 'bg-black/25 text-white' : 'bg-[var(--bg-app)] text-[var(--text-muted)]'
+            selected ? 'bg-black/20 text-white' : 'bg-[var(--bg-app)] text-[var(--text-muted)]'
           }`}
         >
           {count}
         </span>
       )}
 
-      <M3Ripple color={selected ? '#FFFFFF' : '#38BDF8'} />
+      <M3Ripple color={selected ? '#FFFFFF' : '#EA580C'} />
     </motion.button>
   );
 };

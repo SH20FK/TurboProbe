@@ -37,13 +37,13 @@ export const M3SegmentedButton: React.FC<M3SegmentedButtonProps> = ({
             className={`relative py-3 px-3 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-colors duration-150 select-none overflow-hidden ${
               isSelected
                 ? 'text-white'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-white/[0.04]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
             }`}
           >
             {isSelected && (
               <motion.div
                 layoutId="m3-active-segment-bg"
-                className="absolute inset-0 bg-[#0284C7] rounded-xl shadow-[0_2px_12px_rgba(2,132,199,0.35)] border border-[#38BDF8]/60"
+                className="absolute inset-0 bg-[#EA580C] rounded-xl shadow-[0_2px_14px_rgba(234,88,12,0.35)] border border-[#FB923C]/60"
                 transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
             )}
@@ -64,12 +64,12 @@ export const M3SegmentedButton: React.FC<M3SegmentedButtonProps> = ({
             </div>
 
             {opt.desc && (
-              <span className="relative z-10 text-[10px] opacity-80 font-mono mt-0.5 truncate max-w-full">
+              <span className="relative z-10 text-[10px] opacity-85 font-mono mt-0.5 truncate max-w-full">
                 {opt.desc}
               </span>
             )}
 
-            <M3Ripple color="#38BDF8" />
+            <M3Ripple color="#FFFFFF" />
           </motion.button>
         );
       })}

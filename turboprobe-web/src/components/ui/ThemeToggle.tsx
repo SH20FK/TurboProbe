@@ -116,7 +116,7 @@ export const AnimatedThemeToggle: React.FC<AnimatedThemeToggleProps> = ({ classN
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             exit={{ scale: 0, rotate: -90, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-            className="flex items-center justify-center text-[#38BDF8]"
+            className="flex items-center justify-center text-[#FB923C]"
           >
             <Moon className="w-4 h-4" />
           </motion.div>
@@ -127,7 +127,7 @@ export const AnimatedThemeToggle: React.FC<AnimatedThemeToggleProps> = ({ classN
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             exit={{ scale: 0, rotate: 90, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-            className="flex items-center justify-center text-[#F59E0B]"
+            className="flex items-center justify-center text-[#EA580C]"
           >
             <Sun className="w-4 h-4" />
           </motion.div>

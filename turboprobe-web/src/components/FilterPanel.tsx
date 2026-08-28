@@ -153,25 +153,25 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         id: 'anti-tspu',
         label: 'Анти-ТСПУ',
         desc: 'VLESS Reality',
-        icon: <Shield className="w-3.5 h-3.5 text-[#38BDF8]" />,
+        icon: <Shield className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />,
       },
       {
         id: 'ai',
         label: 'AI Core',
         desc: 'ChatGPT / Claude',
-        icon: <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" />,
+        icon: <Sparkles className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />,
       },
       {
         id: 'youtube',
         label: 'YouTube 4K',
         desc: 'Без буфера',
-        icon: <Tv className="w-3.5 h-3.5 text-[#38BDF8]" />,
+        icon: <Tv className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />,
       },
       {
         id: 'all',
         label: 'Все узлы',
         desc: 'Мин. пинг',
-        icon: <Layers className="w-3.5 h-3.5 text-[#38BDF8]" />,
+        icon: <Layers className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />,
       },
     ];
   }, []);
@@ -237,7 +237,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
           className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-[var(--bg-card-hover)]/60 transition-colors text-left cursor-pointer select-none"
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#38BDF8]">
+            <div className="w-7 h-7 rounded-full bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#EA580C] dark:text-[#FB923C]">
               <SlidersHorizontal className="w-4 h-4" />
             </div>
             <div>
@@ -252,7 +252,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
           <div className="flex items-center gap-2">
             {activeFiltersCount > 0 && (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#0284C7]/20 text-[#38BDF8] border border-[#38BDF8]/40 font-bold">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#EA580C]/15 text-[#EA580C] dark:text-[#FB923C] border border-[#EA580C]/35 font-bold">
                 Активно: {activeFiltersCount}
               </span>
             )}
@@ -298,7 +298,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-[#38BDF8]" />
+                      <Sparkles className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />
                       <span>Оптимизация под сервисы</span>
                     </div>
                     {selectedServices.length > 0 && (
@@ -307,7 +307,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                           selectedServices.forEach((s) => onToggleService(s));
                         }}
                         type="button"
-                        className="text-[11px] font-mono text-[#38BDF8] hover:underline flex items-center gap-1 cursor-pointer lowercase"
+                        className="text-[11px] font-mono text-[#EA580C] dark:text-[#FB923C] hover:underline flex items-center gap-1 cursor-pointer lowercase"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>сброс</span>
@@ -335,14 +335,14 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 <div className="space-y-2.5 pt-4 border-t border-[var(--border-main)]">
                   <div className="flex items-center justify-between text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     <div className="flex items-center gap-1.5">
-                      <Shield className="w-3.5 h-3.5 text-[#38BDF8]" />
+                      <Shield className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />
                       <span>Протоколы шифрования</span>
                     </div>
                     {selectedProtos.length > 0 && (
                       <button
                         onClick={onClearProtos}
                         type="button"
-                        className="text-[11px] font-mono text-[#38BDF8] hover:underline flex items-center gap-1 cursor-pointer lowercase"
+                        className="text-[11px] font-mono text-[#EA580C] dark:text-[#FB923C] hover:underline flex items-center gap-1 cursor-pointer lowercase"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>все протоколы</span>
@@ -375,14 +375,14 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 <div className="space-y-2.5 pt-4 border-t border-[var(--border-main)]">
                   <div className="flex items-center justify-between text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
                     <div className="flex items-center gap-1.5">
-                      <Flame className="w-3.5 h-3.5 text-[#38BDF8]" />
+                      <Flame className="w-3.5 h-3.5 text-[#EA580C] dark:text-[#FB923C]" />
                       <span>Геолокации и страны</span>
                     </div>
                     {selectedCountries.length > 0 && (
                       <button
                         onClick={onClearCountries}
                         type="button"
-                        className="text-[11px] font-mono text-[#38BDF8] hover:underline flex items-center gap-1 cursor-pointer lowercase"
+                        className="text-[11px] font-mono text-[#EA580C] dark:text-[#FB923C] hover:underline flex items-center gap-1 cursor-pointer lowercase"
                       >
                         <RotateCcw className="w-3 h-3" />
                         <span>все страны</span>
@@ -415,7 +415,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                       <button
                         onClick={() => setIsExpandedCountries(!isExpandedCountries)}
                         type="button"
-                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-mono text-[#38BDF8] hover:underline cursor-pointer"
+                        className="inline-flex items-center gap-1 px-3 py-1 text-xs font-mono text-[#EA580C] dark:text-[#FB923C] hover:underline cursor-pointer"
                       >
                         <span>{isExpandedCountries ? 'Свернуть страны' : `Еще ${availableCountries.length - 8}...`}</span>
                       </button>

@@ -13,7 +13,7 @@ const PARTICLE_SHAPES = [
   'M 50 15 C 62 2, 85 8, 85 28 C 85 40, 72 45, 60 50 C 72 55, 85 60, 85 72 C 85 92, 62 98, 50 85 C 38 98, 15 92, 15 72 C 15 60, 28 55, 40 50 C 28 45, 15 40, 15 28 C 15 8, 38 2, 50 15 Z',
 ];
 
-const DEFAULT_CYBER_COLORS = ['#38BDF8', '#34D399', '#0EA5E9', '#60A5FA', '#F59E0B', '#10B981'];
+const DEFAULT_WARM_COLORS = ['#EA580C', '#F59E0B', '#FB923C', '#10B981', '#FBBF24'];
 
 interface Particle {
   id: number;
@@ -41,7 +41,7 @@ interface CoolModeProps {
 export const CoolMode: React.FC<CoolModeProps> = ({
   children,
   particleCount = 14,
-  colors = DEFAULT_CYBER_COLORS,
+  colors = DEFAULT_WARM_COLORS,
   particleSize = 16,
   spread = 80,
   className = '',

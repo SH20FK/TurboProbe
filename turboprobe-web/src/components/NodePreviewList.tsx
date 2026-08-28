@@ -71,7 +71,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
         className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-[var(--bg-card-hover)]/60 transition-colors text-left cursor-pointer select-none"
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#38BDF8]">
+          <div className="w-7 h-7 rounded-full bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#EA580C] dark:text-[#FB923C]">
             <Globe className="w-4 h-4" />
           </div>
           <div>
@@ -127,7 +127,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
               {/* 1. Loading State */}
               {isLoading && (
                 <div className="flex flex-col items-center justify-center py-10 gap-2.5">
-                  <Loader2 className="w-6 h-6 text-[#38BDF8] animate-spin" />
+                  <Loader2 className="w-6 h-6 text-[#EA580C] dark:text-[#FB923C] animate-spin" />
                   <span className="text-xs text-[var(--text-muted)] font-mono">
                     Загрузка проверенных серверов...
                   </span>
@@ -172,15 +172,15 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           <CountryFlag countryCode={country} className="w-4.5 h-3.5 flex-shrink-0" />
 
-                          {/* Protocol Badge in Cyber Slate */}
+                          {/* Protocol Badge in Warm Tone */}
                           <span
                             className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold flex-shrink-0 ${
                               isVless
-                                ? 'bg-[#0284C7]/20 text-[#38BDF8] border border-[#38BDF8]/40'
+                                ? 'bg-[#EA580C]/15 text-[#EA580C] dark:text-[#FB923C] border border-[#EA580C]/35'
                                 : isTrojan
-                                ? 'bg-[#059669]/20 text-[#34D399] border border-[#34D399]/40'
+                                ? 'bg-[#059669]/15 text-[#059669] dark:text-[#34D399] border border-[#059669]/35'
                                 : isHy2
-                                ? 'bg-[#004D40]/30 text-[#67E8F9] border border-[#67E8F9]/40'
+                                ? 'bg-[#D97706]/15 text-[#D97706] dark:text-[#FBBF24] border border-[#D97706]/35'
                                 : 'bg-[var(--bg-app)] text-[var(--text-muted)] border border-[var(--border-main)]'
                             }`}
                           >
@@ -203,7 +203,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                                 <span
                                   className={`w-2 h-2 rounded-full ${
                                     ping < 250
-                                      ? 'bg-[#34D399] shadow-[0_0_6px_#34D399]'
+                                      ? 'bg-[#10B981] shadow-[0_0_6px_#10B981]'
                                       : ping < 550
                                       ? 'bg-[#F59E0B]'
                                       : 'bg-[#EF4444]'
@@ -214,8 +214,8 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                             </Tooltip>
                           ) : (
                             <Tooltip content="Узел онлайн и доступен" side="left">
-                              <div className="flex items-center gap-1.5 font-mono text-xs text-[#34D399] cursor-default">
-                                <span className="w-2 h-2 rounded-full bg-[#34D399] shadow-[0_0_6px_#34D399]" />
+                              <div className="flex items-center gap-1.5 font-mono text-xs text-[#10B981] cursor-default">
+                                <span className="w-2 h-2 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981]" />
                                 <span>ONLINE</span>
                               </div>
                             </Tooltip>
@@ -240,7 +240,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                                     exit={{ scale: 0 }}
                                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                                   >
-                                    <Check className="w-4 h-4 text-[#34D399] stroke-[3]" />
+                                    <Check className="w-4 h-4 text-[#10B981] stroke-[3]" />
                                   </motion.span>
                                 ) : (
                                   <motion.span key="copy" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
@@ -248,7 +248,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                                   </motion.span>
                                 )}
                               </AnimatePresence>
-                              <M3Ripple color="#38BDF8" />
+                              <M3Ripple color="#EA580C" />
                             </motion.button>
                           </Tooltip>
                         </div>
@@ -267,11 +267,11 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                     whileTap={{ scale: 0.97 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                     type="button"
-                    className="relative px-4 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-xs font-mono text-[#38BDF8] flex items-center gap-1.5 border border-[var(--border-main)] overflow-hidden cursor-pointer shadow-xs transition-colors"
+                    className="relative px-4 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-xs font-mono text-[#EA580C] dark:text-[#FB923C] flex items-center gap-1.5 border border-[var(--border-main)] overflow-hidden cursor-pointer shadow-xs transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Показать еще ({nodes.length - visibleCount})</span>
-                    <M3Ripple color="#38BDF8" />
+                    <M3Ripple color="#EA580C" />
                   </motion.button>
                 </div>
               )}
