@@ -2595,6 +2595,63 @@ def main():
             "countries": country_manifest
         }, f, indent=2, ensure_ascii=False)
 
+    # 📦 Paginate the verified pool into chunks
+    chunk_dir = os.path.join(SUB_DIR, "chunks")
+    docs_chunk_dir = os.path.join(docs_sub_dir, "chunks")
+    os.makedirs(chunk_dir, exist_ok=True)
+    os.makedirs(docs_chunk_dir, exist_ok=True)
+    for existing_f in os.listdir(chunk_dir):
+        if existing_f.startswith("chunk-") and existing_f.endswith(".txt"):
+            try: os.remove(os.path.join(chunk_dir, existing_f))
+            except OSError: pass
+    chunk_size = 500
+    chunk_manifest = []
+    num_chunks = (len(all_verified) + chunk_size - 1) // chunk_size
+    for i in range(num_chunks):
+        part = all_verified[i * chunk_size:(i + 1) * chunk_size]
+        fname = f"chunk-{i + 1:03d}.txt"
+        with open(os.path.join(chunk_dir, fname), "w", encoding="utf-8") as f:
+            f.write("\n".join(part))
+        with open(os.path.join(docs_chunk_dir, fname), "w", encoding="utf-8") as f:
+            f.write("\n".join(part))
+        chunk_manifest.append({
+            "file": f"chunks/{fname}", "count": len(part)
+        })
+    with open(os.path.join(chunk_dir, "index.json"), "w", encoding="utf-8") as f:
+        json.dump({"chunk_size": chunk_size, "total_nodes": len(all_verified), "chunks": chunk_manifest}, f, indent=2, ensure_ascii=False)
+    with open(os.path.join(docs_chunk_dir, "index.json"), "w", encoding="utf-8") as f:
+        json.dump({"chunk_size": chunk_size, "total_nodes": len(all_verified), "chunks": chunk_manifest}, f, indent=2, ensure_ascii=False)
+
+    # 🌐 Generate sub/preview.json and sub/nodes.json for Instant Frontend Mirroring
+    all_preview_nodes = []
+    for n in verified_alive_nodes:
+        all_preview_nodes.append({
+            "uri": n["uri"],
+            "ping_ms": n.get("ping_ms", 50.0),
+            "speed_mbps": n.get("speed_mbps", 0.0),
+            "country": n.get("country", "GLOBAL"),
+            "protocol": n.get("protocol", "vless"),
+            "health": 100.0,
+            "ru_verified": False,
+            "services": n.get("services", {}),
+        })
+
+    preview_payload = {
+        "version": "1.0",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "total_nodes": len(all_preview_nodes),
+        "nodes": all_preview_nodes,
+    }
+    with open(os.path.join(SUB_DIR, "preview.json"), "w", encoding="utf-8") as f:
+        json.dump(preview_payload, f, indent=2, ensure_ascii=False)
+    with open(os.path.join(SUB_DIR, "nodes.json"), "w", encoding="utf-8") as f:
+        json.dump(preview_payload, f, indent=2, ensure_ascii=False)
+    with open(os.path.join(docs_sub_dir, "preview.json"), "w", encoding="utf-8") as f:
+        json.dump(preview_payload, f, indent=2, ensure_ascii=False)
+    with open(os.path.join(docs_sub_dir, "nodes.json"), "w", encoding="utf-8") as f:
+        json.dump(preview_payload, f, indent=2, ensure_ascii=False)
+    print(f"  💾 sub/preview.json & nodes.json -> Instant Web Preview ({len(all_preview_nodes)} nodes)", flush=True)
+
     # ⚡ Generate and save Clash Meta YAML Configurations
     clash_yaml_content = generate_clash_meta_yaml(verified_alive_nodes)
     with open(os.path.join(SUB_DIR, "clash.yaml"), "w", encoding="utf-8") as f:

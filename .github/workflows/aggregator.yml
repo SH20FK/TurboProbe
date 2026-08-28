@@ -98,6 +98,12 @@ jobs:
           ulimit -n 65536 || true
           python tools/aggregator.py
 
+      - name: Run VPN Service Prober (Prober Only)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'prober_only' }}
+        run: |
+          ulimit -n 65536 || true
+          python tools/service_prober.py --limit 0
+
 
       - name: Copy subscriptions to docs for GitHub Pages hosting
         run: |

@@ -9,7 +9,7 @@ on:
       limit:
         description: 'Количество нод для проверки (0 = все)'
         required: true
-        default: '500'
+        default: '0'
         type: string
 
 concurrency:
@@ -75,13 +75,13 @@ jobs:
 
       - name: Run Deep Service Prober
         env:
-          TP_XRAY_WORKERS: "6"
-          TP_BATCH_SIZE: "150"
+          TP_XRAY_WORKERS: "16"
+          TP_BATCH_SIZE: "75"
         run: |
           ulimit -n 65536 || true
           LIMIT="${{ github.event.inputs.limit }}"
           if [ -z "$LIMIT" ]; then
-            LIMIT="500"
+            LIMIT="0"
           fi
           python tools/service_prober.py --limit "$LIMIT"
 
