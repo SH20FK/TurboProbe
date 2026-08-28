@@ -7,8 +7,9 @@ import { QrModal } from './components/QrModal';
 import { normalizeAndIndexNodes } from './utils/nodeIndexer';
 import { generateClashMetaYaml } from './utils/clashExport';
 import { M3Background } from './components/ui/M3Background';
-import { M3Ripple } from './components/ui/M3Ripple';
 import { ToastProvider } from './components/ui/M3Toast';
+import { InteractiveHoverButton } from './components/ui/InteractiveHoverButton';
+import { AnimatedThemeToggle } from './components/ui/ThemeToggle';
 import type { NodeItem, PresetItem } from './types';
 
 const CDN_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
@@ -370,8 +371,8 @@ export default function App() {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2B2930] text-xs font-mono text-[#CAC4D0] border border-[#49454F]/20">
+          <div className="flex items-center gap-2.5">
+            <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#2B2930] text-xs font-mono text-[#CAC4D0] border border-[#49454F]/20">
               <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
               <span>
                 {(stats.total_nodes || allNodes.length) > 0 ? (
@@ -382,14 +383,15 @@ export default function App() {
               </span>
             </div>
 
+            <AnimatedThemeToggle />
+
             <a
               href="https://github.com/SH20FK/TurboProbe"
               target="_blank"
               rel="noreferrer"
-              className="relative px-3.5 py-1.5 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#E6E0E9] text-xs font-medium font-mono flex items-center gap-1.5 transition-colors overflow-hidden border border-[#49454F]/30"
+              className="inline-flex"
             >
-              <span>GitHub</span>
-              <M3Ripple />
+              <InteractiveHoverButton text="GitHub" hoverText="Репозиторий" />
             </a>
           </div>
         </header>

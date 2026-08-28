@@ -5,6 +5,7 @@ import { CountryFlag } from './CountryFlags';
 import { extractRemark, computeDisplayTitle } from '../utils/nodeIndexer';
 import { M3Ripple } from './ui/M3Ripple';
 import { M3NumberCounter } from './ui/M3NumberCounter';
+import { Tooltip } from './ui/Tooltip';
 import type { NodeItem } from '../types';
 
 interface NodePreviewListProps {
@@ -217,53 +218,59 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                         {/* Right: Ping + Copy */}
                         <div className="flex items-center gap-3.5 flex-shrink-0 relative z-10">
                           {ping !== null ? (
-                            <div className="flex items-center gap-1.5 font-mono text-xs text-[#CAC4D0]">
-                              <span
-                                className={`w-2 h-2 rounded-full ${
-                                  ping < 250
-                                    ? 'bg-[#7BE08F] shadow-[0_0_6px_#7BE08F]'
-                                    : ping < 550
-                                    ? 'bg-[#FFD966]'
-                                    : 'bg-[#FF897D]'
-                                }`}
-                              />
-                              <span>{ping} ms</span>
-                            </div>
+                            <Tooltip content={`Задержка TCP отклика: ${ping} ms`} side="left">
+                              <div className="flex items-center gap-1.5 font-mono text-xs text-[#CAC4D0] cursor-default">
+                                <span
+                                  className={`w-2 h-2 rounded-full ${
+                                    ping < 250
+                                      ? 'bg-[#7BE08F] shadow-[0_0_6px_#7BE08F]'
+                                      : ping < 550
+                                      ? 'bg-[#FFD966]'
+                                      : 'bg-[#FF897D]'
+                                  }`}
+                                />
+                                <span>{ping} ms</span>
+                              </div>
+                            </Tooltip>
                           ) : (
-                            <div className="flex items-center gap-1.5 font-mono text-xs text-[#7BE08F]">
-                              <span className="w-2 h-2 rounded-full bg-[#7BE08F] shadow-[0_0_6px_#7BE08F]" />
-                              <span>ONLINE</span>
-                            </div>
+                            <Tooltip content="Узел онлайн и доступен" side="left">
+                              <div className="flex items-center gap-1.5 font-mono text-xs text-[#7BE08F] cursor-default">
+                                <span className="w-2 h-2 rounded-full bg-[#7BE08F] shadow-[0_0_6px_#7BE08F]" />
+                                <span>ONLINE</span>
+                              </div>
+                            </Tooltip>
                           )}
 
-                          <motion.button
-                            onClick={() => handleCopyNode(node.uri, nodeKey)}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                            type="button"
-                            title="Скопировать ключ"
-                            className="relative w-8 h-8 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#CAC4D0] hover:text-white flex items-center justify-center cursor-pointer overflow-hidden border border-[#49454F]/30"
-                          >
-                            <AnimatePresence mode="wait" initial={false}>
-                              {isCopied ? (
-                                <motion.span
-                                  key="check"
-                                  initial={{ scale: 0, rotate: -45 }}
-                                  animate={{ scale: 1, rotate: 0 }}
-                                  exit={{ scale: 0 }}
-                                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                                >
-                                  <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
-                                </motion.span>
-                              ) : (
-                                <motion.span key="copy" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
-                                  <Copy className="w-3.5 h-3.5" />
-                                </motion.span>
-                              )}
-                            </AnimatePresence>
-                            <M3Ripple />
-                          </motion.button>
+                          <Tooltip content={isCopied ? 'Ключ скопирован!' : 'Скопировать ключ'} side="left">
+                            <motion.button
+                              onClick={() => handleCopyNode(node.uri, nodeKey)}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                              type="button"
+                              aria-label="Скопировать ключ"
+                              className="relative w-8 h-8 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#CAC4D0] hover:text-white flex items-center justify-center cursor-pointer overflow-hidden border border-[#49454F]/30"
+                            >
+                              <AnimatePresence mode="wait" initial={false}>
+                                {isCopied ? (
+                                  <motion.span
+                                    key="check"
+                                    initial={{ scale: 0, rotate: -45 }}
+                                    animate={{ scale: 1, rotate: 0 }}
+                                    exit={{ scale: 0 }}
+                                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                                  >
+                                    <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                                  </motion.span>
+                                ) : (
+                                  <motion.span key="copy" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </motion.span>
+                                )}
+                              </AnimatePresence>
+                              <M3Ripple />
+                            </motion.button>
+                          </Tooltip>
                         </div>
                       </motion.div>
                     );
