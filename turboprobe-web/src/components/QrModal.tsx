@@ -26,67 +26,67 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop Overlay (Subtle and preserving the 3D particle background) */}
+          {/* Backdrop Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
 
-          {/* Modal Card with Glassmorphism and Smooth Scale Animation */}
+          {/* Modal Card in MD3 Dialog style */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            initial={{ opacity: 0, scale: 0.95, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            exit={{ opacity: 0, scale: 0.95, y: 12 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="relative z-10 w-full max-w-sm p-6 rounded-3xl bg-zinc-900/90 backdrop-blur-xl border border-white/15 shadow-2xl shadow-black/80 flex flex-col items-center text-center"
+            className="relative z-10 w-full max-w-sm p-6 sm:p-7 rounded-[32px] bg-[#211F26] border border-[#49454F]/50 shadow-2xl flex flex-col items-center text-center select-none"
           >
             {/* Close Button */}
             <button
               onClick={onClose}
               type="button"
-              className="absolute top-4 right-4 p-1.5 rounded-lg bg-white/[0.05] text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-2 rounded-full bg-[#36343B] text-[#CAC4D0] hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <div className="p-3 rounded-full bg-green-500/10 text-green-400 mb-3">
+            <div className="w-12 h-12 rounded-full bg-[#4F378B] text-[#D0BCFF] flex items-center justify-center mb-3">
               <Smartphone className="w-6 h-6" />
             </div>
 
-            <h3 className="text-base font-bold text-white m-0">
+            <h3 className="font-display text-base sm:text-lg font-bold text-[#E6E0E9] m-0">
               Импорт на смартфон
             </h3>
-            <p className="text-xs text-neutral-400 mt-1 mb-5">
-              Отсканируйте камерой приложения v2rayNG, Streisand, Happ или Sing-box
+            <p className="font-body text-xs text-[#CAC4D0] mt-1 mb-5">
+              Отсканируйте камерой в приложении v2rayNG, Streisand, Happ или Sing-box
             </p>
 
             {/* QR Code Container */}
-            <div className="p-4 rounded-2xl bg-white flex items-center justify-center shadow-lg shadow-black/50 mb-5">
+            <div className="p-4 rounded-2xl bg-white flex items-center justify-center shadow-md mb-5">
               <QRCodeSVG
                 value={subUrl}
-                size={220}
+                size={210}
                 level="M"
                 includeMargin={false}
               />
             </div>
 
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.96 }}
               onClick={handleCopy}
               type="button"
-              className="w-full py-2.5 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-semibold text-white flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              className="w-full h-12 px-5 rounded-full bg-[#36343B] hover:bg-[#49454F] text-xs sm:text-sm font-semibold text-[#E6E0E9] flex items-center justify-center gap-2 cursor-pointer transition-colors"
             >
               {copied ? (
                 <>
-                  <Check className="w-4 h-4 text-green-400" />
-                  <span>Ссылка скопирована!</span>
+                  <Check className="w-4 h-4 text-[#7BE08F]" />
+                  <span className="text-[#7BE08F]">Ссылка скопирована!</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-4 h-4 text-neutral-300" />
+                  <Copy className="w-4 h-4 text-[#D0BCFF]" />
                   <span>Скопировать URL</span>
                 </>
               )}
@@ -97,3 +97,4 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
     </AnimatePresence>
   );
 };
+

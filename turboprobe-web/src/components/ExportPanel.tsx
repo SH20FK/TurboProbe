@@ -59,23 +59,27 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
   };
 
   return (
-    <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/90 border border-zinc-800 shadow-xl space-y-3.5">
+    <div className="p-5 sm:p-6 rounded-[28px] bg-[#1D1B20] border border-[#49454F]/40 shadow-lg space-y-4">
       
       {/* 1. Header with Server Limit Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-zinc-200" />
-            Ссылка на подписку
-          </span>
-          <span className="text-xs font-mono text-zinc-400">
-            ({effectiveCount} {selectedLimit > 0 && selectedLimit < filteredCount ? `из ${filteredCount}` : 'серверов'})
-          </span>
+          <div className="w-7 h-7 rounded-full bg-[#36343B] flex items-center justify-center text-[#D0BCFF]">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="font-display text-xs sm:text-sm font-semibold text-[#E6E0E9]">
+              Ссылка на подписку
+            </span>
+            <span className="text-xs font-mono text-[#CAC4D0] ml-2">
+              ({effectiveCount} {selectedLimit > 0 && selectedLimit < filteredCount ? `из ${filteredCount}` : 'узлов'})
+            </span>
+          </div>
         </div>
 
-        {/* Server Limit Selector Pills */}
-        <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800 text-xs font-mono self-start sm:self-auto">
-          <span className="text-zinc-500 px-1 text-[10px] uppercase font-semibold">Лимит:</span>
+        {/* MD3 Segmented Limit Selector */}
+        <div className="flex items-center gap-1 bg-[#141218] p-1 rounded-full border border-[#49454F]/40 text-xs font-mono self-start sm:self-auto shadow-inner">
+          <span className="text-[#938F99] px-2 text-[10px] font-semibold uppercase">Лимит:</span>
           {[20, 50, 100, 0].map((lim) => {
             const isActive = selectedLimit === lim;
 
@@ -84,10 +88,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                 key={lim}
                 onClick={() => onChangeLimit(lim)}
                 type="button"
-                className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold transition-all cursor-pointer select-none ${
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer select-none ${
                   isActive
-                    ? 'bg-zinc-800 text-white border border-zinc-600 shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900'
+                    ? 'bg-[#4A4458] text-[#E8DEF8] shadow-sm'
+                    : 'text-[#CAC4D0] hover:text-white hover:bg-[#2B2930]'
                 }`}
               >
                 {lim === 0 ? 'Все' : lim}
@@ -97,70 +101,74 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         </div>
       </div>
 
-      {/* 2. Subscription URL Input Bar */}
-      <div className="flex items-center gap-2 p-1.5 rounded-xl bg-zinc-950/80 border border-zinc-800">
+      {/* 2. Subscription URL Input Bar (MD3 Outlined Style) */}
+      <div className="flex items-center gap-2 p-1.5 pl-4 rounded-full bg-[#141218] border border-[#49454F]/50 focus-within:border-[#D0BCFF] transition-colors">
         <input
           type="text"
           readOnly
           value={subUrl}
-          className="w-full bg-transparent text-xs sm:text-sm font-mono text-zinc-300 outline-none px-2 select-all overflow-ellipsis"
+          className="w-full bg-transparent text-xs sm:text-sm font-mono text-[#E6E0E9] outline-none select-all overflow-ellipsis"
         />
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={onOpenQr}
           type="button"
-          className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-medium text-zinc-300 flex items-center gap-1.5 cursor-pointer transition-colors"
+          className="flex-shrink-0 px-4 py-2 rounded-full bg-[#36343B] hover:bg-[#49454F] text-xs font-medium text-[#E6E0E9] flex items-center gap-1.5 cursor-pointer transition-colors"
         >
-          <QrCode className="w-3.5 h-3.5 text-zinc-400" />
-          <span>QR-код</span>
+          <QrCode className="w-3.5 h-3.5 text-[#D0BCFF]" />
+          <span>QR</span>
         </motion.button>
       </div>
 
-      {/* 3. Primary Full-Width Copy Button (Soft Dark Linear Style) */}
+      {/* 3. Primary Full-Width MD3 Filled Button */}
       <motion.button
         whileTap={{ scale: 0.98 }}
         onClick={handleCopyMainUrl}
         type="button"
-        className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-750 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-2 border border-zinc-700 shadow-sm cursor-pointer transition-all hover:border-zinc-600"
+        className={`w-full h-13 sm:h-14 px-6 rounded-full font-display font-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-md cursor-pointer transition-all ${
+          copiedUrl
+            ? 'bg-[#7BE08F] text-[#00390F]'
+            : 'bg-[#D0BCFF] text-[#381E72] hover:bg-[#EADDFF]'
+        }`}
       >
         <AnimatePresence mode="wait" initial={false}>
           {copiedUrl ? (
             <motion.div
               key="check"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-2 font-medium text-emerald-400"
+              className="flex items-center gap-2 font-bold"
             >
-              <Check className="w-4 h-4 stroke-[2.5]" />
+              <Check className="w-5 h-5 stroke-[2.5]" />
               <span>Ссылка скопирована в буфер обмена!</span>
             </motion.div>
           ) : (
             <motion.div
               key="copy"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.15 }}
-              className="flex items-center gap-2 font-medium text-zinc-200"
+              className="flex items-center gap-2"
             >
-              <Copy className="w-4 h-4 text-zinc-400" />
+              <Copy className="w-4 h-4" />
               <span>Скопировать ссылку на подписку</span>
             </motion.div>
           )}
         </AnimatePresence>
       </motion.button>
 
-      {/* 4. Quick App Import Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {/* 4. Quick App Import Grid (MD3 Action Chips) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
         {/* Happ */}
         <button
           onClick={() => handleClientAction('happ', `happ://add/${subUrl}#TurboProbe`, subUrl)}
           type="button"
-          className="py-2 px-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          className="py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/30 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
         >
-          {copiedStatus === 'happ' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <HappIcon className="w-3.5 h-3.5 text-zinc-400" />}
+          {copiedStatus === 'happ' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <HappIcon className="w-4 h-4 text-[#D0BCFF]" />}
           <span>Happ</span>
         </button>
 
@@ -168,9 +176,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         <button
           onClick={() => handleClientAction('v2ray', `v2rayng://install-config?url=${encodeURIComponent(subUrl)}`, subUrl)}
           type="button"
-          className="py-2 px-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          className="py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/30 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
         >
-          {copiedStatus === 'v2ray' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />}
+          {copiedStatus === 'v2ray' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <ExternalLink className="w-4 h-4 text-[#D0BCFF]" />}
           <span>v2rayNG / N</span>
         </button>
 
@@ -178,9 +186,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         <button
           onClick={() => handleClientAction('flclash', `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`, clashSubUrl)}
           type="button"
-          className="py-2 px-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          className="py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/30 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
         >
-          {copiedStatus === 'flclash' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <FlClashIcon className="w-3.5 h-3.5 text-zinc-400" />}
+          {copiedStatus === 'flclash' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <FlClashIcon className="w-4 h-4 text-[#D0BCFF]" />}
           <span>FlClash</span>
         </button>
 
@@ -188,9 +196,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         <button
           onClick={() => handleClientAction('singbox', `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}#TurboProbe`, subUrl)}
           type="button"
-          className="py-2 px-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          className="py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/30 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
         >
-          {copiedStatus === 'singbox' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />}
+          {copiedStatus === 'singbox' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <ExternalLink className="w-4 h-4 text-[#D0BCFF]" />}
           <span>Sing-box</span>
         </button>
       </div>
@@ -200,7 +208,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         <button
           onClick={onDownloadClash}
           type="button"
-          className="inline-flex items-center gap-1.5 text-zinc-400 hover:text-zinc-200 transition-colors font-mono cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-[#CAC4D0] hover:text-[#D0BCFF] transition-colors font-mono cursor-pointer"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Скачать clash-meta.yaml</span>
@@ -209,7 +217,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         <button
           onClick={() => setIsGuideOpen(!isGuideOpen)}
           type="button"
-          className="inline-flex items-center gap-1 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1 text-[#CAC4D0] hover:text-[#D0BCFF] transition-colors cursor-pointer"
         >
           <HelpCircle className="w-3.5 h-3.5" />
           <span>Инструкция по подключению</span>
@@ -225,27 +233,27 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden border-t border-zinc-800 pt-3"
+            className="overflow-hidden border-t border-[#49454F]/30 pt-3"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs text-zinc-300">
-              <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-850 space-y-1">
-                <span className="font-semibold text-white block">1. Скачайте приложение</span>
-                <p className="text-zinc-400 m-0 leading-relaxed">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-[#E6E0E9]">
+              <div className="p-3.5 rounded-2xl bg-[#211F26] border border-[#49454F]/30 space-y-1">
+                <span className="font-semibold text-[#D0BCFF] block font-display">1. Скачайте клиент</span>
+                <p className="text-[#CAC4D0] m-0 leading-relaxed">
                   Android: <strong>v2rayNG</strong> или <strong>Happ</strong><br />
-                  iOS: <strong>Streisand</strong>, <strong>FoXray</strong> или <strong>V2Box</strong><br />
+                  iOS: <strong>Streisand</strong>, <strong>FoXray</strong><br />
                   Windows: <strong>v2rayN</strong> или <strong>FlClash</strong>
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-850 space-y-1">
-                <span className="font-semibold text-white block">2. Скопируйте ссылку</span>
-                <p className="text-zinc-400 m-0 leading-relaxed">
-                  Нажмите кнопку <strong>«Скопировать ссылку»</strong> выше или отсканируйте QR-код с экрана телефона.
+              <div className="p-3.5 rounded-2xl bg-[#211F26] border border-[#49454F]/30 space-y-1">
+                <span className="font-semibold text-[#D0BCFF] block font-display">2. Скопируйте ссылку</span>
+                <p className="text-[#CAC4D0] m-0 leading-relaxed">
+                  Нажмите <strong>«Скопировать ссылку»</strong> выше или отсканируйте QR-код в мобильном приложении.
                 </p>
               </div>
-              <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-850 space-y-1">
-                <span className="font-semibold text-white block">3. Импортируйте и включите</span>
-                <p className="text-zinc-400 m-0 leading-relaxed">
-                  В приложении нажмите <strong>«+» $\to$ «Импорт подписки»</strong>, обновите список и выберите самый быстрый узел.
+              <div className="p-3.5 rounded-2xl bg-[#211F26] border border-[#49454F]/30 space-y-1">
+                <span className="font-semibold text-[#D0BCFF] block font-display">3. Подключитесь</span>
+                <p className="text-[#CAC4D0] m-0 leading-relaxed">
+                  В приложении нажмите <strong>«Импорт подписки»</strong>, обновите список и активируйте VPN.
                 </p>
               </div>
             </div>
@@ -256,4 +264,5 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
     </div>
   );
 };
+
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Zap, Clock } from 'lucide-react';
+import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 
 interface HeaderProps {
   totalConfigs?: number;
@@ -36,46 +36,67 @@ export const Header: React.FC<HeaderProps> = ({
   const mskTime = formatMskTime(updatedAt);
 
   return (
-    <header className="w-full flex flex-col items-center text-center select-none pt-4 pb-2">
-      {/* Top Brand Tag */}
-      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-300 mb-3 shadow-sm">
-        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-        <span className="font-mono font-medium">TurboProbe Hub</span>
-        <span className="text-zinc-500">•</span>
-        <span className="text-zinc-400 font-mono">v3.0</span>
-      </div>
+    <div className="w-full select-none">
+      {/* 1. MD3 Hero Card */}
+      <div className="bg-[#1D1B20] border border-[#49454F]/40 rounded-[28px] p-6 sm:p-8 text-center flex flex-col items-center shadow-lg relative overflow-hidden">
+        {/* Subtle Ambient Radial Glow */}
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#D0BCFF]/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Main Title */}
-      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white m-0">
-        Конструктор VPN-подписок
-      </h1>
-
-      {/* Subtitle */}
-      <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-1.5 mb-4 max-w-md leading-relaxed">
-        Бесплатные проверенные прокси-узлы VLESS Reality и Trojan с автоматическим обновлением каждые 6 часов
-      </p>
-
-      {/* Live Telemetry Bar */}
-      <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-mono text-zinc-400">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-zinc-900/60 border border-zinc-850">
-          <Shield className="w-3.5 h-3.5 text-zinc-400" />
-          <span>Онлайн: <strong className="text-zinc-200">{totalConfigs > 0 ? totalConfigs.toLocaleString('ru-RU') : '1 107'}</strong> узлов</span>
+        {/* Top Chip */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#36343B] text-[#EADDFF] border border-[#49454F]/50 text-xs font-mono font-medium mb-4 shadow-sm">
+          <span className="w-2 h-2 rounded-full bg-[#7BE08F] animate-pulse" />
+          <span>Суверенный агрегатор v3.0</span>
         </div>
 
-        {bestPing > 0 && (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-zinc-900/60 border border-zinc-850">
-            <Zap className="w-3.5 h-3.5 text-amber-400" />
-            <span>Пинг: <strong className="text-zinc-200">{bestPing} ms</strong></span>
+        {/* Main Display Title in Unbounded font */}
+        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-[#E6E0E9] m-0">
+          TurboProbe <span className="font-normal text-[#D0BCFF]">Hub</span>
+        </h1>
+
+        {/* Subtitle in Onest font */}
+        <p className="font-body text-xs sm:text-sm md:text-base text-[#CAC4D0] mt-2 mb-6 max-w-md leading-relaxed">
+          Бесплатные проверенные VPN-конфигурации VLESS Reality и Trojan с автоматической фильтрацией каждые 6 часов
+        </p>
+
+        {/* 3 Bento Stat Cards (MD3 Tonal Containers) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-xl">
+          {/* Stat 1: Total Configs (Primary Container) */}
+          <div className="bg-[#4F378B] text-[#EADDFF] p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-sm">
+            <div className="flex items-center gap-1.5 opacity-80 text-[11px] font-display font-semibold uppercase tracking-wider">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Серверы</span>
+            </div>
+            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">
+              {totalConfigs > 0 ? totalConfigs.toLocaleString('ru-RU') : '1 107'}
+            </div>
           </div>
-        )}
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-zinc-900/60 border border-zinc-850">
-          <Clock className="w-3.5 h-3.5 text-zinc-500" />
-          <span>{mskTime}</span>
+          {/* Stat 2: Best Ping (Secondary Container) */}
+          <div className="bg-[#4A4458] text-[#E8DEF8] p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-sm">
+            <div className="flex items-center gap-1.5 opacity-80 text-[11px] font-display font-semibold uppercase tracking-wider">
+              <Zap className="w-3.5 h-3.5 text-[#FFD8E4]" />
+              <span>Лучший пинг</span>
+            </div>
+            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">
+              {bestPing > 0 ? bestPing : 181} <span className="text-xs font-normal opacity-80">ms</span>
+            </div>
+          </div>
+
+          {/* Stat 3: Auto Refresh / Time (Tertiary Container) */}
+          <div className="bg-[#633B48] text-[#FFD8E4] p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-sm">
+            <div className="flex items-center gap-1.5 opacity-80 text-[11px] font-display font-semibold uppercase tracking-wider">
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Обновлено</span>
+            </div>
+            <div className="font-mono text-xs sm:text-sm font-semibold tracking-tight text-white truncate w-full text-right sm:text-left mt-1">
+              {mskTime}
+            </div>
+          </div>
         </div>
       </div>
-    </header>
+    </div>
   );
 };
+
 
 

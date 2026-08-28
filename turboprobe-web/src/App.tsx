@@ -325,8 +325,37 @@ export default function App() {
   }, [filteredNodes]);
 
   return (
-    <div className="min-h-screen bg-[#0c0d10] text-zinc-100 selection:bg-zinc-800 selection:text-white flex flex-col justify-between">
-      <div className="flex-1 flex flex-col justify-center min-h-screen py-8 sm:py-12">
+    <div className="min-h-screen bg-[#141218] text-[#E6E0E9] selection:bg-[#D0BCFF] selection:text-[#381E72] flex flex-col justify-between">
+      {/* 1. MD3 Top App Bar */}
+      <header className="sticky top-0 z-30 w-full h-16 bg-[#141218]/80 backdrop-blur-xl border-b border-[#49454F]/30 px-4 sm:px-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-2xl bg-[#4F378B] text-[#EADDFF] flex items-center justify-center font-display font-bold text-sm shadow-md">
+            TP
+          </div>
+          <span className="font-display font-bold text-sm sm:text-base text-white tracking-tight">
+            TurboProbe
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#211F26] text-xs font-mono text-[#CAC4D0] border border-[#49454F]/30">
+            <span className="w-2 h-2 rounded-full bg-[#7BE08F] animate-pulse" />
+            <span>{stats.total_nodes || allNodes.length} узлов</span>
+          </div>
+
+          <a
+            href="https://github.com/SH20FK/TurboProbe"
+            target="_blank"
+            rel="noreferrer"
+            className="px-3.5 py-1.5 rounded-full bg-[#36343B] hover:bg-[#49454F] text-[#E6E0E9] text-xs font-medium font-mono flex items-center gap-1.5 transition-colors"
+          >
+            <span>GitHub</span>
+          </a>
+        </div>
+      </header>
+
+      {/* 2. Main Page Content */}
+      <div className="flex-1 flex flex-col justify-center py-6 sm:py-10">
         <div className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4">
           {/* Header */}
           <Header
@@ -337,7 +366,7 @@ export default function App() {
           />
 
           {/* Main Controls */}
-          <main className="w-full space-y-3.5">
+          <main className="w-full space-y-4">
             <FilterPanel
               activePreset={activePreset}
               onSelectPreset={handleSelectPreset}
@@ -375,19 +404,13 @@ export default function App() {
           {/* QR Modal */}
           <QrModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} subUrl={subUrl} />
 
-          {/* Clean Footer */}
-          <footer className="w-full pt-6 pb-2 border-t border-zinc-800/80 flex items-center justify-center text-center text-xs text-zinc-500 font-mono">
-            <p className="m-0 flex items-center gap-1.5">
-              <span>TurboProbe · Открытый исходный код</span>
-              <span>·</span>
-              <a
-                href="https://github.com/SH20FK/TurboProbe"
-                target="_blank"
-                rel="noreferrer"
-                className="text-zinc-400 hover:text-white underline underline-offset-4 decoration-zinc-700 hover:decoration-white transition-colors"
-              >
-                GitHub
-              </a>
+          {/* Clean MD3 Footer */}
+          <footer className="w-full pt-8 pb-4 border-t border-[#49454F]/30 flex flex-col items-center justify-center text-center text-xs text-[#938F99] font-body space-y-1.5">
+            <p className="m-0 font-display font-medium text-[#CAC4D0]">
+              TurboProbe · Суверенный VPN-агрегатор
+            </p>
+            <p className="m-0 font-mono text-[11px]">
+              VLESS Reality, Trojan, Hysteria 2 • Обновление каждые 6 часов
             </p>
           </footer>
         </div>
