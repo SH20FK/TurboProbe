@@ -4,6 +4,7 @@ import { ShieldCheck, HelpCircle, ChevronDown, ExternalLink, Check } from 'lucid
 import { HappIcon, FlClashIcon } from './ServiceIcons';
 import { M3SplitButton } from './ui/M3SplitButton';
 import { M3Ripple } from './ui/M3Ripple';
+import { M3NumberCounter } from './ui/M3NumberCounter';
 
 interface ExportPanelProps {
   subUrl: string;
@@ -96,7 +97,12 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               Экспорт подписки
             </span>
             <span className="text-xs font-mono text-[#CAC4D0] ml-2">
-              ({effectiveCount} {selectedLimit > 0 && selectedLimit < filteredCount ? `из ${filteredCount}` : 'узлов'})
+              (<M3NumberCounter value={effectiveCount} formatThousands={false} />{' '}
+              {selectedLimit > 0 && selectedLimit < filteredCount ? (
+                <>из <M3NumberCounter value={filteredCount} formatThousands={false} /> узлов</>
+              ) : (
+                'узлов'
+              )})
             </span>
           </div>
         </div>
@@ -112,7 +118,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                 key={lim}
                 onClick={() => onChangeLimit(lim)}
                 type="button"
-                className={`relative px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-150 cursor-pointer select-none overflow-hidden ${
+                className={`relative px-3 py-1 rounded-full text-xs font-semibold cursor-pointer select-none overflow-hidden ${
                   isActive ? 'text-[#EADDFF]' : 'text-[#CAC4D0] hover:text-white'
                 }`}
               >
@@ -142,7 +148,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         />
       </div>
 
-      {/* 3. Native App Import Grid with Brand Hover Glow */}
+      {/* 3. Native App Import Grid with Instant Spring Physics & Animated Checkmarks */}
       <div className="space-y-2 pt-2 border-t border-[#49454F]/25">
         <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#938F99]">
           Импорт в 1 клик в ваше приложение:
@@ -153,10 +159,28 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             onClick={() => handleClientAction('happ', `happ://add/${subUrl}#TurboProbe`, subUrl)}
             whileHover={{ y: -2, scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#38BDF8]/60 hover:shadow-[0_0_12px_rgba(56,189,248,0.2)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#38BDF8]/60 hover:shadow-[0_0_12px_rgba(56,189,248,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
           >
-            {copiedStatus === 'happ' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <HappIcon className="w-4 h-4 text-[#38BDF8]" />}
+            <AnimatePresence mode="wait" initial={false}>
+              {copiedStatus === 'happ' ? (
+                <motion.span
+                  key="check"
+                  initial={{ scale: 0, rotate: -45 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                  className="flex items-center"
+                >
+                  <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                </motion.span>
+              ) : (
+                <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
+                  <HappIcon className="w-4 h-4 text-[#38BDF8]" />
+                </motion.span>
+              )}
+            </AnimatePresence>
             <span className="font-display font-semibold">Happ</span>
             <M3Ripple color="#38BDF8" />
           </motion.button>
@@ -166,10 +190,28 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             onClick={() => handleClientAction('v2ray', `v2rayng://install-config?url=${encodeURIComponent(subUrl)}`, subUrl)}
             whileHover={{ y: -2, scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#D0BCFF]/60 hover:shadow-[0_0_12px_rgba(208,188,255,0.2)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#D0BCFF]/60 hover:shadow-[0_0_12px_rgba(208,188,255,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
           >
-            {copiedStatus === 'v2ray' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <ExternalLink className="w-4 h-4 text-[#D0BCFF]" />}
+            <AnimatePresence mode="wait" initial={false}>
+              {copiedStatus === 'v2ray' ? (
+                <motion.span
+                  key="check"
+                  initial={{ scale: 0, rotate: -45 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                  className="flex items-center"
+                >
+                  <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                </motion.span>
+              ) : (
+                <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
+                  <ExternalLink className="w-4 h-4 text-[#D0BCFF]" />
+                </motion.span>
+              )}
+            </AnimatePresence>
             <span className="font-display font-semibold">v2rayNG / N</span>
             <M3Ripple color="#D0BCFF" />
           </motion.button>
@@ -179,10 +221,28 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             onClick={() => handleClientAction('flclash', `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`, clashSubUrl)}
             whileHover={{ y: -2, scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#10B981]/60 hover:shadow-[0_0_12px_rgba(16,185,129,0.2)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#10B981]/60 hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
           >
-            {copiedStatus === 'flclash' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <FlClashIcon className="w-4 h-4 text-[#10B981]" />}
+            <AnimatePresence mode="wait" initial={false}>
+              {copiedStatus === 'flclash' ? (
+                <motion.span
+                  key="check"
+                  initial={{ scale: 0, rotate: -45 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                  className="flex items-center"
+                >
+                  <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                </motion.span>
+              ) : (
+                <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
+                  <FlClashIcon className="w-4 h-4 text-[#10B981]" />
+                </motion.span>
+              )}
+            </AnimatePresence>
             <span className="font-display font-semibold">FlClash</span>
             <M3Ripple color="#10B981" />
           </motion.button>
@@ -192,10 +252,28 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
             onClick={() => handleClientAction('singbox', `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}#TurboProbe`, subUrl)}
             whileHover={{ y: -2, scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#F59E0B]/60 hover:shadow-[0_0_12px_rgba(245,158,11,0.2)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#F59E0B]/60 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs"
           >
-            {copiedStatus === 'singbox' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <ExternalLink className="w-4 h-4 text-[#F59E0B]" />}
+            <AnimatePresence mode="wait" initial={false}>
+              {copiedStatus === 'singbox' ? (
+                <motion.span
+                  key="check"
+                  initial={{ scale: 0, rotate: -45 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                  className="flex items-center"
+                >
+                  <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                </motion.span>
+              ) : (
+                <motion.span key="icon" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="flex items-center">
+                  <ExternalLink className="w-4 h-4 text-[#F59E0B]" />
+                </motion.span>
+              )}
+            </AnimatePresence>
             <span className="font-display font-semibold">Sing-box</span>
             <M3Ripple color="#F59E0B" />
           </motion.button>

@@ -4,6 +4,7 @@ import { ChevronDown, Copy, Check, Search, Plus, Loader2, Globe } from 'lucide-r
 import { CountryFlag } from './CountryFlags';
 import { extractRemark, computeDisplayTitle } from '../utils/nodeIndexer';
 import { M3Ripple } from './ui/M3Ripple';
+import { M3NumberCounter } from './ui/M3NumberCounter';
 import type { NodeItem } from '../types';
 
 interface NodePreviewListProps {
@@ -91,7 +92,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
               Телеметрия проверенных узлов
             </span>
             <span className="text-xs font-mono text-[#D0BCFF] ml-2 font-medium">
-              {totalAvailable} узлов в базе
+              <M3NumberCounter value={totalAvailable} /> узлов в базе
             </span>
           </div>
         </div>
@@ -220,7 +221,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                               <span
                                 className={`w-2 h-2 rounded-full ${
                                   ping < 250
-                                    ? 'bg-[#7BE08F]'
+                                    ? 'bg-[#7BE08F] shadow-[0_0_6px_#7BE08F]'
                                     : ping < 550
                                     ? 'bg-[#FFD966]'
                                     : 'bg-[#FF897D]'
@@ -230,24 +231,39 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                             </div>
                           ) : (
                             <div className="flex items-center gap-1.5 font-mono text-xs text-[#7BE08F]">
-                              <span className="w-2 h-2 rounded-full bg-[#7BE08F]" />
+                              <span className="w-2 h-2 rounded-full bg-[#7BE08F] shadow-[0_0_6px_#7BE08F]" />
                               <span>ONLINE</span>
                             </div>
                           )}
 
-                          <button
+                          <motion.button
                             onClick={() => handleCopyNode(node.uri, nodeKey)}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                             type="button"
                             title="Скопировать ключ"
-                            className="relative w-8 h-8 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#CAC4D0] hover:text-white flex items-center justify-center transition-colors cursor-pointer overflow-hidden border border-[#49454F]/30"
+                            className="relative w-8 h-8 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#CAC4D0] hover:text-white flex items-center justify-center cursor-pointer overflow-hidden border border-[#49454F]/30"
                           >
-                            {isCopied ? (
-                              <Check className="w-4 h-4 text-[#7BE08F]" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
+                            <AnimatePresence mode="wait" initial={false}>
+                              {isCopied ? (
+                                <motion.span
+                                  key="check"
+                                  initial={{ scale: 0, rotate: -45 }}
+                                  animate={{ scale: 1, rotate: 0 }}
+                                  exit={{ scale: 0 }}
+                                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                                >
+                                  <Check className="w-4 h-4 text-[#7BE08F] stroke-[3]" />
+                                </motion.span>
+                              ) : (
+                                <motion.span key="copy" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
+                                  <Copy className="w-3.5 h-3.5" />
+                                </motion.span>
+                              )}
+                            </AnimatePresence>
                             <M3Ripple />
-                          </button>
+                          </motion.button>
                         </div>
                       </motion.div>
                     );
@@ -258,15 +274,18 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
               {/* Show More Button */}
               {!isLoading && hasMore && (
                 <div className="p-3 text-center bg-[#141218]">
-                  <button
+                  <motion.button
                     onClick={() => setDisplayLimit((prev) => prev + 30)}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.96 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                     type="button"
-                    className="relative inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-xs text-[#E6E0E9] transition-colors cursor-pointer font-mono border border-[#49454F]/30 overflow-hidden"
+                    className="relative inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-xs text-[#E6E0E9] cursor-pointer font-mono border border-[#49454F]/30 overflow-hidden"
                   >
                     <Plus className="w-3.5 h-3.5 text-[#D0BCFF]" />
                     <span>Показать еще ({remainingCount})</span>
                     <M3Ripple />
-                  </button>
+                  </motion.button>
                 </div>
               )}
             </div>

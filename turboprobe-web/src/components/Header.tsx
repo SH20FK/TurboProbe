@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
+import { M3NumberCounter } from './ui/M3NumberCounter';
 
 interface HeaderProps {
   totalConfigs?: number;
@@ -44,6 +45,8 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="w-full flex items-center justify-between mb-5">
           <motion.div
             whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
             className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#2B2930] text-[#CAC4D0] border border-[#49454F]/30 text-xs font-mono shadow-xs cursor-default"
           >
             <div className="relative flex h-2.5 w-2.5 items-center justify-center">
@@ -59,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Brand Logo with Tactile Micro-Hover */}
+        {/* Brand Logo with Tactile Instant Hover */}
         <motion.div
           whileHover={{ scale: 1.08, rotate: 3 }}
           whileTap={{ scale: 0.95 }}
@@ -89,17 +92,18 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full max-w-xl">
           {/* Stat 1: Total Configs */}
           <motion.div
-            whileHover={{ y: -2, backgroundColor: '#36343B', borderColor: 'rgba(208,188,255,0.3)' }}
-            transition={{ duration: 0.15 }}
-            className="bg-[#2B2930] border border-[#49454F]/25 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
+            whileHover={{ y: -3, scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+            className="bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 hover:border-[#D0BCFF]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
           >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
               <ShieldCheck className="w-3.5 h-3.5 text-[#7BE08F]" />
               <span>Серверы онлайн</span>
             </div>
-            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white tabular-nums">
+            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">
               {totalConfigs > 0 ? (
-                totalConfigs.toLocaleString('ru-RU')
+                <M3NumberCounter value={totalConfigs} />
               ) : (
                 <span className="inline-block w-12 h-7 bg-white/10 rounded animate-pulse" />
               )}
@@ -108,18 +112,20 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Stat 2: Best Ping */}
           <motion.div
-            whileHover={{ y: -2, backgroundColor: '#36343B', borderColor: 'rgba(208,188,255,0.3)' }}
-            transition={{ duration: 0.15 }}
-            className="bg-[#2B2930] border border-[#49454F]/25 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
+            whileHover={{ y: -3, scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+            className="bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 hover:border-[#D0BCFF]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
           >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
               <Zap className="w-3.5 h-3.5 text-[#7BE08F]" />
               <span>Лучший пинг</span>
             </div>
-            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white tabular-nums">
+            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-baseline gap-1">
               {bestPing > 0 ? (
                 <>
-                  {bestPing} <span className="text-xs font-normal text-[#938F99]">ms</span>
+                  <M3NumberCounter value={bestPing} formatThousands={false} />
+                  <span className="text-xs font-normal text-[#938F99]">ms</span>
                 </>
               ) : (
                 <span className="inline-block w-12 h-7 bg-white/10 rounded animate-pulse" />
@@ -129,9 +135,10 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Stat 3: Sync Time */}
           <motion.div
-            whileHover={{ y: -2, backgroundColor: '#36343B', borderColor: 'rgba(208,188,255,0.3)' }}
-            transition={{ duration: 0.15 }}
-            className="bg-[#2B2930] border border-[#49454F]/25 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
+            whileHover={{ y: -3, scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+            className="bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 hover:border-[#D0BCFF]/40 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
           >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
               <RefreshCw className="w-3.5 h-3.5 text-[#7BE08F]" />
