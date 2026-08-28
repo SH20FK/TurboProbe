@@ -1,166 +1,348 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TGProxy · Telegram Прокси с проверкой в РФ</title>
-  <meta name="description" content="Бесплатные проверенные MTProto Fake-TLS и SOCKS5 прокси для Telegram с реальной проверкой доступности дата-центров Telegram.">
+  <title>TGProxy · Суверенные Telegram-прокси</title>
+  <meta name="description" content="Суверенный агрегатор и глубокий верификатор прокси для Telegram (MTProto Fake-TLS & SOCKS5) с обходом ТСПУ.">
   <link rel="icon" href="../logo.svg" type="image/svg+xml">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   <style>
-    body { font-family: 'Inter', sans-serif; }
+    :root {
+      --bg-app: #0e1621;
+      --bg-card: #17212b;
+      --bg-card-hover: #1e2c3a;
+      --border-main: rgba(84, 110, 138, 0.2);
+      --border-hover: rgba(42, 171, 238, 0.4);
+      --text-main: #ffffff;
+      --text-muted: #708499;
+      --tg-blue: #2481cc;
+      --tg-cyan: #2aabee;
+      --tg-hover: #1c74ba;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+    }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
-    .tg-card { background: #17212b; border: 1px solid #242f3d; }
-    .tg-card:hover { border-color: #2b5278; }
-    .tg-btn-primary { background: #2b5278; }
-    .tg-btn-primary:hover { background: #336290; }
+    .tg-gradient-text {
+      background: linear-gradient(135deg, #2aabee 0%, #2481cc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .tg-bento-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-main);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+    .tg-bento-card:hover {
+      border-color: var(--border-hover);
+    }
+    .tg-btn-primary {
+      background: linear-gradient(135deg, #2aabee 0%, #2481cc 100%);
+      color: #ffffff;
+    }
+    .tg-btn-primary:hover {
+      background: linear-gradient(135deg, #38bdf8 0%, #1c74ba 100%);
+    }
   </style>
 </head>
-<body class="min-h-screen bg-[#0e1621] text-[#f5f5f5] flex flex-col justify-between selection:bg-[#2b5278] selection:text-white">
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-[#2aabee]/30 selection:text-[#38bdf8] transition-colors duration-200">
 
-  <!-- Header -->
-  <header class="sticky top-0 z-30 w-full bg-[#17212b] border-b border-[#242f3d] px-4 sm:px-8 py-3 flex items-center justify-between shadow-sm">
+  <!-- 1. Top App Bar -->
+  <header class="sticky top-0 z-30 w-full h-16 bg-[#0e1621]/90 backdrop-blur-md border-b border-[var(--border-main)] px-4 sm:px-6 flex items-center justify-between transition-colors duration-200">
     <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-full bg-[#2b5278] flex items-center justify-center text-white">
-        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#2481cc] to-[#2aabee] p-1.5 shadow-md flex items-center justify-center">
+        <svg class="w-full h-full text-white fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
       </div>
-      <div>
-        <div class="flex items-center gap-2">
-          <span class="font-bold text-base text-white">TGProxy</span>
-          <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-[#242f3d] text-[#6ab2f2]">Telegram DC Checked</span>
-        </div>
-      </div>
+      <span class="font-extrabold text-base sm:text-lg text-[var(--text-main)] tracking-tight">
+        TGProxy
+      </span>
     </div>
 
-    <div class="flex items-center gap-3">
-      <a href="../" class="text-xs font-mono text-[#708499] hover:text-white transition-colors">
-        ← VPN Реестр
+    <div class="flex items-center gap-2.5">
+      <div class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-card)] text-xs font-mono text-[var(--text-muted)] border border-[var(--border-main)]">
+        <span class="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
+        <span id="header-node-count">Синхронизация...</span>
+      </div>
+
+      <a href="../" class="px-3.5 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-main)] text-xs font-semibold font-mono flex items-center gap-1.5 transition-all border border-[var(--border-main)] hover:border-[#2aabee]/50">
+        <span>← VPN Реестр</span>
       </a>
-      <a href="https://github.com/SH20FK/TurboProbe" target="_blank" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#242f3d] hover:bg-[#2b5278] text-white transition-colors">
-        GitHub
+
+      <a href="https://github.com/SH20FK/TurboProbe" target="_blank" rel="noreferrer" class="px-3.5 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-main)] hover:text-white text-xs font-semibold font-mono flex items-center gap-1.5 transition-all border border-[var(--border-main)] hover:border-[#2aabee]/50">
+        <span>GitHub</span>
       </a>
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-6 space-y-5">
-    
-    <!-- Top Summary Banner -->
-    <div class="tg-card rounded-2xl p-5 space-y-3">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div>
-          <h1 class="text-lg sm:text-xl font-bold text-white">Проверенные прокси для Telegram</h1>
-          <p class="text-xs text-[#708499] mt-0.5">Все узлы протестированы на сквозное соединение с серверами Telegram (DC2/DC4) и ТСПУ РФ.</p>
+  <!-- 2. Main Page Content (TurboProbe Layout) -->
+  <div class="relative z-10 flex-1 flex flex-col justify-center py-6 sm:py-10">
+    <div class="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4">
+      
+      <!-- Bento Telemetry Header -->
+      <div class="relative rounded-[28px] tg-bento-card p-6 sm:p-8 overflow-hidden flex flex-col items-center text-center transition-colors duration-200">
+        <!-- Logo -->
+        <div class="w-16 h-16 sm:w-18 sm:h-18 rounded-3xl bg-gradient-to-tr from-[#2481cc] to-[#2aabee] flex items-center justify-center mb-4 shadow-lg shadow-sky-500/20">
+          <svg class="w-9 h-9 text-white fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
         </div>
-        <div class="text-xs font-mono text-[#708499]">
-          Обновлено: <span id="stat-updated" class="text-[#6ab2f2]">Синхронизация...</span>
+
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white m-0 flex items-center justify-center gap-2">
+          <span>TGProxy</span>
+          <span class="tg-gradient-text font-black">Hub</span>
+        </h1>
+
+        <p class="text-xs sm:text-sm md:text-base text-[var(--text-muted)] mt-2.5 mb-6 max-w-lg leading-relaxed font-normal">
+          Суверенный агрегатор проверенных прокси <span class="text-white font-semibold">MTProto Fake-TLS</span> и <span class="text-white font-semibold">SOCKS5</span> для Telegram
+        </p>
+
+        <!-- 3 KPI Stat Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full max-w-xl">
+          <!-- Stat 1: Total -->
+          <div class="w-full bg-[var(--bg-app)] border border-[var(--border-main)] p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs">
+            <div class="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
+              <span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+              <span>Прокси онлайн</span>
+            </div>
+            <div id="stat-total" class="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">...</div>
+          </div>
+
+          <!-- Stat 2: Best Ping -->
+          <div class="w-full bg-[var(--bg-app)] border border-[var(--border-main)] p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs">
+            <div class="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
+              <span class="w-2 h-2 rounded-full bg-[#e5a93c]"></span>
+              <span>Лучший отклик</span>
+            </div>
+            <div id="stat-best-ping" class="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">...</div>
+          </div>
+
+          <!-- Stat 3: Updated -->
+          <div class="w-full bg-[var(--bg-app)] border border-[var(--border-main)] p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs">
+            <div class="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
+              <span class="w-2 h-2 rounded-full bg-[#2aabee]"></span>
+              <span>Синхронизация</span>
+            </div>
+            <div id="stat-updated" class="font-mono text-lg sm:text-xl font-bold tracking-tight text-white">...</div>
+          </div>
         </div>
       </div>
 
-      <!-- Compact Stat Badges -->
-      <div class="flex flex-wrap gap-2 pt-1">
-        <div class="px-3 py-1.5 rounded-xl bg-[#242f3d] text-xs font-mono flex items-center gap-2">
-          <span class="text-[#708499]">Всего живых:</span>
-          <span id="stat-total" class="font-bold text-[#6ab2f2]">...</span>
+      <!-- Main Controls Area -->
+      <main class="w-full space-y-4">
+        
+        <!-- M3 Segmented Button Hero Preset Selector -->
+        <div class="w-full bg-[var(--bg-card)] border border-[var(--border-main)] p-1.5 rounded-2xl flex items-center gap-1.5 select-none overflow-x-auto shadow-sm">
+          <button onclick="selectPreset('all')" id="preset-all" class="flex-1 min-w-[120px] py-2.5 px-3 rounded-xl bg-gradient-to-tr from-[#2481cc] to-[#2aabee] text-white text-xs font-bold font-mono transition-all text-center">
+            ⚡ Все прокси
+          </button>
+          <button onclick="selectPreset('mtproto')" id="preset-mtproto" class="flex-1 min-w-[120px] py-2.5 px-3 rounded-xl text-[var(--text-muted)] hover:text-white text-xs font-medium font-mono transition-all text-center">
+            🛡️ MTProto (Fake-TLS)
+          </button>
+          <button onclick="selectPreset('socks5')" id="preset-socks5" class="flex-1 min-w-[120px] py-2.5 px-3 rounded-xl text-[var(--text-muted)] hover:text-white text-xs font-medium font-mono transition-all text-center">
+            🧦 SOCKS5
+          </button>
         </div>
-        <div class="px-3 py-1.5 rounded-xl bg-[#242f3d] text-xs font-mono flex items-center gap-2">
-          <span class="text-[#708499]">MTProto:</span>
-          <span id="stat-mtproto" class="font-bold text-[#4fae5e]">...</span>
+
+        <!-- Faceted Filter Accordion -->
+        <div class="rounded-[28px] tg-bento-card overflow-hidden transition-colors duration-200">
+          <div class="p-4 sm:p-5 space-y-4">
+            
+            <!-- Protocol Filter Chips -->
+            <div class="space-y-2.5">
+              <div class="flex items-center justify-between text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                <span>Протоколы подключения</span>
+                <span id="active-proto-label" class="text-[11px] text-[#2aabee] lowercase">все</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <button onclick="filterProto('all')" id="chip-proto-all" class="px-3 py-1.5 rounded-full bg-gradient-to-tr from-[#2481cc] to-[#2aabee] text-white text-xs font-mono font-semibold transition-all">Все</button>
+                <button onclick="filterProto('mtproto')" id="chip-proto-mtproto" class="px-3 py-1.5 rounded-full bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-white text-xs font-mono border border-[var(--border-main)] transition-all flex items-center gap-1.5">
+                  <span>🛡️ Fake-TLS</span>
+                  <span id="count-mtproto" class="opacity-70 text-[10px]">0</span>
+                </button>
+                <button onclick="filterProto('socks5')" id="chip-proto-socks5" class="px-3 py-1.5 rounded-full bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-white text-xs font-mono border border-[var(--border-main)] transition-all flex items-center gap-1.5">
+                  <span>🧦 SOCKS5</span>
+                  <span id="count-socks5" class="opacity-70 text-[10px]">0</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Country Filter Chips -->
+            <div class="space-y-2.5 pt-4 border-t border-[var(--border-main)]">
+              <div class="flex items-center justify-between text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                <span>Геолокации серверов</span>
+              </div>
+              <div id="country-chips" class="flex flex-wrap gap-1.5">
+                <button onclick="filterCountry('all')" id="chip-country-all" class="px-3 py-1.5 rounded-full bg-gradient-to-tr from-[#2481cc] to-[#2aabee] text-white text-xs font-mono font-semibold transition-all">Все страны</button>
+              </div>
+            </div>
+
+          </div>
         </div>
-        <div class="px-3 py-1.5 rounded-xl bg-[#242f3d] text-xs font-mono flex items-center gap-2">
-          <span class="text-[#708499]">SOCKS5:</span>
-          <span id="stat-socks5" class="font-bold text-[#e5a93c]">...</span>
+
+        <!-- Export Action Panel (TurboProbe Style Split Bar) -->
+        <div class="rounded-[28px] tg-bento-card p-4 sm:p-5 space-y-3">
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+              <div class="font-bold text-sm text-white flex items-center gap-2">
+                <span>Пул прокси для Telegram</span>
+                <span id="pool-count-badge" class="px-2 py-0.5 rounded-full bg-[#2aabee]/15 text-[#2aabee] text-xs font-mono font-bold">0 узлов</span>
+              </div>
+              <p class="text-xs text-[var(--text-muted)] mt-0.5">Нажмите на кнопку ниже, чтобы мгновенно добавить прокси в приложение Telegram.</p>
+            </div>
+
+            <!-- Fast Action Buttons -->
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+              <button onclick="copyAllKeys()" class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-xs font-mono font-bold text-white border border-[var(--border-main)] hover:border-[#2aabee]/40 transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                <svg class="w-3.5 h-3.5 text-[#2aabee]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                <span>Скопировать все</span>
+              </button>
+              <a id="fastest-connect-btn" href="#" class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl tg-btn-primary text-xs font-mono font-bold text-white transition-all flex items-center justify-center gap-2 shadow-md shadow-sky-600/20">
+                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                <span>Подключить лучший</span>
+              </a>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Filter Buttons -->
-    <div class="flex items-center gap-1.5 p-1 bg-[#17212b] rounded-xl border border-[#242f3d] text-xs font-medium w-fit">
-      <button onclick="setFilter('all')" id="tab-all" class="px-3 py-1.5 rounded-lg bg-[#2b5278] text-white font-semibold transition-all">Все</button>
-      <button onclick="setFilter('mtproto')" id="tab-mtproto" class="px-3 py-1.5 rounded-lg text-[#708499] hover:text-white transition-all">🛡️ MTProto (Fake-TLS)</button>
-      <button onclick="setFilter('socks5')" id="tab-socks5" class="px-3 py-1.5 rounded-lg text-[#708499] hover:text-white transition-all">🧦 SOCKS5</button>
-      <button onclick="setFilter('ru')" id="tab-ru" class="px-3 py-1.5 rounded-lg text-[#708499] hover:text-white transition-all">🇷🇺 Доступны в РФ</button>
-    </div>
+        <!-- Node Cards Grid -->
+        <div id="proxy-list" class="space-y-2.5">
+          <div class="py-16 text-center text-[var(--text-muted)] text-xs font-mono">
+            Загрузка проверенных прокси...
+          </div>
+        </div>
 
-    <!-- Proxy Cards List -->
-    <div id="proxy-list" class="space-y-2.5">
-      <div class="py-12 text-center text-[#708499] text-xs font-mono">
-        Загрузка проверенных прокси...
-      </div>
-    </div>
+      </main>
 
-  </main>
+      <!-- 3. Footer -->
+      <footer class="w-full pt-8 pb-4 border-t border-[var(--border-main)] flex flex-col items-center justify-center text-center text-xs text-[var(--text-muted)] space-y-1">
+        <p class="font-bold text-white">TGProxy · Суверенный агрегатор прокси Telegram</p>
+        <p class="font-mono text-[11px]">Телеметрия MTProto Fake-TLS & SOCKS5 • Обновление каждые 2 часа</p>
+      </footer>
+
+    </div>
+  </div>
 
   <!-- QR Modal -->
   <div id="qr-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-[#17212b] border border-[#242f3d] rounded-2xl p-6 max-w-xs w-full space-y-4 text-center">
+    <div class="bg-[var(--bg-card)] border border-[var(--border-main)] rounded-3xl p-6 max-w-xs w-full space-y-4 text-center">
       <h3 class="font-bold text-sm text-white">QR-код для подключения</h3>
-      <div class="bg-white p-3 rounded-xl mx-auto w-fit">
+      <div class="bg-white p-3 rounded-2xl mx-auto w-fit">
         <canvas id="qr-canvas"></canvas>
       </div>
-      <button onclick="closeQrModal()" class="w-full py-2 rounded-lg bg-[#242f3d] hover:bg-[#2b5278] text-xs font-semibold text-white transition-colors">
+      <button onclick="closeQrModal()" class="w-full py-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-xs font-semibold text-white transition-colors">
         Закрыть
       </button>
     </div>
   </div>
 
-  <!-- Footer -->
-  <footer class="w-full py-5 text-center text-xs text-[#708499] border-t border-[#242f3d] space-y-1">
-    <p>TGProxy · Суверенные прокси для Telegram</p>
-  </footer>
-
   <script>
     let allProxies = [];
-    let currentFilter = 'all';
+    let selectedProto = 'all';
+    let selectedCountry = 'all';
 
-    async function loadProxies() {
+    async function loadData() {
       try {
         const res = await fetch('./proxies.json');
         const data = await res.json();
         allProxies = data.proxies || [];
+
+        const bestPing = allProxies.length > 0 ? Math.min(...allProxies.map(p => p.ping_ms)) : 0;
         
-        document.getElementById('stat-total').textContent = data.total || allProxies.length;
-        document.getElementById('stat-mtproto').textContent = data.total_mtproto || 0;
-        document.getElementById('stat-socks5').textContent = data.total_socks5 || 0;
-        document.getElementById('stat-updated').textContent = data.updated_at || 'Недавно';
-        
+        document.getElementById('header-node-count').textContent = `${allProxies.length} проверенных узлов`;
+        document.getElementById('stat-total').textContent = allProxies.length;
+        document.getElementById('stat-best-ping').textContent = bestPing > 0 ? `${bestPing} ms` : '—';
+        document.getElementById('stat-updated').textContent = data.updated_at ? data.updated_at.split(' ')[1].slice(0, 5) + ' UTC' : 'Недавно';
+
+        document.getElementById('count-mtproto').textContent = data.total_mtproto || 0;
+        document.getElementById('count-socks5').textContent = data.total_socks5 || 0;
+
+        renderCountryChips();
         render();
       } catch (e) {
-        console.error('Failed to load proxies:', e);
-        document.getElementById('proxy-list').innerHTML = `
-          <div class="py-12 text-center text-rose-400 text-xs font-mono">
-            Ошибка загрузки списка прокси.
-          </div>
-        `;
+        console.error('Error loading proxies:', e);
       }
     }
 
-    function setFilter(f) {
-      currentFilter = f;
-      ['all', 'mtproto', 'socks5', 'ru'].forEach(id => {
-        const btn = document.getElementById(`tab-${id}`);
-        if (id === f) {
-          btn.className = 'px-3 py-1.5 rounded-lg bg-[#2b5278] text-white font-semibold transition-all';
+    function renderCountryChips() {
+      const counts = {};
+      allProxies.forEach(p => {
+        const c = p.country || 'GLOBAL';
+        counts[c] = (counts[c] || 0) + 1;
+      });
+
+      const container = document.getElementById('country-chips');
+      const countryEntries = Object.entries(counts).filter(([c, count]) => count > 0);
+      
+      container.innerHTML = `
+        <button onclick="filterCountry('all')" id="chip-country-all" class="px-3 py-1.5 rounded-full ${selectedCountry === 'all' ? 'bg-gradient-to-tr from-[#2481cc] to-[#2aabee] text-white font-semibold' : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-white border border-[var(--border-main)]'} text-xs font-mono transition-all">Все страны</button>
+        ${countryEntries.map(([c, count]) => {
+          const isSelected = selectedCountry === c;
+          const label = c === 'GLOBAL' ? '🌐 Серверы' : c;
+          return `
+            <button onclick="filterCountry('${c}')" class="px-3 py-1.5 rounded-full ${isSelected ? 'bg-gradient-to-tr from-[#2481cc] to-[#2aabee] text-white font-semibold' : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-white border border-[var(--border-main)]'} text-xs font-mono transition-all flex items-center gap-1.5">
+              <span>${label}</span>
+              <span class="opacity-70 text-[10px]">${count}</span>
+            </button>
+          `;
+        }).join('')}
+      `;
+    }
+
+    function selectPreset(preset) {
+      ['all', 'mtproto', 'socks5'].forEach(id => {
+        const btn = document.getElementById(`preset-${id}`);
+        if (id === preset) {
+          btn.className = 'flex-1 min-w-[120px] py-2.5 px-3 rounded-xl bg-gradient-to-tr from-[#2481cc] to-[#2aabee] text-white text-xs font-bold font-mono transition-all text-center';
         } else {
-          btn.className = 'px-3 py-1.5 rounded-lg text-[#708499] hover:text-white transition-all';
+          btn.className = 'flex-1 min-w-[120px] py-2.5 px-3 rounded-xl text-[var(--text-muted)] hover:text-white text-xs font-medium font-mono transition-all text-center';
+        }
+      });
+      selectedProto = preset;
+      render();
+    }
+
+    function filterProto(proto) {
+      selectedProto = proto;
+      ['all', 'mtproto', 'socks5'].forEach(id => {
+        const chip = document.getElementById(`chip-proto-${id}`);
+        if (chip) {
+          if (id === proto) {
+            chip.className = 'px-3 py-1.5 rounded-full bg-gradient-to-tr from-[#2481cc] to-[#2aabee] text-white text-xs font-mono font-semibold transition-all';
+          } else {
+            chip.className = 'px-3 py-1.5 rounded-full bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-white text-xs font-mono border border-[var(--border-main)] transition-all flex items-center gap-1.5';
+          }
         }
       });
       render();
     }
 
+    function filterCountry(c) {
+      selectedCountry = c;
+      renderCountryChips();
+      render();
+    }
+
     function render() {
       let list = allProxies;
-      if (currentFilter === 'mtproto') list = list.filter(p => p.proto === 'mtproto');
-      if (currentFilter === 'socks5') list = list.filter(p => p.proto === 'socks5');
-      if (currentFilter === 'ru') list = list.filter(p => p.ru_verified);
+      if (selectedProto === 'mtproto') list = list.filter(p => p.proto === 'mtproto');
+      if (selectedProto === 'socks5') list = list.filter(p => p.proto === 'socks5');
+      if (selectedCountry !== 'all') list = list.filter(p => p.country === selectedCountry);
+
+      document.getElementById('pool-count-badge').textContent = `${list.length} узлов`;
+
+      if (list.length > 0) {
+        document.getElementById('fastest-connect-btn').href = list[0].tg_link;
+      }
 
       const container = document.getElementById('proxy-list');
       if (list.length === 0) {
         container.innerHTML = `
-          <div class="py-12 text-center text-[#708499] text-xs font-mono">
-            По данному фильтру пока нет проверенных прокси.
+          <div class="py-16 text-center text-[var(--text-muted)] text-xs font-mono">
+            По выбранным фильтрам нет доступных узлов.
           </div>
         `;
         return;
@@ -169,36 +351,35 @@
       container.innerHTML = list.map((p, idx) => {
         const isMtproto = p.proto === 'mtproto';
         const badge = isMtproto 
-          ? (p.is_faketls ? '<span class="px-2 py-0.5 rounded bg-[#2b5278]/40 text-[#6ab2f2] text-[10px] font-mono font-medium border border-[#2b5278]">Fake-TLS</span>' : '<span class="px-2 py-0.5 rounded bg-[#242f3d] text-slate-300 text-[10px] font-mono">MTProto</span>')
-          : '<span class="px-2 py-0.5 rounded bg-[#e5a93c]/15 text-[#e5a93c] text-[10px] font-mono font-medium border border-[#e5a93c]/30">SOCKS5</span>';
+          ? '<span class="px-2 py-0.5 rounded-md bg-[#2aabee]/15 text-[#2aabee] text-[10px] font-mono font-bold border border-[#2aabee]/30">Fake-TLS</span>'
+          : '<span class="px-2 py-0.5 rounded-md bg-[#e5a93c]/15 text-[#e5a93c] text-[10px] font-mono font-bold border border-[#e5a93c]/30">SOCKS5</span>';
         
-        const pingColor = p.ping_ms < 150 ? 'text-[#4fae5e]' : p.ping_ms < 300 ? 'text-[#6ab2f2]' : 'text-[#e5a93c]';
+        const pingColor = p.ping_ms < 200 ? 'text-[#10B981]' : p.ping_ms < 400 ? 'text-[#2aabee]' : 'text-[#e5a93c]';
 
         return `
-          <div class="tg-card rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
+          <div class="tg-bento-card rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all hover:translate-y-[-1px]">
             <div class="space-y-1">
               <div class="flex items-center gap-2">
                 <span class="font-bold text-sm text-white">${p.server}</span>
-                <span class="font-mono text-xs text-[#708499]">:${p.port}</span>
+                <span class="font-mono text-xs text-[var(--text-muted)]">:${p.port}</span>
                 ${badge}
-                ${p.ru_verified ? '<span class="px-1.5 py-0.5 rounded bg-[#4fae5e]/15 text-[#4fae5e] text-[10px] font-mono">🇷🇺 РКН Pass</span>' : ''}
               </div>
-              <div class="text-[11px] text-[#708499] flex items-center gap-2">
+              <div class="text-xs text-[var(--text-muted)] flex items-center gap-2">
                 <span>${p.country_label || '🌐 Сервер'}</span>
                 <span>•</span>
-                <span class="font-mono ${pingColor}">${p.ping_ms} ms</span>
+                <span class="font-mono ${pingColor} font-bold">${p.ping_ms} ms</span>
               </div>
             </div>
 
             <div class="flex items-center gap-2">
-              <a href="${p.tg_link}" class="px-4 py-2 rounded-lg tg-btn-primary text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm">
+              <a href="${p.tg_link}" class="px-4 py-2 rounded-xl tg-btn-primary text-xs font-mono font-bold transition-all flex items-center gap-1.5 shadow-sm">
                 <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
                 <span>Подключить</span>
               </a>
-              <button onclick="copyLink('${p.tg_link}')" title="Скопировать" class="p-2 rounded-lg bg-[#242f3d] hover:bg-[#2b5278] text-[#708499] hover:text-white transition-colors">
+              <button onclick="copySingle('${p.tg_link}')" title="Скопировать" class="p-2 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-white border border-[var(--border-main)] transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
               </button>
-              <button onclick="openQrModal('${p.tg_link}')" title="QR-код" class="p-2 rounded-lg bg-[#242f3d] hover:bg-[#2b5278] text-[#708499] hover:text-white transition-colors">
+              <button onclick="openQrModal('${p.tg_link}')" title="QR-код" class="p-2 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-white border border-[var(--border-main)] transition-colors">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
               </button>
             </div>
@@ -207,15 +388,28 @@
       }).join('');
     }
 
-    function copyLink(link) {
+    function copySingle(link) {
       navigator.clipboard.writeText(link);
+      confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 }, colors: ['#2aabee', '#2481cc', '#10B981'] });
       alert('Ссылка на прокси скопирована!');
+    }
+
+    function copyAllKeys() {
+      let list = allProxies;
+      if (selectedProto === 'mtproto') list = list.filter(p => p.proto === 'mtproto');
+      if (selectedProto === 'socks5') list = list.filter(p => p.proto === 'socks5');
+      if (selectedCountry !== 'all') list = list.filter(p => p.country === selectedCountry);
+
+      const links = list.map(p => p.tg_link).join('\n');
+      navigator.clipboard.writeText(links);
+      confetti({ particleCount: 50, spread: 70, origin: { y: 0.8 }, colors: ['#2aabee', '#2481cc', '#10B981'] });
+      alert(`Скопировано ${list.length} прокси-ссылок в буфер обмена!`);
     }
 
     function openQrModal(link) {
       const modal = document.getElementById('qr-modal');
       const canvas = document.getElementById('qr-canvas');
-      QRCode.toCanvas(canvas, link, { width: 200, margin: 1 }, function(err) {
+      QRCode.toCanvas(canvas, link, { width: 220, margin: 1 }, function(err) {
         if (!err) modal.classList.remove('hidden');
       });
     }
@@ -224,7 +418,7 @@
       document.getElementById('qr-modal').classList.add('hidden');
     }
 
-    loadProxies();
+    loadData();
   </script>
 </body>
 </html>
