@@ -45,7 +45,7 @@ export const M3PingSlider: React.FC<M3PingSliderProps> = ({
 }) => {
   return (
     <div className="space-y-2.5 w-full">
-      {/* 1. Quick Presets Segmented Pills with Spring Animation */}
+      {/* Quick Presets Segmented Pills with Smooth Spring Animation */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {PING_PRESETS.map((preset) => {
           const isSelected = maxPing === preset.val;
@@ -54,10 +54,10 @@ export const M3PingSlider: React.FC<M3PingSliderProps> = ({
             <motion.button
               key={preset.val}
               onClick={() => onChangeMaxPing(preset.val)}
-              whileHover={{ y: -1, scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ y: -1, scale: 1.015 }}
+              whileTap={{ scale: 0.985 }}
               type="button"
-              className={`relative p-2.5 rounded-2xl flex flex-col items-center justify-center gap-1 text-center border transition-all duration-200 cursor-pointer overflow-hidden select-none shadow-xs ${
+              className={`relative p-2.5 rounded-2xl flex flex-col items-center justify-center gap-1 text-center border transition-colors duration-150 cursor-pointer overflow-hidden select-none shadow-xs ${
                 isSelected
                   ? 'bg-[var(--bg-card)] border-[#EA580C] shadow-[0_0_16px_rgba(234,88,12,0.22)]'
                   : 'bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border-[var(--border-main)]'
@@ -67,7 +67,7 @@ export const M3PingSlider: React.FC<M3PingSliderProps> = ({
                 <motion.div
                   layoutId="ping-pill-indicator"
                   className="absolute inset-0 bg-[#EA580C]/10 rounded-2xl border border-[#EA580C]"
-                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  transition={{ type: 'spring', stiffness: 280, damping: 28, mass: 0.8 }}
                 />
               )}
 

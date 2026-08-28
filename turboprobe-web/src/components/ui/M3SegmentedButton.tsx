@@ -31,12 +31,12 @@ export const M3SegmentedButton: React.FC<M3SegmentedButtonProps> = ({
           <motion.button
             key={opt.id}
             onClick={() => onSelect(opt.id)}
-            whileHover={{ scale: 1.02, y: -1 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.015 }}
+            whileTap={{ scale: 0.985 }}
             animate={{
-              borderRadius: isSelected ? '18px' : '12px',
+              borderRadius: isSelected ? '16px' : '12px',
             }}
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             type="button"
             className={`relative py-3 px-3 flex flex-col items-center justify-center text-center cursor-pointer transition-colors duration-150 select-none overflow-hidden ${
               isSelected
@@ -47,16 +47,16 @@ export const M3SegmentedButton: React.FC<M3SegmentedButtonProps> = ({
             {isSelected && (
               <motion.div
                 layoutId="m3-active-segment-bg"
-                className="absolute inset-0 bg-[#EA580C] rounded-[18px] shadow-[0_2px_14px_rgba(234,88,12,0.35)] border border-[#FB923C]/60"
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                className="absolute inset-0 bg-[#EA580C] rounded-[16px] shadow-[0_2px_14px_rgba(234,88,12,0.35)] border border-[#FB923C]/60"
+                transition={{ type: 'spring', stiffness: 280, damping: 28, mass: 0.8 }}
               />
             )}
 
             <div className="relative z-10 flex items-center gap-1.5">
               {opt.icon && (
                 <motion.span
-                  animate={{ scale: isSelected ? 1.15 : 1, rotate: isSelected ? [0, -5, 5, 0] : 0 }}
-                  transition={{ duration: 0.25 }}
+                  animate={{ scale: isSelected ? 1.1 : 1 }}
+                  transition={{ duration: 0.2 }}
                   className="text-base leading-none"
                 >
                   {opt.icon}

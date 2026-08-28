@@ -88,14 +88,15 @@ const PRESETS: PresetItem[] = [
 ];
 
 const KNOWN_COUNTRIES: Record<string, string> = {
-  us: 'США',
   de: 'Германия',
   nl: 'Нидерланды',
   fi: 'Финляндия',
+  us: 'США',
+  pl: 'Польша',
+  se: 'Швеция',
   gb: 'Великобритания',
   fr: 'Франция',
   at: 'Австрия',
-  se: 'Швеция',
   ch: 'Швейцария',
   jp: 'Япония',
   sg: 'Сингапур',
@@ -106,9 +107,13 @@ const KNOWN_COUNTRIES: Record<string, string> = {
   ca: 'Канада',
   ru: 'Россия',
   ee: 'Эстония',
-  pl: 'Польша',
   cz: 'Чехия',
 };
+
+const ORDERED_COUNTRY_KEYS = [
+  'de', 'nl', 'fi', 'us', 'pl', 'se', 'gb', 'fr', 'at', 'ch',
+  'jp', 'sg', 'kr', 'kz', 'tr', 'in', 'ca', 'ru', 'ee', 'cz'
+];
 
 const KNOWN_PROTOCOLS: Record<string, string> = {
   reality: 'VLESS Reality',
@@ -117,6 +122,8 @@ const KNOWN_PROTOCOLS: Record<string, string> = {
   hy2: 'Hysteria 2',
   ss: 'Shadowsocks',
 };
+
+const ORDERED_PROTO_KEYS = ['reality', 'vless', 'trojan', 'hy2', 'ss'];
 
 const SERVICES = [
   { id: 'chatgpt', label: 'ChatGPT', icon: <ChatGptIcon /> },
@@ -185,32 +192,41 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
     }
   };
 
-  // Dynamically compute and sort countries based on pool availability
+  // STABLE Canonical Ordering for countries (prevents chips from jumping on count change)
   const availableCountries = useMemo(() => {
-    const list = Object.keys(countryCounts)
-      .filter((code) => (countryCounts[code] || 0) > 0 || selectedCountries.includes(code))
-      .map((code) => ({
-        code,
-        label: KNOWN_COUNTRIES[code] || code.toUpperCase(),
-        count: countryCounts[code] || 0,
-      }));
+    const presentCodes = new Set<string>();
+    for (const code of Object.keys(countryCounts)) {
+      if ((countryCounts[code] || 0) > 0) presentCodes.add(code);
+    }
+    for (const code of selectedCountries) {
+      presentCodes.add(code);
+    }
+
+    const list = Array.from(presentCodes).map((code) => ({
+      code,
+      label: KNOWN_COUNTRIES[code] || code.toUpperCase(),
+      count: countryCounts[code] || 0,
+    }));
 
     return list.sort((a, b) => {
-      if (b.count !== a.count) return b.count - a.count;
+      const idxA = ORDERED_COUNTRY_KEYS.indexOf(a.code);
+      const idxB = ORDERED_COUNTRY_KEYS.indexOf(b.code);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
       return a.label.localeCompare(b.label, 'ru');
     });
   }, [countryCounts, selectedCountries]);
 
-  // Dynamically compute available protocols based on pool availability
+  // STABLE Ordering for protocols (prevents chips from jumping on count change)
   const availableProtos = useMemo(() => {
-    return Object.keys(protoCounts)
+    return ORDERED_PROTO_KEYS
       .filter((id) => (protoCounts[id] || 0) > 0 || selectedProtos.includes(id))
       .map((id) => ({
         id,
         label: KNOWN_PROTOCOLS[id] || id.toUpperCase(),
         count: protoCounts[id] || 0,
-      }))
-      .sort((a, b) => b.count - a.count);
+      }));
   }, [protoCounts, selectedProtos]);
 
   const displayedCountries = useMemo(() => {
@@ -233,7 +249,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
         onSelect={handleSelectSegment}
       />
 
-      {/* 2. Unified Advanced Filter Accordion with Spring Physics */}
+      {/* 2. Unified Advanced Filter Accordion with Smooth Physics */}
       <div className="rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] shadow-xl overflow-hidden transition-colors duration-200">
         {/* Accordion Toggle Header */}
         <button
@@ -266,7 +282,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             </span>
             <motion.div
               animate={{ rotate: isAdvancedOpen ? 180 : 0 }}
-              transition={{ duration: 0.25, ease: [0.05, 0.7, 0.1, 1.0] }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
               className="p-1 rounded-full bg-[var(--bg-app)] text-[var(--text-muted)]"
             >
               <ChevronDown className="w-4 h-4" />
@@ -284,15 +300,15 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                 height: 'auto',
                 opacity: 1,
                 transition: {
-                  height: { type: 'spring', stiffness: 350, damping: 32 },
-                  opacity: { duration: 0.22, ease: [0.05, 0.7, 0.1, 1.0] },
+                  height: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+                  opacity: { duration: 0.2 },
                 },
               }}
               exit={{
                 height: 0,
                 opacity: 0,
                 transition: {
-                  height: { duration: 0.2, ease: [0.3, 0, 0.8, 0.15] },
+                  height: { duration: 0.25, ease: [0.3, 0, 0.8, 0.15] },
                   opacity: { duration: 0.15 },
                 },
               }}
@@ -434,15 +450,15 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
                     {availableCountries.length > 8 && (
                       <motion.button
                         onClick={() => setIsExpandedCountries(!isExpandedCountries)}
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.96 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         type="button"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-xs font-semibold font-display text-[#EA580C] dark:text-[#FB923C] border border-[var(--border-main)] hover:border-[#EA580C]/40 shadow-xs cursor-pointer select-none transition-colors"
                       >
                         <span>{isExpandedCountries ? 'Свернуть список' : `+ Еще ${availableCountries.length - 8} стран`}</span>
                         <motion.div
                           animate={{ rotate: isExpandedCountries ? 180 : 0 }}
-                          transition={{ duration: 0.2 }}
+                          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                         >
                           <ChevronDown className="w-3.5 h-3.5" />
                         </motion.div>

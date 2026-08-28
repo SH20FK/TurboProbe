@@ -24,20 +24,20 @@ const guideContainer = {
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.04,
+      staggerChildren: 0.05,
+      delayChildren: 0.02,
     },
   },
 };
 
 const guideItem = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 6 },
   show: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.25,
-      ease: [0.05, 0.7, 0.1, 1.0] as const,
+      duration: 0.2,
+      ease: [0.16, 1, 0.3, 1] as const,
     },
   },
 };
@@ -72,7 +72,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
 
       // Trigger Festive Canvas Confetti in Warm Terracotta, Gold & Amber
       confetti({
-        particleCount: 40,
+        particleCount: 36,
         spread: 60,
         origin: { y: 0.82 },
         colors: ['#EA580C', '#F59E0B', '#FB923C', '#10B981', '#FBBF24'],
@@ -122,7 +122,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           </div>
         </div>
 
-        {/* Segmented Limit Selector with Sliding Pill */}
+        {/* Segmented Limit Selector with Smooth Sliding Pill */}
         <div className="flex items-center gap-1 bg-[var(--bg-app)] p-1 rounded-full border border-[var(--border-main)] text-xs font-mono self-start sm:self-auto shadow-inner relative">
           <span className="text-[var(--text-muted)] px-2 text-[10px] font-semibold uppercase relative z-10">Лимит:</span>
           {[20, 50, 100, 0].map((lim) => {
@@ -141,7 +141,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                   <motion.div
                     layoutId="limit-active-pill"
                     className="absolute inset-0 bg-[#EA580C] rounded-full shadow-xs border border-[#FB923C]/50"
-                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                    transition={{ type: 'spring', stiffness: 280, damping: 28, mass: 0.8 }}
                   />
                 )}
                 <span className="relative z-10">{lim === 0 ? 'Все' : lim}</span>
@@ -165,7 +165,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         </CoolMode>
       </div>
 
-      {/* 3. Native App Import Grid with Instant Spring Physics */}
+      {/* 3. Native App Import Grid with Smooth Physics */}
       <div className="space-y-2 pt-2 border-t border-[var(--border-main)]">
         <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
           Импорт в 1 клик в ваше приложение:
@@ -175,20 +175,19 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <CoolMode colors={['#EA580C', '#F59E0B', '#FB923C']} className="w-full">
             <motion.button
               onClick={() => handleClientAction('happ', `happ://add/${subUrl}#TurboProbe`, subUrl)}
-              whileHover={{ y: -2, scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              whileHover={{ y: -1, scale: 1.015 }}
+              whileTap={{ scale: 0.985 }}
               type="button"
-              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#EA580C]/60 hover:shadow-[0_0_12px_rgba(234,88,12,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#EA580C]/60 hover:shadow-[0_0_12px_rgba(234,88,12,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors duration-150"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {copiedStatus === 'happ' ? (
                   <motion.span
                     key="check"
-                    initial={{ scale: 0, rotate: -45 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={{ scale: 0 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
                     className="flex items-center"
                   >
                     <Check className="w-4 h-4 text-[#10B981] stroke-[3]" />
@@ -208,20 +207,19 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <CoolMode colors={['#F59E0B', '#EA580C', '#10B981']} className="w-full">
             <motion.button
               onClick={() => handleClientAction('v2ray', `v2rayng://install-config?url=${encodeURIComponent(subUrl)}`, subUrl)}
-              whileHover={{ y: -2, scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              whileHover={{ y: -1, scale: 1.015 }}
+              whileTap={{ scale: 0.985 }}
               type="button"
-              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#EA580C]/60 hover:shadow-[0_0_12px_rgba(234,88,12,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#EA580C]/60 hover:shadow-[0_0_12px_rgba(234,88,12,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors duration-150"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {copiedStatus === 'v2ray' ? (
                   <motion.span
                     key="check"
-                    initial={{ scale: 0, rotate: -45 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={{ scale: 0 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
                     className="flex items-center"
                   >
                     <Check className="w-4 h-4 text-[#10B981] stroke-[3]" />
@@ -241,20 +239,19 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <CoolMode colors={['#10B981', '#34D399', '#EA580C']} className="w-full">
             <motion.button
               onClick={() => handleClientAction('flclash', `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`, clashSubUrl)}
-              whileHover={{ y: -2, scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              whileHover={{ y: -1, scale: 1.015 }}
+              whileTap={{ scale: 0.985 }}
               type="button"
-              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#10B981]/60 hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#10B981]/60 hover:shadow-[0_0_12px_rgba(16,185,129,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors duration-150"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {copiedStatus === 'flclash' ? (
                   <motion.span
                     key="check"
-                    initial={{ scale: 0, rotate: -45 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={{ scale: 0 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
                     className="flex items-center"
                   >
                     <Check className="w-4 h-4 text-[#10B981] stroke-[3]" />
@@ -274,20 +271,19 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <CoolMode colors={['#F59E0B', '#EA580C', '#10B981']} className="w-full">
             <motion.button
               onClick={() => handleClientAction('singbox', `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}#TurboProbe`, subUrl)}
-              whileHover={{ y: -2, scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              whileHover={{ y: -1, scale: 1.015 }}
+              whileTap={{ scale: 0.985 }}
               type="button"
-              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#F59E0B]/60 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors"
+              className="w-full relative py-2.5 px-3 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] hover:border-[#F59E0B]/60 hover:shadow-[0_0_12px_rgba(245,158,11,0.25)] text-[var(--text-main)] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer overflow-hidden shadow-xs transition-colors duration-150"
             >
               <AnimatePresence mode="wait" initial={false}>
                 {copiedStatus === 'singbox' ? (
                   <motion.span
                     key="check"
-                    initial={{ scale: 0, rotate: -45 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={{ scale: 0 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
                     className="flex items-center"
                   >
                     <Check className="w-4 h-4 text-[#10B981] stroke-[3]" />
@@ -305,7 +301,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         </div>
       </div>
 
-      {/* 4. Help Accordion Bar */}
+      {/* 4. Help Accordion Bar with Smooth Physics */}
       <div className="pt-1">
         <button
           onClick={() => setIsGuideOpen(!isGuideOpen)}
@@ -316,7 +312,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <span>Инструкция по настройке клиентов</span>
           <motion.div
             animate={{ rotate: isGuideOpen ? 180 : 0 }}
-            transition={{ duration: 0.25, ease: [0.05, 0.7, 0.1, 1.0] }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           >
             <ChevronDown className="w-3.5 h-3.5" />
           </motion.div>
@@ -331,15 +327,15 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                 height: 'auto',
                 opacity: 1,
                 transition: {
-                  height: { type: 'spring', stiffness: 350, damping: 32 },
-                  opacity: { duration: 0.22, ease: [0.05, 0.7, 0.1, 1.0] },
+                  height: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+                  opacity: { duration: 0.2 },
                 },
               }}
               exit={{
                 height: 0,
                 opacity: 0,
                 transition: {
-                  height: { duration: 0.2, ease: [0.3, 0, 0.8, 0.15] },
+                  height: { duration: 0.25, ease: [0.3, 0, 0.8, 0.15] },
                   opacity: { duration: 0.15 },
                 },
               }}

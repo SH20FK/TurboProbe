@@ -15,29 +15,6 @@ interface NodePreviewListProps {
   totalAvailable: number;
 }
 
-const tableContainer = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.02,
-      delayChildren: 0.01,
-    },
-  },
-};
-
-const tableRowItem = {
-  hidden: { opacity: 0, y: 4 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.18,
-      ease: [0.05, 0.7, 0.1, 1.0] as const,
-    },
-  },
-};
-
 export const NodePreviewList: React.FC<NodePreviewListProps> = ({
   nodes,
   isLoading,
@@ -91,7 +68,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
           </span>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
-            transition={{ duration: 0.25, ease: [0.05, 0.7, 0.1, 1.0] }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="p-1 rounded-full bg-[var(--bg-app)] text-[var(--text-muted)]"
           >
             <ChevronDown className="w-4 h-4" />
@@ -99,7 +76,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
         </div>
       </button>
 
-      {/* Expandable Table Content with Spring Physics */}
+      {/* Expandable Table Content with Smooth Physics */}
       <AnimatePresence initial={false}>
         {isExpanded && (
           <motion.div
@@ -109,15 +86,15 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
               height: 'auto',
               opacity: 1,
               transition: {
-                height: { type: 'spring', stiffness: 350, damping: 32 },
-                opacity: { duration: 0.22, ease: [0.05, 0.7, 0.1, 1.0] },
+                height: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+                opacity: { duration: 0.2 },
               },
             }}
             exit={{
               height: 0,
               opacity: 0,
               transition: {
-                height: { duration: 0.2, ease: [0.3, 0, 0.8, 0.15] },
+                height: { duration: 0.25, ease: [0.3, 0, 0.8, 0.15] },
                 opacity: { duration: 0.15 },
               },
             }}
@@ -148,12 +125,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
               {/* 3. Table Rows */}
               {!isLoading && (
-                <motion.div
-                  variants={tableContainer}
-                  initial="hidden"
-                  animate="show"
-                  className="divide-y divide-[var(--border-main)]"
-                >
+                <div className="divide-y divide-[var(--border-main)]">
                   {displayedNodes.map((node, index) => {
                     const country = (node.country || 'un').toLowerCase();
                     const proto = (node.protocol || 'vless').toUpperCase();
@@ -168,9 +140,8 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                     const isCopied = copiedId === nodeKey;
 
                     return (
-                      <motion.div
+                      <div
                         key={nodeKey}
-                        variants={tableRowItem}
                         className="px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-[var(--bg-card-hover)]/40 transition-colors"
                       >
                         {/* Left: Flag + Proto + Name */}
@@ -218,65 +189,66 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                               </div>
                             </Tooltip>
                           ) : (
-                            <Tooltip content="Узел онлайн и доступен" side="left">
-                              <div className="flex items-center gap-1.5 font-mono text-xs text-[#10B981] cursor-default">
-                                <span className="w-2 h-2 rounded-full bg-[#10B981] shadow-[0_0_6px_#10B981]" />
-                                <span>ONLINE</span>
-                              </div>
-                            </Tooltip>
+                            <span className="font-mono text-xs text-[var(--text-muted)]">N/A</span>
                           )}
 
-                          <Tooltip content={isCopied ? 'Ключ скопирован!' : 'Скопировать ключ'} side="left">
-                            <motion.button
-                              onClick={() => handleCopyNode(node.uri, nodeKey)}
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                              type="button"
-                              aria-label="Скопировать ключ"
-                              className="relative w-8 h-8 rounded-full bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center justify-center cursor-pointer overflow-hidden border border-[var(--border-main)] transition-colors"
-                            >
-                              <AnimatePresence mode="wait" initial={false}>
-                                {isCopied ? (
-                                  <motion.span
-                                    key="check"
-                                    initial={{ scale: 0, rotate: -45 }}
-                                    animate={{ scale: 1, rotate: 0 }}
-                                    exit={{ scale: 0 }}
-                                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                                  >
-                                    <Check className="w-4 h-4 text-[#10B981] stroke-[3]" />
-                                  </motion.span>
-                                ) : (
-                                  <motion.span key="copy" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
-                                    <Copy className="w-3.5 h-3.5" />
-                                  </motion.span>
-                                )}
-                              </AnimatePresence>
-                              <M3Ripple color="#EA580C" />
-                            </motion.button>
-                          </Tooltip>
+                          {/* Copy Single URI */}
+                          <motion.button
+                            onClick={() => handleCopyNode(node.uri, nodeKey)}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            type="button"
+                            title="Скопировать этот ключ"
+                            className={`p-1.5 rounded-full border transition-colors cursor-pointer overflow-hidden ${
+                              isCopied
+                                ? 'bg-[#10B981] text-white border-[#10B981]'
+                                : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card-hover)] border-[var(--border-main)]'
+                            }`}
+                          >
+                            <AnimatePresence mode="wait" initial={false}>
+                              {isCopied ? (
+                                <motion.div
+                                  key="check"
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  exit={{ scale: 0 }}
+                                  transition={{ duration: 0.12 }}
+                                >
+                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                </motion.div>
+                              ) : (
+                                <motion.div
+                                  key="copy"
+                                  initial={{ scale: 0.8 }}
+                                  animate={{ scale: 1 }}
+                                  exit={{ scale: 0.8 }}
+                                  transition={{ duration: 0.12 }}
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                            <M3Ripple color={isCopied ? '#FFFFFF' : '#EA580C'} />
+                          </motion.button>
                         </div>
-                      </motion.div>
+                      </div>
                     );
                   })}
-                </motion.div>
+                </div>
               )}
 
-              {/* Show More Button */}
+              {/* Load More Button */}
               {!isLoading && hasMore && (
-                <div className="p-3 bg-[var(--bg-app)] flex justify-center">
+                <div className="p-3 text-center bg-[var(--bg-app)]/50">
                   <motion.button
                     onClick={() => setVisibleCount((prev) => prev + 30)}
                     whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.97 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    whileTap={{ scale: 0.98 }}
                     type="button"
-                    className="relative px-4 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-xs font-mono text-[#EA580C] dark:text-[#FB923C] flex items-center gap-1.5 border border-[var(--border-main)] overflow-hidden cursor-pointer shadow-xs transition-colors"
+                    className="px-4 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-xs font-mono text-[#EA580C] dark:text-[#FB923C] border border-[var(--border-main)] hover:border-[#EA580C]/40 inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Показать еще ({nodes.length - visibleCount})</span>
-                    <M3Ripple color="#EA580C" />
                   </motion.button>
                 </div>
               )}
