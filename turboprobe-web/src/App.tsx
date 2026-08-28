@@ -547,7 +547,7 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className="relative min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] selection:bg-[#C25E30]/20 selection:text-[#E08244] flex flex-col justify-between overflow-x-hidden transition-colors duration-200">
+      <div className="relative min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] flex flex-col justify-between overflow-x-hidden transition-colors duration-200">
         {/* Dynamic Background with Floating Shapes & Dot Matrix */}
         <M3Background />
 
