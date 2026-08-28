@@ -591,29 +591,30 @@ export default function App() {
         <M3Background />
 
         {/* 1. Top App Bar */}
-        <header className="sticky top-0 z-30 w-full h-16 bg-[var(--bg-app)]/90 backdrop-blur-md border-b border-[var(--border-main)] px-4 sm:px-6 flex items-center justify-between transition-colors duration-200">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 w-full h-14 sm:h-16 bg-[var(--bg-app)]/90 backdrop-blur-md border-b border-[var(--border-main)] px-3 sm:px-6 flex items-center justify-between gap-2 transition-colors duration-200">
+          {/* Brand Logo & Title */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {appMode === 'tg' ? (
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] p-1.5 shadow-md flex items-center justify-center text-white">
-                <Send className="w-4 h-4 fill-current" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] p-1.5 shadow-md flex items-center justify-center text-white shrink-0">
+                <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
               </div>
             ) : (
-              <div className="w-8 h-8 rounded-xl bg-white p-1 shadow-md flex items-center justify-center">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white p-1 shadow-md flex items-center justify-center shrink-0">
                 <img src="./logo.svg" alt="TurboProbe" className="w-full h-full object-contain" />
               </div>
             )}
-            <span className="font-display font-black text-base sm:text-lg text-[var(--text-main)] tracking-tight">
+            <span className="font-display font-black text-sm sm:text-lg text-[var(--text-main)] tracking-tight">
               {appMode === 'tg' ? 'TGProxy' : 'TurboProbe'}
             </span>
           </div>
 
-          {/* Mode Switcher Tabs (M3 Dynamic Island Style) */}
-          <div className="flex items-center bg-[var(--bg-card)]/90 backdrop-blur-md p-1 rounded-full border border-[var(--border-main)] shadow-xs select-none">
+          {/* Mode Switcher Tabs (M3 Dynamic Island Style - Mobile Optimized) */}
+          <div className="flex items-center bg-[var(--bg-card)]/90 backdrop-blur-md p-0.5 sm:p-1 rounded-full border border-[var(--border-main)] shadow-xs select-none shrink-0">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => handleSwitchMode('vpn')}
-              className={`relative px-3 sm:px-4 py-1.5 rounded-full transition-colors cursor-pointer flex items-center gap-1.5 ${
+              className={`relative px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full transition-colors cursor-pointer flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
                 appMode === 'vpn' ? 'text-white font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
             >
@@ -624,8 +625,8 @@ export default function App() {
                   transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
               )}
-              <Shield className="w-3.5 h-3.5 relative z-10 flex-shrink-0" />
-              <span className="relative z-10 font-display text-xs font-semibold tracking-tight">
+              <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5 relative z-10 flex-shrink-0" />
+              <span className="relative z-10 font-display text-[11px] sm:text-xs font-semibold tracking-tight whitespace-nowrap">
                 VPN
               </span>
             </motion.button>
@@ -634,7 +635,7 @@ export default function App() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => handleSwitchMode('tg')}
-              className={`relative px-3 sm:px-4 py-1.5 rounded-full transition-colors cursor-pointer flex items-center gap-1.5 ${
+              className={`relative px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full transition-colors cursor-pointer flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
                 appMode === 'tg' ? 'text-white font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
             >
@@ -645,24 +646,27 @@ export default function App() {
                   transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
               )}
-              <Send className="w-3.5 h-3.5 relative z-10 flex-shrink-0" />
-              <span className="relative z-10 font-display text-xs font-semibold tracking-tight">
-                TG Прокси
+              <Send className="w-3 h-3 sm:w-3.5 sm:h-3.5 relative z-10 flex-shrink-0" />
+              <span className="relative z-10 font-display text-[11px] sm:text-xs font-semibold tracking-tight whitespace-nowrap">
+                <span className="hidden sm:inline">TG Прокси</span>
+                <span className="sm:hidden">Прокси</span>
               </span>
             </motion.button>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          {/* Right Actions (Theme + GitHub) */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <AnimatedThemeToggle />
 
             <a
               href="https://github.com/SH20FK/TurboProbe"
               target="_blank"
               rel="noreferrer"
-              className="relative px-3.5 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-main)] hover:text-white text-xs font-semibold font-mono flex items-center gap-1.5 transition-all border border-[var(--border-main)] hover:border-[var(--primary-accent)] shadow-xs active:scale-95 overflow-hidden select-none cursor-pointer"
+              aria-label="GitHub Repository"
+              className="relative p-2 sm:px-3.5 sm:py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-main)] hover:text-white text-xs font-semibold font-mono flex items-center gap-1.5 transition-all border border-[var(--border-main)] hover:border-[var(--primary-accent)] shadow-xs active:scale-95 overflow-hidden select-none cursor-pointer"
             >
               <GitHubIcon className="w-4 h-4 text-current flex-shrink-0" />
-              <span className="hidden sm:inline">GitHub</span>
+              <span className="hidden md:inline">GitHub</span>
             </a>
           </div>
         </header>
