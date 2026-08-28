@@ -1,83 +1,55 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-
-// All shapes are defined with exactly 8 cubic bezier segments (1 M, 8 C, 1 Z)
-// to ensure 100% fluid, mathematically seamless GPU shape-morphing.
-export const MORPH_SHAPES = {
-  // 1. 4-Leaf Organic Clover
-  clover:
-    'M 50 20 C 62 8, 76 8, 82 18 C 92 24, 92 38, 80 50 C 92 62, 92 76, 82 82 C 76 92, 62 92, 50 80 C 38 92, 24 92, 18 82 C 8 76, 8 62, 20 50 C 8 38, 8 24, 18 18 C 24 8, 38 8, 50 20 Z',
-
-  // 2. 4-Point Sparkle Star (Pixel Star / Gemini)
-  star4:
-    'M 50 4 C 54 18, 58 26, 64 36 C 74 42, 82 46, 96 50 C 82 54, 74 58, 64 64 C 58 74, 54 82, 50 96 C 46 82, 42 74, 36 64 C 26 58, 18 54, 4 50 C 18 46, 26 42, 36 36 C 42 26, 46 18, 50 4 Z',
-
-  // 3. 8-Lobe Scallop / Cookie (Android 15 Widget)
-  cookie:
-    'M 50 6 C 58 6, 68 12, 76 18 C 84 24, 90 32, 94 40 C 96 48, 96 52, 94 60 C 90 68, 84 76, 76 82 C 68 88, 58 94, 50 94 C 42 94, 32 88, 24 82 C 16 76, 10 68, 6 60 C 4 52, 4 48, 6 40 C 10 32, 16 24, 24 18 C 32 12, 42 6, 50 6 Z',
-
-  // 4. Sunny Sunburst (Soft Sun with Radiating Lobes)
-  sunny:
-    'M 50 4 C 56 14, 68 14, 78 18 C 84 24, 88 36, 96 50 C 88 64, 84 76, 78 82 C 68 86, 56 86, 50 96 C 44 86, 32 86, 22 82 C 16 76, 12 64, 4 50 C 12 36, 16 24, 22 18 C 32 14, 44 14, 50 4 Z',
-
-  // 5. G2 Superellipse Squircle
-  squircle:
-    'M 50 6 C 66 6, 80 12, 86 22 C 94 34, 94 44, 94 50 C 94 56, 94 66, 86 78 C 80 88, 66 94, 50 94 C 34 94, 20 88, 14 78 C 6 66, 6 56, 6 50 C 6 44, 6 34, 14 22 C 20 12, 34 6, 50 6 Z',
-};
-
-const morphSequence1 = [
-  MORPH_SHAPES.clover,
-  MORPH_SHAPES.star4,
-  MORPH_SHAPES.cookie,
-  MORPH_SHAPES.sunny,
-  MORPH_SHAPES.squircle,
-  MORPH_SHAPES.clover,
-];
-
-const morphSequence2 = [
-  MORPH_SHAPES.star4,
-  MORPH_SHAPES.cookie,
-  MORPH_SHAPES.sunny,
-  MORPH_SHAPES.squircle,
-  MORPH_SHAPES.clover,
-  MORPH_SHAPES.star4,
-];
-
-const morphSequence3 = [
-  MORPH_SHAPES.cookie,
-  MORPH_SHAPES.sunny,
-  MORPH_SHAPES.squircle,
-  MORPH_SHAPES.clover,
-  MORPH_SHAPES.star4,
-  MORPH_SHAPES.cookie,
-];
-
-const morphSequence4 = [
-  MORPH_SHAPES.sunny,
-  MORPH_SHAPES.squircle,
-  MORPH_SHAPES.clover,
-  MORPH_SHAPES.star4,
-  MORPH_SHAPES.cookie,
-  MORPH_SHAPES.sunny,
-];
+import { useMorph, type ShapeName } from 'shape-morph/react';
 
 interface MorphingFigureProps {
-  sequence: string[];
+  shapes: ShapeName[];
   className?: string;
-  duration?: number;
-  floatDuration?: number;
+  cycleDuration?: number; // ms to morph between each shape
+  floatDuration?: number; // s for idle floating wave
   initialY?: number;
   initialRotate?: number;
 }
 
 const MorphingFigure: React.FC<MorphingFigureProps> = ({
-  sequence,
+  shapes,
   className = '',
-  duration = 20,
+  cycleDuration = 5000,
   floatDuration = 14,
   initialY = -12,
   initialRotate = 6,
 }) => {
+  const [shapeIndex, setShapeIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  const startShape = shapes[shapeIndex];
+  const endShape = shapes[(shapeIndex + 1) % shapes.length];
+
+  const { pathD } = useMorph(startShape, endShape, {
+    progress,
+    duration: cycleDuration * 0.85,
+    easing: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t), // smooth easeInOutQuad
+    size: 100,
+  });
+
+  useEffect(() => {
+    // Start morphing toward 1
+    const morphTimer = setTimeout(() => {
+      setProgress(1);
+    }, 400);
+
+    // When morph completes, advance to next pair and reset progress
+    const switchTimer = setTimeout(() => {
+      setShapeIndex((prev) => (prev + 1) % shapes.length);
+      setProgress(0);
+    }, cycleDuration);
+
+    return () => {
+      clearTimeout(morphTimer);
+      clearTimeout(switchTimer);
+    };
+  }, [shapeIndex, cycleDuration, shapes.length]);
+
   return (
     <div className={`absolute ${className}`}>
       {/* Outer Floating & Breathing Container */}
@@ -94,19 +66,13 @@ const MorphingFigure: React.FC<MorphingFigureProps> = ({
         }}
         className="w-full h-full"
       >
-        <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible drop-shadow-xs">
-          {/* Continuous Morphing Filled Path with Soft Stroke */}
-          <motion.path
-            animate={{ d: sequence }}
-            transition={{
-              duration: duration,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
+        <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+          <path
+            d={pathD}
             style={{
               fill: 'var(--bg-shape-fill)',
               stroke: 'var(--bg-shape-stroke)',
-              strokeWidth: 1.4,
+              strokeWidth: 1.3,
             }}
           />
         </svg>
@@ -114,6 +80,12 @@ const MorphingFigure: React.FC<MorphingFigureProps> = ({
     </div>
   );
 };
+
+// 4 Curated Sets of Material 3 Expressive Shapes from the Official 35-Shape Catalog
+const topSet1: ShapeName[] = ['Clover4Leaf', 'Sunny', 'Heart', 'PuffyDiamond', 'Cookie9Sided', 'Clover4Leaf'];
+const topSet2: ShapeName[] = ['Burst', 'Gem', 'Cookie12Sided', 'Ghostish', 'VerySunny', 'Burst'];
+const bottomSet1: ShapeName[] = ['Cookie6Sided', 'Boom', 'Bun', 'SoftBurst', 'Flower', 'Cookie6Sided'];
+const bottomSet2: ShapeName[] = ['Sunny', 'Puffy', 'ClamShell', 'Diamond', 'Clover8Leaf', 'Sunny'];
 
 export const M3Background: React.FC = () => {
   return (
@@ -129,43 +101,43 @@ export const M3Background: React.FC = () => {
         }}
       />
 
-      {/* 2. Floating & Shape-Morphing Figures with Fill & Stroke */}
+      {/* 2. Official AndroidX / Material 3 Expressive Morphing Figures with Fill & Stroke */}
 
-      {/* Figure 1: Top-Left Morphing Shape */}
+      {/* Figure 1: Top-Left (Clover -> Sunny -> Heart -> PuffyDiamond -> Cookie9) */}
       <MorphingFigure
-        sequence={morphSequence1}
-        className="top-[6%] left-[4%] w-44 h-44 sm:w-56 sm:h-56 opacity-80 dark:opacity-75"
-        duration={18}
-        floatDuration={12}
+        shapes={topSet1}
+        className="top-[6%] left-[4%] w-44 h-44 sm:w-56 sm:h-56 opacity-85 dark:opacity-75"
+        cycleDuration={6000}
+        floatDuration={13}
         initialY={-14}
         initialRotate={8}
       />
 
-      {/* Figure 2: Top-Right Morphing Shape */}
+      {/* Figure 2: Top-Right (Burst -> Gem -> Cookie12 -> Ghostish -> VerySunny) */}
       <MorphingFigure
-        sequence={morphSequence2}
-        className="top-[10%] right-[4%] w-40 h-40 sm:w-52 sm:h-52 opacity-80 dark:opacity-75"
-        duration={22}
+        shapes={topSet2}
+        className="top-[10%] right-[4%] w-40 h-40 sm:w-52 sm:h-52 opacity-85 dark:opacity-75"
+        cycleDuration={6800}
         floatDuration={15}
         initialY={12}
         initialRotate={-10}
       />
 
-      {/* Figure 3: Bottom-Left Morphing Shape */}
+      {/* Figure 3: Bottom-Left (Cookie6 -> Boom -> Bun -> SoftBurst -> Flower) */}
       <MorphingFigure
-        sequence={morphSequence3}
-        className="bottom-[8%] left-[5%] w-44 h-44 sm:w-56 sm:h-56 opacity-75 dark:opacity-70"
-        duration={20}
+        shapes={bottomSet1}
+        className="bottom-[8%] left-[5%] w-44 h-44 sm:w-56 sm:h-56 opacity-80 dark:opacity-70"
+        cycleDuration={6400}
         floatDuration={14}
         initialY={15}
         initialRotate={-8}
       />
 
-      {/* Figure 4: Bottom-Right Morphing Shape */}
+      {/* Figure 4: Bottom-Right (Sunny -> Puffy -> ClamShell -> Diamond -> Clover8) */}
       <MorphingFigure
-        sequence={morphSequence4}
-        className="bottom-[6%] right-[4%] w-48 h-48 sm:w-60 sm:h-60 opacity-80 dark:opacity-75"
-        duration={24}
+        shapes={bottomSet2}
+        className="bottom-[6%] right-[4%] w-48 h-48 sm:w-60 sm:h-60 opacity-85 dark:opacity-75"
+        cycleDuration={7200}
         floatDuration={16}
         initialY={-12}
         initialRotate={10}
