@@ -1342,7 +1342,7 @@ async def async_fetch_sources_pool(sources: list, concurrency: int = 500, timeou
             if isinstance(r, tuple) and r[1]:
                 url, content = r
                 extracted = extract_uris_from_content(content)
-                if extracted and sample_source_liveness(extracted):
+                if extracted:
                     fetched_count += 1
                     all_uris.extend(extracted)
                     if url in RU_DIRECT_SOURCES:
@@ -1385,8 +1385,8 @@ async def async_check_node_ping(sem: asyncio.Semaphore, node: str, timeout: floa
             except Exception:
                 pass
 
-async def async_run_latency_benchmark(candidate_uris: list, concurrency: int = 5000) -> list:
-    sem = asyncio.Semaphore(concurrency)
+async def async_run_latency_benchmark(candidate_uris: list, concurrency: int = 1000) -> list:
+    sem = asyncio.Semaphore(min(concurrency, 1000))
     tasks = [async_check_node_ping(sem, node, timeout=1.5) for node in candidate_uris]
     return await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -1512,13 +1512,13 @@ def main():
     elif args.limit > 0:
         candidate_uris = _diverse_candidates(candidate_uris, args.limit)
 
-    # 3. ⚡ Ultra-Speed AsyncIO SYN / Latency Benchmark (5000 concurrent sockets)
-    print(f"🩺 [AsyncIO Latency Engine] Benchmarking {len(candidate_uris)} nodes (timeout: 0.85s, 5000 async sockets)...", flush=True)
+    # 3. ⚡ Ultra-Speed AsyncIO SYN / Latency Benchmark (1000 concurrent sockets)
+    print(f"🩺 [AsyncIO Latency Engine] Benchmarking {len(candidate_uris)} nodes (timeout: 1.5s, 1000 async sockets)...", flush=True)
     t_bench_start = time.perf_counter()
     alive_tuples = []  # list of (formatted_uri, ping_ms, raw_key, health)
     
     try:
-        bench_results = asyncio.run(async_run_latency_benchmark(candidate_uris, concurrency=5000))
+        bench_results = asyncio.run(async_run_latency_benchmark(candidate_uris, concurrency=1000))
     except Exception:
         bench_results = []
         workers = min(256, len(candidate_uris) or 1)

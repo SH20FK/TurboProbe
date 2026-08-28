@@ -126,14 +126,14 @@ SERVICES_DIR = os.path.join(SUB_DIR, "services")
 
 DEFAULT_PROBE_LIMIT = 0     # 0 = probe 100% of all harvested candidate nodes
 BATCH_SIZE = int(os.environ.get("TP_BATCH_SIZE", "75"))    # Nodes per Xray instance
-NUM_XRAY_WORKERS = int(os.environ.get("TP_XRAY_WORKERS", "4"))  # Concurrent Xray processes
+NUM_XRAY_WORKERS = int(os.environ.get("TP_XRAY_WORKERS", "16"))  # Concurrent Xray processes
 BASE_SOCKS_PORT = 10900     # Proven local SOCKS range start
 PORT_STEP = BATCH_SIZE + 75  # Non-overlapping port range reserved per Xray worker
-PROBE_TIMEOUT = 4.5         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
-PROBE_RETRIES = 2           # Retry only the liveness request before considering a tunnel dead
-PROBE_RETRY_DELAY = 0.2    # Small pause between liveness attempts
-PROBE_TOTAL_BUDGET = 15.0   # Hard per-node wall-clock budget for the whole liveness gate
-PROBE_FAST_TIMEOUT = 3.5    # Faster timeout when running massive pools (e.g. CI >10k nodes)
+PROBE_TIMEOUT = 3.0         # Seconds per real tunnel HTTP request (full TLS handshake allowed)
+PROBE_RETRIES = 1           # Retry only the liveness request before considering a tunnel dead
+PROBE_RETRY_DELAY = 0.1    # Small pause between liveness attempts
+PROBE_TOTAL_BUDGET = 6.0   # Hard per-node wall-clock budget for the whole liveness gate
+PROBE_FAST_TIMEOUT = 2.5    # Faster timeout when running massive pools (e.g. CI >10k nodes)
 IPWHO_LIVENESS_URL = "https://ipwho.is/"  # Primary real-tunnel liveness and egress-country endpoint
 # Client-realistic reachability: exactly the endpoints proxy clients (Happ, mihomo,
 # v2rayN url-test) hit. A tunnel that answers ipwho.is but cannot fetch a plain 204
@@ -1185,12 +1185,11 @@ def _client_reachability_ok(session, deadline: float = None) -> bool:
 def probe_ipwho_liveness(session: requests.Session, uri: str) -> tuple:
     """Runs high-throughput tunnel verification with GeoIP and unmetered CDN trace."""
     fallback_country = detect_country_code(uri)
-    probe_deadline = time.perf_counter() + PROBE_TOTAL_BUDGET
 
     # 1. Primary: Cloudflare Trace (fast, unmetered, zero rate limits, returns loc=XX country)
     try:
         t0 = time.perf_counter()
-        resp = session.get("https://cloudflare.com/cdn-cgi/trace", timeout=min(PROBE_TIMEOUT, 3.5), verify=False)
+        resp = session.get("https://cloudflare.com/cdn-cgi/trace", timeout=2.5, verify=False)
         if resp.status_code == 200 and "loc=" in resp.text:
             m = re.search(r"loc=([A-Za-z]{2})", resp.text)
             loc = m.group(1).upper() if m else ""
@@ -1200,49 +1199,14 @@ def probe_ipwho_liveness(session: requests.Session, uri: str) -> tuple:
     except Exception:
         pass
 
-    # 2. Secondary: ipwho.is with retry
-    for attempt in range(PROBE_RETRIES):
-        if time.perf_counter() > probe_deadline:
-            break
-        try:
-            t0 = time.perf_counter()
-            response = session.get(IPWHO_LIVENESS_URL, timeout=PROBE_TIMEOUT, verify=False)
-            payload = response.json()
-            country = str(payload.get("country_code") or "").upper() if isinstance(payload, dict) else ""
-            if (
-                response.status_code == 200
-                and isinstance(payload, dict)
-                and payload.get("success") is True
-                and len(country) == 2
-                and country.isalpha()
-            ):
-                if _client_reachability_ok(session, deadline=probe_deadline):
-                    ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
-                    return True, country, ping_ms
-        except Exception:
-            pass
-        if attempt < PROBE_RETRIES - 1:
-            time.sleep(PROBE_RETRY_DELAY)
-
-    # 3. Tertiary: Fallback GeoIP endpoints
-    for endpoint, country_field in GEOIP_FALLBACK_ENDPOINTS:
-        if time.perf_counter() > probe_deadline:
-            break
-        try:
-            t0 = time.perf_counter()
-            response = session.get(endpoint, timeout=PROBE_TIMEOUT, verify=False)
-            payload = response.json()
-            country = str(payload.get(country_field, "")).upper() if isinstance(payload, dict) else ""
-            if response.status_code == 200 and len(country) == 2 and country.isalpha():
-                if _client_reachability_ok(session, deadline=probe_deadline):
-                    ping_ms = round((time.perf_counter() - t0) * 1000.0, 1)
-                    return True, country, ping_ms
-        except Exception:
-            pass
-
-    # 4. Final: Client-realistic generate_204 reachability check
-    if _client_reachability_ok(session, deadline=probe_deadline):
-        return True, fallback_country or "GLOBAL", 350.0
+    # 2. Secondary fast 204 reachability check
+    try:
+        t0 = time.perf_counter()
+        resp = session.get("http://cp.cloudflare.com/generate_204", timeout=2.0, verify=False)
+        if resp.status_code in (200, 204):
+            return True, fallback_country or "GLOBAL", round((time.perf_counter() - t0) * 1000.0, 1)
+    except Exception:
+        pass
 
     return False, fallback_country or "GLOBAL", 9999.0
 
@@ -1519,55 +1483,27 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
             _drop_slots({s[0] for s in active_slots} - good_indexes)
         return dropped
 
-    # One malformed outbound makes Xray reject the complete config. Validate before
-    # starting and remove only the tag explicitly named by Xray; then retry the
-    # remaining batch. URL decoding and UUID validation handle the common case,
-    # while this loop protects against any future malformed transport or cipher.
-    remaining_retries = len(active_slots)
-    fallback_rounds = 0
-    named_drop_rounds = 0
-    last_rejection_output = ""
-    while active_slots:
-        write_config()
-        test_code, test_output = run_xray_config_test(xray_bin, cfg_file)
-        if test_code == 0:
-            break
+    # Fast whole-batch validation with one-shot parallel bisection fallback
+    write_config()
+    test_code, test_output = run_xray_config_test(xray_bin, cfg_file)
+    if test_code != 0:
         bad_tags = set(re.findall(r"(?:tag|outbound config with tag)\s+(out_\d+)", test_output))
-        if not bad_tags:
-            # Unnamed decode failures used to discard every node in the batch.
-            if remaining_retries <= 0:
-                print(f"  ⚠️ [Xray Config] Rejected batch before startup: {test_output[-1000:] or 'no diagnostic output'}", flush=True)
+        if bad_tags:
+            bad_indexes = {int(tag.split("_", 1)[1]) for tag in bad_tags}
+            before_count = len(active_slots)
+            _drop_slots(bad_indexes)
+            print(f"  🧹 [Xray Config] Dropped {before_count - len(active_slots)} malformed node(s): {', '.join(sorted(bad_tags))}", flush=True)
+            write_config()
+            test_code, test_output = run_xray_config_test(xray_bin, cfg_file)
+        if test_code != 0:
+            _validate_nodes_individually()
+            write_config()
+            test_code, test_output = run_xray_config_test(xray_bin, cfg_file)
+            if test_code != 0:
+                print(f"  ⚠️ [Xray Config] Rejected batch before startup: {test_output[-500:] or 'no diagnostic output'}", flush=True)
                 shutil.rmtree(tmp_dir, ignore_errors=True)
                 _release_allocated()
                 return results
-            remaining_retries -= _validate_nodes_individually()
-            continue
-        if remaining_retries <= 0:
-            print(f"  ⚠️ [Xray Config] Rejected batch before startup: {test_output[-1000:] or 'no diagnostic output'}", flush=True)
-            shutil.rmtree(tmp_dir, ignore_errors=True)
-            _release_allocated()
-            return results
-        last_rejection_output = test_output
-        fallback_rounds += 1
-        named_drop_rounds += 1
-        if named_drop_rounds > 2:
-            # Xray reports only the first failing tag per run; a batch with many
-            # malformed nodes would burn one sequential config test per node.
-            # Switch to one parallel per-node validation pass instead.
-            remaining_retries -= _validate_nodes_individually()
-            continue
-        bad_indexes = {int(tag.split("_", 1)[1]) for tag in bad_tags}
-        before_count = len(active_slots)
-        _drop_slots(bad_indexes)
-        remaining_retries -= max(1, before_count - len(active_slots))
-        print(f"  🧹 [Xray Config] Dropped {before_count - len(active_slots)} malformed node(s): {', '.join(sorted(bad_tags))}", flush=True)
-
-    if fallback_rounds > 1:
-        print(
-            f"  ℹ️ [Xray Config] Fallback ran {fallback_rounds} times; last Xray error: "
-            f"{last_rejection_output[-1000:]}",
-            flush=True,
-        )
 
     if not active_slots:
         shutil.rmtree(tmp_dir, ignore_errors=True)
