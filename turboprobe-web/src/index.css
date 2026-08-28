@@ -94,12 +94,26 @@
 }
 
 ::selection {
-  background-color: #C25E30 !important;
+  background-color: var(--primary-accent, #C25E30) !important;
   color: #FFFFFF !important;
 }
 
 ::-moz-selection {
-  background-color: #C25E30 !important;
+  background-color: var(--primary-accent, #C25E30) !important;
+  color: #FFFFFF !important;
+}
+
+.theme-tg ::selection,
+:root.theme-tg ::selection,
+.theme-tg *::selection {
+  background-color: #2481CC !important;
+  color: #FFFFFF !important;
+}
+
+.theme-tg ::-moz-selection,
+:root.theme-tg ::-moz-selection,
+.theme-tg *::-moz-selection {
+  background-color: #2481CC !important;
   color: #FFFFFF !important;
 }
 
