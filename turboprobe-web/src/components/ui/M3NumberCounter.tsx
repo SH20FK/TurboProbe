@@ -12,10 +12,10 @@ export const M3NumberCounter: React.FC<M3NumberCounterProps> = ({
   formatThousands = true,
   className = '',
 }) => {
-  const spring = useSpring(0, {
-    stiffness: 120,
-    damping: 24,
-    mass: 0.8,
+  const spring = useSpring(value || 0, {
+    stiffness: 280,
+    damping: 30,
+    mass: 0.5,
   });
 
   const display = useTransform(spring, (current) => {

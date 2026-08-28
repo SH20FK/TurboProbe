@@ -13,8 +13,6 @@ import { GitHubIcon } from './components/ServiceIcons';
 import type { NodeItem, PresetItem } from './types';
 
 const CDN_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
-const JSDELIVR_BASE = 'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub';
-
 const VALID_URI_REGEX = /^[a-z0-9+-.]+:\/\/[^\s]+/i;
 
 function isConflictMarker(line: string): boolean {
@@ -29,33 +27,63 @@ export default function App() {
   const [selectedLimit, setSelectedLimit] = useState<number>(50);
   const [minHealth, setMinHealth] = useState<number>(0);
 
-  const [allNodes, setAllNodes] = useState<NodeItem[]>([]);
-  const [stats, setStats] = useState<{ total_nodes: number; best_ping_ms: number; avg_ping_ms: number; updated_at: string }>({
-    total_nodes: 0,
-    best_ping_ms: 0,
-    avg_ping_ms: 0,
-    updated_at: '',
+  // Instant SWR: Load cached nodes & stats from localStorage on mount (0ms delay)
+  const [allNodes, setAllNodes] = useState<NodeItem[]>(() => {
+    try {
+      const cached = localStorage.getItem('tp_cached_nodes');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return normalizeAndIndexNodes(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return [];
   });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const [stats, setStats] = useState<{ total_nodes: number; best_ping_ms: number; avg_ping_ms: number; updated_at: string }>(() => {
+    try {
+      const cached = localStorage.getItem('tp_cached_stats');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed.total_nodes === 'number' && parsed.total_nodes > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return {
+      total_nodes: 0,
+      best_ping_ms: 0,
+      avg_ping_ms: 0,
+      updated_at: '',
+    };
+  });
+
+  const [isLoading, setIsLoading] = useState<boolean>(() => allNodes.length === 0);
   const [isQrOpen, setIsQrOpen] = useState<boolean>(false);
 
-  // Fast Parallel Mirror Fetching with AbortController and Auto-revalidation
+  // Fast Parallel Mirror Fetching with Cache-Busting & Auto-revalidation
   useEffect(() => {
     let isMounted = true;
 
     async function loadData() {
       const cacheBust = Date.now();
       const previewMirrors = [
+        `sub/nodes.json?t=${cacheBust}`,
+        `./sub/nodes.json?t=${cacheBust}`,
         `sub/preview.json?t=${cacheBust}`,
         `./sub/preview.json?t=${cacheBust}`,
-        `${JSDELIVR_BASE}/preview.json?t=${cacheBust}`,
+        `${CDN_BASE}/nodes.json?t=${cacheBust}`,
         `${CDN_BASE}/preview.json?t=${cacheBust}`,
       ];
 
       const statsMirrors = [
         `sub/stats.json?t=${cacheBust}`,
         `./sub/stats.json?t=${cacheBust}`,
-        `${JSDELIVR_BASE}/stats.json?t=${cacheBust}`,
         `${CDN_BASE}/stats.json?t=${cacheBust}`,
       ];
 
@@ -63,7 +91,11 @@ export default function App() {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), ms);
         try {
-          const res = await fetch(url, { signal: ctrl.signal, cache: 'no-cache' });
+          const res = await fetch(url, {
+            signal: ctrl.signal,
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', Pragma: 'no-cache' },
+          });
           clearTimeout(tid);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return await res.json();
@@ -77,12 +109,18 @@ export default function App() {
       try {
         const statsData = await Promise.any(statsMirrors.map((m) => fetchWithTimeout(m)));
         if (isMounted && statsData) {
-          setStats({
+          const newStats = {
             total_nodes: statsData.total_nodes || statsData.alive_verified_nodes || 0,
             best_ping_ms: statsData.best_ping_ms > 0 ? Math.round(statsData.best_ping_ms) : 0,
             avg_ping_ms: statsData.avg_ping_ms > 0 ? Math.round(statsData.avg_ping_ms) : 0,
             updated_at: statsData.updated_at || '',
-          });
+          };
+          setStats(newStats);
+          try {
+            localStorage.setItem('tp_cached_stats', JSON.stringify(newStats));
+          } catch {
+            // ignore
+          }
         }
       } catch {
         // ignore stats error
@@ -95,14 +133,29 @@ export default function App() {
           const sanitized = (data.nodes as NodeItem[]).filter(
             (n) => n && typeof n.uri === 'string' && VALID_URI_REGEX.test(n.uri.trim()) && !isConflictMarker(n.uri.trim())
           );
-          setAllNodes(normalizeAndIndexNodes(sanitized));
-          if (data.updated_at) {
-            setStats((prev) => ({
-              ...prev,
-              total_nodes: prev.total_nodes || sanitized.length,
-              updated_at: prev.updated_at || data.updated_at,
-            }));
+          const indexed = normalizeAndIndexNodes(sanitized);
+          setAllNodes(indexed);
+
+          const updatedStats = {
+            total_nodes: data.total_nodes || sanitized.length,
+            best_ping_ms: data.best_ping_ms || 0,
+            avg_ping_ms: data.avg_ping_ms || 0,
+            updated_at: data.updated_at || new Date().toISOString(),
+          };
+
+          setStats((prev) => ({
+            ...prev,
+            total_nodes: updatedStats.total_nodes || prev.total_nodes,
+            updated_at: updatedStats.updated_at || prev.updated_at,
+          }));
+
+          try {
+            localStorage.setItem('tp_cached_nodes', JSON.stringify(sanitized.slice(0, 300)));
+            localStorage.setItem('tp_cached_stats', JSON.stringify(updatedStats));
+          } catch {
+            // ignore
           }
+
           setIsLoading(false);
           return;
         }
@@ -115,11 +168,10 @@ export default function App() {
         const rawMirrors = [
           `sub/all.txt?t=${cacheBust}`,
           `./sub/all.txt?t=${cacheBust}`,
-          `${JSDELIVR_BASE}/all.txt?t=${cacheBust}`,
           `${CDN_BASE}/all.txt?t=${cacheBust}`,
         ];
         const res = await Promise.any(rawMirrors.map(async (m) => {
-          const r = await fetch(m, { cache: 'no-cache' });
+          const r = await fetch(m, { cache: 'no-store' });
           if (!r.ok) throw new Error('Not ok');
           return await r.text();
         }));
@@ -152,7 +204,8 @@ export default function App() {
             };
           });
 
-          setAllNodes(normalizeAndIndexNodes(mapped));
+          const indexed = normalizeAndIndexNodes(mapped);
+          setAllNodes(indexed);
           setStats((prev) => ({
             ...prev,
             total_nodes: prev.total_nodes || mapped.length,
@@ -400,7 +453,7 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className="relative min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] selection:bg-[#38BDF8]/30 selection:text-[#38BDF8] flex flex-col justify-between overflow-x-hidden transition-colors duration-200">
+      <div className="relative min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] selection:bg-[#EA580C]/25 selection:text-[#EA580C] flex flex-col justify-between overflow-x-hidden transition-colors duration-200">
         {/* Dynamic Background with Floating Shapes & Dot Matrix */}
         <M3Background />
 
@@ -433,7 +486,7 @@ export default function App() {
               href="https://github.com/SH20FK/TurboProbe"
               target="_blank"
               rel="noreferrer"
-              className="relative px-3.5 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-main)] hover:text-white text-xs font-semibold font-mono flex items-center gap-1.5 transition-all border border-[var(--border-main)] hover:border-[#38BDF8]/50 shadow-xs active:scale-95 overflow-hidden select-none cursor-pointer"
+              className="relative px-3.5 py-1.5 rounded-full bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-main)] hover:text-white text-xs font-semibold font-mono flex items-center gap-1.5 transition-all border border-[var(--border-main)] hover:border-[#EA580C]/50 shadow-xs active:scale-95 overflow-hidden select-none cursor-pointer"
             >
               <GitHubIcon className="w-4 h-4 text-current flex-shrink-0" />
               <span>GitHub</span>
