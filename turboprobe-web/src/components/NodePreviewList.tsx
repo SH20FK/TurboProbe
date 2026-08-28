@@ -93,7 +93,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
             transition={{ duration: 0.2, ease: [0.05, 0.7, 0.1, 1.0] }}
             className="overflow-hidden border-t border-[#49454F]/25"
           >
-            {/* Search Input Bar (M3 Outlined Pill Style) */}
+            {/* Search Input Bar */}
             <div className="p-3 bg-[#141218] border-b border-[#49454F]/25 flex items-center gap-3">
               <Search className="w-4 h-4 text-[#CAC4D0] flex-shrink-0 ml-1" />
               <input
@@ -101,7 +101,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                 placeholder="Поиск по стране, хосту, протоколу..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-xs sm:text-sm text-[#E6E0E9] placeholder-[#938F99] outline-none font-mono"
+                className="w-full bg-transparent text-xs text-[#E6E0E9] placeholder-[#938F99] outline-none font-mono"
               />
               {searchQuery && (
                 <button
@@ -114,7 +114,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
               )}
             </div>
 
-            {/* Table / List View in M3 Row Style */}
+            {/* Table / List View */}
             <div className="max-h-[360px] overflow-y-auto divide-y divide-[#49454F]/15">
               {/* 1. Loading State */}
               {isLoading && (
@@ -128,12 +128,12 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
 
               {/* 2. Empty State */}
               {!isLoading && searchedNodes.length === 0 && (
-                <div className="py-8 text-center text-xs text-[#CAC4D0] font-mono">
+                <div className="py-8 text-center text-xs text-[#938F99] font-mono">
                   По выбранным критериям узлы не найдены
                 </div>
               )}
 
-              {/* 3. Clean M3 Table Rows */}
+              {/* 3. Table Rows */}
               {!isLoading &&
                 visibleNodes.map((node, index) => {
                   const nodeKey = node.id || node.uri || `node-${index}`;
@@ -153,19 +153,19 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                   return (
                     <div
                       key={nodeKey}
-                      className="group relative flex items-center justify-between gap-3 px-5 py-3 hover:bg-[#2B2930] transition-colors overflow-hidden select-none"
+                      className="group relative flex items-center justify-between gap-3 px-5 py-3 hover:bg-[#2B2930]/60 transition-colors overflow-hidden select-none"
                     >
                       {/* Left: Flag + Host */}
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="flex-shrink-0 w-6 flex items-center justify-center">
-                          <CountryFlag countryCode={countryCode} className="w-5 h-3 rounded-[2px] shadow-xs flex-shrink-0" />
+                          <CountryFlag countryCode={countryCode} className="w-4 h-2.5 rounded-[2px] shadow-xs flex-shrink-0" />
                         </div>
 
-                        <span className="text-xs sm:text-sm font-mono text-[#E6E0E9] truncate">
+                        <span className="text-xs font-mono text-[#E6E0E9] truncate">
                           {hostDisplay || `Сервер #${index + 1}`}
                         </span>
 
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#36343B] text-[#E8DEF8] font-semibold uppercase flex-shrink-0">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#4A4458] text-[#E8DEF8] font-semibold uppercase flex-shrink-0">
                           {proto}
                         </span>
                       </div>
@@ -179,8 +179,8 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                                 ping < 250
                                   ? 'bg-[#7BE08F]'
                                   : ping < 550
-                                  ? 'bg-[#EFB8C8]'
-                                  : 'bg-[#938F99]'
+                                  ? 'bg-[#FFD966]'
+                                  : 'bg-[#FF897D]'
                               }`}
                             />
                             <span>{ping} ms</span>
@@ -196,7 +196,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                           onClick={() => handleCopyNode(node.uri, nodeKey)}
                           type="button"
                           title="Скопировать ключ"
-                          className="relative w-8 h-8 rounded-full bg-[#36343B] hover:bg-[#49454F] text-[#D0BCFF] flex items-center justify-center transition-colors cursor-pointer overflow-hidden"
+                          className="relative w-8 h-8 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-[#CAC4D0] hover:text-white flex items-center justify-center transition-colors cursor-pointer overflow-hidden border border-[#49454F]/30"
                         >
                           {isCopied ? (
                             <Check className="w-4 h-4 text-[#7BE08F]" />
@@ -216,7 +216,7 @@ export const NodePreviewList: React.FC<NodePreviewListProps> = ({
                   <button
                     onClick={() => setDisplayLimit((prev) => prev + 30)}
                     type="button"
-                    className="relative inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#36343B] hover:bg-[#49454F] text-xs text-[#E6E0E9] transition-colors cursor-pointer font-mono overflow-hidden"
+                    className="relative inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#2B2930] hover:bg-[#36343B] text-xs text-[#E6E0E9] transition-colors cursor-pointer font-mono border border-[#49454F]/30 overflow-hidden"
                   >
                     <Plus className="w-3.5 h-3.5 text-[#D0BCFF]" />
                     <span>Показать еще ({remainingCount})</span>

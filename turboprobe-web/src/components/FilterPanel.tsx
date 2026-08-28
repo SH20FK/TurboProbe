@@ -67,7 +67,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   onClearProtos,
   countryCounts,
   protoCounts,
-  minHealth,
+  minHealth: _minHealth,
   onChangeMinHealth: _onChangeMinHealth,
 }) => {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false);
@@ -105,7 +105,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
   const handleSelectSegment = (id: string) => {
     const found = PRESETS.find((p) => p.id === id);
-    if (found) onSelectPreset(found);
+    if (found) {
+      onSelectPreset(found);
+    }
   };
 
   // Dynamically compute and sort countries based on pool availability
@@ -139,171 +141,190 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const visibleCountries = isExpandedCountries ? availableCountries : availableCountries.slice(0, 10);
   const hiddenCountryCount = Math.max(0, availableCountries.length - 10);
 
-  const customFilterCount =
+  const activeFiltersCount =
     selectedServices.length +
-    selectedCountries.length +
-    selectedProtos.length +
-    (minHealth > 0 ? 1 : 0);
+    (selectedCountries.length > 0 ? selectedCountries.length : 0) +
+    (selectedProtos.length > 0 ? selectedProtos.length : 0);
 
   return (
     <div className="w-full space-y-3">
-      {/* 1. M3 Expressive Segmented Buttons (Hero Routing Mode Switcher) */}
+      {/* 1. M3 Expressive Segmented Button Group (Presets) */}
       <M3SegmentedButton
         options={segmentOptions}
         selectedId={activePreset}
         onSelect={handleSelectSegment}
       />
 
-      {/* 2. Expandable Advanced Filter Accordion (M3 Surface Container Low) */}
-      <div className="rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 overflow-hidden shadow-lg">
+      {/* 2. M3 Tonal Accordion for Fine-tuning */}
+      <div className="rounded-[24px] bg-[#1D1B20] border border-[#49454F]/30 overflow-hidden shadow-md">
         <button
           onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
           type="button"
-          className="w-full px-5 py-3.5 flex items-center justify-between text-xs font-display font-semibold text-[#E6E0E9] hover:bg-[#2B2930] transition-colors cursor-pointer select-none"
+          className="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-[#2B2930] transition-colors cursor-pointer select-none"
         >
           <div className="flex items-center gap-2.5">
-            <Sliders className="w-4 h-4 text-[#D0BCFF]" />
-            <span>Тонкая настройка (сервисы, протоколы, страны)</span>
-            {customFilterCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-[#4A4458] text-[#EADDFF] text-[10px] font-mono font-bold">
-                +{customFilterCount}
-              </span>
-            )}
+            <Sliders className="w-4 h-4 text-[#CAC4D0]" />
+            <span className="font-display text-xs sm:text-sm font-semibold text-[#E6E0E9]">
+              Тонкая настройка
+            </span>
+            <span className="text-[11px] text-[#938F99] hidden sm:inline">
+              (сервисы, протоколы, страны)
+            </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-[#CAC4D0]">
-            <span className="text-[11px] font-body hidden sm:inline">{isAdvancedOpen ? 'Свернуть' : 'Настроить'}</span>
-            <div className="p-0.5">
-              {isAdvancedOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </div>
+          <div className="flex items-center gap-2">
+            {activeFiltersCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-[#4F378B] text-[#EADDFF] text-[10px] font-mono font-bold">
+                +{activeFiltersCount}
+              </span>
+            )}
+            <span className="text-xs text-[#CAC4D0] font-mono hidden sm:inline">
+              {isAdvancedOpen ? 'Свернуть' : 'Настроить'}
+            </span>
+            {isAdvancedOpen ? (
+              <ChevronUp className="w-4 h-4 text-[#CAC4D0]" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-[#CAC4D0]" />
+            )}
           </div>
         </button>
 
-        {/* Collapsible Content with M3 Filter Chips */}
-        <AnimatePresence initial={false}>
+        <AnimatePresence>
           {isAdvancedOpen && (
             <motion.div
-              key="advanced-filters"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2, ease: [0.05, 0.7, 0.1, 1.0] }}
-              className="overflow-hidden"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: [0.05, 0.7, 0.1, 1.0] }}
+              className="overflow-hidden border-t border-[#49454F]/25 p-5 space-y-5 bg-[#141218]"
             >
-              <div className="px-5 pb-5 pt-3 border-t border-[#49454F]/25 space-y-4">
-                {/* 1. Services Chips */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#CAC4D0] font-mono flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-[#D0BCFF]" />
-                      Сервисы
-                    </span>
-                    {selectedServices.length > 0 && (
-                      <span className="text-[10px] text-[#D0BCFF] font-mono">
-                        Выбрано: {selectedServices.length}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {SERVICES.map((srv) => {
-                      const isSelected = selectedServices.includes(srv.id);
-                      const Icon = srv.icon;
-
-                      return (
-                        <M3FilterChip
-                          key={srv.id}
-                          label={srv.name}
-                          selected={isSelected}
-                          onToggle={() => onToggleService(srv.id)}
-                          icon={<Icon className="w-3.5 h-3.5 flex-shrink-0" />}
-                        />
-                      );
-                    })}
-                  </div>
+              {/* Services Section */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#CAC4D0] flex items-center gap-1.5 font-semibold">
+                    <Sparkles className="w-3.5 h-3.5 text-[#D0BCFF]" />
+                    Оптимизация под сервисы
+                  </span>
+                  {selectedServices.length > 0 && (
+                    <button
+                      onClick={() => selectedServices.forEach((s) => onToggleService(s))}
+                      type="button"
+                      className="text-[11px] font-mono text-[#D0BCFF] hover:underline"
+                    >
+                      Сбросить ({selectedServices.length})
+                    </button>
+                  )}
                 </div>
 
-                {/* 2. Protocols Chips */}
-                <div className="pt-3 border-t border-[#49454F]/25">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#CAC4D0] font-mono flex items-center gap-1.5">
-                      <Sliders className="w-3.5 h-3.5 text-[#D0BCFF]" />
-                      Протокол
-                    </span>
-                  </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {SERVICES.map((srv) => {
+                    const isSelected = selectedServices.includes(srv.id);
+                    const Icon = srv.icon;
+                    return (
+                      <M3FilterChip
+                        key={srv.id}
+                        label={srv.name}
+                        selected={isSelected}
+                        onToggle={() => onToggleService(srv.id)}
+                        icon={<Icon className="w-3.5 h-3.5 flex-shrink-0" />}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
 
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <M3FilterChip
-                      label="Все протоколы"
-                      selected={selectedProtos.length === 0}
-                      onToggle={onClearProtos}
-                    />
-
-                    {availableProtos.map((p) => {
-                      const isSelected = selectedProtos.includes(p.id);
-
-                      return (
-                        <M3FilterChip
-                          key={p.id}
-                          label={p.label}
-                          count={p.count}
-                          selected={isSelected}
-                          onToggle={() => onToggleProto(p.id)}
-                        />
-                      );
-                    })}
-                  </div>
+              {/* Protocols Section */}
+              <div className="space-y-2.5 pt-2 border-t border-[#49454F]/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#CAC4D0] flex items-center gap-1.5 font-semibold">
+                    <Shield className="w-3.5 h-3.5 text-[#D0BCFF]" />
+                    Протоколы шифрования
+                  </span>
+                  {selectedProtos.length > 0 && (
+                    <button
+                      onClick={onClearProtos}
+                      type="button"
+                      className="text-[11px] font-mono text-[#D0BCFF] hover:underline"
+                    >
+                      Сбросить
+                    </button>
+                  )}
                 </div>
 
-                {/* 3. Locations Chips */}
-                <div className="pt-3 border-t border-[#49454F]/25">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-[#CAC4D0] font-mono flex items-center gap-1.5">
-                      <Globe2 className="w-3.5 h-3.5 text-[#D0BCFF]" />
-                      Страны
-                    </span>
-                  </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <M3FilterChip
+                    label="Все протоколы"
+                    selected={selectedProtos.length === 0}
+                    onToggle={onClearProtos}
+                  />
 
-                  <div className={`flex flex-wrap items-center gap-1.5 ${
-                    isExpandedCountries ? 'max-h-[160px] overflow-y-auto pr-1' : ''
-                  }`}>
-                    <M3FilterChip
-                      label="Все страны"
-                      selected={selectedCountries.length === 0}
-                      onToggle={onClearCountries}
-                    />
+                  {availableProtos.map((p) => {
+                    const isSelected = selectedProtos.includes(p.id);
+                    return (
+                      <M3FilterChip
+                        key={p.id}
+                        label={p.label}
+                        count={p.count}
+                        selected={isSelected}
+                        onToggle={() => onToggleProto(p.id)}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
 
-                    {visibleCountries.map((c) => {
-                      const isSelected = selectedCountries.includes(c.code);
+              {/* Countries Section */}
+              <div className="space-y-2.5 pt-2 border-t border-[#49454F]/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#CAC4D0] flex items-center gap-1.5 font-semibold">
+                    <Globe2 className="w-3.5 h-3.5 text-[#D0BCFF]" />
+                    Геолокации и страны
+                  </span>
+                  {selectedCountries.length > 0 && (
+                    <button
+                      onClick={onClearCountries}
+                      type="button"
+                      className="text-[11px] font-mono text-[#D0BCFF] hover:underline"
+                    >
+                      Сбросить
+                    </button>
+                  )}
+                </div>
 
-                      return (
-                        <M3FilterChip
-                          key={c.code}
-                          label={c.label}
-                          count={c.count}
-                          selected={isSelected}
-                          onToggle={() => onToggleCountry(c.code)}
-                          icon={
-                            <CountryFlag
-                              countryCode={c.code}
-                              className="w-3.5 h-2 rounded-[2px] shadow-xs flex-shrink-0"
-                            />
-                          }
-                        />
-                      );
-                    })}
-                  </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <M3FilterChip
+                    label="Все страны"
+                    selected={selectedCountries.length === 0}
+                    onToggle={onClearCountries}
+                  />
+
+                  {visibleCountries.map((c) => {
+                    const isSelected = selectedCountries.includes(c.code);
+                    return (
+                      <M3FilterChip
+                        key={c.code}
+                        label={c.label}
+                        count={c.count}
+                        selected={isSelected}
+                        onToggle={() => onToggleCountry(c.code)}
+                        icon={
+                          <CountryFlag
+                            countryCode={c.code}
+                            className="w-3.5 h-2 rounded-[2px] shadow-xs flex-shrink-0"
+                          />
+                        }
+                      />
+                    );
+                  })}
 
                   {hiddenCountryCount > 0 && (
-                    <div className="mt-2 text-left">
-                      <button
-                        onClick={() => setIsExpandedCountries(!isExpandedCountries)}
-                        type="button"
-                        className="text-[11px] font-mono text-[#D0BCFF] hover:underline transition-colors cursor-pointer"
-                      >
-                        {isExpandedCountries ? 'Свернуть список стран' : `Показать все страны (+${hiddenCountryCount})`}
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setIsExpandedCountries(!isExpandedCountries)}
+                      type="button"
+                      className="text-xs font-mono text-[#D0BCFF] hover:underline px-2 py-1 cursor-pointer"
+                    >
+                      {isExpandedCountries ? 'Свернуть' : `+${hiddenCountryCount} стран`}
+                    </button>
                   )}
                 </div>
               </div>

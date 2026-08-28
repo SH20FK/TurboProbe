@@ -103,18 +103,20 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         </div>
       </div>
 
-      {/* 2. M3 Expressive Split-Button for 1-Click Action */}
-      <M3SplitButton
-        onCopy={handleCopyMainUrl}
-        copied={copiedUrl}
-        onOpenQr={onOpenQr}
-        onDownloadYaml={onDownloadClash}
-        count={effectiveCount}
-      />
+      {/* 2. Hero M3 Split-Button (1-Click Main Action) */}
+      <div className="w-full">
+        <M3SplitButton
+          onCopy={handleCopyMainUrl}
+          copied={copiedUrl}
+          onOpenQr={onOpenQr}
+          onDownloadYaml={onDownloadClash}
+          count={effectiveCount}
+        />
+      </div>
 
-      {/* 3. Quick Native Client Chips */}
-      <div>
-        <div className="text-[11px] font-mono uppercase tracking-wider text-[#938F99] mb-2 px-1">
+      {/* 3. Native App Import Grid */}
+      <div className="space-y-2 pt-2 border-t border-[#49454F]/25">
+        <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#938F99]">
           Импорт в 1 клик в ваше приложение:
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -122,10 +124,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <button
             onClick={() => handleClientAction('happ', `happ://add/${subUrl}#TurboProbe`, subUrl)}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors overflow-hidden"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
           >
             {copiedStatus === 'happ' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <HappIcon className="w-4 h-4 text-[#D0BCFF]" />}
-            <span className="font-display">Happ</span>
+            <span className="font-display font-semibold">Happ</span>
             <M3Ripple />
           </button>
 
@@ -133,10 +135,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <button
             onClick={() => handleClientAction('v2ray', `v2rayng://install-config?url=${encodeURIComponent(subUrl)}`, subUrl)}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors overflow-hidden"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
           >
             {copiedStatus === 'v2ray' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <ExternalLink className="w-4 h-4 text-[#D0BCFF]" />}
-            <span className="font-display">v2rayNG / N</span>
+            <span className="font-display font-semibold">v2rayNG / N</span>
             <M3Ripple />
           </button>
 
@@ -144,10 +146,10 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <button
             onClick={() => handleClientAction('flclash', `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`, clashSubUrl)}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors overflow-hidden"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
           >
             {copiedStatus === 'flclash' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <FlClashIcon className="w-4 h-4 text-[#D0BCFF]" />}
-            <span className="font-display">FlClash</span>
+            <span className="font-display font-semibold">FlClash</span>
             <M3Ripple />
           </button>
 
@@ -155,21 +157,21 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           <button
             onClick={() => handleClientAction('singbox', `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}#TurboProbe`, subUrl)}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/25 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors overflow-hidden"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
           >
             {copiedStatus === 'singbox' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <ExternalLink className="w-4 h-4 text-[#D0BCFF]" />}
-            <span className="font-display">Sing-box</span>
+            <span className="font-display font-semibold">Sing-box</span>
             <M3Ripple />
           </button>
         </div>
       </div>
 
-      {/* 4. Quick Help Accordion Bar */}
+      {/* 4. Help Accordion Bar */}
       <div className="pt-1">
         <button
           onClick={() => setIsGuideOpen(!isGuideOpen)}
           type="button"
-          className="inline-flex items-center gap-1.5 text-xs text-[#CAC4D0] hover:text-[#D0BCFF] transition-colors cursor-pointer select-none"
+          className="inline-flex items-center gap-1.5 text-xs text-[#CAC4D0] hover:text-white transition-colors cursor-pointer select-none"
         >
           <HelpCircle className="w-3.5 h-3.5" />
           <span>Инструкция по настройке клиентов</span>
@@ -185,25 +187,25 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
               transition={{ duration: 0.2, ease: [0.05, 0.7, 0.1, 1.0] }}
               className="overflow-hidden pt-3"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs text-[#E6E0E9]">
-                <div className="p-3 rounded-2xl bg-[#211F26] border border-[#49454F]/20 space-y-1">
-                  <span className="font-semibold text-[#D0BCFF] block font-display">1. Скачайте клиент</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-[#E6E0E9]">
+                <div className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
+                  <span className="font-bold text-[#D0BCFF] block font-display">1. Клиент</span>
                   <p className="text-[#CAC4D0] m-0 leading-relaxed text-[11px]">
-                    Android: <strong>v2rayNG</strong> или <strong>Happ</strong><br />
-                    iOS: <strong>Streisand</strong>, <strong>FoXray</strong><br />
-                    Windows: <strong>v2rayN</strong> или <strong>FlClash</strong>
+                    Android: <strong>v2rayNG</strong> / <strong>Happ</strong><br />
+                    iOS: <strong>Streisand</strong><br />
+                    Windows: <strong>FlClash</strong>
                   </p>
                 </div>
-                <div className="p-3 rounded-2xl bg-[#211F26] border border-[#49454F]/20 space-y-1">
-                  <span className="font-semibold text-[#D0BCFF] block font-display">2. Скопируйте ссылку</span>
+                <div className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
+                  <span className="font-bold text-[#D0BCFF] block font-display">2. Ссылка</span>
                   <p className="text-[#CAC4D0] m-0 leading-relaxed text-[11px]">
-                    Нажмите кнопку <strong>«Скопировать подписку»</strong> или откройте меню для QR-кода.
+                    Нажмите <strong>«Скопировать подписку»</strong> выше или отсканируйте QR.
                   </p>
                 </div>
-                <div className="p-3 rounded-2xl bg-[#211F26] border border-[#49454F]/20 space-y-1">
-                  <span className="font-semibold text-[#D0BCFF] block font-display">3. Подключитесь</span>
+                <div className="p-3 rounded-2xl bg-[#2B2930] border border-[#49454F]/20 space-y-1">
+                  <span className="font-bold text-[#D0BCFF] block font-display">3. Старт</span>
                   <p className="text-[#CAC4D0] m-0 leading-relaxed text-[11px]">
-                    В приложении нажмите <strong>«Импорт подписки»</strong>, обновите список и активируйте VPN.
+                    Вставьте ссылку в клиенте, обновите подписку и включите VPN.
                   </p>
                 </div>
               </div>

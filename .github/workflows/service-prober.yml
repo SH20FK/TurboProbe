@@ -71,7 +71,7 @@ jobs:
             sudo chmod +x /usr/local/bin/mihomo
             rm -f /tmp/mihomo.gz
           fi
-          /usr/local/bin/mihomo version || true
+          /usr/local/bin/mihomo -v || true
 
       - name: Run Deep Service Prober
         env:
