@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Gauge, Flame, Check, Search, QrCode, Copy, Download, Send, ArrowUpRight } from 'lucide-react';
+import { Send, Shield, Zap, Search, Copy, QrCode, Download, ExternalLink, Lock, Check } from 'lucide-react';
 import { useToast } from './ui/M3Toast';
 import { CountryFlag } from './CountryFlags';
-import { M3Ripple } from './ui/M3Ripple';
 import type { TgProxyItem } from '../types';
 
 interface TGProxyViewProps {
@@ -17,12 +16,37 @@ const TG_PROXIES_MIRRORS = [
   'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/docs/tg/proxies.json',
 ];
 
-const PING_STEPS = [
-  { val: 150, label: '< 150 ms', desc: 'Турбо', color: '#10B981', icon: <Zap className="w-3.5 h-3.5" /> },
-  { val: 300, label: '< 300 ms', desc: 'Комфорт', color: '#2AABEE', icon: <Gauge className="w-3.5 h-3.5" /> },
-  { val: 500, label: '< 500 ms', desc: 'Стандарт', color: '#E08244', icon: <Flame className="w-3.5 h-3.5" /> },
-  { val: 0, label: 'Все узлы', desc: 'Без лимита', color: '#2481CC', icon: <Check className="w-3.5 h-3.5" /> },
-];
+/**
+ * Extracts and decodes Fake-TLS SNI domain (e.g. apple.com, cloudflare.com, google.com)
+ * from an MTProto secret hex string.
+ */
+function extractTlsDomain(secret?: string | null): { domain: string | null; type: 'faketls' | 'dd' | 'classic' } {
+  if (!secret) return { domain: null, type: 'classic' };
+  const hex = secret.trim().toLowerCase();
+
+  if (hex.startsWith('ee')) {
+    const domainHex = hex.slice(34);
+    if (domainHex.length >= 4) {
+      try {
+        let domain = '';
+        for (let i = 0; i < domainHex.length; i += 2) {
+          const code = parseInt(domainHex.slice(i, i + 2), 16);
+          if (code >= 32 && code <= 126) domain += String.fromCharCode(code);
+        }
+        if (domain.includes('.') && domain.length >= 3) {
+          return { domain, type: 'faketls' };
+        }
+      } catch {}
+    }
+    return { domain: 'TLS-маскировка', type: 'faketls' };
+  }
+
+  if (hex.startsWith('dd')) {
+    return { domain: null, type: 'dd' };
+  }
+
+  return { domain: null, type: 'classic' };
+}
 
 export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
   const toast = useToast();
@@ -46,15 +70,13 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
     updated_at: '',
   });
 
-  const [activePreset, setActivePreset] = useState<'anti-tspu' | 'turbo' | 'socks5' | 'all'>('anti-tspu');
-  const [selectedProto, setSelectedProto] = useState<'all' | 'mtproto' | 'socks5'>('mtproto');
+  const [activeTab, setActiveTab] = useState<'all' | 'faketls' | 'mtproto' | 'socks5' | 'lowping'>('all');
   const [selectedCountry, setSelectedCountry] = useState<string>('all');
-  const [maxPing, setMaxPing] = useState<number>(0);
-  const [limit, setLimit] = useState<number>(50);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(() => proxies.length === 0);
 
-  // Load Proxies Data with Cache-Busting
+  // Load Proxies Data
   useEffect(() => {
     let isMounted = true;
 
@@ -103,29 +125,38 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
   // Filter Logic
   const filteredProxies = useMemo(() => {
     return proxies.filter((p) => {
-      if (selectedProto !== 'all') {
-        if (selectedProto === 'mtproto' && p.proto !== 'mtproto') return false;
-        if (selectedProto === 'socks5' && p.proto !== 'socks5') return false;
+      // Tab filter
+      if (activeTab === 'faketls') {
+        if (p.proto !== 'mtproto' || !p.secret?.toLowerCase().startsWith('ee')) return false;
+      } else if (activeTab === 'mtproto') {
+        if (p.proto !== 'mtproto') return false;
+      } else if (activeTab === 'socks5') {
+        if (p.proto !== 'socks5') return false;
+      } else if (activeTab === 'lowping') {
+        if (p.ping_ms > 120) return false;
       }
+
+      // Country filter
       if (selectedCountry !== 'all' && (p.country || 'GLOBAL') !== selectedCountry) {
         return false;
       }
-      if (maxPing > 0 && p.ping_ms > maxPing) {
-        return false;
-      }
+
+      // Search query (IP, Port, Domain)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const host = `${p.server}:${p.port}`.toLowerCase();
         const country = (p.country_label || p.country || '').toLowerCase();
-        if (!host.includes(q) && !country.includes(q)) return false;
+        const { domain } = extractTlsDomain(p.secret);
+        const domainStr = (domain || '').toLowerCase();
+
+        if (!host.includes(q) && !country.includes(q) && !domainStr.includes(q)) {
+          return false;
+        }
       }
+
       return true;
     });
-  }, [proxies, selectedProto, selectedCountry, maxPing, searchQuery]);
-
-  const displayList = useMemo(() => {
-    return limit > 0 ? filteredProxies.slice(0, limit) : filteredProxies;
-  }, [filteredProxies, limit]);
+  }, [proxies, activeTab, selectedCountry, searchQuery]);
 
   // Country counts
   const countryCounts = useMemo(() => {
@@ -137,478 +168,313 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }, [proxies]);
 
-  // Preset Handlers
-  const handleSelectPreset = (preset: 'anti-tspu' | 'turbo' | 'socks5' | 'all') => {
-    setActivePreset(preset);
-    if (preset === 'anti-tspu') {
-      setSelectedProto('mtproto');
-      setSelectedCountry('all');
-      setMaxPing(0);
-    } else if (preset === 'turbo') {
-      setSelectedProto('all');
-      setSelectedCountry('all');
-      setMaxPing(200);
-    } else if (preset === 'socks5') {
-      setSelectedProto('socks5');
-      setSelectedCountry('all');
-      setMaxPing(0);
-    } else {
-      setSelectedProto('all');
-      setSelectedCountry('all');
-      setMaxPing(0);
-    }
-  };
-
-  // 1-Click Connect to Fastest Proxy
+  // Connect Fastest in 1 click
   const handleConnectFastest = useCallback(() => {
     if (filteredProxies.length === 0) {
-      toast.error('Нет доступных прокси для подключения!');
+      toast.error('Нет доступных прокси!');
       return;
     }
     const fastest = filteredProxies[0];
-    toast.success('Подключение к прокси...', `${fastest.server}:${fastest.port}`);
+    toast.success('Подключение в Telegram...', `${fastest.server}:${fastest.port}`);
     window.location.href = fastest.tg_link;
   }, [filteredProxies, toast]);
 
+  // Copy all visible links
   const handleCopyAll = useCallback(() => {
-    if (displayList.length === 0) {
+    if (filteredProxies.length === 0) {
       toast.error('Нет прокси для копирования!');
       return;
     }
-    const text = displayList.map((p) => p.tg_link).join('\n');
-    toast.copy(text, `Скопировано ${displayList.length} прокси-ссылок`);
-  }, [displayList, toast]);
+    const text = filteredProxies.map((p) => p.tg_link).join('\n');
+    toast.copy(text, `Скопировано ${filteredProxies.length} MTProto/SOCKS5 ссылок`);
+  }, [filteredProxies, toast]);
 
+  // Copy single link with micro-feedback
   const handleCopySingle = useCallback(
-    (link: string) => {
+    (link: string, id: string) => {
       toast.copy(link, 'Ссылка прокси скопирована');
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1800);
     },
     [toast]
   );
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-4">
-      {/* 1. Sleek Integrated Header Banner */}
-      <div className="relative rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-5 sm:p-7 overflow-hidden shadow-lg transition-colors duration-200">
+    <div className="w-full max-w-4xl mx-auto space-y-4">
+      {/* 1. Sleek Telegram Header Card */}
+      <div className="relative rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-5 sm:p-7 overflow-hidden shadow-sm transition-colors duration-200">
         <div
-          className="absolute -top-20 left-1/4 w-80 h-40 rounded-full blur-[75px] pointer-events-none opacity-35"
+          className="absolute -top-16 left-1/3 w-80 h-36 rounded-full blur-[70px] pointer-events-none opacity-30"
           style={{ background: 'radial-gradient(circle, #2AABEE 0%, transparent 70%)' }}
         />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-5">
-          {/* Brand Info */}
-          <div className="flex items-center gap-4 text-center md:text-left">
-            <motion.div
-              whileHover={{ scale: 1.06, rotate: 6 }}
-              whileTap={{ scale: 0.94 }}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] p-3.5 flex items-center justify-center shadow-lg shadow-sky-500/25 text-white shrink-0"
-            >
+        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 text-center sm:text-left">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] p-3 flex items-center justify-center text-white shadow-md shadow-sky-500/25 shrink-0">
               <Send className="w-full h-full fill-current" />
-            </motion.div>
-
+            </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-display font-black tracking-tight text-[var(--text-main)] m-0 flex items-center justify-center md:justify-start gap-2">
-                <span>TGProxy</span>
-                <span className="bg-gradient-to-r from-[#2AABEE] to-[#2481CC] bg-clip-text text-transparent">Hub</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1 font-normal max-w-md">
-                Суверенные прокси <span className="text-[var(--text-main)] font-semibold">MTProto Fake-TLS</span> и{' '}
-                <span className="text-[var(--text-main)] font-semibold">SOCKS5</span> с обходом ТСПУ
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <h1 className="text-xl sm:text-2xl font-display font-black tracking-tight text-[var(--text-main)] m-0">
+                  TGProxy Hub
+                </h1>
+                <span className="px-2 py-0.5 rounded-full bg-[#2481CC]/15 text-[#2AABEE] text-[10px] font-mono font-bold">
+                  v2.0
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">
+                Автоматический сбор и проверка <span className="text-[var(--text-main)] font-semibold">MTProto Fake-TLS</span> для стабильной работы в РФ
               </p>
             </div>
           </div>
 
-          {/* 3 Live KPI Stat Badges */}
-          <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto justify-center">
-            <div className="bg-[var(--bg-app)] border border-[var(--border-main)] px-3.5 py-2 rounded-2xl flex flex-col items-center md:items-start shadow-xs">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                Онлайн
-              </span>
-              <span className="font-mono text-lg sm:text-xl font-bold text-[var(--text-main)]">
-                {isLoading ? '...' : proxies.length}
+          {/* Quick Metrics */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="bg-[var(--bg-app)] border border-[var(--border-main)] px-3 py-1.5 rounded-xl flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+              <span className="font-mono text-xs font-bold text-[var(--text-main)]">
+                {isLoading ? '...' : proxies.length} узлов
               </span>
             </div>
 
-            <div className="bg-[var(--bg-app)] border border-[var(--border-main)] px-3.5 py-2 rounded-2xl flex flex-col items-center md:items-start shadow-xs">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-[#2AABEE]" />
-                Пинг
-              </span>
-              <span className="font-mono text-lg sm:text-xl font-bold text-[var(--text-main)]">
+            <div className="bg-[var(--bg-app)] border border-[var(--border-main)] px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-[#2AABEE]" />
+              <span className="font-mono text-xs font-bold text-[var(--text-main)]">
                 {stats.best_ping > 0 ? `${stats.best_ping} ms` : '—'}
               </span>
             </div>
+          </div>
+        </div>
 
-            <div className="bg-[var(--bg-app)] border border-[var(--border-main)] px-3.5 py-2 rounded-2xl flex flex-col items-center md:items-start shadow-xs">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-[#E08244]" />
-                Сверка
-              </span>
-              <span className="font-mono text-xs sm:text-sm font-bold text-[var(--text-main)] mt-1">
-                {stats.updated_at ? stats.updated_at.split(' ')[1]?.slice(0, 5) + ' UTC' : 'Недавно'}
-              </span>
-            </div>
+        {/* 1-Click Fast Actions Bar */}
+        <div className="pt-4 mt-4 border-t border-[var(--border-main)] flex flex-col sm:flex-row items-center gap-2">
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleConnectFastest}
+            className="w-full sm:flex-1 py-3 px-4 rounded-2xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] text-white font-display text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-sky-600/25 cursor-pointer"
+          >
+            <Send className="w-3.5 h-3.5 fill-current" />
+            <span>⚡ Включить лучший MTProto в Telegram (1 клик)</span>
+          </motion.button>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={handleCopyAll}
+              className="flex-1 sm:flex-none py-2.5 px-3.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-xs font-display font-semibold text-[var(--text-main)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Copy className="w-3.5 h-3.5 text-[#2AABEE]" />
+              <span>Скопировать все</span>
+            </button>
+
+            <button
+              onClick={() => {
+                if (filteredProxies.length > 0) onOpenQr(filteredProxies[0].tg_link);
+              }}
+              title="QR-код для телефона"
+              className="p-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[var(--text-main)] flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <QrCode className="w-4 h-4 text-[#2AABEE]" />
+            </button>
+
+            <a
+              href="https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/tg/mtproto.txt"
+              download
+              title="Скачать .txt список"
+              className="p-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[var(--text-main)] flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-[#2AABEE]" />
+            </a>
           </div>
         </div>
       </div>
 
-      {/* 2. Main 2-Column Bento Command Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-        {/* LEFT COLUMN: Controls, Presets, Export & Filters (5 cols) */}
-        <div className="md:col-span-5 space-y-4">
-          {/* Card 1: Presets & 1-Click Action */}
-          <div className="rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-4 sm:p-5 space-y-4 shadow-sm transition-colors duration-200">
-            <div className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#2AABEE]" />
-              <span>Быстрые пресеты</span>
-            </div>
-
-            {/* Presets Grid */}
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: 'anti-tspu', name: '🛡️ Анти-ТСПУ', desc: 'MTProto Fake-TLS' },
-                { id: 'turbo', name: '⚡ Турбо-Пинг', desc: '< 200 ms' },
-                { id: 'socks5', name: '🧦 SOCKS5', desc: 'DC Tunnel' },
-                { id: 'all', name: '🌐 Все узлы', desc: 'Полный срез' },
-              ].map((item) => {
-                const isActive = activePreset === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleSelectPreset(item.id as any)}
-                    className="relative p-2.5 sm:p-3 rounded-2xl text-left border border-[var(--border-main)] transition-colors overflow-hidden cursor-pointer"
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="tg-preset-active-indicator"
-                        className="absolute inset-0 bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] shadow-md"
-                        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-                      />
-                    )}
-                    <div className="relative z-10">
-                      <div
-                        className={`text-xs font-bold font-mono transition-colors ${
-                          isActive ? 'text-white' : 'text-[var(--text-main)]'
-                        }`}
-                      >
-                        {item.name}
-                      </div>
-                      <div
-                        className={`text-[10px] font-mono mt-0.5 transition-colors ${
-                          isActive ? 'text-white/80' : 'text-[var(--text-muted)]'
-                        }`}
-                      >
-                        {item.desc}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Big Action Button */}
-            <div className="w-full flex items-stretch gap-1.5 pt-1">
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleConnectFastest}
-                className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] text-white font-bold text-sm font-mono flex items-center justify-center gap-2 shadow-lg shadow-sky-600/25 cursor-pointer"
-              >
-                <Send className="w-4 h-4 fill-current" />
-                <span>Подключить лучший ({displayList.length})</span>
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.96 }}
-                onClick={handleCopyAll}
-                title="Скопировать все ссылки"
-                className="px-3.5 rounded-2xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-[var(--text-main)] border border-[var(--border-main)] flex items-center justify-center cursor-pointer"
-              >
-                <Copy className="w-4 h-4" />
-              </motion.button>
-            </div>
-
-            {/* Quick Action Pills */}
-            <div className="grid grid-cols-3 gap-1.5 pt-1">
-              <button
-                onClick={handleConnectFastest}
-                className="py-2 px-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-mono font-medium text-[var(--text-main)] flex items-center justify-center gap-1 transition-colors cursor-pointer"
-              >
-                <span>📱 App</span>
-              </button>
-              <button
-                onClick={() => {
-                  if (displayList.length > 0) onOpenQr(displayList[0].tg_link);
-                }}
-                className="py-2 px-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-mono font-medium text-[var(--text-main)] flex items-center justify-center gap-1 transition-colors cursor-pointer"
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                <span>QR</span>
-              </button>
-              <a
-                href="https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/tg/mtproto.txt"
-                download
-                className="py-2 px-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-main)] text-[11px] font-mono font-medium text-[var(--text-main)] flex items-center justify-center gap-1 transition-colors cursor-pointer text-center"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>.txt</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Card 2: Interactive M3 Ping Slider & Fine Tuning */}
-          <div className="rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-4 sm:p-5 space-y-4 shadow-sm transition-colors duration-200">
-            {/* Ping Slider Section */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                  <span>Регулятор пинга</span>
-                </span>
-                <span className="text-[#2AABEE] font-bold">
-                  {maxPing > 0 ? `< ${maxPing} ms` : 'Все серверы'}
-                </span>
-              </div>
-
-              {/* M3 Interactive Ping Buttons */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                {PING_STEPS.map((step) => {
-                  const isSelected = maxPing === step.val;
-                  return (
-                    <motion.button
-                      key={step.val}
-                      onClick={() => setMaxPing(step.val)}
-                      whileHover={{ y: -1, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="button"
-                      className={`relative p-2.5 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-center border transition-colors cursor-pointer overflow-hidden select-none shadow-xs ${
-                        isSelected
-                          ? 'bg-[var(--bg-app)] border-[#2AABEE] shadow-[0_0_12px_rgba(42,171,238,0.22)]'
-                          : 'bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] border-[var(--border-main)]'
-                      }`}
-                    >
-                      {isSelected && (
-                        <motion.div
-                          layoutId="tg-ping-indicator"
-                          className="absolute inset-0 bg-[#2AABEE]/15 rounded-2xl border border-[#2AABEE]"
-                          transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-                        />
-                      )}
-                      <div className="relative z-10 flex items-center gap-1 font-display text-[11px] font-bold text-[var(--text-main)]">
-                        <span style={{ color: step.color }}>{step.icon}</span>
-                        <span>{step.label}</span>
-                      </div>
-                      <span className="relative z-10 text-[9px] font-mono text-[var(--text-muted)]">
-                        {step.desc}
-                      </span>
-                      <M3Ripple color={step.color} />
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Protocol Chips */}
-            <div className="space-y-2 pt-2 border-t border-[var(--border-main)]">
-              <div className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#2AABEE]" />
-                <span>Протокол</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {(['all', 'mtproto', 'socks5'] as const).map((proto) => {
-                  const isActive = selectedProto === proto;
-                  const label = proto === 'all' ? 'Все' : proto === 'mtproto' ? '🛡️ Fake-TLS' : '🧦 SOCKS5';
-                  const count = proto === 'all' ? proxies.length : stats[`total_${proto}` as keyof typeof stats];
-                  return (
-                    <button
-                      key={proto}
-                      onClick={() => setSelectedProto(proto)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer ${
-                        isActive
-                          ? 'bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] text-white font-semibold shadow-xs'
-                          : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)]'
-                      }`}
-                    >
-                      <span>{label}</span>
-                      <span className="opacity-80 text-[10px]">{count}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Country Filter Chips */}
-            <div className="space-y-2 pt-2 border-t border-[var(--border-main)]">
-              <div className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#E08244]" />
-                <span>Геолокация</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+      {/* 2. Filter & Navigation Deck */}
+      <div className="rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-4 sm:p-5 space-y-3.5 shadow-sm transition-colors duration-200">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          {/* Tabs: MTProto Fake-TLS vs SOCKS5 vs Low Ping */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-[var(--bg-app)] p-1 rounded-2xl border border-[var(--border-main)] select-none">
+            {[
+              { id: 'all', label: 'Все прокси', count: proxies.length },
+              { id: 'faketls', label: '🛡️ Fake-TLS', count: proxies.filter((p) => p.secret?.toLowerCase().startsWith('ee')).length },
+              { id: 'mtproto', label: '🔒 MTProto', count: stats.total_mtproto || proxies.filter((p) => p.proto === 'mtproto').length },
+              { id: 'socks5', label: '🧦 SOCKS5', count: stats.total_socks5 || proxies.filter((p) => p.proto === 'socks5').length },
+              { id: 'lowping', label: '⚡ < 120 ms', count: proxies.filter((p) => p.ping_ms <= 120).length },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
                 <button
-                  onClick={() => setSelectedCountry('all')}
-                  className={`px-3 py-1 rounded-full text-xs font-mono transition-all cursor-pointer ${
-                    selectedCountry === 'all'
-                      ? 'bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] text-white font-semibold'
-                      : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)]'
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`relative px-3 py-1.5 rounded-xl text-xs font-display font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    isActive ? 'text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
                   }`}
                 >
-                  Все страны
+                  {isActive && (
+                    <motion.div
+                      layoutId="tg-tab-active-pill"
+                      className="absolute inset-0 bg-gradient-to-r from-[#2481CC] to-[#2AABEE] rounded-xl shadow-xs"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10">{tab.label}</span>
+                  <span className={`relative z-10 text-[10px] font-mono ${isActive ? 'text-white/80' : 'opacity-60'}`}>
+                    {tab.count}
+                  </span>
                 </button>
-                {countryCounts.map(([code, count]) => {
-                  const isSelected = selectedCountry === code;
-                  return (
-                    <button
-                      key={code}
-                      onClick={() => setSelectedCountry(code)}
-                      className={`px-3 py-1 rounded-full text-xs font-mono transition-all flex items-center gap-1.5 cursor-pointer ${
-                        isSelected
-                          ? 'bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] text-white font-semibold'
-                          : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)]'
-                      }`}
-                    >
-                      <CountryFlag countryCode={code} className="w-3.5 h-2.5 rounded-xs" />
-                      <span>{code === 'GLOBAL' ? 'Серверы' : code}</span>
-                      <span className="opacity-80 text-[10px]">{count}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+              );
+            })}
+          </div>
 
-            {/* Limit Selector */}
-            <div className="flex items-center justify-between pt-2 border-t border-[var(--border-main)] text-xs font-mono">
-              <span className="text-[var(--text-muted)]">Лимит выдачи:</span>
-              <div className="flex items-center gap-1 bg-[var(--bg-app)] p-1 rounded-xl border border-[var(--border-main)]">
-                {[20, 50, 100, 0].map((lim) => {
-                  const isActive = limit === lim;
-                  return (
-                    <button
-                      key={lim}
-                      onClick={() => setLimit(lim)}
-                      className={`relative px-2 py-0.5 rounded-lg transition-colors cursor-pointer ${
-                        isActive ? 'text-white font-bold' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                      }`}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="tg-limit-active-pill"
-                          className="absolute inset-0 bg-[#2481CC] rounded-lg"
-                          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                        />
+          {/* Quick Search */}
+          <div className="relative w-full md:w-56">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+            <input
+              type="text"
+              placeholder="Поиск по IP / SNI домену..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8.5 pr-3 py-1.5 rounded-xl bg-[var(--bg-app)] border border-[var(--border-main)] text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[#2AABEE]/60 transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Country Flags Row */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 scrollbar-none text-xs font-mono">
+          <span className="text-[var(--text-muted)] text-[11px] shrink-0 mr-1">Страны:</span>
+          <button
+            onClick={() => setSelectedCountry('all')}
+            className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer shrink-0 ${
+              selectedCountry === 'all'
+                ? 'bg-[#2481CC] text-white font-bold'
+                : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)]'
+            }`}
+          >
+            Все
+          </button>
+          {countryCounts.map(([code, count]) => {
+            const isSelected = selectedCountry === code;
+            return (
+              <button
+                key={code}
+                onClick={() => setSelectedCountry(code)}
+                className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shrink-0 ${
+                  isSelected
+                    ? 'bg-[#2481CC] text-white font-bold'
+                    : 'bg-[var(--bg-app)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)]'
+                }`}
+              >
+                <CountryFlag countryCode={code} className="w-3.5 h-2.5 rounded-xs" />
+                <span>{code === 'GLOBAL' ? 'Серверы' : code}</span>
+                <span className="opacity-70 text-[10px]">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. Pure Telegram Proxy List */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between px-2 text-xs font-mono text-[var(--text-muted)]">
+          <span>Найдено серверов: <strong className="text-[var(--text-main)]">{filteredProxies.length}</strong></span>
+          <span>Автопроверка пинга каждые 2 часа</span>
+        </div>
+
+        {filteredProxies.length === 0 ? (
+          <div className="rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-12 text-center text-xs font-mono text-[var(--text-muted)]">
+            {isLoading ? 'Загрузка проверенных прокси...' : 'Нет прокси под выбранные фильтры.'}
+          </div>
+        ) : (
+          filteredProxies.map((p, idx) => {
+            const { domain, type: secretType } = extractTlsDomain(p.secret);
+            const isFakeTls = p.proto === 'mtproto' && secretType === 'faketls';
+            const isSocks = p.proto === 'socks5';
+            const pingColor = p.ping_ms < 100 ? 'text-[#10B981]' : p.ping_ms < 250 ? 'text-[#2AABEE]' : 'text-[#E08244]';
+            const pingBg = p.ping_ms < 100 ? 'bg-[#10B981]' : p.ping_ms < 250 ? 'bg-[#2AABEE]' : 'bg-[#E08244]';
+            const cardId = `${p.server}-${p.port}-${idx}`;
+            const isCopied = copiedId === cardId;
+
+            return (
+              <motion.div
+                key={cardId}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.15, delay: Math.min(idx * 0.015, 0.2) }}
+                className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-main)] p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-[#2AABEE]/40 transition-colors shadow-xs group"
+              >
+                {/* Left Info: Host, SNI domain, Flag, Ping */}
+                <div className="flex items-start sm:items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-[var(--bg-app)] border border-[var(--border-main)] flex items-center justify-center text-[#2AABEE] shrink-0 mt-0.5 sm:mt-0 font-mono text-xs font-bold">
+                    {idx + 1}
+                  </div>
+
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-sm font-bold text-[var(--text-main)] truncate">
+                        {p.server}:{p.port}
+                      </span>
+
+                      {/* Protocol Badge */}
+                      {isFakeTls ? (
+                        <span className="px-2 py-0.5 rounded-full bg-[#10B981]/15 text-[#10B981] text-[10px] font-mono font-bold flex items-center gap-1">
+                          <Shield className="w-2.5 h-2.5" />
+                          <span>Fake-TLS</span>
+                        </span>
+                      ) : isSocks ? (
+                        <span className="px-2 py-0.5 rounded-full bg-[#E08244]/15 text-[#E08244] text-[10px] font-mono font-bold">
+                          SOCKS5
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-[#2AABEE]/15 text-[#2AABEE] text-[10px] font-mono font-bold">
+                          MTProto
+                        </span>
                       )}
-                      <span className="relative z-10">{lim === 0 ? 'Все' : lim}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* RIGHT COLUMN: Live Telemetry Stream (7 cols) */}
-        <div className="md:col-span-7 rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] p-4 sm:p-5 space-y-3.5 shadow-sm transition-colors duration-200">
-          {/* Stream Header & Search */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-[var(--border-main)]">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-pulse" />
-              <span className="font-display font-bold text-sm text-[var(--text-main)]">Телеметрия узлов</span>
-              <span className="text-xs text-[var(--text-muted)] font-mono">
-                ({displayList.length} из {proxies.length})
-              </span>
-            </div>
+                      {/* SNI Masking Domain Badge (e.g. apple.com, cloudflare.com) */}
+                      {domain && (
+                        <span className="px-2 py-0.5 rounded-md bg-[var(--bg-app)] border border-[var(--border-main)] text-[10px] font-mono text-[var(--text-muted)] flex items-center gap-1">
+                          <Lock className="w-2.5 h-2.5 text-[#2AABEE]" />
+                          <span>tls: {domain}</span>
+                        </span>
+                      )}
+                    </div>
 
-            {/* Quick Search */}
-            <div className="relative w-full sm:w-48">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-              <input
-                type="text"
-                placeholder="Поиск по IP / стране..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-2.5 py-1 rounded-xl bg-[var(--bg-app)] border border-[var(--border-main)] text-xs font-mono text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[#2AABEE]/50 transition-colors"
-              />
-            </div>
-          </div>
+                    <div className="flex items-center gap-3 text-xs font-mono text-[var(--text-muted)]">
+                      <span className="flex items-center gap-1.5">
+                        <CountryFlag countryCode={p.country || 'GLOBAL'} className="w-3.5 h-2.5 rounded-xs" />
+                        <span>{p.country_label || p.country || '🌐 Сервер'}</span>
+                      </span>
 
-          {/* Node Cards Stream */}
-          <div className="space-y-2 max-h-[580px] overflow-y-auto pr-1">
-            {displayList.length === 0 ? (
-              <div className="py-16 text-center text-[var(--text-muted)] text-xs font-mono">
-                {isLoading ? 'Загрузка проверенных прокси...' : 'Нет узлов под выбранные фильтры.'}
-              </div>
-            ) : (
-              displayList.map((p, idx) => {
-                const pingColor =
-                  p.ping_ms < 200 ? 'text-[#10B981]' : p.ping_ms < 350 ? 'text-[#E08244]' : 'text-[#EF4444]';
-                const pingBg =
-                  p.ping_ms < 200 ? 'bg-[#10B981]' : p.ping_ms < 350 ? 'bg-[#E08244]' : 'bg-[#EF4444]';
-                const protoLabel = p.proto === 'mtproto' ? 'Fake-TLS' : 'SOCKS5';
-                const hostDisplay = `${p.server}:${p.port}`;
+                      <span className={`flex items-center gap-1 ${pingColor} font-bold`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${pingBg}`} />
+                        {Math.round(p.ping_ms)} ms
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-                return (
-                  <motion.div
-                    key={`${p.server}-${p.port}-${idx}`}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.15, delay: Math.min(idx * 0.015, 0.25) }}
-                    className="bg-[var(--bg-app)] border border-[var(--border-main)] rounded-2xl p-3 flex items-center justify-between gap-3 hover:border-[#2AABEE]/40 transition-colors group"
+                {/* Right Action Buttons */}
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <a
+                    href={p.tg_link}
+                    className="py-2 px-3.5 rounded-xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] text-white font-display text-xs font-bold flex items-center gap-1.5 shadow-xs hover:opacity-95 active:scale-95 transition-all cursor-pointer"
                   >
-                    {/* Left: Index + Info */}
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-6 h-6 rounded-lg bg-[#2481CC]/15 text-[#2AABEE] flex items-center justify-center font-bold text-[11px] font-mono shrink-0">
-                        {idx + 1}
-                      </div>
+                    <span>Подключить</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
 
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs sm:text-sm font-bold text-[var(--text-main)] truncate">
-                            {hostDisplay}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded-md bg-[#2AABEE]/15 text-[#2AABEE] text-[9px] font-mono font-bold shrink-0">
-                            {protoLabel}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-[10px] font-mono text-[var(--text-muted)]">
-                          <span className="flex items-center gap-1 shrink-0">
-                            <CountryFlag countryCode={p.country || 'GLOBAL'} className="w-3 h-2 rounded-xs" />
-                            <span>{p.country_label || p.country || '🌐 Сервер'}</span>
-                          </span>
-
-                          <span className={`flex items-center gap-1 ${pingColor} font-bold shrink-0`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${pingBg}`} />
-                            {Math.round(p.ping_ms)} ms
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: Actions */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <a
-                        href={p.tg_link}
-                        className="px-3 py-1.5 rounded-xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] text-white text-xs font-mono font-bold flex items-center gap-1 hover:opacity-95 transition-opacity cursor-pointer shadow-xs"
-                      >
-                        <span>Подключить</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </a>
-
-                      <button
-                        onClick={() => handleCopySingle(p.tg_link)}
-                        title="Скопировать ссылку"
-                        className="p-1.5 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-white border border-[var(--border-main)] transition-colors cursor-pointer"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </motion.div>
-                );
-              })
-            )}
-          </div>
-        </div>
+                  <button
+                    onClick={() => handleCopySingle(p.tg_link, cardId)}
+                    title="Скопировать ссылку"
+                    className="p-2 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)] transition-colors cursor-pointer"
+                  >
+                    {isCopied ? <Check className="w-3.5 h-3.5 text-[#10B981]" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })
+        )}
       </div>
     </div>
   );
