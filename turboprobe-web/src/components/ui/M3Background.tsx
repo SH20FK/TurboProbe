@@ -101,7 +101,11 @@ const MorphingFigure: React.FC<MorphingFigureProps> = ({
         }}
         className="w-full h-full"
       >
-        <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+        <svg
+          viewBox="0 0 100 100"
+          className="w-full h-full overflow-visible"
+          style={{ filter: 'drop-shadow(0 0 28px rgba(194, 94, 48, 0.20))' }}
+        >
           <path
             d={pathD}
             style={{
