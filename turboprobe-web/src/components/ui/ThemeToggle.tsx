@@ -20,16 +20,14 @@ export const AnimatedThemeToggle: React.FC<AnimatedThemeToggleProps> = ({ classN
 
   const toast = useToast();
 
-  const toggleTheme = () => {
-    const nextDark = !isDark;
-    setIsDark(nextDark);
+  const applyThemeClasses = (darkMode: boolean) => {
     try {
-      localStorage.setItem('turboprobe_theme', nextDark ? 'dark' : 'light');
+      localStorage.setItem('turboprobe_theme', darkMode ? 'dark' : 'light');
     } catch {
       // ignore
     }
 
-    if (nextDark) {
+    if (darkMode) {
       document.documentElement.classList.add('dark');
       document.documentElement.classList.remove('light');
       toast.info('Темная тема', 'Включен ночной режим');
@@ -38,6 +36,51 @@ export const AnimatedThemeToggle: React.FC<AnimatedThemeToggleProps> = ({ classN
       document.documentElement.classList.remove('dark');
       toast.info('Светлая тема', 'Включен дневной режим');
     }
+  };
+
+  const toggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const nextDark = !isDark;
+
+    // 1. Check for native View Transitions API support (MagicUI Animated Theme Toggler)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (typeof (document as any).startViewTransition !== 'function') {
+      setIsDark(nextDark);
+      applyThemeClasses(nextDark);
+      return;
+    }
+
+    const x = e.clientX;
+    const y = e.clientY;
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const transition = (document as any).startViewTransition(() => {
+      setIsDark(nextDark);
+      applyThemeClasses(nextDark);
+    });
+
+    transition.ready.then(() => {
+      const clipPath = [
+        `circle(0px at ${x}px ${y}px)`,
+        `circle(${endRadius}px at ${x}px ${y}px)`,
+      ];
+
+      document.documentElement.animate(
+        {
+          clipPath: nextDark ? clipPath : [...clipPath].reverse(),
+        },
+        {
+          duration: 500,
+          easing: 'cubic-bezier(0.2, 0.0, 0.0, 1.0)',
+          pseudoElement: nextDark
+            ? '::view-transition-new(root)'
+            : '::view-transition-old(root)',
+        }
+      );
+    });
   };
 
   useEffect(() => {

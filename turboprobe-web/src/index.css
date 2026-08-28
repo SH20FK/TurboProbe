@@ -55,7 +55,7 @@ html, body {
   padding: 0;
   min-height: 100vh;
   overflow-x: hidden;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 .font-display {
@@ -68,6 +68,29 @@ html, body {
 
 .font-mono {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* MagicUI Animated Theme Toggler View Transition Rules */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+.dark::view-transition-old(root) {
+  z-index: 9999;
+}
+
+.dark::view-transition-new(root) {
+  z-index: 1;
 }
 
 /* Material Ripple Keyframe Animation */
