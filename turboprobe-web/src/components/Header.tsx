@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { ShieldCheck, Zap, RefreshCw } from 'lucide-react';
 
 interface HeaderProps {
@@ -37,30 +38,41 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <div className="w-full select-none">
-      {/* Clean Dark Hero Card */}
+      {/* Clean Dark Hero Card with Micro-Interactions */}
       <div className="relative rounded-3xl bg-[#1D1B20] border border-[#49454F]/30 p-6 sm:p-8 shadow-xl overflow-hidden flex flex-col items-center text-center">
-        {/* Top Status Badge */}
+        {/* Top Status Badge with Live Radar Pulse */}
         <div className="w-full flex items-center justify-between mb-5">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#2B2930] text-[#CAC4D0] border border-[#49454F]/30 text-xs font-mono">
-            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-            <span className="font-medium tracking-tight">RADAR ACTIVE • 6H SYNC</span>
-          </div>
+          <motion.div
+            whileHover={{ scale: 1.03 }}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#2B2930] text-[#CAC4D0] border border-[#49454F]/30 text-xs font-mono shadow-xs cursor-default"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7BE08F] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7BE08F]" />
+            </span>
+            <span className="font-semibold tracking-tight">RADAR ACTIVE • 6H SYNC</span>
+          </motion.div>
 
-          <div className="text-xs font-mono text-[#938F99]">
+          <div className="text-xs font-mono text-[#938F99] px-2.5 py-1 rounded-full bg-[#2B2930]/60 border border-[#49454F]/20">
             v2.4.0
           </div>
         </div>
 
-        {/* Brand Logo */}
-        <div className="relative mb-4">
-          <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white p-2.5 shadow-lg flex items-center justify-center">
+        {/* Brand Logo with Tactile Micro-Hover */}
+        <motion.div
+          whileHover={{ scale: 1.08, rotate: 3 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+          className="relative mb-4 cursor-pointer"
+        >
+          <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-white p-2.5 shadow-xl flex items-center justify-center border border-white/20">
             <img
               src="./logo.svg"
               alt="TurboProbe"
               className="w-full h-full object-contain"
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Title */}
         <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-[#E6E0E9] m-0">
@@ -69,15 +81,19 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Subtitle */}
         <p className="font-body text-xs sm:text-sm md:text-base text-[#CAC4D0] mt-2.5 mb-6 max-w-lg leading-relaxed font-normal">
-          Суверенный генератор проверенных подписок VLESS Reality и Trojan с обходом ТСПУ
+          Суверенный генератор проверенных подписок <span className="text-white font-medium">VLESS Reality</span> и <span className="text-white font-medium">Trojan</span> с обходом ТСПУ
         </p>
 
-        {/* 3 Unified Stat Cards */}
+        {/* 3 Interactive Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full max-w-xl">
           {/* Stat 1: Total Configs */}
-          <div className="bg-[#2B2930] border border-[#49454F]/25 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs">
+          <motion.div
+            whileHover={{ y: -2, backgroundColor: '#36343B', borderColor: 'rgba(208,188,255,0.3)' }}
+            transition={{ duration: 0.15 }}
+            className="bg-[#2B2930] border border-[#49454F]/25 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
+          >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#10B981]" />
+              <ShieldCheck className="w-3.5 h-3.5 text-[#7BE08F]" />
               <span>Серверы онлайн</span>
             </div>
             <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">
@@ -87,12 +103,16 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="inline-block w-12 h-7 bg-white/10 rounded animate-pulse" />
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Stat 2: Best Ping */}
-          <div className="bg-[#2B2930] border border-[#49454F]/25 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs">
+          <motion.div
+            whileHover={{ y: -2, backgroundColor: '#36343B', borderColor: 'rgba(208,188,255,0.3)' }}
+            transition={{ duration: 0.15 }}
+            className="bg-[#2B2930] border border-[#49454F]/25 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
+          >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
-              <Zap className="w-3.5 h-3.5 text-[#10B981]" />
+              <Zap className="w-3.5 h-3.5 text-[#7BE08F]" />
               <span>Лучший пинг</span>
             </div>
             <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-white">
@@ -104,18 +124,22 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="inline-block w-12 h-7 bg-white/10 rounded animate-pulse" />
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Stat 3: Sync Time */}
-          <div className="bg-[#2B2930] border border-[#49454F]/25 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs">
+          <motion.div
+            whileHover={{ y: -2, backgroundColor: '#36343B', borderColor: 'rgba(208,188,255,0.3)' }}
+            transition={{ duration: 0.15 }}
+            className="bg-[#2B2930] border border-[#49454F]/25 p-3.5 rounded-2xl flex items-center justify-between sm:flex-col sm:justify-center sm:items-start gap-1 shadow-xs cursor-default"
+          >
             <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#938F99]">
-              <RefreshCw className="w-3.5 h-3.5 text-[#10B981]" />
+              <RefreshCw className="w-3.5 h-3.5 text-[#7BE08F]" />
               <span>Синхронизация</span>
             </div>
             <div className="font-mono text-xs sm:text-sm font-semibold tracking-tight text-white truncate w-full text-right sm:text-left mt-1">
               {updatedAt ? mskTime : <span className="inline-block w-20 h-5 bg-white/10 rounded animate-pulse" />}
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </div>

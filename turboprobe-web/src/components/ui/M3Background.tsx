@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect } from 'react';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
 
 export const M3_SHAPES = {
   // 4-Point Smooth Star (Pixel Clock / Android 15 Quick Settings)
@@ -16,11 +16,31 @@ export const M3_SHAPES = {
 };
 
 export const M3Background: React.FC = () => {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const springConfig = { damping: 40, stiffness: 100, mass: 1 };
+  const smoothX = useSpring(mouseX, springConfig);
+  const smoothY = useSpring(mouseY, springConfig);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const { innerWidth, innerHeight } = window;
+      const x = (e.clientX / innerWidth - 0.5) * 30;
+      const y = (e.clientY / innerHeight - 0.5) * 30;
+      mouseX.set(x);
+      mouseY.set(y);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [mouseX, mouseY]);
+
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 select-none">
       {/* 1. Subtle M3 Dot Matrix Grid with Radial Mask */}
       <div
-        className="absolute inset-0 opacity-[0.04]"
+        className="absolute inset-0 opacity-[0.045]"
         style={{
           backgroundImage: `radial-gradient(circle, #FFFFFF 1px, transparent 1px)`,
           backgroundSize: '28px 28px',
@@ -29,97 +49,99 @@ export const M3Background: React.FC = () => {
         }}
       />
 
-      {/* 2. Floating Outlined M3 Expressive Shapes (Android 15 / Pixel UI) */}
+      {/* 2. Interactive Parallax Floating Shapes */}
 
       {/* Shape 1: Top-Left Floating 4-leaf Clover */}
       <motion.div
-        animate={{
-          y: [-12, 12, -12],
-          rotate: [0, 8, -8, 0],
-        }}
-        transition={{
-          duration: 18,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
+        style={{ x: smoothX, y: smoothY }}
         className="absolute top-[8%] left-[5%] w-48 h-48 opacity-[0.045]"
       >
-        <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
-          <path d={M3_SHAPES.clover} />
-        </svg>
+        <motion.div
+          animate={{
+            y: [-12, 12, -12],
+            rotate: [0, 8, -8, 0],
+          }}
+          transition={{
+            duration: 18,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="w-full h-full"
+        >
+          <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
+            <path d={M3_SHAPES.clover} />
+          </svg>
+        </motion.div>
       </motion.div>
 
       {/* Shape 2: Top-Right Floating 4-Point Star */}
       <motion.div
-        animate={{
-          y: [12, -12, 12],
-          rotate: [0, -12, 12, 0],
-        }}
-        transition={{
-          duration: 22,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
+        style={{ x: smoothX, y: smoothY }}
         className="absolute top-[14%] right-[6%] w-40 h-40 opacity-[0.04]"
       >
-        <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
-          <path d={M3_SHAPES.star4} />
-        </svg>
+        <motion.div
+          animate={{
+            y: [12, -12, 12],
+            rotate: [0, -12, 12, 0],
+          }}
+          transition={{
+            duration: 22,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="w-full h-full"
+        >
+          <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
+            <path d={M3_SHAPES.star4} />
+          </svg>
+        </motion.div>
       </motion.div>
 
       {/* Shape 3: Mid-Left Floating Scallop Cookie */}
       <motion.div
-        animate={{
-          y: [-15, 15, -15],
-          rotate: [0, 15, 0],
-        }}
-        transition={{
-          duration: 25,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
+        style={{ x: smoothX, y: smoothY }}
         className="absolute top-[48%] -left-12 w-56 h-56 opacity-[0.035]"
       >
-        <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
-          <path d={M3_SHAPES.scallop8} />
-        </svg>
+        <motion.div
+          animate={{
+            y: [-15, 15, -15],
+            rotate: [0, 15, 0],
+          }}
+          transition={{
+            duration: 25,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="w-full h-full"
+        >
+          <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
+            <path d={M3_SHAPES.scallop8} />
+          </svg>
+        </motion.div>
       </motion.div>
 
       {/* Shape 4: Bottom-Right Floating Squircle */}
       <motion.div
-        animate={{
-          y: [15, -15, 15],
-          rotate: [0, -8, 8, 0],
-          scale: [1, 1.04, 1],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
+        style={{ x: smoothX, y: smoothY }}
         className="absolute bottom-[10%] right-[8%] w-52 h-52 opacity-[0.04]"
       >
-        <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
-          <path d={M3_SHAPES.squircle} />
-        </svg>
-      </motion.div>
-
-      {/* Shape 5: Center-Bottom Floating Star */}
-      <motion.div
-        animate={{
-          y: [-8, 8, -8],
-          rotate: [0, 10, -10, 0],
-        }}
-        transition={{
-          duration: 24,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="absolute bottom-[2%] left-[25%] w-36 h-36 opacity-[0.03]"
-      >
-        <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
-          <path d={M3_SHAPES.star4} />
-        </svg>
+        <motion.div
+          animate={{
+            y: [15, -15, 15],
+            rotate: [0, -8, 8, 0],
+            scale: [1, 1.04, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="w-full h-full"
+        >
+          <svg viewBox="0 0 100 100" className="w-full h-full stroke-white fill-none stroke-[1.2]">
+            <path d={M3_SHAPES.squircle} />
+          </svg>
+        </motion.div>
       </motion.div>
     </div>
   );

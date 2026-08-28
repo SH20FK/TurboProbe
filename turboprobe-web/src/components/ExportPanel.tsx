@@ -85,7 +85,7 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
 
   return (
     <div className="p-5 sm:p-6 rounded-[28px] bg-[#1D1B20] border border-[#49454F]/30 shadow-xl space-y-4">
-      {/* 1. Header with Server Limit Selector */}
+      {/* 1. Header with Sliding Spring Limit Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-full bg-[#2B2930] border border-white/5 flex items-center justify-center text-[#D0BCFF]">
@@ -101,9 +101,9 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
           </div>
         </div>
 
-        {/* M3 Segmented Limit Selector */}
-        <div className="flex items-center gap-1 bg-[#141218] p-1 rounded-full border border-[#49454F]/30 text-xs font-mono self-start sm:self-auto shadow-inner">
-          <span className="text-[#938F99] px-2 text-[10px] font-semibold uppercase">Лимит:</span>
+        {/* M3 Segmented Limit Selector with Sliding Pill */}
+        <div className="flex items-center gap-1 bg-[#141218] p-1 rounded-full border border-[#49454F]/30 text-xs font-mono self-start sm:self-auto shadow-inner relative">
+          <span className="text-[#938F99] px-2 text-[10px] font-semibold uppercase relative z-10">Лимит:</span>
           {[20, 50, 100, 0].map((lim) => {
             const isActive = selectedLimit === lim;
 
@@ -112,14 +112,19 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
                 key={lim}
                 onClick={() => onChangeLimit(lim)}
                 type="button"
-                className={`relative px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer select-none overflow-hidden ${
-                  isActive
-                    ? 'bg-[#4A4458] text-[#E8DEF8] shadow-xs'
-                    : 'text-[#CAC4D0] hover:text-white hover:bg-[#2B2930]'
+                className={`relative px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-150 cursor-pointer select-none overflow-hidden ${
+                  isActive ? 'text-[#EADDFF]' : 'text-[#CAC4D0] hover:text-white'
                 }`}
               >
-                {lim === 0 ? 'Все' : lim}
-                <M3Ripple />
+                {isActive && (
+                  <motion.div
+                    layoutId="limit-active-pill"
+                    className="absolute inset-0 bg-[#4F378B] rounded-full shadow-xs border border-[#D0BCFF]/30"
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  />
+                )}
+                <span className="relative z-10">{lim === 0 ? 'Все' : lim}</span>
+                <M3Ripple color="#D0BCFF" />
               </button>
             );
           })}
@@ -137,55 +142,63 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
         />
       </div>
 
-      {/* 3. Native App Import Grid */}
+      {/* 3. Native App Import Grid with Brand Hover Glow */}
       <div className="space-y-2 pt-2 border-t border-[#49454F]/25">
         <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#938F99]">
           Импорт в 1 клик в ваше приложение:
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {/* Happ */}
-          <button
+          <motion.button
             onClick={() => handleClientAction('happ', `happ://add/${subUrl}#TurboProbe`, subUrl)}
+            whileHover={{ y: -2, scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#38BDF8]/60 hover:shadow-[0_0_12px_rgba(56,189,248,0.2)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
           >
-            {copiedStatus === 'happ' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <HappIcon className="w-4 h-4 text-[#D0BCFF]" />}
+            {copiedStatus === 'happ' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <HappIcon className="w-4 h-4 text-[#38BDF8]" />}
             <span className="font-display font-semibold">Happ</span>
-            <M3Ripple />
-          </button>
+            <M3Ripple color="#38BDF8" />
+          </motion.button>
 
           {/* v2rayNG / v2rayN */}
-          <button
+          <motion.button
             onClick={() => handleClientAction('v2ray', `v2rayng://install-config?url=${encodeURIComponent(subUrl)}`, subUrl)}
+            whileHover={{ y: -2, scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#D0BCFF]/60 hover:shadow-[0_0_12px_rgba(208,188,255,0.2)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
           >
             {copiedStatus === 'v2ray' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <ExternalLink className="w-4 h-4 text-[#D0BCFF]" />}
             <span className="font-display font-semibold">v2rayNG / N</span>
-            <M3Ripple />
-          </button>
+            <M3Ripple color="#D0BCFF" />
+          </motion.button>
 
           {/* FlClash */}
-          <button
+          <motion.button
             onClick={() => handleClientAction('flclash', `flclash://install-config?url=${encodeURIComponent(clashSubUrl)}&name=TurboProbe`, clashSubUrl)}
+            whileHover={{ y: -2, scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#10B981]/60 hover:shadow-[0_0_12px_rgba(16,185,129,0.2)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
           >
-            {copiedStatus === 'flclash' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <FlClashIcon className="w-4 h-4 text-[#D0BCFF]" />}
+            {copiedStatus === 'flclash' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <FlClashIcon className="w-4 h-4 text-[#10B981]" />}
             <span className="font-display font-semibold">FlClash</span>
-            <M3Ripple />
-          </button>
+            <M3Ripple color="#10B981" />
+          </motion.button>
 
           {/* Sing-box */}
-          <button
+          <motion.button
             onClick={() => handleClientAction('singbox', `sing-box://import-remote-profile?url=${encodeURIComponent(subUrl)}#TurboProbe`, subUrl)}
+            whileHover={{ y: -2, scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
             type="button"
-            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
+            className="relative py-2.5 px-3 rounded-2xl bg-[#2B2930] hover:bg-[#36343B] border border-[#49454F]/20 hover:border-[#F59E0B]/60 hover:shadow-[0_0_12px_rgba(245,158,11,0.2)] text-[#E6E0E9] font-medium text-xs flex items-center justify-center gap-2 cursor-pointer transition-all overflow-hidden shadow-xs"
           >
-            {copiedStatus === 'singbox' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <ExternalLink className="w-4 h-4 text-[#D0BCFF]" />}
+            {copiedStatus === 'singbox' ? <Check className="w-4 h-4 text-[#7BE08F]" /> : <ExternalLink className="w-4 h-4 text-[#F59E0B]" />}
             <span className="font-display font-semibold">Sing-box</span>
-            <M3Ripple />
-          </button>
+            <M3Ripple color="#F59E0B" />
+          </motion.button>
         </div>
       </div>
 

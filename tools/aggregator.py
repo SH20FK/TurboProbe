@@ -678,6 +678,8 @@ def extract_uris_from_content(content: str) -> list:
 
     def append_if_basic_uri(candidate: str):
         candidate = str(candidate or "").strip()
+        if "&amp;" in candidate or "&#" in candidate:
+            candidate = html.unescape(candidate)
         if is_basic_proxy_uri(candidate):
             uris.append(candidate)
     
@@ -1430,7 +1432,7 @@ def main():
     if os.path.isfile(tg_feed_path):
         try:
             with open(tg_feed_path, "r", encoding="utf-8") as f:
-                tg_lines = [l.strip() for l in f if l.strip()]
+                tg_lines = [html.unescape(l.strip()) for l in f if l.strip()]
             if tg_lines:
                 all_uris.extend(tg_lines)
                 print(f"  📢 Loaded {len(tg_lines)} fresh direct keys from Telegram feed")
