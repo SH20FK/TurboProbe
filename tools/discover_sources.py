@@ -979,7 +979,11 @@ def main():
         results = []
 
         if httpx:
-            async with httpx.AsyncClient(timeout=8.0, limits=limits, verify=False) as client:
+            try:
+                client_ctx = httpx.AsyncClient(http2=True, timeout=8.0, limits=limits, verify=False)
+            except Exception:
+                client_ctx = httpx.AsyncClient(http2=False, timeout=8.0, limits=limits, verify=False)
+            async with client_ctx as client:
                 async def _task(identity, url):
                     prior = existing_by_identity.get(identity)
                     prior_rec = prior[1] if prior else {}
