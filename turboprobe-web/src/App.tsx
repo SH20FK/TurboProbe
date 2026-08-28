@@ -466,8 +466,9 @@ export default function App() {
   }, [allNodes, selectedServices, selectedCountries, selectedProtos, minHealth]);
 
   // Subscription URL Generation
-  const subUrl = useMemo(() => {    // Subscription URL Generation (Always points to valid GitHub Raw files)
+  const subUrl = useMemo(() => {
     const RAW_BASE = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
+    const WORKER_BASE = 'https://sub.turboprobe.workers.dev/sub';
 
     const hasServices = selectedServices.length > 0;
     const hasCountries = selectedCountries.length > 0;
@@ -484,7 +485,7 @@ export default function App() {
       return `${RAW_BASE}/services/youtube.txt`;
     }
 
-    // 2. Single Protocol shortcut
+    // 2. Single Protocol shortcut (Direct Raw Feed)
     if (hasProtos && selectedProtos.length === 1 && !hasServices && !hasCountries) {
       const p = selectedProtos[0].toLowerCase();
       if (p === 'reality') return `${RAW_BASE}/reality.txt`;
@@ -493,40 +494,37 @@ export default function App() {
       if (p === 'ss' || p === 'shadowsocks') return `${RAW_BASE}/shadowsocks.txt`;
     }
 
-    // 3. Single Country shortcut
+    // 3. Single Country shortcut (Direct Raw Feed)
     if (hasCountries && selectedCountries.length === 1 && !hasServices && !hasProtos) {
       const code = selectedCountries[0].toLowerCase();
       return `${RAW_BASE}/countries/${code}.txt`;
     }
 
-    // 4. Single Service shortcut
+    // 4. Single Service shortcut (Direct Raw Feed)
     if (hasServices && selectedServices.length === 1 && !hasCountries && !hasProtos) {
       const s = selectedServices[0].toLowerCase();
       return `${RAW_BASE}/services/${s}.txt`;
     }
 
-    // 5. Multi-filter prioritization (Always resolves to a guaranteed working raw feed)
-    if (hasProtos && selectedProtos.length === 1) {
-      const p = selectedProtos[0].toLowerCase();
-      if (p === 'reality') return `${RAW_BASE}/reality.txt`;
-      if (p === 'hy2' || p === 'hysteria2') return `${RAW_BASE}/hysteria2.txt`;
-      if (p === 'trojan') return `${RAW_BASE}/trojan.txt`;
-      if (p === 'ss' || p === 'shadowsocks') return `${RAW_BASE}/shadowsocks.txt`;
+    // 5. Preset "All" with Limit selector
+    if (activePreset === 'all' && !hasServices && !hasCountries && !hasProtos) {
+      if (selectedLimit === 20) return `${RAW_BASE}/top20.txt`;
+      if (selectedLimit === 50) return `${RAW_BASE}/top50.txt`;
+      return `${RAW_BASE}/all.txt`;
     }
 
-    if (hasCountries && selectedCountries.length === 1) {
-      const code = selectedCountries[0].toLowerCase();
-      return `${RAW_BASE}/countries/${code}.txt`;
+    // 6. Custom Multi-filter combination (Live Cloudflare Edge Worker API)
+    const params = new URLSearchParams();
+    if (hasServices) params.set('services', selectedServices.join(','));
+    if (hasCountries) params.set('country', selectedCountries.join(','));
+    if (hasProtos) params.set('proto', selectedProtos.join(','));
+    if (selectedLimit > 0) params.set('limit', String(selectedLimit));
+
+    const qs = params.toString();
+    if (qs) {
+      return `${WORKER_BASE}?${qs}`;
     }
 
-    if (hasServices && selectedServices.length === 1) {
-      const s = selectedServices[0].toLowerCase();
-      return `${RAW_BASE}/services/${s}.txt`;
-    }
-
-    // 6. Default all with limit
-    if (selectedLimit === 20) return `${RAW_BASE}/top20.txt`;
-    if (selectedLimit === 50) return `${RAW_BASE}/top50.txt`;
     return `${RAW_BASE}/all.txt`;
   }, [activePreset, selectedServices, selectedCountries, selectedProtos, selectedLimit]);
 
