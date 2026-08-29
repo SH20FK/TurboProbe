@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Header } from './components/Header';
 import { FilterPanel } from './components/FilterPanel';
 import { ExportPanel } from './components/ExportPanel';
@@ -671,93 +671,79 @@ export default function App() {
           </div>
         </header>
 
-        {/* 2. Main Page Content */}
+        {/* 2. Main Page Content (Zero-Lag Persistent Views) */}
         <div className="relative z-10 flex-1 flex flex-col justify-start py-6 sm:py-8">
-          <AnimatePresence mode="wait" initial={false}>
-            {appMode === 'tg' ? (
-              <motion.div
-                key="tg-view"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4"
-              >
-                <TGProxyView
-                  onOpenQr={(url) => {
-                    setCustomQrUrl(url);
+          <div className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4">
+            {/* Telegram Proxy View */}
+            <div style={{ display: appMode === 'tg' ? 'block' : 'none' }}>
+              <TGProxyView
+                onOpenQr={(url) => {
+                  setCustomQrUrl(url);
+                  setIsQrOpen(true);
+                }}
+              />
+            </div>
+
+            {/* VPN Registry View */}
+            <div style={{ display: appMode === 'vpn' ? 'block' : 'none' }} className="space-y-4">
+              {/* Hero Header */}
+              <Header
+                totalConfigs={stats.total_nodes || allNodes.length}
+                bestPing={stats.best_ping_ms}
+                avgPing={stats.avg_ping_ms}
+                updatedAt={stats.updated_at}
+              />
+
+              {/* Main Controls */}
+              <main className="w-full space-y-4">
+                <FilterPanel
+                  activePreset={activePreset}
+                  onSelectPreset={handleSelectPreset}
+                  selectedServices={selectedServices}
+                  onToggleService={handleToggleService}
+                  selectedCountries={selectedCountries}
+                  onToggleCountry={handleToggleCountry}
+                  onClearCountries={handleClearCountries}
+                  selectedProtos={selectedProtos}
+                  onToggleProto={handleToggleProto}
+                  onClearProtos={handleClearProtos}
+                  countryCounts={countryCounts}
+                  protoCounts={protoCounts}
+                  maxPing={maxPing}
+                  onChangeMaxPing={handleChangeMaxPing}
+                />
+
+                <ExportPanel
+                  subUrl={subUrl}
+                  filteredCount={filteredNodes.length}
+                  selectedLimit={selectedLimit}
+                  onChangeLimit={setSelectedLimit}
+                  allFilteredKeys={allFilteredKeys}
+                  onOpenQr={() => {
+                    setCustomQrUrl('');
                     setIsQrOpen(true);
                   }}
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="vpn-view"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4"
-              >
-                {/* Hero Header */}
-                <Header
-                  totalConfigs={stats.total_nodes || allNodes.length}
-                  bestPing={stats.best_ping_ms}
-                  avgPing={stats.avg_ping_ms}
-                  updatedAt={stats.updated_at}
+                  onDownloadClash={handleDownloadClash}
                 />
 
-                {/* Main Controls */}
-                <main className="w-full space-y-4">
-                  <FilterPanel
-                    activePreset={activePreset}
-                    onSelectPreset={handleSelectPreset}
-                    selectedServices={selectedServices}
-                    onToggleService={handleToggleService}
-                    selectedCountries={selectedCountries}
-                    onToggleCountry={handleToggleCountry}
-                    onClearCountries={handleClearCountries}
-                    selectedProtos={selectedProtos}
-                    onToggleProto={handleToggleProto}
-                    onClearProtos={handleClearProtos}
-                    countryCounts={countryCounts}
-                    protoCounts={protoCounts}
-                    maxPing={maxPing}
-                    onChangeMaxPing={handleChangeMaxPing}
-                  />
+                <NodePreviewList
+                  nodes={filteredNodes}
+                  isLoading={isLoading}
+                  totalAvailable={filteredNodes.length}
+                />
+              </main>
 
-                  <ExportPanel
-                    subUrl={subUrl}
-                    filteredCount={filteredNodes.length}
-                    selectedLimit={selectedLimit}
-                    onChangeLimit={setSelectedLimit}
-                    allFilteredKeys={allFilteredKeys}
-                    onOpenQr={() => {
-                      setCustomQrUrl('');
-                      setIsQrOpen(true);
-                    }}
-                    onDownloadClash={handleDownloadClash}
-                  />
-
-                  <NodePreviewList
-                    nodes={filteredNodes}
-                    isLoading={isLoading}
-                    totalAvailable={filteredNodes.length}
-                  />
-                </main>
-
-                {/* Clean Footer */}
-                <footer className="w-full pt-8 pb-4 border-t border-[var(--border-main)] flex flex-col items-center justify-center text-center text-xs text-[var(--text-muted)] font-body space-y-1">
-                  <p className="m-0 font-display font-medium text-[var(--text-main)]">
-                    TurboProbe · Суверенный VPN-агрегатор
-                  </p>
-                  <p className="m-0 font-mono text-[11px]">
-                    Телеметрия VLESS Reality & Trojan • Обновление каждые 6 часов
-                  </p>
-                </footer>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              {/* Clean Footer */}
+              <footer className="w-full pt-8 pb-4 border-t border-[var(--border-main)] flex flex-col items-center justify-center text-center text-xs text-[var(--text-muted)] font-body space-y-1">
+                <p className="m-0 font-display font-medium text-[var(--text-main)]">
+                  TurboProbe · VPN-агрегатор
+                </p>
+                <p className="m-0 font-mono text-[11px]">
+                  Телеметрия VLESS Reality & Trojan • Обновление каждые 6 часов
+                </p>
+              </footer>
+            </div>
+          </div>
         </div>
 
         {/* QR Modal */}

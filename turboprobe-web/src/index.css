@@ -117,8 +117,8 @@
   color: #FFFFFF !important;
 }
 
-html, body {
-  background-color: var(--bg-app) !important;
+html, body, #root {
+  background-color: var(--bg-app);
   color: var(--text-main);
   font-family: var(--font-body, 'Onest', system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
@@ -127,6 +127,15 @@ html, body {
   padding: 0;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+header, footer, .theme-transition {
+  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .font-display {
