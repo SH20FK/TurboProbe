@@ -62,6 +62,24 @@ function extractTlsDomain(secret?: string | null): { domain: string | null; type
   return { domain: null, type: 'classic' };
 }
 
+const RU_WHITE_DOMAINS = new Set([
+  'vk.com', 'vk.ru', 'ya.ru', 'yandex.ru', 'yandex.com', 'yandex.net', '2gis.ru', '2gis.com',
+  'gosuslugi.ru', 'avito.ru', 'ozon.ru', 'wildberries.ru', 'wb.ru', 'rzd.ru', 'sber.ru',
+  'sberbank.ru', 'tinkoff.ru', 'tbank.ru', 'vtb.ru', 'alfabank.ru', 'dzen.ru', 'rutube.ru',
+  'mail.ru', 'ok.ru', 'kinopoisk.ru', 'mts.ru', 'beeline.ru', 'megafon.ru', 'tele2.ru',
+  'lemanapro.ru', 'hcaptcha.com', 'cloudflare.com', 'google.com'
+]);
+
+function isRussianWhiteSni(domain: string | null): boolean {
+  if (!domain) return false;
+  const d = domain.toLowerCase().trim();
+  if (RU_WHITE_DOMAINS.has(d)) return true;
+  for (const w of RU_WHITE_DOMAINS) {
+    if (d.endsWith('.' + w)) return true;
+  }
+  return false;
+}
+
 export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
   const toast = useToast();
 
@@ -476,6 +494,13 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
                         ) : (
                           <span className="px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-500 text-[10px] font-mono font-medium border border-sky-500/20">
                             {p.proto.toUpperCase()}
+                          </span>
+                        )}
+
+                        {isRussianWhiteSni(domain) && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-mono font-medium border border-amber-500/25">
+                            <ShieldCheck className="w-2.5 h-2.5" />
+                            Anti-DPI
                           </span>
                         )}
 

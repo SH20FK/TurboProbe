@@ -9,21 +9,21 @@ interface QrModalProps {
   subUrl: string;
 }
 
-// Telegram Center Icon (clean SVG on white circle)
+// Telegram Center Icon (clean SVG on white circle with thick plane)
 const TG_LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-    <circle cx="50" cy="50" r="48" fill="#FFFFFF"/>
-    <circle cx="50" cy="50" r="40" fill="#2481CC"/>
-    <path fill="#FFFFFF" d="M30 49.5l38-16c1.8-.8 3.6.5 3 2.4l-6.5 30.8c-.5 2.1-1.8 2.7-3.6 1.7L51 61l-4.8 4.6c-.6.6-1 .9-2 .9l.7-10.1 18.5-16.7c.8-.7-.2-1.1-1.2-.4L39.4 53.7 29.6 50.6c-2.1-.7-2.1-2.1.4-3.1z"/>
+    <circle cx="50" cy="50" r="49" fill="#FFFFFF"/>
+    <circle cx="50" cy="50" r="44" fill="#2481CC"/>
+    <path fill="#FFFFFF" d="M26 49.5l45-19c2.2-1 4.3.6 3.6 2.8L67.5 70c-.6 2.5-2.2 3.2-4.4 2L51 63.5l-5.8 5.6c-.8.8-1.2 1.1-2.4 1.1l.9-12.3 22.5-20.3c1-.9-.2-1.3-1.4-.6L37.2 54.6 25.3 50.8c-2.5-.9-2.5-2.5.4-3.7z"/>
   </svg>`
 )}`;
 
-// TurboProbe Key/Shield Center Icon (clean SVG on white circle)
+// TurboProbe Key/Shield Center Icon (clean SVG on white circle with thick shield)
 const VPN_LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-    <circle cx="50" cy="50" r="48" fill="#FFFFFF"/>
-    <circle cx="50" cy="50" r="40" fill="#C25E30"/>
-    <path fill="#FFFFFF" d="M50 26l20 7.5v17.5c0 12.9-8.5 24.6-20 27.5-11.5-2.9-20-14.6-20-27.5V33.5L50 26zm0 7.1L35 38.7v12.3c0 9.3 6.4 18 15 20.4 8.6-2.4 15-11.1 15-20.4V38.7L50 33.1z"/>
+    <circle cx="50" cy="50" r="49" fill="#FFFFFF"/>
+    <circle cx="50" cy="50" r="44" fill="#C25E30"/>
+    <path fill="#FFFFFF" d="M50 24l22 8.2v19.3c0 14.2-9.3 27-22 30.2-12.7-3.2-22-16-22-30.2V32.2L50 24zm0 7.8L33.5 38v13.5c0 10.2 7 19.8 16.5 22.4 9.5-2.6 16.5-12.2 16.5-22.4V38L50 31.8z"/>
   </svg>`
 )}`;
 
@@ -44,8 +44,8 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
     const qrColor = isTg ? '#132337' : '#1C1917';
 
     const qr = new QRCodeStyling({
-      width: 240,
-      height: 240,
+      width: 250,
+      height: 250,
       type: 'canvas',
       data: subUrl,
       image: isTg ? TG_LOGO_DATA_URI : VPN_LOGO_DATA_URI,
@@ -57,8 +57,8 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
       },
       imageOptions: {
         hideBackgroundDots: true,
-        imageSize: 0.38,
-        margin: 2,
+        imageSize: 0.44,
+        margin: 1,
         crossOrigin: 'anonymous',
       },
       dotsOptions: {
@@ -66,7 +66,7 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
         color: qrColor,
       },
       backgroundOptions: {
-        color: '#FFFFFF',
+        color: 'transparent',
       },
       cornersSquareOptions: {
         type: 'extra-rounded',
@@ -156,9 +156,9 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
                 : 'Отсканируйте камерой в приложении v2rayNG, Happ или FlClash'}
             </p>
 
-            {/* Ultra-Slim Border High-Contrast White QR Card */}
-            <div className="p-1 bg-white rounded-lg shadow-sm border border-slate-200/80 mb-3 flex items-center justify-center">
-              <div ref={qrRef} className="w-[240px] h-[240px] flex items-center justify-center overflow-hidden" />
+            {/* Tightest Minimal White Card with Zero Waste Borders */}
+            <div className="w-[236px] h-[236px] bg-white rounded-xl shadow-sm border border-slate-200/80 mb-3 flex items-center justify-center overflow-hidden">
+              <div ref={qrRef} className="w-[250px] h-[250px] scale-[1.04] flex items-center justify-center" />
             </div>
 
             {/* Sub URL Preview Pill */}
