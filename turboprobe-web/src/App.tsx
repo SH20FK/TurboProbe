@@ -11,8 +11,8 @@ import { generateClashMetaYaml } from './utils/clashExport';
 import { M3Background } from './components/ui/M3Background';
 import { ToastProvider } from './components/ui/M3Toast';
 import { AnimatedThemeToggle } from './components/ui/ThemeToggle';
-import { GitHubIcon } from './components/ServiceIcons';
-import { Shield, Send } from 'lucide-react';
+import { GitHubIcon, TelegramIcon } from './components/ServiceIcons';
+import { Shield } from 'lucide-react';
 import type { NodeItem, PresetItem } from './types';
 
 const GITHUB_RAW = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub';
@@ -596,7 +596,7 @@ export default function App() {
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {appMode === 'tg' ? (
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] p-1.5 shadow-md flex items-center justify-center text-white shrink-0">
-                <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
+                <TelegramIcon className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
               </div>
             ) : (
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white p-1 shadow-md flex items-center justify-center shrink-0">
@@ -646,7 +646,7 @@ export default function App() {
                   transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
               )}
-              <Send className="w-3 h-3 sm:w-3.5 sm:h-3.5 relative z-10 flex-shrink-0" />
+              <TelegramIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 flex-shrink-0" />
               <span className="relative z-10 font-display text-[11px] sm:text-xs font-semibold tracking-tight whitespace-nowrap">
                 <span className="hidden sm:inline">TG Прокси</span>
                 <span className="sm:hidden">Прокси</span>

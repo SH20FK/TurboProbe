@@ -1,17 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Send,
   Search,
   Copy,
   QrCode,
   Download,
   Check,
-  ExternalLink,
   Lock,
   X,
   ChevronDown,
   ShieldCheck,
-  Zap,
   Activity,
   Server,
   Sparkles,
@@ -19,6 +16,7 @@ import {
 import { useToast } from './ui/M3Toast';
 import { CountryFlag } from './CountryFlags';
 import { getCountryName } from '../constants';
+import { TelegramIcon } from './ServiceIcons';
 import type { TgProxyItem } from '../types';
 
 interface TGProxyViewProps {
@@ -236,7 +234,7 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
         <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3.5 text-center sm:text-left">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] p-3 flex items-center justify-center text-white shrink-0 shadow-[0_4px_16px_rgba(36,129,204,0.35)]">
-              <Send className="w-full h-full fill-current" />
+              <TelegramIcon className="w-full h-full fill-current" />
             </div>
             <div>
               <div className="flex items-center justify-center sm:justify-start gap-2">
@@ -278,7 +276,7 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
             onClick={handleConnectFastest}
             className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#2481CC] to-[#2AABEE] hover:brightness-105 active:scale-[0.99] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_2px_12px_rgba(36,129,204,0.3)] transition-all cursor-pointer select-none"
           >
-            <Zap className="w-4 h-4 fill-current" />
+            <TelegramIcon className="w-4 h-4 fill-current" />
             <span>Подключить лучший прокси (1 клик)</span>
           </button>
 
@@ -503,8 +501,8 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
                       href={p.tg_link}
                       className="py-1.5 px-3 rounded-xl bg-[#2481CC] hover:bg-[#1C72B8] text-white font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs select-none"
                     >
+                      <TelegramIcon className="w-3.5 h-3.5" />
                       <span>Подключить</span>
-                      <ExternalLink className="w-3 h-3" />
                     </a>
 
                     <button

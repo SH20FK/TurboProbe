@@ -86,3 +86,9 @@ export const SingBoxIcon = ({ className = 'w-4 h-4' }: { className?: string }) =
     <path d="M1543.41 1310.21C1399.82 1213.17 1058.79 986.752 1015.72 958L951.103 997.534 847 1069.41C911.615 1116.14 1270.59 1360.53 1363.92 1425.22 1371.1 1428.81 1371.1 1432.41 1371.1 1436L1547 1313.8C1547 1313.8 1547 1310.21 1543.41 1310.21Z" fill="#CCD6DD" fillRule="evenodd" />
   </svg>
 );
+// Official Telegram Vector Logo (authentic paper airplane in circle)
+export const TelegramIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.832.942z" />
+  </svg>
+);
