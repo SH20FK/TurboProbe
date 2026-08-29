@@ -1,39 +1,37 @@
 import React from 'react';
+import ReactCountryFlag from 'react-country-flag';
+import { Globe } from 'lucide-react';
 
 interface FlagProps {
   countryCode?: string;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-/**
- * Returns Unicode regional indicator emoji flag for ISO 3166-1 alpha-2 country codes.
- */
-export function getCountryFlagEmoji(countryCode?: string): string {
-  if (!countryCode || countryCode === 'all' || countryCode === 'global' || countryCode === 'un') {
-    return '🌐';
-  }
-  const code = countryCode.trim().toUpperCase();
-  if (code === 'UK') return '🇬🇧';
-  if (code.length !== 2) return '🌐';
+const CountryFlagComponent: React.FC<FlagProps> = ({ countryCode, className = '', style }) => {
+  const code = (countryCode || '').trim().toUpperCase();
 
-  try {
-    const codePoints = [...code].map((c) => 127397 + c.charCodeAt(0));
-    return String.fromCodePoint(...codePoints);
-  } catch {
-    return '🌐';
+  if (!code || code === 'ALL' || code === 'GLOBAL' || code === 'UN' || code.length !== 2) {
+    return <Globe className={`inline-block ${className}`} style={style} />;
   }
-}
 
-const CountryFlagComponent: React.FC<FlagProps> = ({ countryCode, className = '' }) => {
-  const emoji = getCountryFlagEmoji(countryCode);
+  const normalizedCode = code === 'UK' ? 'GB' : code;
+
   return (
-    <span
-      className={`inline-flex items-center justify-center select-none leading-none ${className}`}
-      aria-label={countryCode || 'global'}
-      role="img"
-    >
-      {emoji}
-    </span>
+    <ReactCountryFlag
+      countryCode={normalizedCode}
+      svg
+      className={`inline-block object-cover ${className}`}
+      style={{
+        width: '1.25em',
+        height: '0.95em',
+        verticalAlign: 'middle',
+        borderRadius: '2px',
+        ...style,
+      }}
+      title={normalizedCode}
+      aria-label={normalizedCode}
+    />
   );
 };
 
