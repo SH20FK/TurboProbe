@@ -13,7 +13,7 @@ interface QrModalProps {
 const TG_LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
     <circle cx="50" cy="50" r="48" fill="#FFFFFF"/>
-    <circle cx="50" cy="50" r="42" fill="#2481CC"/>
+    <circle cx="50" cy="50" r="40" fill="#2481CC"/>
     <path fill="#FFFFFF" d="M30 49.5l38-16c1.8-.8 3.6.5 3 2.4l-6.5 30.8c-.5 2.1-1.8 2.7-3.6 1.7L51 61l-4.8 4.6c-.6.6-1 .9-2 .9l.7-10.1 18.5-16.7c.8-.7-.2-1.1-1.2-.4L39.4 53.7 29.6 50.6c-2.1-.7-2.1-2.1.4-3.1z"/>
   </svg>`
 )}`;
@@ -22,7 +22,7 @@ const TG_LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
 const VPN_LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
     <circle cx="50" cy="50" r="48" fill="#FFFFFF"/>
-    <circle cx="50" cy="50" r="42" fill="#C25E30"/>
+    <circle cx="50" cy="50" r="40" fill="#C25E30"/>
     <path fill="#FFFFFF" d="M50 26l20 7.5v17.5c0 12.9-8.5 24.6-20 27.5-11.5-2.9-20-14.6-20-27.5V33.5L50 26zm0 7.1L35 38.7v12.3c0 9.3 6.4 18 15 20.4 8.6-2.4 15-11.1 15-20.4V38.7L50 33.1z"/>
   </svg>`
 )}`;
@@ -40,14 +40,16 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
   useEffect(() => {
     if (!isOpen || !subUrl) return;
 
-    // High-contrast, clean QR code parameters (Scans instantly on iOS/Android)
+    // Cohesive, clean single-tone QR code design
+    const qrColor = isTg ? '#132337' : '#1C1917';
+
     const qr = new QRCodeStyling({
-      width: 240,
-      height: 240,
+      width: 230,
+      height: 230,
       type: 'canvas',
       data: subUrl,
       image: isTg ? TG_LOGO_DATA_URI : VPN_LOGO_DATA_URI,
-      margin: 6,
+      margin: 4,
       qrOptions: {
         typeNumber: 0,
         mode: 'Byte',
@@ -55,24 +57,24 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
       },
       imageOptions: {
         hideBackgroundDots: true,
-        imageSize: 0.28,
+        imageSize: 0.3,
         margin: 4,
         crossOrigin: 'anonymous',
       },
       dotsOptions: {
         type: 'rounded',
-        color: isTg ? '#0B1E36' : '#1C1917',
+        color: qrColor,
       },
       backgroundOptions: {
         color: '#FFFFFF',
       },
       cornersSquareOptions: {
         type: 'extra-rounded',
-        color: isTg ? '#2481CC' : '#C25E30',
+        color: qrColor,
       },
       cornersDotOptions: {
         type: 'dot',
-        color: isTg ? '#2481CC' : '#C25E30',
+        color: qrColor,
       },
     });
 
@@ -100,6 +102,9 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
       });
     }
   };
+
+  // Truncated preview text
+  const previewText = subUrl.length > 42 ? `${subUrl.slice(0, 42)}...` : subUrl;
 
   return (
     <AnimatePresence>
@@ -147,13 +152,18 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
             </h3>
             <p className="font-body text-xs text-[var(--text-muted)] mt-1 mb-4 max-w-[260px]">
               {isTg
-                ? 'Отсканируйте камерой смартфона для подключения к прокси'
+                ? 'Отсканируйте камерой смартфона для автоматического подключения'
                 : 'Отсканируйте камерой в приложении v2rayNG, Happ или FlClash'}
             </p>
 
             {/* Crisp High-Contrast White QR Card */}
-            <div className="p-3 bg-white rounded-xl shadow-md border border-slate-200 mb-5 flex items-center justify-center">
-              <div ref={qrRef} className="w-[240px] h-[240px] flex items-center justify-center overflow-hidden" />
+            <div className="p-3.5 bg-white rounded-2xl shadow-sm border border-slate-200/80 mb-3 flex items-center justify-center">
+              <div ref={qrRef} className="w-[230px] h-[230px] flex items-center justify-center overflow-hidden" />
+            </div>
+
+            {/* Sub URL Preview Pill */}
+            <div className="w-full px-3 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-main)] text-[10px] font-mono text-[var(--text-muted)] truncate mb-4">
+              {previewText}
             </div>
 
             {/* Action Buttons */}
@@ -175,7 +185,7 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
                 ) : (
                   <>
                     <Copy className="w-4 h-4 text-white" />
-                    <span>Скопировать URL</span>
+                    <span>Скопировать ссылку</span>
                   </>
                 )}
               </button>
