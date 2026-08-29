@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -548,12 +549,84 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
     return alive
 
 
+def decode_faketls_sni(secret: Optional[str]) -> Optional[str]:
+    if not secret or not secret.startswith('ee'):
+        return None
+    try:
+        chars = []
+        for i in range(2, len(secret) - 1, 2):
+            v = int(secret[i:i+2], 16)
+            if v == 0:
+                break
+            if 32 <= v <= 126:
+                chars.append(chr(v))
+        domain = ''.join(chars).lower().strip()
+        return domain if '.' in domain else None
+    except Exception:
+        return None
+
+def save_tg_proxies_output(proxies: List[TGProxy]):
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sub_tg = os.path.join(root_dir, "sub", "tg")
+    docs_tg = os.path.join(root_dir, "docs", "tg")
+    docs_sub_tg = os.path.join(root_dir, "docs", "sub", "tg")
+    os.makedirs(sub_tg, exist_ok=True)
+    os.makedirs(docs_tg, exist_ok=True)
+    os.makedirs(docs_sub_tg, exist_ok=True)
+
+    items = []
+    for p in proxies:
+        domain = decode_faketls_sni(p.secret) if p.is_faketls else None
+        items.append({
+            "proto": p.proto,
+            "server": p.server,
+            "port": p.port,
+            "secret": p.secret,
+            "user": p.user,
+            "pass": p.password,
+            "is_faketls": p.is_faketls,
+            "is_white_sni": is_russian_white_sni(domain),
+            "sni_domain": domain,
+            "country": p.country,
+            "country_label": p.country_label,
+            "ping_ms": round(p.ping_ms, 1),
+            "tg_link": p.tg_link,
+            "https_link": p.https_link,
+        })
+
+    payload = {
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "total_online": len(items),
+        "proxies": items
+    }
+    json_bytes = json.dumps(payload, indent=2, ensure_ascii=False).encode('utf-8')
+
+    for pth in [os.path.join(sub_tg, "proxies.json"), os.path.join(docs_tg, "proxies.json"), os.path.join(docs_sub_tg, "proxies.json")]:
+        with open(pth, "wb") as f:
+            f.write(json_bytes)
+
+    # Sub text files
+    mtproto_links = [p.tg_link for p in proxies if p.proto == "mtproto"]
+    socks_links = [p.tg_link for p in proxies if p.proto == "socks5"]
+    top20_links = [p.tg_link for p in proxies[:20]]
+
+    with open(os.path.join(sub_tg, "mtproto.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(mtproto_links) + "\n")
+    with open(os.path.join(sub_tg, "socks5.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(socks_links) + "\n")
+    with open(os.path.join(sub_tg, "top20.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(top20_links) + "\n")
+    
+    print(f"💾 Saved {len(items)} verified proxies to docs/tg/proxies.json and sub/tg/ text subscriptions.", flush=True)
+
+
 def main():
     test_mode = "--test" in sys.argv
     limit = 500 if test_mode else 0
 
     t0 = time.time()
     proxies = asyncio.run(run_tg_harvest(test_limit=limit))
+    save_tg_proxies_output(proxies)
     elapsed = round(time.time() - t0, 2)
     print(f"🏁 Finished in {elapsed}s. Verified online proxies: {len(proxies)}")
 
