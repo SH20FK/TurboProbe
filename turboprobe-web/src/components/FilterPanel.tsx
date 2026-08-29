@@ -26,6 +26,7 @@ import {
   GitHubIcon,
 } from './ServiceIcons';
 import type { PresetItem } from '../types';
+import { getCountryName } from '../constants';
 
 interface FilterPanelProps {
   activePreset: string;
@@ -87,32 +88,12 @@ const PRESETS: PresetItem[] = [
   },
 ];
 
-const KNOWN_COUNTRIES: Record<string, string> = {
-  de: 'Германия',
-  nl: 'Нидерланды',
-  fi: 'Финляндия',
-  us: 'США',
-  pl: 'Польша',
-  se: 'Швеция',
-  gb: 'Великобритания',
-  fr: 'Франция',
-  at: 'Австрия',
-  ch: 'Швейцария',
-  jp: 'Япония',
-  sg: 'Сингапур',
-  kr: 'Корея',
-  kz: 'Казахстан',
-  tr: 'Турция',
-  in: 'Индия',
-  ca: 'Канада',
-  ru: 'Россия',
-  ee: 'Эстония',
-  cz: 'Чехия',
-};
-
 const ORDERED_COUNTRY_KEYS = [
-  'de', 'nl', 'fi', 'us', 'pl', 'se', 'gb', 'fr', 'at', 'ch',
-  'jp', 'sg', 'kr', 'kz', 'tr', 'in', 'ca', 'ru', 'ee', 'cz'
+  'ru', 'de', 'nl', 'fi', 'se', 'kz', 'tr', 'us', 'gb', 'fr',
+  'pl', 'at', 'ch', 'jp', 'sg', 'kr', 'in', 'ca', 'ee', 'cz',
+  'ua', 'by', 'ge', 'am', 'md', 'es', 'it', 'no', 'dk', 'bg',
+  'ro', 'gr', 'hk', 'au', 'ar', 'br', 'ae', 'il', 'th', 'vn',
+  'lt', 'lv', 'rs', 'pt', 'hu', 'ie', 'nz', 'za', 'mx', 'cl'
 ];
 
 const KNOWN_PROTOCOLS: Record<string, string> = {
@@ -204,13 +185,15 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
     const list = Array.from(presentCodes).map((code) => ({
       code,
-      label: KNOWN_COUNTRIES[code] || code.toUpperCase(),
+      label: getCountryName(code),
       count: countryCounts[code] || 0,
     }));
 
     return list.sort((a, b) => {
-      const idxA = ORDERED_COUNTRY_KEYS.indexOf(a.code);
-      const idxB = ORDERED_COUNTRY_KEYS.indexOf(b.code);
+      const normA = a.code.toLowerCase();
+      const normB = b.code.toLowerCase();
+      const idxA = ORDERED_COUNTRY_KEYS.indexOf(normA);
+      const idxB = ORDERED_COUNTRY_KEYS.indexOf(normB);
       if (idxA !== -1 && idxB !== -1) return idxA - idxB;
       if (idxA !== -1) return -1;
       if (idxB !== -1) return 1;
