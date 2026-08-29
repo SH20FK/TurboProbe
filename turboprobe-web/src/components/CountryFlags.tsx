@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactCountryFlag from 'react-country-flag';
+import * as Flags from 'country-flag-icons/react/3x2';
 import { Globe } from 'lucide-react';
 
 interface FlagProps {
@@ -8,29 +8,34 @@ interface FlagProps {
   style?: React.CSSProperties;
 }
 
-const CountryFlagComponent: React.FC<FlagProps> = ({ countryCode, className = '', style }) => {
-  const code = (countryCode || '').trim().toUpperCase();
+const CountryFlagComponent: React.FC<FlagProps> = ({
+  countryCode,
+  className = 'w-4 h-3 rounded-xs',
+  style,
+}) => {
+  const rawCode = (countryCode || '').trim().toUpperCase();
 
-  if (!code || code === 'ALL' || code === 'GLOBAL' || code === 'UN' || code.length !== 2) {
-    return <Globe className={`inline-block ${className}`} style={style} />;
+  if (!rawCode || rawCode === 'ALL' || rawCode === 'GLOBAL' || rawCode === 'UN') {
+    return <Globe className={`inline-block shrink-0 ${className}`} style={style} />;
   }
 
-  const normalizedCode = code === 'UK' ? 'GB' : code;
+  const code = rawCode === 'UK' ? 'GB' : rawCode;
+  const FlagComponent = (
+    Flags as Record<
+      string,
+      React.ComponentType<{ className?: string; style?: React.CSSProperties; title?: string }>
+    >
+  )[code];
+
+  if (!FlagComponent) {
+    return <Globe className={`inline-block shrink-0 ${className}`} style={style} />;
+  }
 
   return (
-    <ReactCountryFlag
-      countryCode={normalizedCode}
-      svg
-      className={`inline-block object-cover ${className}`}
-      style={{
-        width: '1.25em',
-        height: '0.95em',
-        verticalAlign: 'middle',
-        borderRadius: '2px',
-        ...style,
-      }}
-      title={normalizedCode}
-      aria-label={normalizedCode}
+    <FlagComponent
+      className={`inline-block object-cover shrink-0 shadow-xs rounded-[2px] ${className}`}
+      style={style}
+      title={code}
     />
   );
 };
