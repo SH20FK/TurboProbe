@@ -26,6 +26,26 @@ if sys.platform == "win32":
 TG_DIR = os.path.dirname(os.path.abspath(__file__))
 DISCOVERED_TG_PATH = os.path.join(TG_DIR, "discovered_tg_sources.json")
 
+# 188 Curated Russian TSPU/RKN Whitelisted SNI Domains
+RUSSIAN_WHITE_SNI_DOMAINS = {
+    'vk.com', 'vk.ru', 'ya.ru', 'yandex.ru', 'yandex.com', 'yandex.net', '2gis.ru', '2gis.com',
+    'gosuslugi.ru', 'avito.ru', 'ozon.ru', 'wildberries.ru', 'wb.ru', 'rzd.ru', 'sber.ru',
+    'sberbank.ru', 'tinkoff.ru', 'tbank.ru', 'vtb.ru', 'alfabank.ru', 'dzen.ru', 'rutube.ru',
+    'mail.ru', 'ok.ru', 'kinopoisk.ru', 'mts.ru', 'beeline.ru', 'megafon.ru', 'tele2.ru',
+    'lemanapro.ru', 'hcaptcha.com', 'cloudflare.com', 'google.com', 'gstatic.com'
+}
+
+def is_russian_white_sni(domain: Optional[str]) -> bool:
+    if not domain:
+        return False
+    d = domain.lower().strip()
+    if d in RUSSIAN_WHITE_SNI_DOMAINS:
+        return True
+    for w in RUSSIAN_WHITE_SNI_DOMAINS:
+        if d.endswith('.' + w):
+            return True
+    return False
+
 TG_DC2_IP = "149.154.167.50"
 TG_DC2_PORT = 443
 
@@ -73,6 +93,24 @@ TG_CHANNELS = [
 
 # 80+ Curated High-Yield GitHub, GitLab & Public Proxy API Pools
 RAW_LISTS = [
+    # 🛡️ New Curated High-Quality MTProto & SOCKS5 Pools
+    "https://moonlunavpn.com/proxies.txt",
+    "https://moonlunavpn.com/proxies.json",
+    "https://mtpro.xyz/api/?type=mtproto",
+    "https://mtpro.xyz/api/?type=mtproto-ru",
+    "https://raw.githubusercontent.com/Grim1313/mtproto-for-telegram/refs/heads/master/all_proxies.txt",
+    "https://raw.githubusercontent.com/ALIILAPRO/MTProtoProxy/main/mtproto.txt",
+    "https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.txt",
+    "https://raw.githubusercontent.com/Freedom-Guard/Proxy/main/proxies/mtproto.txt",
+    "https://raw.githubusercontent.com/securemanager/MTPROTO/main/proxies.txt",
+    "https://raw.githubusercontent.com/Therealwh/MTPproxyLIST/refs/heads/main/verified/proxy_all_verified.txt",
+    "https://raw.githubusercontent.com/Therealwh/MTPproxyLIST/refs/heads/main/verified/proxy_all_tme_verified.txt",
+    "https://raw.githubusercontent.com/Airuop/MTProtoCollector/refs/heads/main/proxy/mtproto.json",
+    "https://raw.githubusercontent.com/kubiknubika/my-tg-proxies/refs/heads/main/data/proxies.json",
+    "https://raw.githubusercontent.com/shablin/mtproto-proxy/refs/heads/main/data/valid_proxy.json",
+    "https://raw.githubusercontent.com/helptmoop/Free-Telegram-Proxies/refs/heads/main/global-iran-russia-proxies.txt",
+    "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt",
     "https://raw.githubusercontent.com/Surfboardv2ray/TGProto/refs/heads/main/proxies.txt",
     "https://raw.githubusercontent.com/Surfboardv2ray/TGProto/refs/heads/main/proxies-tested.txt",
     "https://raw.githubusercontent.com/MustafaBaqer/VestraNet-Nodes/main/protocols/mtproto.txt",

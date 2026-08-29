@@ -44,12 +44,12 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
     const qrColor = isTg ? '#132337' : '#1C1917';
 
     const qr = new QRCodeStyling({
-      width: 236,
-      height: 236,
+      width: 240,
+      height: 240,
       type: 'canvas',
       data: subUrl,
       image: isTg ? TG_LOGO_DATA_URI : VPN_LOGO_DATA_URI,
-      margin: 1,
+      margin: 0,
       qrOptions: {
         typeNumber: 0,
         mode: 'Byte',
@@ -57,8 +57,8 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
       },
       imageOptions: {
         hideBackgroundDots: true,
-        imageSize: 0.3,
-        margin: 3,
+        imageSize: 0.38,
+        margin: 2,
         crossOrigin: 'anonymous',
       },
       dotsOptions: {
@@ -156,9 +156,9 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
                 : 'Отсканируйте камерой в приложении v2rayNG, Happ или FlClash'}
             </p>
 
-            {/* Crisp High-Contrast White QR Card with Slim Border */}
-            <div className="p-1.5 bg-white rounded-xl shadow-sm border border-slate-200/80 mb-3 flex items-center justify-center">
-              <div ref={qrRef} className="w-[236px] h-[236px] flex items-center justify-center overflow-hidden rounded-lg" />
+            {/* Ultra-Slim Border High-Contrast White QR Card */}
+            <div className="p-1 bg-white rounded-lg shadow-sm border border-slate-200/80 mb-3 flex items-center justify-center">
+              <div ref={qrRef} className="w-[240px] h-[240px] flex items-center justify-center overflow-hidden" />
             </div>
 
             {/* Sub URL Preview Pill */}
