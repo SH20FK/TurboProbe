@@ -2,8 +2,8 @@ name: Service & Accessibility Prober
 
 on:
   schedule:
-    # Runs every 2 hours automatically
-    - cron: '30 */2 * * *'
+    # Runs every 4 hours automatically (00:30, 04:30, 08:30, 12:30, 16:30, 20:30 UTC)
+    - cron: '30 */4 * * *'
   workflow_dispatch:
     inputs:
       limit:
