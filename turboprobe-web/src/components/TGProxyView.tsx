@@ -205,7 +205,7 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
   }, [filteredProxies, toast]);
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-4 font-body">
+    <div className="w-full space-y-4 font-body">
       {/* 1. Header Card */}
       <div className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-main)] p-5 sm:p-6 transition-colors">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -450,4 +450,4 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
       </div>
     </div>
   );
-};
+}

@@ -672,16 +672,16 @@ export default function App() {
         </header>
 
         {/* 2. Main Page Content */}
-        <div className="relative z-10 flex-1 flex flex-col justify-center py-6 sm:py-10">
-          <AnimatePresence mode="wait">
+        <div className="relative z-10 flex-1 flex flex-col justify-start py-6 sm:py-8">
+          <AnimatePresence mode="wait" initial={false}>
             {appMode === 'tg' ? (
               <motion.div
                 key="tg-view"
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
-                className="w-full px-3 sm:px-4"
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4"
               >
                 <TGProxyView
                   onOpenQr={(url) => {
@@ -693,10 +693,10 @@ export default function App() {
             ) : (
               <motion.div
                 key="vpn-view"
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                 className="w-full max-w-3xl mx-auto space-y-4 px-3 sm:px-4"
               >
                 {/* Hero Header */}
