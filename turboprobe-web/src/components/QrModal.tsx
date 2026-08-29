@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCodeStyling from 'qr-code-styling';
-import { X, Copy, Check, Smartphone, Download } from 'lucide-react';
+import { X, Copy, Check, Download } from 'lucide-react';
 import { TelegramIcon } from './ServiceIcons';
 
 interface QrModalProps {
@@ -10,19 +10,21 @@ interface QrModalProps {
   subUrl: string;
 }
 
-// Telegram Blue Badge Data URI
+// Telegram Center Icon (circular cutout with authentic plane)
 const TG_LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-    <circle cx="50" cy="50" r="48" fill="#2481CC"/>
-    <path fill="#FFFFFF" d="M22 49l48-20c2.2-1 4.5.6 3.7 3l-8.2 38.6c-.6 2.7-2.2 3.4-4.5 2.1l-12.5-9.2-6 5.8c-.7.7-1.2 1.2-2.5 1.2l.9-12.7 23.1-20.9c1-.9-.2-1.4-1.5-.5l-28.6 18-12.3-3.8c-2.7-.8-2.7-2.7.6-4z"/>
+    <circle cx="50" cy="50" r="48" fill="#1C2733"/>
+    <circle cx="50" cy="50" r="40" fill="#2481CC"/>
+    <path fill="#FFFFFF" d="M30 49.5l38-16c1.8-.8 3.6.5 3 2.4l-6.5 30.8c-.5 2.1-1.8 2.7-3.6 1.7L51 61l-4.8 4.6c-.6.6-1 .9-2 .9l.7-10.1 18.5-16.7c.8-.7-.2-1.1-1.2-.4L39.4 53.7 29.6 50.6c-2.1-.7-2.1-2.1.4-3.1z"/>
   </svg>`
 )}`;
 
-// TurboProbe Terracotta Badge Data URI
+// TurboProbe Shield Center Icon (circular cutout with warm shield)
 const VPN_LOGO_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-    <circle cx="50" cy="50" r="48" fill="#C25E30"/>
-    <path fill="#FFFFFF" d="M50 22l24 9v21c0 15.5-10.2 29.5-24 33-13.8-3.5-24-17.5-24-33V31l24-9zm0 8.5L32 36.8v15.2c0 11.2 7.7 21.6 18 24.5 10.3-2.9 18-13.3 18-24.5V36.8L50 30.5z"/>
+    <circle cx="50" cy="50" r="48" fill="#241E1A"/>
+    <circle cx="50" cy="50" r="40" fill="#C25E30"/>
+    <path fill="#FFFFFF" d="M50 26l20 7.5v17.5c0 12.9-8.5 24.6-20 27.5-11.5-2.9-20-14.6-20-27.5V33.5L50 26zm0 7.1L35 38.7v12.3c0 9.3 6.4 18 15 20.4 8.6-2.4 15-11.1 15-20.4V38.7L50 33.1z"/>
   </svg>`
 )}`;
 
@@ -39,22 +41,24 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
   useEffect(() => {
     if (!isOpen || !subUrl) return;
 
+    const qrBgColor = isTg ? '#151F2A' : '#1A1614';
+
     const qr = new QRCodeStyling({
-      width: 240,
-      height: 240,
+      width: 260,
+      height: 260,
       type: 'canvas',
       data: subUrl,
       image: isTg ? TG_LOGO_DATA_URI : VPN_LOGO_DATA_URI,
-      margin: 4,
+      margin: 8,
       qrOptions: {
         typeNumber: 0,
         mode: 'Byte',
-        errorCorrectionLevel: 'Q',
+        errorCorrectionLevel: 'M',
       },
       imageOptions: {
         hideBackgroundDots: true,
-        imageSize: 0.32,
-        margin: 6,
+        imageSize: 0.3,
+        margin: 5,
         crossOrigin: 'anonymous',
       },
       dotsOptions: {
@@ -64,27 +68,40 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
           rotation: 45,
           colorStops: isTg
             ? [
-                { offset: 0, color: '#2AABEE' },
-                { offset: 0.45, color: '#2481CC' },
-                { offset: 1, color: '#9D65E8' },
+                { offset: 0, color: '#86E3CE' },
+                { offset: 0.35, color: '#56CCF2' },
+                { offset: 0.7, color: '#2F80ED' },
+                { offset: 1, color: '#B18CFE' },
               ]
             : [
-                { offset: 0, color: '#F97316' },
-                { offset: 0.5, color: '#C25E30' },
+                { offset: 0, color: '#FCD34D' },
+                { offset: 0.45, color: '#F97316' },
                 { offset: 1, color: '#E11D48' },
               ],
         },
       },
       backgroundOptions: {
-        color: '#FFFFFF',
+        color: qrBgColor,
       },
       cornersSquareOptions: {
         type: 'extra-rounded',
-        color: isTg ? '#2481CC' : '#C25E30',
+        gradient: {
+          type: 'linear',
+          rotation: 45,
+          colorStops: isTg
+            ? [
+                { offset: 0, color: '#86E3CE' },
+                { offset: 1, color: '#56CCF2' },
+              ]
+            : [
+                { offset: 0, color: '#FCD34D' },
+                { offset: 1, color: '#F97316' },
+              ],
+        },
       },
       cornersDotOptions: {
         type: 'dot',
-        color: isTg ? '#2AABEE' : '#E08244',
+        color: isTg ? '#B18CFE' : '#E11D48',
       },
     });
 
@@ -117,25 +134,32 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop Overlay */}
+          {/* Dark Glassmorphism Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            className="absolute inset-0 bg-black/75 backdrop-blur-md"
           />
 
-          {/* Modal Card Styled like Telegram / Material Dialog */}
+          {/* Modal Card */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 16 }}
+            initial={{ opacity: 0, scale: 0.9, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 16 }}
+            exit={{ opacity: 0, scale: 0.9, y: 16 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative z-10 w-full max-w-sm p-6 sm:p-7 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-main)] shadow-2xl flex flex-col items-center text-center select-none ${
+            className={`relative z-10 w-full max-w-sm p-6 rounded-[28px] bg-[var(--bg-card)] border border-[var(--border-main)] shadow-2xl flex flex-col items-center text-center select-none overflow-hidden ${
               isTg ? 'theme-tg' : ''
             }`}
           >
+            {/* Ambient Backlight Glow */}
+            <div
+              className={`absolute top-0 w-48 h-48 rounded-full blur-3xl pointer-events-none -mt-16 opacity-40 ${
+                isTg ? 'bg-[#2481CC]' : 'bg-[#C25E30]'
+              }`}
+            />
+
             {/* Close Button */}
             <button
               onClick={onClose}
@@ -145,29 +169,32 @@ export const QrModal: React.FC<QrModalProps> = ({ isOpen, onClose, subUrl }) => 
               <X className="w-4 h-4" />
             </button>
 
-            {/* Hub Icon */}
+            {/* Top Badge Icon */}
             <div
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3.5 shadow-md ${
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 shadow-md ${
                 isTg
                   ? 'bg-gradient-to-tr from-[#2481CC] to-[#2AABEE] text-white shadow-[0_4px_16px_rgba(36,129,204,0.35)]'
                   : 'bg-gradient-to-tr from-[#C25E30] to-[#E08244] text-white shadow-[0_4px_16px_rgba(194,94,48,0.35)]'
               }`}
             >
-              {isTg ? <TelegramIcon className="w-6 h-6 fill-current" /> : <Smartphone className="w-6 h-6" />}
+              <TelegramIcon className="w-6 h-6 fill-current" />
             </div>
 
             <h3 className="font-display text-lg font-bold text-[var(--text-main)] m-0 tracking-tight">
               {isTg ? 'Подключение Telegram' : 'Импорт на смартфон'}
             </h3>
-            <p className="font-body text-xs text-[var(--text-muted)] mt-1 mb-5 max-w-[280px]">
+            <p className="font-body text-xs text-[var(--text-muted)] mt-1 mb-4 max-w-[280px]">
               {isTg
-                ? 'Отсканируйте камерой смартфона для мгновенного подключения прокси в Telegram'
-                : 'Отсканируйте камерой в приложении Happ, FlClash, v2rayNG или Sing-box'}
+                ? 'Отсканируйте камерой смартфона для мгновенного подключения'
+                : 'Отсканируйте камерой в приложении Happ, FlClash или v2rayNG'}
             </p>
 
-            {/* Styled Telegram/M3 QR Code Container with subtle outer glow */}
-            <div className="relative p-3.5 rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-black/5 mb-5 flex items-center justify-center">
-              <div ref={qrRef} className="w-[240px] h-[240px] flex items-center justify-center overflow-hidden rounded-xl" />
+            {/* Seamless Dark QR Canvas Card */}
+            <div
+              className="relative p-2 rounded-2xl border border-[var(--border-main)] mb-5 flex items-center justify-center shadow-lg"
+              style={{ backgroundColor: isTg ? '#151F2A' : '#1A1614' }}
+            >
+              <div ref={qrRef} className="w-[260px] h-[260px] flex items-center justify-center overflow-hidden rounded-xl" />
             </div>
 
             {/* Action Buttons */}
