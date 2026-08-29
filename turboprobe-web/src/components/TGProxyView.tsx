@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useToast } from './ui/M3Toast';
 import { CountryFlag } from './CountryFlags';
+import { getCountryName } from '../constants';
 import type { TgProxyItem } from '../types';
 
 interface TGProxyViewProps {
@@ -350,7 +351,7 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
                 }`}
               >
                 <CountryFlag countryCode={code} className="w-3.5 h-2.5 rounded-xs" />
-                <span>{code === 'GLOBAL' ? 'Серверы' : code}</span>
+                <span>{getCountryName(code)}</span>
                 <span className="opacity-70 text-[10px]">{count}</span>
               </button>
             );

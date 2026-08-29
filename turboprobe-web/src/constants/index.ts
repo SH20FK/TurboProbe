@@ -53,6 +53,7 @@ export const KNOWN_COUNTRIES: Record<string, string> = {
   ru: 'Россия',
   us: 'США',
   gb: 'Великобритания',
+  uk: 'Великобритания',
   fr: 'Франция',
   sg: 'Сингапур',
   jp: 'Япония',
@@ -71,10 +72,15 @@ export const KNOWN_COUNTRIES: Record<string, string> = {
   ro: 'Румыния',
   bg: 'Болгария',
   ua: 'Украина',
+  by: 'Беларусь',
   md: 'Молдова',
   ge: 'Грузия',
   am: 'Армения',
+  az: 'Азербайджан',
   uz: 'Узбекистан',
+  kg: 'Кыргызстан',
+  tj: 'Таджикистан',
+  tm: 'Туркменистан',
   ae: 'ОАЭ',
   il: 'Израиль',
   in: 'Индия',
@@ -101,7 +107,33 @@ export const KNOWN_COUNTRIES: Record<string, string> = {
   is: 'Исландия',
   cy: 'Кипр',
   mt: 'Мальта',
+  lu: 'Люксембург',
+  be: 'Бельгия',
+  sk: 'Словакия',
+  si: 'Словения',
+  hr: 'Хорватия',
+  ba: 'Босния',
+  me: 'Черногория',
+  mk: 'Сев. Македония',
+  al: 'Албания',
+  ir: 'Иран',
+  iq: 'Ирак',
+  sa: 'Саудовская Аравия',
+  eg: 'Египет',
+  ng: 'Нигерия',
+  ke: 'Кения',
+  pk: 'Пакистан',
+  bd: 'Бангладеш',
+  ph: 'Филиппины',
+  mo: 'Макао',
 };
+
+export function getCountryName(countryCode?: string): string {
+  if (!countryCode) return 'Все страны';
+  const code = countryCode.trim().toLowerCase();
+  if (code === 'all' || code === 'global' || code === 'un') return 'Все страны';
+  return KNOWN_COUNTRIES[code] || countryCode.toUpperCase();
+}
 
 export const KNOWN_PROTOCOLS: Record<string, string> = {
   reality: 'VLESS Reality',
