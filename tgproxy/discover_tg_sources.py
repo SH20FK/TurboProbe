@@ -1,14 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-⚡ TurboProbe TGProxy Multi-Forge Global Discovery Bot v3.0
-Spans across GitHub, GitLab, GitVerse, Codeberg, Gitee, and Telegram:
-1. 🐙 GitHub Search API & Recursive Git Tree Crawler
-2. 🦊 GitLab Search API & Repository Tree Crawler
-3. 🇷🇺 GitVerse (Сбер) Search API Crawler
-4. 🏔️ Codeberg (Gitea) Search API Crawler
-5. 🇨🇳 Gitee Search API Crawler
-6. 📡 Recursive Telegram Channel Discovery (80+ seeds & 2-hop auto-discovery)
+TurboProbe TGProxy - Discovery crawler for GitHub, GitLab, Codeberg and Telegram.
 """
 
 import asyncio

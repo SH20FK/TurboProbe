@@ -73,7 +73,7 @@ export default {
       const landing = `<!DOCTYPE html>
 <html lang="ru">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TurboProbe Edge API v7.0</title>
+<title>TurboProbe Edge API</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,300&family=Geist+Mono:wght@400&display=swap');
 :root{--bg:#0b0b0c;--fg:#eae9e6;--line:rgba(234,233,230,0.08);--mono:'Geist Mono',monospace;--serif:'Cormorant Garamond','Playfair Display',serif;}
@@ -93,8 +93,8 @@ svg{display:block;margin:0 auto 24px;opacity:.95;}
       <polygon points="20,0 40,28 0,28" stroke="#eae9e6" stroke-width="1.2" fill="none" stroke-linejoin="round"/>
       <circle cx="20" cy="19" r="2.2" fill="#eae9e6" opacity=".9"/>
     </svg>
-    <h1>TurboProbe Edge API v7.0</h1>
-    <div class="subtitle">Суверенный роутер и генератор подписок VLESS / Trojan / Hysteria 2</div>
+    <h1>TurboProbe Edge API</h1>
+    <div class="subtitle">Роутер и генератор подписок VLESS / Trojan / Hysteria 2</div>
   </div>
   <div style="font-family:var(--mono);font-size:12px;color:#787774;line-height:1.55;max-width:420px;">
     <p>Этот сайт обслуживает VPN агрегатор <strong>TurboProbe</strong>, создано <strong>SH20FK</strong> с любовью для сообщества.</p>

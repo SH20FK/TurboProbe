@@ -1,16 +1,6 @@
 #!/usr/bin/env python3
 """
-TurboProbe Ultra-Source Discovery Bot v3.0 (Global GitHub & Telegram Crawler)
-=============================================================================
-Continuously crawls the ENTIRE GitHub ecosystem and public Telegram feeds:
-1. 🔍 Dynamic GitHub Repository Search (20+ topic & keyword queries with pagination)
-2. 🌳 Deep Repository Tree Inspector (Recursively discovers all .txt/.yaml/.json files)
-3. 🔎 Dynamic GitHub Code Search (VLESS Reality, Hysteria 2, Trojan, Clash Meta)
-4. 📡 Public Telegram Web Channels (Direct nodes & sub links extraction)
-5. 🧪 Multi-threaded Concurrent Validator (Scores & merges active sources)
-
-Discovered sources are validated and merged into `tools/discovered_sources.json`.
-Direct Telegram node feeds are saved into `tools/telegram_feed.txt`.
+TurboProbe - Source discovery crawler for GitHub and Telegram.
 """
 
 import os
@@ -846,7 +836,7 @@ def validate_source(url: str, min_nodes: int = MIN_NODES_TO_KEEP) -> int:
 # =============================================================================
 def main():
     print("=" * 70)
-    print("🤖 TurboProbe Ultra Source Discovery & Scraper Bot v3.0")
+    print("TurboProbe Source Discovery & Scraper")
     print("   (Global Delta Multi-Repo Crawler + Code Search + Telegram Engine)")
     print("=" * 70, flush=True)
 

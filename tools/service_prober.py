@@ -1,36 +1,6 @@
 #!/usr/bin/env python3
 """
-TurboProbe Deep Service Prober & Real Node Verifier v2.0
-=========================================================
-Deep-tests VPN nodes through real live Xray SOCKS5 tunnels with remote DNS (socks5h).
-Verifies:
-  1. Real Tunnel Liveness & Real Outgoing GeoIP (Cloudflare trace / ip-api)
-  2. 🤖 ChatGPT / OpenAI (checks for unblocked clean IP)
-  3. 🧠 Claude / Anthropic (checks for country accessibility)
-  4. ♊ Gemini / Google AI (checks for Google AI reachability)
-  5. 📺 YouTube (checks for HTTP 204 CDN streaming reachability)
-  6. 🎮 Discord (checks for unblocked gateway)
-  7. 📸 Instagram (checks for unblocked Meta gateway)
-  8. 🐦 Twitter / X (checks for unblocked X gateway)
-  9. 🎵 Spotify (checks for unblocked media gateway)
-  10. 🐙 GitHub (checks for unblocked developer gateway)
-  11. 🔍 Perplexity AI
-
-Outputs ONLY genuine verified working nodes into:
-  - sub/nodes.json
-  - sub/preview.json
-  - sub/services/chatgpt.txt
-  - sub/services/claude.txt
-  - sub/services/gemini.txt
-  - sub/services/ai-bundle.txt
-  - sub/services/youtube.txt
-  - sub/services/discord.txt
-  - sub/services/instagram.txt
-  - sub/services/twitter.txt
-  - sub/services/spotify.txt
-  - sub/services/github.txt
-  - sub/services/perplexity.txt
-  - sub/services/index.json
+TurboProbe - Service accessibility & tunnel prober.
 """
 
 import os
@@ -1147,11 +1117,6 @@ def probe_via_mihomo(uri: str, proto: str) -> dict | None:
     return res[0] if res else None
 
 
-def probe_direct_hy2_tuic(uri: str, proto: str) -> dict | None:
-    """Deprecated shim → probe_via_mihomo(). Kept for backward compatibility."""
-    return probe_via_mihomo(uri, proto)
-
-
 
 def uri_to_xray_outbound(uri: str, tag: str) -> dict:
     low = uri.lower()
@@ -2127,7 +2092,7 @@ def main():
     batch_size = args.batch_size
 
     print("=" * 70)
-    print(f"🔬 [TurboProbe Real Verifier v2.0] Real HTTP Tunnel & GeoIP Verification")
+    print(f"🔬 [TurboProbe Verifier] Real HTTP Tunnel & GeoIP Verification")
     print("=" * 70, flush=True)
 
     os.makedirs(SUB_DIR, exist_ok=True)

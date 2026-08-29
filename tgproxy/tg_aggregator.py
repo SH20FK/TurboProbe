@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-⚡ TurboProbe TGProxy - Master Ultra-Strict Multi-Forge Harvester & Geo-Verifier
-1. 🛡️ Ultra-Strict Verification Gate: True TLS 1.3 / Fake-TLS SNI + Telegram DC2 CONNECT
-2. 🗺️ High-Precision Batch GeoIP Resolution: Resolves exact country, Russian label, city & ISP
-3. 🇷🇺 Russia-First Smart Sorting: Puts Russian bypass proxies and low-latency Fake-TLS at the top
+TurboProbe TGProxy - Telegram proxy aggregator and verifier.
 """
 
 import asyncio

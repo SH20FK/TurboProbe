@@ -1,12 +1,6 @@
 #!/usr/bin/env python3
 """
-TurboProbe Ultra-Speed Mega-Aggregator & Low-Latency Engine v5.0
-- Concurrently fetches from 100+ active global and Russian sources
-- Ultra-speed concurrent TCP RTT latency benchmark across all keys
-- Instant dead-node purge: drops offline/slow/broken servers
-- Strict sort by LOWEST PING (fastest servers always appear first)
-- Clean, aesthetic node remarks with country badge, protocol, and measured ping
-- Outputs dedicated sub files, Top-20 / Top-50 VIP sub, and Clash Meta YAML
+TurboProbe - VPN proxy aggregator & latency benchmark.
 """
 
 from __future__ import annotations
@@ -1890,7 +1884,7 @@ def main():
     with open(os.path.join(SUB_DIR, "stats.json"), "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2, ensure_ascii=False)
         
-    print(f"\n🎉 [Complete] TurboProbe v5.0 generated pristine subscriptions with {len(alive_nodes)} active nodes (Avg Ping: {avg_ping}ms)!")
+    print(f"\n[Complete] TurboProbe generated subscriptions with {len(alive_nodes)} active nodes (Avg Ping: {avg_ping}ms)!")
 
 if __name__ == "__main__":
     main()
