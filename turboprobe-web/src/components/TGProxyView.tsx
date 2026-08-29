@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Send,
+  ChevronDown,
   Search,
   Copy,
   QrCode,
@@ -85,6 +86,7 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(() => proxies.length === 0);
+  const [visibleLimit, setVisibleLimit] = useState<number>(15);
 
   useEffect(() => {
     let isMounted = true;
@@ -166,6 +168,16 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
       return true;
     });
   }, [proxies, activeTab, selectedCountry, searchQuery]);
+
+  useEffect(() => {
+    setVisibleLimit(15);
+  }, [activeTab, selectedCountry, searchQuery]);
+
+  const displayedProxies = useMemo(() => {
+    return filteredProxies.slice(0, visibleLimit);
+  }, [filteredProxies, visibleLimit]);
+
+  const hasMore = filteredProxies.length > visibleLimit;
 
   const countryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -372,7 +384,7 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
               {isLoading ? 'Загрузка списка прокси...' : 'Нет доступных прокси под выбранные фильтры'}
             </div>
           ) : (
-            filteredProxies.map((p, idx) => {
+            displayedProxies.map((p, idx) => {
               const { domain, type: secretType } = extractTlsDomain(p.secret);
               const isFakeTls = p.proto === 'mtproto' && secretType === 'faketls';
               const pingColor =
@@ -446,8 +458,21 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
               );
             })
           )}
+
+          {!isLoading && hasMore && (
+            <div className="p-3.5 text-center bg-[var(--bg-app)]/50 border-t border-[var(--border-main)]">
+              <button
+                onClick={() => setVisibleLimit((prev) => prev + 50)}
+                type="button"
+                className="px-5 py-2 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] text-xs font-mono font-medium text-[#2481CC] border border-[var(--border-main)] hover:border-[#2481CC]/40 inline-flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+              >
+                <span>Показать еще (+{Math.min(50, filteredProxies.length - visibleLimit)})</span>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
-}
+};
