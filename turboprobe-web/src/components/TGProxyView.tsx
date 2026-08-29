@@ -92,6 +92,7 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(() => proxies.length === 0);
   const [visibleLimit, setVisibleLimit] = useState<number>(15);
+  const [isExpandedCountries, setIsExpandedCountries] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -362,8 +363,8 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
           </div>
         </div>
 
-        {/* Countries Row with Flags */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-1 scrollbar-none text-xs font-mono">
+        {/* Countries Flex-Wrap with Flags & Expand */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs font-mono">
           <span className="text-[var(--text-muted)] text-[11px] shrink-0 mr-1">Страна:</span>
           <button
             onClick={() => setSelectedCountry('all')}
@@ -375,7 +376,7 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
           >
             Все страны
           </button>
-          {countryCounts.map(([code, count]) => {
+          {(isExpandedCountries ? countryCounts : countryCounts.slice(0, 6)).map(([code, count]) => {
             const isSelected = selectedCountry === code;
             return (
               <button
@@ -393,6 +394,34 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
               </button>
             );
           })}
+
+          {/* If selected country is outside top 6 and list is collapsed, ensure it stays visible */}
+          {!isExpandedCountries &&
+            selectedCountry !== 'all' &&
+            !countryCounts.slice(0, 6).some(([c]) => c === selectedCountry) && (
+              <button
+                key={selectedCountry}
+                onClick={() => setSelectedCountry(selectedCountry)}
+                className="px-2.5 py-1 rounded-lg bg-[#2481CC] text-white font-bold shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+              >
+                <CountryFlag countryCode={selectedCountry} className="w-4 h-3 rounded-xs" />
+                <span>{getCountryName(selectedCountry)}</span>
+                <span className="opacity-70 text-[10px]">
+                  {countryCounts.find(([c]) => c === selectedCountry)?.[1] || 0}
+                </span>
+              </button>
+            )}
+
+          {countryCounts.length > 6 && (
+            <button
+              onClick={() => setIsExpandedCountries(!isExpandedCountries)}
+              type="button"
+              className="px-2.5 py-1 rounded-lg bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-[#2481CC] hover:text-[#1C72B8] border border-[var(--border-main)] hover:border-[#2481CC]/40 inline-flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+            >
+              <span>{isExpandedCountries ? 'Свернуть' : `+ Еще ${countryCounts.length - 6}`}</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${isExpandedCountries ? 'rotate-180' : ''}`} />
+            </button>
+          )}
         </div>
       </div>
 
