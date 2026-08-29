@@ -19,10 +19,14 @@ interface TGProxyViewProps {
 }
 
 const TG_PROXIES_MIRRORS = [
+  'tg/proxies.json',
   './tg/proxies.json',
-  '../tg/proxies.json',
-  'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/docs/tg/proxies.json',
+  'sub/tg/proxies.json',
+  './sub/tg/proxies.json',
+  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/tg/proxies.json',
   'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/docs/tg/proxies.json',
+  'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub/tg/proxies.json',
+  'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/docs/tg/proxies.json',
 ];
 
 function extractTlsDomain(secret?: string | null): { domain: string | null; type: 'faketls' | 'dd' | 'classic' } {
@@ -84,20 +88,28 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
   useEffect(() => {
     let isMounted = true;
 
+    const fetchWithTimeout = async (url: string, ms = 4000) => {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), ms);
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(tid);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } catch (err) {
+        clearTimeout(tid);
+        throw err;
+      }
+    };
+
     async function loadData() {
       const cacheBust = Date.now();
       const urls = TG_PROXIES_MIRRORS.map((m) => `${m}?t=${cacheBust}`);
 
       try {
-        const res = await Promise.any(
-          urls.map(async (url) => {
-            const r = await fetch(url);
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            return await r.json();
-          })
-        );
+        const res = await Promise.any(urls.map((u) => fetchWithTimeout(u)));
 
-        if (isMounted && res && Array.isArray(res.proxies)) {
+        if (isMounted && res && Array.isArray(res.proxies) && res.proxies.length > 0) {
           const list: TgProxyItem[] = res.proxies;
           setProxies(list);
 
