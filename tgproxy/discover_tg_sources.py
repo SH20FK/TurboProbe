@@ -23,6 +23,15 @@ TG_DIR = os.path.dirname(os.path.abspath(__file__))
 DISCOVERED_TG_PATH = os.path.join(TG_DIR, "discovered_tg_sources.json")
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
+if not GITHUB_TOKEN:
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    if os.path.isfile(env_path):
+        with open(env_path, "r", encoding="utf-8") as _ef:
+            for _line in _ef:
+                if _line.startswith("GITHUB_TOKEN="):
+                    GITHUB_TOKEN = _line.split("=", 1)[1].strip()
+                    os.environ["GITHUB_TOKEN"] = GITHUB_TOKEN
+                    break
 GITHUB_API = "https://api.github.com"
 
 FORGE_QUERIES = [

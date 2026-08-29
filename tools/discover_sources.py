@@ -35,6 +35,15 @@ DISCOVERED_PATH = os.path.join(TOOLS_DIR, "discovered_sources.json")
 TELEGRAM_FEED_PATH = os.path.join(TOOLS_DIR, "telegram_feed.txt")
 
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
+if not GITHUB_TOKEN:
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    if os.path.isfile(env_path):
+        with open(env_path, "r", encoding="utf-8") as _ef:
+            for _line in _ef:
+                if _line.startswith("GITHUB_TOKEN="):
+                    GITHUB_TOKEN = _line.split("=", 1)[1].strip()
+                    os.environ["GITHUB_TOKEN"] = GITHUB_TOKEN
+                    break
 GITHUB_API = "https://api.github.com"
 
 # =============================================================================

@@ -1330,38 +1330,51 @@ def load_discovered_sources() -> list:
     except Exception:
         return []
 
-async def async_fetch_single_url(client: httpx.AsyncClient, url: str, timeout: float = 5.0) -> tuple:
-    try:
-        resp = await client.get(url, timeout=timeout, follow_redirects=True)
-        if resp.status_code == 200:
-            return url, resp.text
-    except Exception:
-        pass
-    return url, None
+async def async_fetch_single_url_aiohttp(session: aiohttp.ClientSession, sem: asyncio.Semaphore, url: str) -> tuple:
+    async with sem:
+        try:
+            async with session.get(url, allow_redirects=True) as resp:
+                if resp.status == 200:
+                    text = await resp.text(errors="ignore")
+                    return url, text
+        except Exception:
+            pass
+        return url, None
 
-async def async_fetch_sources_pool(sources: list, concurrency: int = 500, timeout: float = 12.0) -> tuple:
-    limits = httpx.Limits(max_keepalive_connections=concurrency, max_connections=concurrency)
-    try:
-        client_ctx = httpx.AsyncClient(limits=limits, timeout=timeout, verify=False, http2=True)
-    except Exception:
-        client_ctx = httpx.AsyncClient(limits=limits, timeout=timeout, verify=False, http2=False)
-    async with client_ctx as client:
-        tasks = [async_fetch_single_url(client, u) for u in sources]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        all_uris = []
-        direct_ru_fetched = {}
-        fetched_count = 0
-        for r in results:
-            if isinstance(r, tuple) and r[1]:
-                url, content = r
-                extracted = extract_uris_from_content(content)
-                if extracted:
-                    fetched_count += 1
-                    all_uris.extend(extracted)
-                    if url in RU_DIRECT_SOURCES:
-                        direct_ru_fetched[url] = extracted
-        return all_uris, direct_ru_fetched, fetched_count
+async def async_fetch_sources_pool(sources: list, concurrency: int = 150, timeout: float = 4.5) -> tuple:
+    sem = asyncio.Semaphore(concurrency)
+    conn = aiohttp.TCPConnector(limit=concurrency, ssl=False, ttl_dns_cache=300)
+    client_timeout = aiohttp.ClientTimeout(total=timeout, connect=2.5)
+    
+    all_uris = []
+    direct_ru_fetched = {}
+    fetched_count = 0
+    batch_size = 500
+    total = len(sources)
+
+    async with aiohttp.ClientSession(connector=conn, timeout=client_timeout, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/133.0.0.0"}) as session:
+        for i in range(0, total, batch_size):
+            chunk = sources[i:i + batch_size]
+            tasks = [async_fetch_single_url_aiohttp(session, sem, u) for u in chunk]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            chunk_ok = 0
+            for r in results:
+                if isinstance(r, tuple) and r[1]:
+                    url, content = r
+                    extracted = extract_uris_from_content(content)
+                    if extracted:
+                        chunk_ok += 1
+                        fetched_count += 1
+                        all_uris.extend(extracted)
+                        if url in RU_DIRECT_SOURCES:
+                            direct_ru_fetched[url] = extracted
+            
+            processed = min(i + batch_size, total)
+            pct = round(processed / total * 100)
+            print(f"📥 [Crawler Progress] {processed}/{total} sources ({pct}%) — Harvested {len(all_uris):,} URIs so far...", flush=True)
+
+    return all_uris, direct_ru_fetched, fetched_count
 
 async def async_check_node_ping(sem: asyncio.Semaphore, node: str, timeout: float = 1.5) -> tuple:
     writer = None
