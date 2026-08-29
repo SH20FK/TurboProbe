@@ -1,18 +1,40 @@
 <!doctype html>
-<html lang="ru" class="dark">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="dark light" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="apple-touch-icon" href="favicon.svg" />
-    <title>TurboProbe · Суверенный Конструктор VPN-подписок</title>
-    <meta name="description" content="Интерактивный конструктор подписок VLESS Reality, Trojan, Hysteria 2. Выбирайте сервисы, страны и лимиты — получайте персональную ссылку за секунды." />
+    <title>TurboProbe · Конструктор VPN-подписок и TGProxy</title>
+    <meta name="description" content="Интерактивный конструктор подписок VLESS Reality, Trojan, Hysteria 2 и каталог Telegram Fake-TLS прокси." />
+    
+    <!-- Instant Sync Theme Initializer (prevents theme flash/reset) -->
+    <script>
+      (function() {
+        try {
+          var savedTheme = localStorage.getItem('turboprobe_theme');
+          var isDark = savedTheme ? savedTheme === 'dark' : true;
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.add('light');
+            document.documentElement.classList.remove('dark');
+          }
+          var hubMode = localStorage.getItem('tp_active_hub_mode');
+          if (window.location.hash === '#tg' || hubMode === 'tg') {
+            document.documentElement.classList.add('theme-tg');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Onest:wght@300;400;500;600;700&family=Unbounded:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="./assets/index-DtMKoWSQ.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CDlC7Hzn.css">
+    <script type="module" crossorigin src="./assets/index-De1UOD70.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-5Zim95R2.css">
   </head>
   <body class="antialiased selection:bg-[#C25E30] selection:text-white">
     <div id="root"></div>
