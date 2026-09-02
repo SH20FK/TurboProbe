@@ -1535,17 +1535,21 @@ def main():
         return sel
 
     if args.fast:
-        candidate_uris = _diverse_candidates(candidate_uris, 5000)
+        candidate_uris = _diverse_candidates(candidate_uris, 1200)
+        bench_concurrency = 80
     elif args.limit > 0:
         candidate_uris = _diverse_candidates(candidate_uris, args.limit)
+        bench_concurrency = 150
+    else:
+        bench_concurrency = 300
 
-    # 3. ⚡ Ultra-Speed AsyncIO SYN / Latency Benchmark (1000 concurrent sockets)
-    print(f"🩺 [AsyncIO Latency Engine] Benchmarking {len(candidate_uris)} nodes (timeout: 1.5s, 1000 async sockets)...", flush=True)
+    # 3. ⚡ Ultra-Speed AsyncIO SYN / Latency Benchmark
+    print(f"🩺 [AsyncIO Latency Engine] Benchmarking {len(candidate_uris)} nodes (timeout: 1.5s, {bench_concurrency} async sockets)...", flush=True)
     t_bench_start = time.perf_counter()
     alive_tuples = []  # list of (formatted_uri, ping_ms, raw_key, health)
     
     try:
-        bench_results = asyncio.run(async_run_latency_benchmark(candidate_uris, concurrency=1000))
+        bench_results = asyncio.run(async_run_latency_benchmark(candidate_uris, concurrency=bench_concurrency))
     except Exception:
         bench_results = []
         workers = min(256, len(candidate_uris) or 1)

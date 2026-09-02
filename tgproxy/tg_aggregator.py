@@ -94,47 +94,11 @@ TG_CHANNELS = [
 
 # 80+ Curated High-Yield GitHub, GitLab & Public Proxy API Pools
 RAW_LISTS = [
-    # 🛡️ New Curated High-Quality MTProto & SOCKS5 Pools
-    "https://moonlunavpn.com/proxies.txt",
-    "https://moonlunavpn.com/proxies.json",
-    "https://mtpro.xyz/api/?type=mtproto",
-    "https://mtpro.xyz/api/?type=mtproto-ru",
-    "https://raw.githubusercontent.com/Grim1313/mtproto-for-telegram/refs/heads/master/all_proxies.txt",
-    "https://raw.githubusercontent.com/ALIILAPRO/MTProtoProxy/main/mtproto.txt",
-    "https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.txt",
-    "https://raw.githubusercontent.com/Freedom-Guard/Proxy/main/proxies/mtproto.txt",
-    "https://raw.githubusercontent.com/securemanager/MTPROTO/main/proxies.txt",
-    "https://raw.githubusercontent.com/Therealwh/MTPproxyLIST/refs/heads/main/verified/proxy_all_verified.txt",
-    "https://raw.githubusercontent.com/Therealwh/MTPproxyLIST/refs/heads/main/verified/proxy_all_tme_verified.txt",
-    "https://raw.githubusercontent.com/Airuop/MTProtoCollector/refs/heads/main/proxy/mtproto.json",
-    "https://raw.githubusercontent.com/kubiknubika/my-tg-proxies/refs/heads/main/data/proxies.json",
-    "https://raw.githubusercontent.com/shablin/mtproto-proxy/refs/heads/main/data/valid_proxy.json",
-    "https://raw.githubusercontent.com/helptmoop/Free-Telegram-Proxies/refs/heads/main/global-iran-russia-proxies.txt",
-    "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt",
-    "https://raw.githubusercontent.com/Surfboardv2ray/TGProto/refs/heads/main/proxies.txt",
-    "https://raw.githubusercontent.com/Surfboardv2ray/TGProto/refs/heads/main/proxies-tested.txt",
-    "https://raw.githubusercontent.com/MustafaBaqer/VestraNet-Nodes/main/protocols/mtproto.txt",
-    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no1.txt",
-    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no2.txt",
-    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no3.txt",
-    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no4.txt",
-    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no5.txt",
-    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no6.txt",
-    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no7.txt",
-    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no8.txt",
-    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no9.txt",
-    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no10.txt",
-    "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/proxy.txt",
-    "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/all_proxies.txt",
-    "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/tg_proxy",
-    "https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/mtproto.txt",
-    "https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/socks5.txt",
-    "https://raw.githubusercontent.com/soroushmirzaei/telegram-proxies-collector/main/mtproto",
-    "https://raw.githubusercontent.com/soroushmirzaei/telegram-proxies-collector/main/socks5",
-    "https://raw.githubusercontent.com/soroushmirzaei/telegram-proxies-collector/main/proxies",
-    "https://raw.githubusercontent.com/Bardiafa/Proxy-Collector/main/sub/telegram/mtproto",
+    "https://raw.githubusercontent.com/hookzof/socks5_list/master/tg.txt",
+    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/MTPROTO_RAW.txt",
+    "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies_geolocation/mtproto.txt",
     "https://raw.githubusercontent.com/yebekhe/TelegramV2rayCollector/main/sub/telegram/mtproto",
+    "https://raw.githubusercontent.com/Bardiafa/Proxy-Collector/main/sub/telegram/mtproto",
     "https://raw.githubusercontent.com/IranianCypherpunks/sub/main/mtproto",
     "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/config",
     "https://raw.githubusercontent.com/mftg/tgproxy/main/mtproto.txt",
@@ -142,50 +106,20 @@ RAW_LISTS = [
     "https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/main/sub.txt",
     "https://raw.githubusercontent.com/Awesome-TGProxy/MTProxy/master/mtproto.txt",
     "https://raw.githubusercontent.com/ErcinDedeoglu/proxies/main/proxies/mtproto.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/MTPROTO_RAW.txt",
     "https://raw.githubusercontent.com/Zaeem20/FREE_PROXIES_LIST/master/mtproto.txt",
-    "https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks5&timeout=10000&country=all&ssl=all&anonymity=all",
-    "https://spys.me/socks.txt",
-    "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt",
-    "https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt",
-    "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt",
-    "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
-    "https://raw.githubusercontent.com/vakhov/fresh-proxy-list/master/socks5.txt",
-    "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/protocols/socks5/data.txt",
-    "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt",
-    "https://raw.githubusercontent.com/prxchk/proxy-list/main/socks5.txt",
-    "https://raw.githubusercontent.com/Anonym0usWork1221/Free-Proxies/main/proxy_files/socks5_proxies.txt",
-    "https://raw.githubusercontent.com/ErcinDedeoglu/proxies/main/proxies/socks5.txt",
-    "https://raw.githubusercontent.com/MuRongPIG/Proxy-Master/main/socks5.txt",
-    "https://raw.githubusercontent.com/OfficialPutuid/KangProxy/KangProxy/socks5.txt",
-    "https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/generated/socks5_proxies.txt",
-    "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
-    "https://raw.githubusercontent.com/shiftytr/proxy-list/master/socks5.txt",
-    "https://raw.githubusercontent.com/B4RC0D3-YT/custom_proxy_list/main/socks5.txt",
-    "https://raw.githubusercontent.com/tuanminpay/live-proxy/master/socks5.txt",
-    "https://raw.githubusercontent.com/zevtyardt/proxy-list/main/socks5.txt",
-    "https://raw.githubusercontent.com/r00tee/Proxy-List/main/Socks5.txt",
-    "https://raw.githubusercontent.com/Tsprnay/Proxy-lists/master/proxies/socks5.txt",
-    "https://raw.githubusercontent.com/yemixzy/proxy-list/main/proxies/socks5.txt",
-    "https://raw.githubusercontent.com/andigwandi/free-proxy/main/proxy_list.txt",
-    "https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/socks5.txt",
-    "https://raw.githubusercontent.com/elliottophellia/yakumo/master/results/socks5/global/socks5_checked.txt",
-    "https://raw.githubusercontent.com/hendrikbgr/Free-Proxy-Repo/master/proxy_list.txt",
-    "https://raw.githubusercontent.com/almroot/proxylist/master/list.txt",
-    "https://raw.githubusercontent.com/asdaqq/proxy-list/main/socks5.txt",
-    "https://raw.githubusercontent.com/hanwaytech/free-proxy-list/main/socks5.txt",
-    "https://raw.githubusercontent.com/HyperBeats/proxy-list/main/socks5.txt",
-    "https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-socks5.txt",
-    "https://raw.githubusercontent.com/mmpx12/proxy-list/master/socks5.txt",
-    "https://raw.githubusercontent.com/ObcbO/getproxy/master/socks5.txt",
-    "https://raw.githubusercontent.com/proxy4parsing/proxy-list/main/socks5.txt",
-    "https://raw.githubusercontent.com/saisuiu/Lion-proxy/main/socks5.txt",
-    "https://raw.githubusercontent.com/UptimerBot/proxy-list/main/proxies/socks5.txt",
-    "https://raw.githubusercontent.com/casals-ar/proxy-list/main/socks5",
-    "https://raw.githubusercontent.com/proxy-list-org/proxy-list/main/socks5.txt",
-    "https://raw.githubusercontent.com/im-Justin/free-proxy-list/main/socks5.txt",
-    "https://raw.githubusercontent.com/zloi-user/hideip.me/master/socks5.txt",
-    "https://raw.githubusercontent.com/mahdibland/ShadowsocksAggregator/master/sub/sub_merge.txt",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-proxies-collector/main/mtproto",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-proxies-collector/main/socks5",
+    "https://raw.githubusercontent.com/soroushmirzaei/telegram-proxies-collector/main/proxies",
+    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no1.txt",
+    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no2.txt",
+    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no3.txt",
+    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no4.txt",
+    "https://raw.githubusercontent.com/V2RAYCONFIGSPOOL/TELEGRAM_PROXY_SUB/main/telegram_proxy_no5.txt",
+    "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/proxy.txt",
+    "https://raw.githubusercontent.com/iwh3n/tg-proxy/main/all_proxies.txt",
+    "https://raw.githubusercontent.com/Leon406/SubCrawler/main/sub/share/tg_proxy",
+    "https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/mtproto.txt",
+    "https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/socks5.txt",
     "https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub",
 ]
 
@@ -532,12 +466,16 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
     socks_cands = [p for p in raw_proxies if p.proto == "socks5"]
     print(f"📊 Harvested {len(raw_proxies)} unique candidates (MTProto: {len(mtproto_cands)}, SOCKS5: {len(socks_cands)}).", flush=True)
 
-    # Cloud-friendly evaluation pool: 100% of MTProto proxies + top 200 clean SOCKS5
-    eval_pool = mtproto_cands + (socks_cands[:test_limit] if test_limit > 0 else socks_cands[:200])
+    # Cloud-friendly evaluation pool: 100% of MTProto proxies + top 50 clean SOCKS5
+    eval_pool = mtproto_cands + (socks_cands[:test_limit] if test_limit > 0 else socks_cands[:50])
 
-    print(f"🔬 [Telegram DC & Fake-TLS Gate] Parallel benchmarking {len(eval_pool)} candidates (25 polite workers)...", flush=True)
+    # Cap to max 300 freshest candidates to prevent cloud container socket rate-limits
+    if len(eval_pool) > 300:
+        eval_pool = eval_pool[:300]
+
+    print(f"🔬 [Telegram DC & Fake-TLS Gate] Parallel benchmarking {len(eval_pool)} candidates (15 polite workers)...", flush=True)
     loop = asyncio.get_running_loop()
-    with ThreadPoolExecutor(max_workers=25) as pool:
+    with ThreadPoolExecutor(max_workers=15) as pool:
         bench_tasks = [loop.run_in_executor(pool, test_proxy_strict, p) for p in eval_pool]
         bench_results = await asyncio.gather(*bench_tasks)
 
