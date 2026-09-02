@@ -52,6 +52,9 @@ FORGE_QUERIES = [
 GITHUB_TG_CODE_QUERIES = [
     '"tg://proxy?server=" extension:txt',
     '"https://t.me/proxy?server=" extension:txt',
+    '"https://web.telegram.org" proxy extension:txt',
+    '"https://web.telegram.org/a/#?proxy="',
+    '"https://web.telegram.org/k/#?proxy="',
     '"tg://socks?server=" extension:txt',
     '"https://t.me/socks?server=" extension:txt',
     'filename:mtproto.txt',

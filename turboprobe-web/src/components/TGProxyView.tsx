@@ -12,6 +12,7 @@ import {
   Activity,
   Server,
   Sparkles,
+  Globe,
 } from 'lucide-react';
 import { useToast } from './ui/M3Toast';
 import { CountryFlag } from './CountryFlags';
@@ -528,6 +529,17 @@ export const TGProxyView: React.FC<TGProxyViewProps> = ({ onOpenQr }) => {
                     >
                       <TelegramIcon className="w-3.5 h-3.5" />
                       <span>Подключить</span>
+                    </a>
+
+                    <a
+                      href={p.web_link || (p.proto === 'mtproto' ? `https://web.telegram.org/a/#?proxy=server=${p.server}&port=${p.port}&secret=${encodeURIComponent(p.secret || '')}` : `https://web.telegram.org/a/#?socks=server=${p.server}&port=${p.port}`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Открыть в Telegram Web (web.telegram.org)"
+                      className="hidden sm:inline-flex py-1.5 px-2.5 rounded-xl bg-[var(--bg-app)] hover:bg-[var(--bg-card-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-main)] font-medium text-xs items-center gap-1.5 transition-colors cursor-pointer shadow-xs select-none"
+                    >
+                      <Globe className="w-3.5 h-3.5 text-[#2481CC]" />
+                      <span>Web TG</span>
                     </a>
 
                     <button

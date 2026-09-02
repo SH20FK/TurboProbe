@@ -267,6 +267,20 @@ class TGProxy:
                 q += f"&pass={urllib.parse.quote(self.password)}"
             return f"https://t.me/socks?{q}"
 
+    @property
+    def web_link(self) -> str:
+        """Direct connection link for Telegram Web (web.telegram.org/a/)."""
+        if self.proto == "mtproto":
+            sec = urllib.parse.quote(self.secret or "")
+            return f"https://web.telegram.org/a/#?proxy=server={self.server}&port={self.port}&secret={sec}"
+        else:
+            q = f"server={self.server}&port={self.port}"
+            if self.user:
+                q += f"&user={urllib.parse.quote(self.user)}"
+            if self.password:
+                q += f"&pass={urllib.parse.quote(self.password)}"
+            return f"https://web.telegram.org/a/#?socks={q}"
+
     def to_dict(self) -> dict:
         return {
             "proto": self.proto,
@@ -284,6 +298,7 @@ class TGProxy:
             "isp_status": self.isp_status,
             "tg_link": self.tg_link,
             "https_link": self.https_link,
+            "web_link": self.web_link,
         }
 
 
@@ -517,11 +532,12 @@ async def run_tg_harvest(test_limit: int = 0) -> List[TGProxy]:
     socks_cands = [p for p in raw_proxies if p.proto == "socks5"]
     print(f"📊 Harvested {len(raw_proxies)} unique candidates (MTProto: {len(mtproto_cands)}, SOCKS5: {len(socks_cands)}).", flush=True)
 
-    eval_pool = mtproto_cands + (socks_cands[:test_limit] if test_limit > 0 else socks_cands[:4000])
+    # Cloud-friendly evaluation pool: 100% of MTProto proxies + top 200 clean SOCKS5
+    eval_pool = mtproto_cands + (socks_cands[:test_limit] if test_limit > 0 else socks_cands[:200])
 
-    print(f"🔬 [Telegram DC & Fake-TLS Gate] Parallel benchmarking {len(eval_pool)} candidates (120 threads)...", flush=True)
+    print(f"🔬 [Telegram DC & Fake-TLS Gate] Parallel benchmarking {len(eval_pool)} candidates (25 polite workers)...", flush=True)
     loop = asyncio.get_running_loop()
-    with ThreadPoolExecutor(max_workers=120) as pool:
+    with ThreadPoolExecutor(max_workers=25) as pool:
         bench_tasks = [loop.run_in_executor(pool, test_proxy_strict, p) for p in eval_pool]
         bench_results = await asyncio.gather(*bench_tasks)
 
@@ -592,6 +608,7 @@ def save_tg_proxies_output(proxies: List[TGProxy]):
             "ping_ms": round(p.ping_ms, 1),
             "tg_link": p.tg_link,
             "https_link": p.https_link,
+            "web_link": p.web_link,
         })
 
     payload = {

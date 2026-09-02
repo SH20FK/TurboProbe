@@ -74,6 +74,7 @@ export interface TgProxyItem {
   ru_verified?: boolean;
   tg_link: string;
   https_link?: string;
+  web_link?: string;
 }
 
 export interface PresetItem {
