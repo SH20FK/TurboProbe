@@ -299,23 +299,27 @@ def get_mihomo_binary_path() -> str:
     # Step 3a: Resolve latest release tag AND get the full asset list via GitHub
     # API. This lets us pick the exact filename instead of guessing -v1/-v3/-go120
     # suffix variants that differ across releases.
+    assets = {}
+    version = "1.19.16"
     try:
         import urllib.request, json as _json
         api_url = "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest"
-        api_req = urllib.request.Request(
-            api_url,
-            headers={"User-Agent": "TurboProbe/2.0", "Accept": "application/vnd.github+json"},
-        )
-        with urllib.request.urlopen(api_req, timeout=10) as resp:
+        headers = {"User-Agent": "TurboProbe/2.0", "Accept": "application/vnd.github+json"}
+        gh_tok = os.environ.get("GITHUB_TOKEN", "")
+        if gh_tok:
+            headers["Authorization"] = f"Bearer {gh_tok}"
+        api_req = urllib.request.Request(api_url, headers=headers)
+        with urllib.request.urlopen(api_req, timeout=8) as resp:
             release_info = _json.loads(resp.read().decode())
-        version = release_info.get("tag_name", "").lstrip("v")
-        if not version:
-            raise ValueError("Empty tag_name in GitHub API response")
-        # Build a name → URL map for all assets in this release
+        version = release_info.get("tag_name", "").lstrip("v") or "1.19.16"
         assets = {a["name"]: a["browser_download_url"] for a in release_info.get("assets", [])}
     except Exception as e:
-        print(f"[Mihomo] Could not resolve latest version via GitHub API: {e}", flush=True)
-        return ""
+        print(f"[Mihomo] GitHub API notice ({e}), using direct fallback release v{version}...", flush=True)
+        # Direct fallback URLs without hitting GitHub API rate limits
+        if os_name == "windows":
+            assets[f"mihomo-windows-amd64-v{version}.zip"] = f"https://github.com/MetaCubeX/mihomo/releases/download/v{version}/mihomo-windows-amd64-v{version}.zip"
+        else:
+            assets[f"mihomo-linux-amd64-v{version}.gz"] = f"https://github.com/MetaCubeX/mihomo/releases/download/v{version}/mihomo-linux-amd64-v{version}.gz"
 
     # Pick the first matching asset from this priority list:
     # 1. Plain name — no qualifiers, broadest CPU compatibility baseline
