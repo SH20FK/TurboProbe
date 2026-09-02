@@ -1,9 +1,6 @@
 name: VPN Subscription Auto-Aggregator
 
 on:
-  schedule:
-    # Runs every 6 hours automatically (00:00, 06:00, 12:00, 18:00 UTC)
-    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
       mode:

@@ -406,8 +406,8 @@ def fetch_url(url: str, timeout: int = 8, headers: dict = None) -> str:
     except Exception:
         return ""
 
-def gh_api_get(url: str):
-    """Makes an authenticated or unauthenticated request to GitHub API."""
+def gh_api_get(url: str, max_retries: int = 3):
+    """Makes an authenticated or unauthenticated request to GitHub API with rate-limit backoff."""
     headers = {
         "Accept": "application/vnd.github+json",
         "User-Agent": "TurboProbe-Source-Discovery/3.0",
@@ -415,8 +415,36 @@ def gh_api_get(url: str):
     if GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
     req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req, timeout=12) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    
+    for attempt in range(max_retries):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                rem = resp.headers.get("x-ratelimit-remaining")
+                if rem and int(rem) < 5:
+                    reset_time = int(resp.headers.get("x-ratelimit-reset", 0))
+                    sleep_sec = max(reset_time - int(time.time()), 2)
+                    if 0 < sleep_sec < 60:
+                        print(f"    ⏳ Rate limit low ({rem} left), cooling down for {sleep_sec}s...", flush=True)
+                        time.sleep(sleep_sec)
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            if e.code in (403, 429):
+                reset_time = int(e.headers.get("x-ratelimit-reset", 0))
+                sleep_sec = max(reset_time - int(time.time()), 5)
+                if sleep_sec > 120:
+                    print(f"    ⚠️ GitHub Rate limit reached (reset in {sleep_sec}s). Backing off.", flush=True)
+                    break
+                print(f"    ⚠️ GitHub Rate limit hit (code {e.code}). Sleeping {sleep_sec}s before retry...", flush=True)
+                time.sleep(sleep_sec)
+            else:
+                if attempt == max_retries - 1:
+                    return {}
+                time.sleep(2)
+        except Exception:
+            if attempt == max_retries - 1:
+                return {}
+            time.sleep(2)
+    return {}
 
 # =============================================================================
 # 1. 🔍 GITHUB CODE SEARCH DISCOVERY

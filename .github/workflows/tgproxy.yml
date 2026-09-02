@@ -1,9 +1,6 @@
 name: TurboProbe TGProxy Pipeline
 
 on:
-  schedule:
-    # Runs every 4 hours automatically (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
-    - cron: '0 */4 * * *'
   workflow_dispatch:
 
 concurrency:
