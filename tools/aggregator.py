@@ -1333,7 +1333,8 @@ def load_discovered_sources() -> list:
 async def async_fetch_single_url_aiohttp(session: aiohttp.ClientSession, sem: asyncio.Semaphore, url: str) -> tuple:
     async with sem:
         try:
-            async with session.get(url, allow_redirects=True) as resp:
+            req_timeout = aiohttp.ClientTimeout(total=4.0, connect=2.0)
+            async with session.get(url, allow_redirects=True, timeout=req_timeout) as resp:
                 if resp.status == 200:
                     text = await resp.text(errors="ignore")
                     return url, text
@@ -1426,15 +1427,14 @@ def main():
 
     extra_sources = []
     if args.fast:
-        all_sources = SOURCES[:35]
-        print(f"⚡ [TurboProbe Fast Mode] Crawling only {len(all_sources)} Tier-1 high-yield sources (under 30s)...", flush=True)
+        all_sources = SOURCES[:45]
+        candidate_quota = 5000
+        print(f"⚡ [TurboProbe Fast Mode] Crawling {len(all_sources)} Tier-1 high-yield sources (5000 node quota)...", flush=True)
     else:
         extra_sources = load_discovered_sources()
-        all_sources = list(dict.fromkeys(SOURCES + extra_sources))
-        print(f"🚀 [TurboProbe Full Engine] Crawling from {len(all_sources)} verified sources "
-              f"({len(SOURCES)} seed + {len(extra_sources)} auto-discovered)...", flush=True)
-
-    all_sources = prioritize_sources_by_quality(all_sources)
+        all_sources = list(dict.fromkeys(SOURCES + extra_sources))[:60]
+        candidate_quota = 6000
+        print(f"🚀 [TurboProbe High-Yield Engine] Crawling from {len(all_sources)} top-ranked verified sources ({candidate_quota} node quota)...", flush=True)
 
     fetched_count = 0
     all_uris = []
@@ -1444,8 +1444,8 @@ def main():
     t_fetch_start = time.perf_counter()
     if httpx:
         try:
-            print(f"⚡ [AsyncIO HTTP/2 Engine] Fetching {len(all_sources)} sources concurrently (500 connections)...", flush=True)
-            all_uris, direct_ru_fetched, fetched_count = asyncio.run(async_fetch_sources_pool(all_sources, concurrency=500))
+            print(f"⚡ [AsyncIO HTTP/2 Engine] Fetching {len(all_sources)} sources concurrently (100 connections)...", flush=True)
+            all_uris, direct_ru_fetched, fetched_count = asyncio.run(async_fetch_sources_pool(all_sources, concurrency=100))
         except Exception:
             httpx_failed = True
         else:
@@ -1534,15 +1534,11 @@ def main():
                     break
         return sel
 
-    if args.fast:
-        candidate_uris = _diverse_candidates(candidate_uris, 2500)
-        bench_concurrency = 120
-    elif args.limit > 0:
+    if args.limit > 0:
         candidate_uris = _diverse_candidates(candidate_uris, args.limit)
-        bench_concurrency = 250
     else:
-        candidate_uris = _diverse_candidates(candidate_uris, 7500)
-        bench_concurrency = 250
+        candidate_uris = _diverse_candidates(candidate_uris, candidate_quota)
+    bench_concurrency = 120
 
     # 3. ⚡ Ultra-Speed AsyncIO SYN / Latency Benchmark
     print(f"🩺 [AsyncIO Latency Engine] Benchmarking {len(candidate_uris)} nodes (timeout: 1.5s, {bench_concurrency} async sockets)...", flush=True)
