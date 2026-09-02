@@ -607,15 +607,14 @@ def discover_all_github_repositories(scanned_repos_cache: dict) -> tuple:
                 except Exception:
                     pass
 
-    print(f"  🔍 Dynamically querying GitHub Search API in parallel across {len(DYNAMIC_REPO_QUERIES)} queries...", flush=True)
-    with ThreadPoolExecutor(max_workers=len(DYNAMIC_REPO_QUERIES)) as q_pool:
-        q_futs = [q_pool.submit(search_single_query, q) for q in DYNAMIC_REPO_QUERIES]
-        for qf in as_completed(q_futs):
-            try:
-                for full_name, branch, pushed_at in qf.result():
-                    repo_map[full_name.lower()] = (full_name, branch, pushed_at)
-            except Exception:
-                pass
+    print(f"  🔍 Dynamically querying GitHub Search API across {len(DYNAMIC_REPO_QUERIES)} queries (paced to respect rate limits)...", flush=True)
+    for q in DYNAMIC_REPO_QUERIES:
+        try:
+            for full_name, branch, pushed_at in search_single_query(q):
+                repo_map[full_name.lower()] = (full_name, branch, pushed_at)
+            time.sleep(2.0)
+        except Exception:
+            pass
 
     now_ts = time.time()
     fresh_repos = []
