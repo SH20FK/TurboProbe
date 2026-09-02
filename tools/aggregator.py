@@ -1535,13 +1535,14 @@ def main():
         return sel
 
     if args.fast:
-        candidate_uris = _diverse_candidates(candidate_uris, 1200)
-        bench_concurrency = 80
+        candidate_uris = _diverse_candidates(candidate_uris, 2500)
+        bench_concurrency = 120
     elif args.limit > 0:
         candidate_uris = _diverse_candidates(candidate_uris, args.limit)
-        bench_concurrency = 150
+        bench_concurrency = 250
     else:
-        bench_concurrency = 300
+        candidate_uris = _diverse_candidates(candidate_uris, 7500)
+        bench_concurrency = 250
 
     # 3. ⚡ Ultra-Speed AsyncIO SYN / Latency Benchmark
     print(f"🩺 [AsyncIO Latency Engine] Benchmarking {len(candidate_uris)} nodes (timeout: 1.5s, {bench_concurrency} async sockets)...", flush=True)
