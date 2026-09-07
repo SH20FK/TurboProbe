@@ -1,0 +1,2475 @@
+port: 7890
+socks-port: 7891
+allow-lan: false
+mode: rule
+log-level: info
+
+proxies:
+  - name: "TurboProbe · 🇳🇱 NL · Hy2-Speed #14"
+    type: hysteria2
+    server: "201.51.24.4"
+    port: 443
+    password: "oCYFcbOo8s"
+    udp: true
+    sni: "hys22.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor #2"
+    type: hysteria2
+    server: "hys22.wba-pn.ru"
+    port: 443
+    password: "oCYFcbOo8s"
+    udp: true
+    sni: "hys22.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇺🇸 US · Reality #283"
+    type: vless
+    server: "84.32.61.79"
+    port: 443
+    uuid: "5bfc6650-8b56-416a-b0e9-b98fc6367c0d"
+    udp: true
+    tls: true
+    servername: "us.api-yandex.net"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "jA_Xd8qfMloJg0lbdxPnEcDJc3MltgueXpxYQAWnlD0"
+      short-id: "0f4dacf66101e05f"
+  - name: "TurboProbe · 🇳🇱 NL · Hy2-Speed #24"
+    type: hysteria2
+    server: "hys9.wba-pn.ru"
+    port: 443
+    password: "wrSuBorIlf"
+    udp: true
+    sni: "hys9.wba-pn.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe · 🇳🇱 NL · Hy2-Speed #22"
+    type: hysteria2
+    server: "hys22.wba-pn.ru"
+    port: 443
+    password: "oCYFcbOo8s"
+    udp: true
+    sni: "hys22.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (6)"
+    type: hysteria2
+    server: "72.56.92.120"
+    port: 443
+    password: "CnVfXXvMzh"
+    udp: true
+    sni: "hys13.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (7)"
+    type: hysteria2
+    server: "hys26.wba-pn.ru"
+    port: 443
+    password: "OD6gGbGU9a"
+    udp: true
+    sni: "hys26.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Hy2-Speed #13"
+    type: hysteria2
+    server: "72.56.92.120"
+    port: 443
+    password: "CnVfXXvMzh"
+    udp: true
+    sni: "hys13.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Hy2-Speed #21"
+    type: hysteria2
+    server: "hys9.wba-pn.ru"
+    port: 443
+    password: "wrSuBorIlf"
+    udp: true
+    sni: "hys9.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Hy2-Speed #16"
+    type: hysteria2
+    server: "hys34.wba-pn.ru"
+    port: 443
+    password: "EkF2Yw0Lc7"
+    udp: true
+    sni: "hys34.wba-pn.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor"
+    type: hysteria2
+    server: "201.51.24.4"
+    port: 443
+    password: "oCYFcbOo8s"
+    udp: true
+    sni: "hys22.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (12)"
+    type: hysteria2
+    server: "hys9.wba-pn.ru"
+    port: 443
+    password: "wrSuBorIlf"
+    udp: true
+    sni: "hys9.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor (13)"
+    type: hysteria2
+    server: "hys22.wba-pn.ru"
+    port: 443
+    password: "oCYFcbOo8s"
+    udp: true
+    sni: "hys22.wba-pn.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor (14)"
+    type: hysteria2
+    server: "hys22.wba-pn.ru"
+    port: 443
+    password: "oCYFcbOo8s"
+    udp: true
+    sni: "hys22.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇺🇸 US · Anti-Censor"
+    type: vless
+    server: "84.32.61.79"
+    port: 443
+    uuid: "5bfc6650-8b56-416a-b0e9-b98fc6367c0d"
+    udp: true
+    tls: true
+    servername: "us.api-yandex.net"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "jA_Xd8qfMloJg0lbdxPnEcDJc3MltgueXpxYQAWnlD0"
+      short-id: "0f4dacf66101e05f"
+  - name: "TurboProbe · 🇺🇸 US · Anti-Censor (16)"
+    type: vless
+    server: "84.32.61.79"
+    port: 443
+    uuid: "5bfc6650-8b56-416a-b0e9-b98fc6367c0d"
+    udp: true
+    tls: true
+    servername: "us.api-yandex.net"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "jA_Xd8qfMloJg0lbdxPnEcDJc3MltgueXpxYQAWnlD0"
+      short-id: "0f4dacf66101e05f"
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor (17)"
+    type: hysteria2
+    server: "hys26.wba-pn.ru"
+    port: 443
+    password: "OD6gGbGU9a"
+    udp: true
+    sni: "hys26.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (18)"
+    type: hysteria2
+    server: "201.51.24.4"
+    port: 443
+    password: "oCYFcbOo8s"
+    udp: true
+    sni: "hys22.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Hy2-Speed #23"
+    type: hysteria2
+    server: "hys22.wba-pn.ru"
+    port: 443
+    password: "oCYFcbOo8s"
+    udp: true
+    sni: "hys22.wba-pn.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor (20)"
+    type: hysteria2
+    server: "hys9.wba-pn.ru"
+    port: 443
+    password: "wrSuBorIlf"
+    udp: true
+    sni: "hys9.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (21)"
+    type: hysteria2
+    server: "hys34.wba-pn.ru"
+    port: 443
+    password: "EkF2Yw0Lc7"
+    udp: true
+    sni: "hys34.wba-pn.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor (22)"
+    type: hysteria2
+    server: "hys34.wba-pn.ru"
+    port: 443
+    password: "EkF2Yw0Lc7"
+    udp: true
+    sni: "hys34.wba-pn.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe · 🇺🇸 US · Anti-Censor (23)"
+    type: vless
+    server: "84.32.61.79"
+    port: 443
+    uuid: "5bfc6650-8b56-416a-b0e9-b98fc6367c0d"
+    udp: true
+    tls: true
+    servername: "us.api-yandex.net"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "jA_Xd8qfMloJg0lbdxPnEcDJc3MltgueXpxYQAWnlD0"
+      short-id: "0f4dacf66101e05f"
+  - name: "TurboProbe · 🇳🇱 NL · Hy2-Speed #27"
+    type: hysteria2
+    server: "hys26.wba-pn.ru"
+    port: 443
+    password: "OD6gGbGU9a"
+    udp: true
+    sni: "hys26.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor (25)"
+    type: hysteria2
+    server: "hys9.wba-pn.ru"
+    port: 443
+    password: "wrSuBorIlf"
+    udp: true
+    sni: "hys9.wba-pn.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor (26)"
+    type: hysteria2
+    server: "72.56.92.120"
+    port: 443
+    password: "CnVfXXvMzh"
+    udp: true
+    sni: "hys13.wba-pn.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (27)"
+    type: hysteria2
+    server: "hys28.wba-pn.ru"
+    port: 443
+    password: "BWAFlp8g53"
+    udp: true
+    sni: "hys28.wba-pn.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe · 🇺🇸 US · Anti-Censor (28)"
+    type: vless
+    server: "84.32.61.79"
+    port: 443
+    uuid: "5bfc6650-8b56-416a-b0e9-b98fc6367c0d"
+    udp: true
+    tls: true
+    servername: "us.api-yandex.net"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "jA_Xd8qfMloJg0lbdxPnEcDJc3MltgueXpxYQAWnlD0"
+      short-id: "0f4dacf66101e05f"
+  - name: "TurboProbe · 🇳🇱 NL · Hy2-Speed #20"
+    type: hysteria2
+    server: "hys28.wba-pn.ru"
+    port: 443
+    password: "BWAFlp8g53"
+    udp: true
+    sni: "hys28.wba-pn.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe · 🇳🇱 NL · Anti-Censor (30)"
+    type: hysteria2
+    server: "hys28.wba-pn.ru"
+    port: 443
+    password: "BWAFlp8g53"
+    udp: true
+    sni: "hys28.wba-pn.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe · 🇳🇱 NL · Reality"
+    type: vless
+    server: "2.59.183.167"
+    port: 443
+    uuid: "301d514e-4aa0-47b0-ba44-a0cb891cd52f"
+    udp: true
+    tls: true
+    servername: "www.samsung.com"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "OZVjfQBboTDTBw0baMFqzVPsVUI4FNQmspTEb0b0zW4"
+      short-id: "a1b2c3d4"
+  - name: "TurboProbe · 🇩🇪 DE · Reality #443"
+    type: vless
+    server: "89.34.90.68"
+    port: 8443
+    uuid: "fe8e2ffb-8796-408c-af5b-0d4774215e00"
+    udp: true
+    tls: true
+    servername: "360.yandex.ru"
+    client-fingerprint: "chrome"
+    network: grpc
+    reality-opts:
+      public-key: "dTdncizxtVTqDZDkQoYdRTkf2Mn6XuKtkzg8vZhrkzA"
+      short-id: "6ba85179e30d4fc2"
+    grpc-opts:
+      grpc-service-name: "grpc"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor #2"
+    type: vless
+    server: "89.34.90.68"
+    port: 8443
+    uuid: "fe8e2ffb-8796-408c-af5b-0d4774215e00"
+    udp: true
+    tls: true
+    servername: "360.yandex.ru"
+    client-fingerprint: "chrome"
+    network: grpc
+    reality-opts:
+      public-key: "dTdncizxtVTqDZDkQoYdRTkf2Mn6XuKtkzg8vZhrkzA"
+      short-id: "6ba85179e30d4fc2"
+    grpc-opts:
+      grpc-service-name: "grpc"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #622"
+    type: vless
+    server: "50.7.193.131"
+    port: 443
+    uuid: "ec537bff-dc14-495c-b65f-65393ad7ee75"
+    udp: true
+    tls: true
+    servername: "app5.jarvesitw.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "OINuDFEDTdmtFR8QRxAZfQIMPA-wJxfGN1LjB3TFUHo"
+      short-id: "535a3304"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #624"
+    type: vless
+    server: "50.7.214.82"
+    port: 443
+    uuid: "ec537bff-dc14-495c-b65f-65393ad7ee75"
+    udp: true
+    tls: true
+    servername: "app5.jarvesitw.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "ojDrVO838PScByjy1cb1-LLEpEh4LhJKG_jldp8g7xo"
+      short-id: "8beb2706"
+  - name: "TurboProbe · 🌐 Global · Reality"
+    type: vless
+    server: "89.105.202.115"
+    port: 443
+    uuid: "4550993c-2191-493a-a612-aaba4a4ec083"
+    udp: true
+    tls: true
+    servername: "g2.steptofsvo.com"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "ivgTfLR13A6xBsicIA28OPoav2tXlsstTTmGuETfnSk"
+      short-id: "6d6f13013d3e1d0c"
+  - name: "TurboProbe · 🌐 Global · Reality (37)"
+    type: vless
+    server: "38.107.236.178"
+    port: 8443
+    uuid: "fda82db3-3c0f-4122-87d9-1ed08059bc92"
+    udp: true
+    tls: true
+    servername: "www.cloudflare.com"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "3FJiEck0B3pYiu9rBFFU42F_krH29qdvirruWFdcbRo"
+      short-id: "0f8b07df"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #621"
+    type: vless
+    server: "50.7.188.162"
+    port: 443
+    uuid: "ec537bff-dc14-495c-b65f-65393ad7ee75"
+    udp: true
+    tls: true
+    servername: "ads.x5.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "c5vsnqZ0Lr_bFoto-ES-3bVD63PwFeogqfc7xTj2rig"
+      short-id: "3f7fb4ee"
+  - name: "TurboProbe · 🌐 Global · Anti-Censor"
+    type: vless
+    server: "80.76.44.45"
+    port: 443
+    uuid: "b5ca5ab3-8cbc-4ac3-89da-9cd360589ecb"
+    udp: true
+    tls: true
+    servername: "gets.savesafe.run"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "BvR2i3CJEL9QwNAWKqkkHY3rnqJdOFLyKw5DZ9sA2C8"
+      short-id: "812609fa663c57fb"
+  - name: "TurboProbe · 🌐 Global · Anti-Censor (40)"
+    type: vless
+    server: "80.76.44.48"
+    port: 443
+    uuid: "b5ca5ab3-8cbc-4ac3-89da-9cd360589ecb"
+    udp: true
+    tls: true
+    servername: "gets.savesafe.run"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "BvR2i3CJEL9QwNAWKqkkHY3rnqJdOFLyKw5DZ9sA2C8"
+      short-id: "812609fa663c57fb"
+  - name: "TurboProbe · 🌐 Global · Anti-Censor (41)"
+    type: vless
+    server: "80.76.44.47"
+    port: 443
+    uuid: "b5ca5ab3-8cbc-4ac3-89da-9cd360589ecb"
+    udp: true
+    tls: true
+    servername: "gets.savesafe.run"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "BvR2i3CJEL9QwNAWKqkkHY3rnqJdOFLyKw5DZ9sA2C8"
+      short-id: "812609fa663c57fb"
+  - name: "TurboProbe · 🌐 Global · Anti-Censor (42)"
+    type: vless
+    server: "84.32.106.178"
+    port: 443
+    uuid: "4928c901-be72-4f81-8d59-091ce9e01692"
+    udp: true
+    tls: true
+    servername: "sw.api-yandex.net"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "pU7ElcbPMVObHoWqGThioVD4i5ux_phWFwElN97aDSQ"
+      short-id: "0f4dacf89993e21f"
+  - name: "TurboProbe · 🌐 Global · Anti-Censor (43)"
+    type: vless
+    server: "80.76.44.44"
+    port: 443
+    uuid: "b5ca5ab3-8cbc-4ac3-89da-9cd360589ecb"
+    udp: true
+    tls: true
+    servername: "gets.savesafe.run"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "BvR2i3CJEL9QwNAWKqkkHY3rnqJdOFLyKw5DZ9sA2C8"
+      short-id: "812609fa663c57fb"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #103"
+    type: vless
+    server: "2.27.244.159"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "qq"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇩🇪 DE · Anti-Censor #2"
+    type: vless
+    server: "144.31.168.95"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇬🇧 GB · Reality"
+    type: vless
+    server: "89.40.70.124"
+    port: 443
+    uuid: "d81b3a26-1111-497a-a243-a34d80b1b1b9"
+    udp: true
+    tls: true
+    servername: "www.sony.co.uk"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "2UHMR3ko8nBUTbZpQrvWP9ylSmcAj5YXSNG_o-N8EW8"
+      short-id: "5b33d3e71a14f4"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #308"
+    type: vless
+    server: "144.31.241.47"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "qq"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🌐 Global · Reality (48)"
+    type: vless
+    server: "185.253.152.198"
+    port: 34710
+    uuid: "dd7429eb-b77b-4a8d-be86-c34cac86faf7"
+    udp: true
+    tls: true
+    servername: "www.nvidia.com"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "MXOVePed0T2SVOfYSEtecn2yApnsVC12dJ6nkujWTVU"
+      short-id: "14b0eb7919eb7d"
+  - name: "TurboProbe · 🌐 Global · Reality (49)"
+    type: vless
+    server: "139.64.166.55"
+    port: 443
+    uuid: "c743b343-b1c9-4e44-98a9-274df2015727"
+    udp: true
+    tls: true
+    servername: "www.cloudflare.com"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "cudJBi1zLMATgg_nlqMK5O6Lshlv8EQ2BBQjxbpF4AY"
+      short-id: "eedf31ed"
+  - name: "TurboProbe · 🌐 Global · Reality (50)"
+    type: vless
+    server: "89.105.202.114"
+    port: 443
+    uuid: "4550993c-2191-493a-a612-aaba4a4ec083"
+    udp: true
+    tls: true
+    servername: "g2.steptofsvo.com"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "ivgTfLR13A6xBsicIA28OPoav2tXlsstTTmGuETfnSk"
+      short-id: "6d6f13013d3e1d0c"
+  - name: "TurboProbe · 🌐 Global · Reality #39"
+    type: vless
+    server: "80.76.44.45"
+    port: 443
+    uuid: "b5ca5ab3-8cbc-4ac3-89da-9cd360589ecb"
+    udp: true
+    tls: true
+    servername: "gets.savesafe.run"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "BvR2i3CJEL9QwNAWKqkkHY3rnqJdOFLyKw5DZ9sA2C8"
+      short-id: "812609fa663c57fb"
+  - name: "TurboProbe · 🌐 Global · Anti-Censor (52)"
+    type: vless
+    server: "80.76.44.50"
+    port: 443
+    uuid: "b5ca5ab3-8cbc-4ac3-89da-9cd360589ecb"
+    udp: true
+    tls: true
+    servername: "gets.savesafe.run"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "BvR2i3CJEL9QwNAWKqkkHY3rnqJdOFLyKw5DZ9sA2C8"
+      short-id: "812609fa663c57fb"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #28"
+    type: vless
+    server: "2.27.244.159"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #38"
+    type: vless
+    server: "31.76.60.91"
+    port: 13443
+    uuid: "b80b392c-0cf4-42f9-ae54-9f862e3ba276"
+    udp: true
+    tls: true
+    servername: "auto.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "gc9oXe37KCCm3J1dJ03wdGsnxPBdeEkRPOvl_t-vfVM"
+      short-id: "a7f3c91b2e6d84c0"
+  - name: "TurboProbe · 🌐 Global · Reality #69"
+    type: vless
+    server: "80.76.44.50"
+    port: 443
+    uuid: "b5ca5ab3-8cbc-4ac3-89da-9cd360589ecb"
+    udp: true
+    tls: true
+    servername: "gets.savesafe.run"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "BvR2i3CJEL9QwNAWKqkkHY3rnqJdOFLyKw5DZ9sA2C8"
+      short-id: "812609fa663c57fb"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor"
+    type: vless
+    server: "103.119.19.208"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🌐 Global · Reality #51"
+    type: vless
+    server: "84.32.106.178"
+    port: 443
+    uuid: "4928c901-be72-4f81-8d59-091ce9e01692"
+    udp: true
+    tls: true
+    servername: "sw.api-yandex.net"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "pU7ElcbPMVObHoWqGThioVD4i5ux_phWFwElN97aDSQ"
+      short-id: "0f4dacf89993e21f"
+  - name: "TurboProbe · 🌐 Global · Anti-Censor (58)"
+    type: vless
+    server: "80.76.44.46"
+    port: 443
+    uuid: "b5ca5ab3-8cbc-4ac3-89da-9cd360589ecb"
+    udp: true
+    tls: true
+    servername: "gets.savesafe.run"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "BvR2i3CJEL9QwNAWKqkkHY3rnqJdOFLyKw5DZ9sA2C8"
+      short-id: "812609fa663c57fb"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (59)"
+    type: vless
+    server: "152.233.43.71"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "DaQjKlJbC2ksBaItYb0fjt1xkIcxRh_STIQ4rkrydjY"
+      short-id: "7db44191"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #677"
+    type: vless
+    server: "144.31.168.95"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇬🇧 GB · Anti-Censor #2"
+    type: vless
+    server: "84.32.106.178"
+    port: 443
+    uuid: "4928c901-be72-4f81-8d59-091ce9e01692"
+    udp: true
+    tls: true
+    servername: "sw.api-yandex.net"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "pU7ElcbPMVObHoWqGThioVD4i5ux_phWFwElN97aDSQ"
+      short-id: "0f4dacf89993e21f"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (62)"
+    type: vless
+    server: "152.233.41.10"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "LubLmalkyXoDFKxVQLtf1mh5cVK7W8K-MeNQf6ZDQ2I"
+      short-id: "9e354fd8"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #340"
+    type: vless
+    server: "144.31.242.1"
+    port: 13443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "auto.cendora.ru"
+    client-fingerprint: "qq"
+    network: tcp
+    reality-opts:
+      public-key: "gc9oXe37KCCm3J1dJ03wdGsnxPBdeEkRPOvl_t-vfVM"
+      short-id: "a7f3c91b2e6d84c0"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (64)"
+    type: vless
+    server: "152.233.41.10"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "LubLmalkyXoDFKxVQLtf1mh5cVK7W8K-MeNQf6ZDQ2I"
+      short-id: "9e354fd8"
+  - name: "TurboProbe · 🇹🇷 TR · Reality #346"
+    type: vless
+    server: "31.59.125.49"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🌐 Global · Reality (66)"
+    type: vless
+    server: "84.32.177.89"
+    port: 443
+    uuid: "88f9c3c2-b3dc-44aa-9490-8e9bc8133535"
+    udp: true
+    tls: true
+    servername: "w-mebel.pro"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "ZxtVCtDc-yazoz2WjK6mh7R3Oprnxf0S3tFo2derJn0"
+      short-id: "f6f7ce0f90813814"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #678"
+    type: vless
+    server: "151.242.160.49"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (68)"
+    type: vless
+    server: "103.119.19.208"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (69)"
+    type: vless
+    server: "152.233.43.71"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "DaQjKlJbC2ksBaItYb0fjt1xkIcxRh_STIQ4rkrydjY"
+      short-id: "7db44191"
+  - name: "TurboProbe · 🇬🇷 GR · Reality"
+    type: vless
+    server: "94.183.219.243"
+    port: 8443
+    uuid: "658f7138-93c2-414d-a6c2-f332c94d4034"
+    udp: true
+    tls: true
+    servername: "cdn.shopify.com"
+    client-fingerprint: "chrome"
+    network: grpc
+    reality-opts:
+      public-key: "NI5Rkfn6zO_gF-UC1nuvJwu4SDakCXh3ygJOKU1EITU"
+      short-id: "f747a7a5793b5714"
+    grpc-opts:
+      grpc-service-name: ""
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (71)"
+    type: vless
+    server: "151.242.160.111"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "qq"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (72)"
+    type: vless
+    server: "151.242.160.49"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "qq"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🌐 Global · Reality #66"
+    type: vless
+    server: "80.76.44.48"
+    port: 443
+    uuid: "b5ca5ab3-8cbc-4ac3-89da-9cd360589ecb"
+    udp: true
+    tls: true
+    servername: "gets.savesafe.run"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "BvR2i3CJEL9QwNAWKqkkHY3rnqJdOFLyKw5DZ9sA2C8"
+      short-id: "812609fa663c57fb"
+  - name: "TurboProbe · 🇹🇷 TR · Reality"
+    type: vless
+    server: "217.60.24.61"
+    port: 8443
+    uuid: "658f7138-93c2-414d-a6c2-f332c94d4034"
+    udp: true
+    tls: true
+    servername: "cdn.shopify.com"
+    client-fingerprint: "firefox"
+    network: grpc
+    reality-opts:
+      public-key: "NI5Rkfn6zO_gF-UC1nuvJwu4SDakCXh3ygJOKU1EITU"
+      short-id: "f747a7a5793b5714"
+    grpc-opts:
+      grpc-service-name: ""
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (75)"
+    type: vless
+    server: "103.119.19.208"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🌐 Global · Reality (76)"
+    type: vless
+    server: "89.105.202.114"
+    port: 443
+    uuid: "4550993c-2191-493a-a612-aaba4a4ec083"
+    udp: true
+    tls: true
+    servername: "g2.steptofsvo.com"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "ivgTfLR13A6xBsicIA28OPoav2tXlsstTTmGuETfnSk"
+      short-id: "6d6f13013d3e1d0c"
+  - name: "TurboProbe · 🇩🇪 DE · Reality"
+    type: vless
+    server: "145.223.68.58"
+    port: 443
+    uuid: "edb50d20-2d3e-4c1e-8a75-a17168a89aa5"
+    udp: true
+    tls: true
+    servername: "www.cloudflare.com"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "qc2DcqT9zPPZr6ePZ7ukxACWrYhRNIBjDIjCK7veyQg"
+      short-id: "a44ff7d2e80213c2"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #425"
+    type: vless
+    server: "152.233.41.10"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "LubLmalkyXoDFKxVQLtf1mh5cVK7W8K-MeNQf6ZDQ2I"
+      short-id: "9e354fd8"
+  - name: "TurboProbe · 🌐 Global · Reality (79)"
+    type: vless
+    server: "89.105.202.117"
+    port: 443
+    uuid: "4550993c-2191-493a-a612-aaba4a4ec083"
+    udp: true
+    tls: true
+    servername: "g2.steptofsvo.com"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "ivgTfLR13A6xBsicIA28OPoav2tXlsstTTmGuETfnSk"
+      short-id: "6d6f13013d3e1d0c"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #680"
+    type: vless
+    server: "152.233.66.68"
+    port: 443
+    uuid: "c7fc6e44-d57b-49b9-9ff2-a4e0aa9e9b8c"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "TXwYCrwkhTEeqtxTf3ZYmXNwYcmVtR9eVXJRo7Kvxmk"
+      short-id: "8c5041b3"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #394"
+    type: vless
+    server: "87.121.86.251"
+    port: 443
+    uuid: "a704443d-655e-4d9f-8ce6-12eeb17a9a08"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "qeBbCJY3sSjVSuxbUOf3pCtABiqwHqJVrlMRowDRYSk"
+      short-id: "b1e2e720"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (82)"
+    type: vless
+    server: "152.233.54.69"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "vLb66rBLZnMI1VPKxp90Dcuc0p2fyHdL3HwaxvNHzTA"
+      short-id: "f3a0090e"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #37"
+    type: vless
+    server: "144.31.213.188"
+    port: 13443
+    uuid: "5238521b-c5dd-42af-870e-c174a2aaaafe"
+    udp: true
+    tls: true
+    servername: "auto.cendora.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "gc9oXe37KCCm3J1dJ03wdGsnxPBdeEkRPOvl_t-vfVM"
+      short-id: "a7f3c91b2e6d84c0"
+  - name: "TurboProbe · 🌐 Global · Reality (84)"
+    type: vless
+    server: "94.183.219.243"
+    port: 8443
+    uuid: "658f7138-93c2-414d-a6c2-f332c94d4034"
+    udp: true
+    tls: true
+    servername: "cdn.shopify.com"
+    client-fingerprint: "firefox"
+    network: grpc
+    reality-opts:
+      public-key: "NI5Rkfn6zO_gF-UC1nuvJwu4SDakCXh3ygJOKU1EITU"
+      short-id: "f747a7a5793b5714"
+    grpc-opts:
+      grpc-service-name: ""
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (85)"
+    type: vless
+    server: "152.233.54.69"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "vLb66rBLZnMI1VPKxp90Dcuc0p2fyHdL3HwaxvNHzTA"
+      short-id: "f3a0090e"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #119"
+    type: vless
+    server: "103.119.19.208"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (87)"
+    type: vless
+    server: "185.145.245.179"
+    port: 443
+    uuid: "618acefa-2ff1-41b0-a295-f8a08858a897"
+    udp: true
+    tls: true
+    servername: "d.tranzit-net.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "IAdOYYmEMPFAhpVUhqfML58AVtYPdAb71R_HAPf0N0k"
+  - name: "TurboProbe · 🌐 Global · Reality (88)"
+    type: vless
+    server: "217.60.24.23"
+    port: 8443
+    uuid: "758f49d3-5f5f-47e7-bfa4-4ce96faf800d"
+    udp: true
+    tls: true
+    servername: "cdn.shopify.com"
+    client-fingerprint: "firefox"
+    network: grpc
+    reality-opts:
+      public-key: "NI5Rkfn6zO_gF-UC1nuvJwu4SDakCXh3ygJOKU1EITU"
+      short-id: "f747a7a5793b5714"
+    grpc-opts:
+      grpc-service-name: ""
+  - name: "TurboProbe · 🇷🇺 RU · Reality #166"
+    type: vless
+    server: "31.76.60.91"
+    port: 13443
+    uuid: "b80b392c-0cf4-42f9-ae54-9f862e3ba276"
+    udp: true
+    tls: true
+    servername: "auto.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "gc9oXe37KCCm3J1dJ03wdGsnxPBdeEkRPOvl_t-vfVM"
+      short-id: "a7f3c91b2e6d84c0"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (90)"
+    type: vless
+    server: "156.146.40.201"
+    port: 443
+    uuid: "a704443d-655e-4d9f-8ce6-12eeb17a9a08"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "WMO-BNY1BX2nNlOOQgxLP4D3H-OnE2ypbXlbSMjLRVM"
+      short-id: "e764f0ea"
+  - name: "TurboProbe · 🇵🇱 PL · Anti-Censor"
+    type: vless
+    server: "82.40.62.229"
+    port: 443
+    uuid: "5bfc6650-8b56-0012-b0e9-b98fc6367c0d"
+    udp: true
+    tls: true
+    servername: "auto.api-yandex.net"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "NBjOloEUgyAHoLqvcGo_t3jTY8Jya77j5dsNB1VJ8Bo"
+      short-id: "0f4dacffd272e65f"
+  - name: "TurboProbe · 🇹🇷 TR · Anti-Censor #2"
+    type: vless
+    server: "31.59.125.49"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #47"
+    type: vless
+    server: "152.233.41.10"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "LubLmalkyXoDFKxVQLtf1mh5cVK7W8K-MeNQf6ZDQ2I"
+      short-id: "9e354fd8"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #104"
+    type: vless
+    server: "31.76.60.91"
+    port: 13443
+    uuid: "b80b392c-0cf4-42f9-ae54-9f862e3ba276"
+    udp: true
+    tls: true
+    servername: "auto.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "gc9oXe37KCCm3J1dJ03wdGsnxPBdeEkRPOvl_t-vfVM"
+      short-id: "a7f3c91b2e6d84c0"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (95)"
+    type: vless
+    server: "87.121.86.251"
+    port: 443
+    uuid: "a704443d-655e-4d9f-8ce6-12eeb17a9a08"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "qeBbCJY3sSjVSuxbUOf3pCtABiqwHqJVrlMRowDRYSk"
+      short-id: "b1e2e720"
+  - name: "TurboProbe · 🇵🇱 PL · Anti-Censor (96)"
+    type: vless
+    server: "82.40.62.229"
+    port: 443
+    uuid: "5bfc6650-8b56-0012-b0e9-b98fc6367c0d"
+    udp: true
+    tls: true
+    servername: "auto.api-yandex.net"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "NBjOloEUgyAHoLqvcGo_t3jTY8Jya77j5dsNB1VJ8Bo"
+      short-id: "0f4dacffd272e65f"
+  - name: "TurboProbe · 🌐 Global · Reality (97)"
+    type: vless
+    server: "2.27.244.94"
+    port: 443
+    uuid: "e1299012-3d27-4b7f-99d5-25ccb7c63220"
+    udp: true
+    tls: true
+    servername: "www.google.com"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "sJTPQLMDCyPAbRcaJM-P8Y3_xRVpEEGrvv-kkIuIuQE"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (98)"
+    type: vless
+    server: "152.233.62.135"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "kUuy5M4V5bfjri7m_XBryv1YTLLlPLPIwPotJJgpgEc"
+      short-id: "87922049"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (99)"
+    type: vless
+    server: "144.31.241.47"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "qq"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇬🇧 GB · Reality #373"
+    type: vless
+    server: "84.32.106.178"
+    port: 443
+    uuid: "4928c901-be72-4f81-8d59-091ce9e01692"
+    udp: true
+    tls: true
+    servername: "sw.api-yandex.net"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "pU7ElcbPMVObHoWqGThioVD4i5ux_phWFwElN97aDSQ"
+      short-id: "0f4dacf89993e21f"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (101)"
+    type: vless
+    server: "87.121.86.251"
+    port: 443
+    uuid: "a704443d-655e-4d9f-8ce6-12eeb17a9a08"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "qeBbCJY3sSjVSuxbUOf3pCtABiqwHqJVrlMRowDRYSk"
+      short-id: "b1e2e720"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #606"
+    type: vless
+    server: "2.27.204.103"
+    port: 13443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "auto.cendora.ru"
+    client-fingerprint: "edge"
+    network: tcp
+    reality-opts:
+      public-key: "gc9oXe37KCCm3J1dJ03wdGsnxPBdeEkRPOvl_t-vfVM"
+      short-id: "a7f3c91b2e6d84c0"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (103)"
+    type: vless
+    server: "185.145.245.168"
+    port: 443
+    uuid: "618acefa-2ff1-41b0-a295-f8a08858a897"
+    udp: true
+    tls: true
+    servername: "d.tranzit-net.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "IAdOYYmEMPFAhpVUhqfML58AVtYPdAb71R_HAPf0N0k"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor #9"
+    type: vless
+    server: "13.143.139.45"
+    port: 8443
+    uuid: "411949cf-a119-454c-a672-7e50fb407895"
+    udp: true
+    tls: true
+    servername: "www.mymusicprod.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "WfFzorWuJnnnaPTNwYjvgFJC2VAPd0-isHpjvPmWDUQ"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #56"
+    type: vless
+    server: "185.145.245.168"
+    port: 443
+    uuid: "618acefa-2ff1-41b0-a295-f8a08858a897"
+    udp: true
+    tls: true
+    servername: "d.tranzit-net.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "IAdOYYmEMPFAhpVUhqfML58AVtYPdAb71R_HAPf0N0k"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (106)"
+    type: vless
+    server: "185.145.245.179"
+    port: 443
+    uuid: "618acefa-2ff1-41b0-a295-f8a08858a897"
+    udp: true
+    tls: true
+    servername: "d.tranzit-net.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "IAdOYYmEMPFAhpVUhqfML58AVtYPdAb71R_HAPf0N0k"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #342"
+    type: vless
+    server: "144.31.241.47"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇵🇱 PL · Reality #490"
+    type: vless
+    server: "82.40.62.229"
+    port: 443
+    uuid: "5bfc6650-8b56-0012-b0e9-b98fc6367c0d"
+    udp: true
+    tls: true
+    servername: "auto.api-yandex.net"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "NBjOloEUgyAHoLqvcGo_t3jTY8Jya77j5dsNB1VJ8Bo"
+      short-id: "0f4dacffd272e65f"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (109)"
+    type: vless
+    server: "2.27.244.159"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇵🇱 PL · Anti-Censor (110)"
+    type: vless
+    server: "82.40.62.229"
+    port: 443
+    uuid: "5bfc6650-8b56-0012-b0e9-b98fc6367c0d"
+    udp: true
+    tls: true
+    servername: "auto.api-yandex.net"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "NBjOloEUgyAHoLqvcGo_t3jTY8Jya77j5dsNB1VJ8Bo"
+      short-id: "0f4dacffd272e65f"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #596"
+    type: vless
+    server: "13.143.139.45"
+    port: 8443
+    uuid: "411949cf-a119-454c-a672-7e50fb407895"
+    udp: true
+    tls: true
+    servername: "www.mymusicprod.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "WfFzorWuJnnnaPTNwYjvgFJC2VAPd0-isHpjvPmWDUQ"
+  - name: "TurboProbe · 🌐 Global · Reality #69 (112)"
+    type: vless
+    server: "78.159.247.58"
+    port: 443
+    uuid: "34305560-ccd1-4466-bbff-09e606f4bc90"
+    udp: true
+    tls: true
+    servername: "smartcaptcha.yandexcloud.net"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "smzqWgG-wLasYWMveMswB9S5XU9ftuMfQZhmW18nsHc"
+      short-id: "965cab7032ceb344"
+  - name: "TurboProbe · 🇳🇱 NL · Reality (113)"
+    type: vless
+    server: "2.59.183.167"
+    port: 443
+    uuid: "301d514e-4aa0-47b0-ba44-a0cb891cd52f"
+    udp: true
+    tls: true
+    servername: "www.samsung.com"
+    client-fingerprint: "qq"
+    network: tcp
+    reality-opts:
+      public-key: "OZVjfQBboTDTBw0baMFqzVPsVUI4FNQmspTEb0b0zW4"
+      short-id: "a1b2c3d4"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (114)"
+    type: vless
+    server: "94.183.157.249"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇵🇱 PL · Reality #461"
+    type: vless
+    server: "82.40.62.229"
+    port: 443
+    uuid: "5bfc6650-8b56-0012-b0e9-b98fc6367c0d"
+    udp: true
+    tls: true
+    servername: "auto.api-yandex.net"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "NBjOloEUgyAHoLqvcGo_t3jTY8Jya77j5dsNB1VJ8Bo"
+      short-id: "0f4dacffd272e65f"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #343"
+    type: vless
+    server: "94.183.157.249"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🌐 Global · Reality #11"
+    type: vless
+    server: "91.84.117.29"
+    port: 443
+    uuid: "a4037b4c-6a9d-528c-9efb-7d801cce8adb"
+    udp: true
+    tls: true
+    servername: "vk.com"
+    client-fingerprint: "chrome"
+    network: xhttp
+    reality-opts:
+      public-key: "PyV8IrAs0LkE2d_DdjvdCtpWG7MZyUKsYkb52GUmuDM"
+      short-id: "67"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (118)"
+    type: vless
+    server: "185.145.245.168"
+    port: 443
+    uuid: "618acefa-2ff1-41b0-a295-f8a08858a897"
+    udp: true
+    tls: true
+    servername: "d.tranzit-net.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "IAdOYYmEMPFAhpVUhqfML58AVtYPdAb71R_HAPf0N0k"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #344"
+    type: vless
+    server: "2.27.244.159"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "qq"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (120)"
+    type: vless
+    server: "152.233.53.7"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "DAdWhCSXRRcho_XopxBKq2-KDupbSY_i2r-FJCy58kY"
+      short-id: "5a3874f1"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #629"
+    type: vless
+    server: "2.27.15.95"
+    port: 7443
+    uuid: "b5f03bd3-0c55-416b-8ef9-da02593c1466"
+    udp: true
+    tls: true
+    servername: "amedia-vod.cdnvideo.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "WPxQ7LPnJfuchcuNLZNOFqE-dTqOfRIbscUdQS5qsV0"
+      short-id: "a1b2c3d4e5f6789a"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (122)"
+    type: vless
+    server: "82.202.157.193"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "A51UvCAHsWrGkjaZQoE0PfHt-owiBxSMRIc8XfxdYkg"
+      short-id: "fbc7b5b2"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (123)"
+    type: vless
+    server: "152.233.53.7"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "DAdWhCSXRRcho_XopxBKq2-KDupbSY_i2r-FJCy58kY"
+      short-id: "5a3874f1"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #80"
+    type: vless
+    server: "85.90.197.168"
+    port: 2443
+    uuid: "411949cf-a119-454c-a672-7e50fb407895"
+    udp: true
+    tls: true
+    servername: "www.mymusicprod.ru"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "madQKylLVVGyvIUFjSiTJmHT2_pTE2mf7ad4oAfHwgA"
+  - name: "TurboProbe · 🇵🇱 PL · Reality #426"
+    type: vless
+    server: "82.40.62.229"
+    port: 443
+    uuid: "5bfc6650-8b56-0012-b0e9-b98fc6367c0d"
+    udp: true
+    tls: true
+    servername: "auto.api-yandex.net"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "NBjOloEUgyAHoLqvcGo_t3jTY8Jya77j5dsNB1VJ8Bo"
+      short-id: "0f4dacffd272e65f"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (126)"
+    type: vless
+    server: "85.90.197.168"
+    port: 2443
+    uuid: "411949cf-a119-454c-a672-7e50fb407895"
+    udp: true
+    tls: true
+    servername: "www.mymusicprod.ru"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "madQKylLVVGyvIUFjSiTJmHT2_pTE2mf7ad4oAfHwgA"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #605"
+    type: vless
+    server: "2.27.204.103"
+    port: 13443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "auto.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "gc9oXe37KCCm3J1dJ03wdGsnxPBdeEkRPOvl_t-vfVM"
+      short-id: "a7f3c91b2e6d84c0"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #374"
+    type: vless
+    server: "103.119.19.208"
+    port: 443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "eu-central.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "b-Cm9hX-3UHsS1L_lnUB6AMjuKhlN1IDdBbZ506itjI"
+      short-id: "00bca5982f82d083"
+  - name: "TurboProbe · 🌐 Global · Reality #39 (129)"
+    type: vless
+    server: "91.84.117.29"
+    port: 443
+    uuid: "a4037b4c-6a9d-528c-9efb-7d801cce8adb"
+    udp: true
+    tls: true
+    servername: "vk.com"
+    client-fingerprint: "chrome"
+    network: xhttp
+    reality-opts:
+      public-key: "PyV8IrAs0LkE2d_DdjvdCtpWG7MZyUKsYkb52GUmuDM"
+      short-id: "67"
+  - name: "TurboProbe · 🇩🇪 DE · Reality (130)"
+    type: vless
+    server: "88.216.70.59"
+    port: 443
+    uuid: "88f9c3c2-b3dc-44aa-9490-8e9bc8133535"
+    udp: true
+    tls: true
+    servername: "w-mebel.pro"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "N9q4N5H1CODTTDUjjXs6-AfDTQ1eSGEU7zEC0F9YUkU"
+      short-id: "05f4f85fdc6c1379"
+  - name: "TurboProbe · 🌐 Global · Reality (131)"
+    type: vless
+    server: "88.216.70.59"
+    port: 443
+    uuid: "88f9c3c2-b3dc-44aa-9490-8e9bc8133535"
+    udp: true
+    tls: true
+    servername: "w-mebel.pro"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "N9q4N5H1CODTTDUjjXs6-AfDTQ1eSGEU7zEC0F9YUkU"
+      short-id: "05f4f85fdc6c1379"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #53"
+    type: vless
+    server: "185.145.245.179"
+    port: 443
+    uuid: "618acefa-2ff1-41b0-a295-f8a08858a897"
+    udp: true
+    tls: true
+    servername: "d.tranzit-net.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "IAdOYYmEMPFAhpVUhqfML58AVtYPdAb71R_HAPf0N0k"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #402"
+    type: vless
+    server: "82.202.157.193"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "A51UvCAHsWrGkjaZQoE0PfHt-owiBxSMRIc8XfxdYkg"
+      short-id: "fbc7b5b2"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #55"
+    type: vless
+    server: "31.76.60.91"
+    port: 13443
+    uuid: "b80b392c-0cf4-42f9-ae54-9f862e3ba276"
+    udp: true
+    tls: true
+    servername: "auto.cendora.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "gc9oXe37KCCm3J1dJ03wdGsnxPBdeEkRPOvl_t-vfVM"
+      short-id: "a7f3c91b2e6d84c0"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (135)"
+    type: vless
+    server: "2.27.15.95"
+    port: 7443
+    uuid: "b5f03bd3-0c55-416b-8ef9-da02593c1466"
+    udp: true
+    tls: true
+    servername: "amedia-vod.cdnvideo.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "WPxQ7LPnJfuchcuNLZNOFqE-dTqOfRIbscUdQS5qsV0"
+      short-id: "a1b2c3d4e5f6789a"
+  - name: "TurboProbe · 🌐 Global · Anti-Censor (136)"
+    type: vless
+    server: "80.76.44.43"
+    port: 443
+    uuid: "b5ca5ab3-8cbc-4ac3-89da-9cd360589ecb"
+    udp: true
+    tls: true
+    servername: "gets.savesafe.run"
+    client-fingerprint: "qq"
+    network: xhttp
+    reality-opts:
+      public-key: "BvR2i3CJEL9QwNAWKqkkHY3rnqJdOFLyKw5DZ9sA2C8"
+      short-id: "812609fa663c57fb"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #304"
+    type: vless
+    server: "144.31.40.96"
+    port: 8443
+    uuid: "7ab9fe4f-6699-427f-a828-9fcf2496d714"
+    udp: true
+    tls: true
+    servername: "www.max.ru"
+    client-fingerprint: "firefox"
+    network: grpc
+    reality-opts:
+      public-key: "HWI8KI1Xad87HFiZ7uJkl9GWNgdRuqlS2F6YfxIdhzQ"
+      short-id: "37bd480ac3fdbc36"
+    grpc-opts:
+      grpc-service-name: "a2e3c24ab3"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (138)"
+    type: vless
+    server: "151.243.198.104"
+    port: 8443
+    uuid: "e4737ce4-c646-44cc-9067-390e13c2a5f6"
+    udp: true
+    tls: true
+    servername: "yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "Fw8ZV01MXPDlEFv28McarZoPOtGKFhOqp6Paf1V8tXw"
+      short-id: "1aef020d3c38ca3c"
+  - name: "TurboProbe · 🌐 Global · Reality (139)"
+    type: vless
+    server: "185.233.104.77"
+    port: 2054
+    uuid: "d900a139-8b5f-4758-8a32-389c6f36fc86"
+    udp: true
+    tls: true
+    servername: "www.ibm.com"
+    client-fingerprint: "firefox"
+    network: grpc
+    reality-opts:
+      public-key: "ZiTQKF9QGeU4kt3NGbfwDa9n1TQ9l-p4ZhAUx94oQBc"
+      short-id: "46a38b73a4ed4ccd"
+    grpc-opts:
+      grpc-service-name: "grpc"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (140)"
+    type: vless
+    server: "31.76.71.133"
+    port: 443
+    uuid: "d900a139-8b5f-4758-8a32-389c6f36fc86"
+    udp: true
+    tls: true
+    servername: "max.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "NzaCxfbgTDajw93CJs3uFkFJzp7DWhzJIqcnzoZwGQ4"
+      short-id: "d68d40aba9c0394a"
+  - name: "TurboProbe · 🌐 Global · Reality (141)"
+    type: vless
+    server: "185.233.104.77"
+    port: 2054
+    uuid: "75079a7f-75b5-418b-8a65-f7b2f438cd4a"
+    udp: true
+    tls: true
+    servername: "www.ibm.com"
+    client-fingerprint: "firefox"
+    network: grpc
+    reality-opts:
+      public-key: "ZiTQKF9QGeU4kt3NGbfwDa9n1TQ9l-p4ZhAUx94oQBc"
+      short-id: "46a38b73a4ed4ccd"
+    grpc-opts:
+      grpc-service-name: "grpc"
+  - name: "TurboProbe · 🇩🇪 DE · Reality (142)"
+    type: vless
+    server: "151.242.168.180"
+    port: 443
+    uuid: "05020afd-d476-406b-8950-ee7dd63a6e64"
+    udp: true
+    tls: true
+    servername: "kibi-institut.de"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "urD2miGxEfHylELSqqggBKCYIMSNXNTbdPijru7-eAQ"
+      short-id: "46babe29a750b634"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (143)"
+    type: vless
+    server: "31.76.71.133"
+    port: 443
+    uuid: "80d02a71-54a5-4c5b-976d-5ee573c502af"
+    udp: true
+    tls: true
+    servername: "max.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "NzaCxfbgTDajw93CJs3uFkFJzp7DWhzJIqcnzoZwGQ4"
+      short-id: "d68d40aba9c0394a"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (144)"
+    type: vless
+    server: "31.76.71.133"
+    port: 443
+    uuid: "82d145c1-d691-4eef-9de1-9c316db4859a"
+    udp: true
+    tls: true
+    servername: "max.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "NzaCxfbgTDajw93CJs3uFkFJzp7DWhzJIqcnzoZwGQ4"
+      short-id: "d68d40aba9c0394a"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (145)"
+    type: vless
+    server: "85.90.197.168"
+    port: 8443
+    uuid: "411949cf-a119-454c-a672-7e50fb407895"
+    udp: true
+    tls: true
+    servername: "www.mymusicprod.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "M4s0sh1He14T3pv0TFIy10oVhZK9RyXvw7IypAxYMjs"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (146)"
+    type: vless
+    server: "95.173.199.110"
+    port: 443
+    uuid: "92e41c23-4b39-464a-bbff-63ef84f317da"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "DxMGwax3l0UxFYZE349Fs15huyc4Jwzj6MG7Qrj0HQ0"
+      short-id: "735093d7"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #483"
+    type: vless
+    server: "144.31.40.96"
+    port: 8443
+    uuid: "7ab9fe4f-6699-427f-a828-9fcf2496d714"
+    udp: true
+    tls: true
+    servername: "www.max.ru"
+    client-fingerprint: "firefox"
+    network: grpc
+    reality-opts:
+      public-key: "HWI8KI1Xad87HFiZ7uJkl9GWNgdRuqlS2F6YfxIdhzQ"
+      short-id: "37bd480ac3fdbc36"
+    grpc-opts:
+      grpc-service-name: "a2e3c24ab3"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (148)"
+    type: vless
+    server: "192.88.182.105"
+    port: 443
+    uuid: "64774bd8-3116-4eaa-a046-5ea4fc230b81"
+    udp: true
+    tls: true
+    servername: "node-nd01.rkitman.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "8C7evg_SSrJbxMTaUqJoylqB9HSNsmBvmUlgs_c5EiU"
+      short-id: "88d9dc52ef39c8bd"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #35"
+    type: vless
+    server: "151.243.198.104"
+    port: 8443
+    uuid: "e4737ce4-c646-44cc-9067-390e13c2a5f6"
+    udp: true
+    tls: true
+    servername: "yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "Fw8ZV01MXPDlEFv28McarZoPOtGKFhOqp6Paf1V8tXw"
+      short-id: "1aef020d3c38ca3c"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (150)"
+    type: vless
+    server: "144.31.40.96"
+    port: 8443
+    uuid: "7ab9fe4f-6699-427f-a828-9fcf2496d714"
+    udp: true
+    tls: true
+    servername: "www.max.ru"
+    client-fingerprint: "firefox"
+    network: grpc
+    reality-opts:
+      public-key: "HWI8KI1Xad87HFiZ7uJkl9GWNgdRuqlS2F6YfxIdhzQ"
+      short-id: "37bd480ac3fdbc36"
+    grpc-opts:
+      grpc-service-name: "a2e3c24ab3"
+  - name: "TurboProbe · 🇳🇱 NL · Reality #432"
+    type: vless
+    server: "192.88.182.105"
+    port: 443
+    uuid: "64774bd8-3116-4eaa-a046-5ea4fc230b81"
+    udp: true
+    tls: true
+    servername: "node-nd01.rkitman.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "8C7evg_SSrJbxMTaUqJoylqB9HSNsmBvmUlgs_c5EiU"
+      short-id: "88d9dc52ef39c8bd"
+  - name: "TurboProbe · 🇬🇧 GB · Reality (152)"
+    type: vless
+    server: "194.110.207.75"
+    port: 443
+    uuid: "3aaf6f5a-bebe-42c9-a2da-0c5500146451"
+    udp: true
+    tls: true
+    servername: "fernandfoxgloveinteriors.co.uk"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "wHf1nSF3byWgtI0aprUDgbEBrgtE6Y8bpqnNxl9lhhg"
+      short-id: "763a06472e66efff"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (153)"
+    type: vless
+    server: "85.90.197.168"
+    port: 8443
+    uuid: "411949cf-a119-454c-a672-7e50fb407895"
+    udp: true
+    tls: true
+    servername: "www.mymusicprod.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "M4s0sh1He14T3pv0TFIy10oVhZK9RyXvw7IypAxYMjs"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #544"
+    type: vless
+    server: "192.88.182.105"
+    port: 443
+    uuid: "64774bd8-3116-4eaa-a046-5ea4fc230b81"
+    udp: true
+    tls: true
+    servername: "node-nd01.rkitman.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "8C7evg_SSrJbxMTaUqJoylqB9HSNsmBvmUlgs_c5EiU"
+      short-id: "88d9dc52ef39c8bd"
+  - name: "TurboProbe · 🇩🇰 DK · Reality"
+    type: vless
+    server: "144.31.242.69"
+    port: 443
+    uuid: "34305560-ccd1-4466-bbff-09e606f4bc90"
+    udp: true
+    tls: true
+    servername: "dk1.hat.onl"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "V3uMWEfDQAPFP6o5ED8Jtk0rJBPs7IlOLf_Wh8w_jXc"
+      short-id: "76132b3b39704c44"
+  - name: "TurboProbe · 🇳🇱 NL · Reality (156)"
+    type: vless
+    server: "2.59.183.167"
+    port: 443
+    uuid: "301d514e-4aa0-47b0-ba44-a0cb891cd52f"
+    udp: true
+    tls: true
+    servername: "www.samsung.com"
+    client-fingerprint: "edge"
+    network: tcp
+    reality-opts:
+      public-key: "OZVjfQBboTDTBw0baMFqzVPsVUI4FNQmspTEb0b0zW4"
+      short-id: "a1b2c3d4"
+  - name: "TurboProbe · 🌐 Global · Reality (157)"
+    type: vless
+    server: "2.26.227.49"
+    port: 443
+    uuid: "b7b78c4f-b225-4a98-a7d8-7a2c6cb40e2b"
+    udp: true
+    tls: true
+    servername: "ge1.shhflow.xyz"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "HyxJ9UmGQlNG7YPMdc_jjvB8GW8JfeKmoi1CA1ZL5wM"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (158)"
+    type: vless
+    server: "176.109.88.216"
+    port: 443
+    uuid: "2c7f1414-87ae-4a01-9796-a02c067891a6"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "oqRus6Z_Q1jqJaTEPu7ENbRL0-XKOw54K0jwCCGLtEk"
+      short-id: "a9c4f17e3b62d8"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (159)"
+    type: vless
+    server: "176.109.88.216"
+    port: 443
+    uuid: "2c7f1414-87ae-4a01-9796-a02c067891a6"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "qq"
+    network: tcp
+    reality-opts:
+      public-key: "oqRus6Z_Q1jqJaTEPu7ENbRL0-XKOw54K0jwCCGLtEk"
+      short-id: "a9c4f17e3b62d8"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (160)"
+    type: vless
+    server: "176.109.88.216"
+    port: 443
+    uuid: "2c7f1414-87ae-4a01-9796-a02c067891a6"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "oqRus6Z_Q1jqJaTEPu7ENbRL0-XKOw54K0jwCCGLtEk"
+      short-id: "a9c4f17e3b62d8"
+  - name: "TurboProbe · 🇷🇺 RU · Reality #375"
+    type: vless
+    server: "176.109.88.216"
+    port: 443
+    uuid: "2c7f1414-87ae-4a01-9796-a02c067891a6"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "qq"
+    network: tcp
+    reality-opts:
+      public-key: "oqRus6Z_Q1jqJaTEPu7ENbRL0-XKOw54K0jwCCGLtEk"
+      short-id: "a9c4f17e3b62d8"
+  - name: "TurboProbe · 🌐 Global · Reality (162)"
+    type: vless
+    server: "186.246.21.156"
+    port: 40443
+    uuid: "17d29827-7cf1-4115-b40d-548e10ec355d"
+    udp: true
+    tls: true
+    servername: "deepl.com"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "bjOGTQ4xsiFbyCPM_WzoK53L130rW5vZJtuYDJx_pkM"
+      short-id: "aa3c"
+  - name: "TurboProbe · 🇹🇷 TR · Reality #341"
+    type: vless
+    server: "31.59.125.49"
+    port: 13443
+    uuid: "423b1d79-08c4-403f-9d5e-c541f791b55f"
+    udp: true
+    tls: true
+    servername: "auto.cendora.ru"
+    client-fingerprint: "qq"
+    network: tcp
+    reality-opts:
+      public-key: "gc9oXe37KCCm3J1dJ03wdGsnxPBdeEkRPOvl_t-vfVM"
+      short-id: "a7f3c91b2e6d84c0"
+  - name: "TurboProbe · 🇩🇪 DE · Reality (164)"
+    type: vless
+    server: "151.242.169.43"
+    port: 443
+    uuid: "f2570d0f-02b8-4c46-b30f-7a753783a28d"
+    udp: true
+    tls: true
+    servername: "frantax.my3cx.de"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "oXYB-DXrI08UVBRFq8MERP36betSSd7Yb6MLN88F2R4"
+      short-id: "f6b5862c1f73ab80"
+  - name: "TurboProbe · 🇬🇧 GB · Reality (165)"
+    type: vless
+    server: "109.169.85.139"
+    port: 443
+    uuid: "98bc431a-2963-4faa-a712-cc83798a2edb"
+    udp: true
+    tls: true
+    servername: "slashdot.org"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "SiSky02wHz-S0TDHKFTdYhnrlT8Y3CfRsekZlcdLXDY"
+      short-id: "fd55b698ee8c3629"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (166)"
+    type: vless
+    server: "152.233.66.68"
+    port: 443
+    uuid: "c7fc6e44-d57b-49b9-9ff2-a4e0aa9e9b8c"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "TXwYCrwkhTEeqtxTf3ZYmXNwYcmVtR9eVXJRo7Kvxmk"
+      short-id: "8c5041b3"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor #8"
+    type: vless
+    server: "13.143.139.45"
+    port: 2443
+    uuid: "411949cf-a119-454c-a672-7e50fb407895"
+    udp: true
+    tls: true
+    servername: "www.mymusicprod.ru"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "LrWbOkt4smryHmc8EKANvRufPPCW5AnpDfFHj43xD1c"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (168)"
+    type: vless
+    server: "45.144.30.101"
+    port: 443
+    uuid: "a704443d-655e-4d9f-8ce6-12eeb17a9a08"
+    udp: true
+    tls: true
+    servername: "api-maps.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "2wVBh3_96eEW1Dqu4kDw-oQBEkZoV1sZ9pwjFQDdhwU"
+      short-id: "f277187b"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (169)"
+    type: vless
+    server: "13.143.139.45"
+    port: 8443
+    uuid: "411949cf-a119-454c-a672-7e50fb407895"
+    udp: true
+    tls: true
+    servername: "www.mymusicprod.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "WfFzorWuJnnnaPTNwYjvgFJC2VAPd0-isHpjvPmWDUQ"
+  - name: "TurboProbe · 🇷🇺 RU · Anti-Censor (170)"
+    type: vless
+    server: "13.143.139.45"
+    port: 2443
+    uuid: "411949cf-a119-454c-a672-7e50fb407895"
+    udp: true
+    tls: true
+    servername: "www.mymusicprod.ru"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "LrWbOkt4smryHmc8EKANvRufPPCW5AnpDfFHj43xD1c"
+  - name: "TurboProbe · 🌐 Global · Anti-Censor (171)"
+    type: vless
+    server: "186.246.22.144"
+    port: 443
+    uuid: "194ad316-fd65-4e1b-a337-eb65c9ca68eb"
+    udp: true
+    tls: true
+    servername: "gitlab.com"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "XW8pwP7ijTmc1QKtMGMvJ_hcnac2GIQ14o1ALhuTSlQ"
+      short-id: "4aa825e50078d7ef"
+
+proxy-groups:
+  - name: "⚡ TURBOPROBE-AUTO"
+    type: url-test
+    url: http://cp.cloudflare.com/generate_204
+    interval: 300
+    tolerance: 50
+    proxies:
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #14"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2"
+      - "TurboProbe · 🇺🇸 US · Reality #283"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #24"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #22"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (6)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (7)"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #13"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #21"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #16"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (12)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (13)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (14)"
+      - "TurboProbe · 🇺🇸 US · Anti-Censor"
+      - "TurboProbe · 🇺🇸 US · Anti-Censor (16)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (17)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (18)"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #23"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (20)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (21)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (22)"
+      - "TurboProbe · 🇺🇸 US · Anti-Censor (23)"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #27"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (25)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (26)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (27)"
+      - "TurboProbe · 🇺🇸 US · Anti-Censor (28)"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #20"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (30)"
+      - "TurboProbe · 🇳🇱 NL · Reality"
+      - "TurboProbe · 🇩🇪 DE · Reality #443"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2"
+      - "TurboProbe · 🇷🇺 RU · Reality #622"
+      - "TurboProbe · 🇷🇺 RU · Reality #624"
+      - "TurboProbe · 🌐 Global · Reality"
+      - "TurboProbe · 🌐 Global · Reality (37)"
+      - "TurboProbe · 🇷🇺 RU · Reality #621"
+      - "TurboProbe · 🌐 Global · Anti-Censor"
+      - "TurboProbe · 🌐 Global · Anti-Censor (40)"
+      - "TurboProbe · 🌐 Global · Anti-Censor (41)"
+      - "TurboProbe · 🌐 Global · Anti-Censor (42)"
+      - "TurboProbe · 🌐 Global · Anti-Censor (43)"
+      - "TurboProbe · 🇷🇺 RU · Reality #103"
+      - "TurboProbe · 🇩🇪 DE · Anti-Censor #2"
+      - "TurboProbe · 🇬🇧 GB · Reality"
+      - "TurboProbe · 🇷🇺 RU · Reality #308"
+      - "TurboProbe · 🌐 Global · Reality (48)"
+      - "TurboProbe · 🌐 Global · Reality (49)"
+      - "TurboProbe · 🌐 Global · Reality (50)"
+      - "TurboProbe · 🌐 Global · Reality #39"
+      - "TurboProbe · 🌐 Global · Anti-Censor (52)"
+      - "TurboProbe · 🇷🇺 RU · Reality #28"
+      - "TurboProbe · 🇷🇺 RU · Reality #38"
+      - "TurboProbe · 🌐 Global · Reality #69"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor"
+      - "TurboProbe · 🌐 Global · Reality #51"
+      - "TurboProbe · 🌐 Global · Anti-Censor (58)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (59)"
+      - "TurboProbe · 🇷🇺 RU · Reality #677"
+      - "TurboProbe · 🇬🇧 GB · Anti-Censor #2"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (62)"
+      - "TurboProbe · 🇷🇺 RU · Reality #340"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (64)"
+      - "TurboProbe · 🇹🇷 TR · Reality #346"
+      - "TurboProbe · 🌐 Global · Reality (66)"
+      - "TurboProbe · 🇷🇺 RU · Reality #678"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (68)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (69)"
+      - "TurboProbe · 🇬🇷 GR · Reality"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (71)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (72)"
+      - "TurboProbe · 🌐 Global · Reality #66"
+      - "TurboProbe · 🇹🇷 TR · Reality"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (75)"
+      - "TurboProbe · 🌐 Global · Reality (76)"
+      - "TurboProbe · 🇩🇪 DE · Reality"
+      - "TurboProbe · 🇷🇺 RU · Reality #425"
+      - "TurboProbe · 🌐 Global · Reality (79)"
+      - "TurboProbe · 🇷🇺 RU · Reality #680"
+      - "TurboProbe · 🇷🇺 RU · Reality #394"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (82)"
+      - "TurboProbe · 🇷🇺 RU · Reality #37"
+      - "TurboProbe · 🌐 Global · Reality (84)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (85)"
+      - "TurboProbe · 🇷🇺 RU · Reality #119"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (87)"
+      - "TurboProbe · 🌐 Global · Reality (88)"
+      - "TurboProbe · 🇷🇺 RU · Reality #166"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (90)"
+      - "TurboProbe · 🇵🇱 PL · Anti-Censor"
+      - "TurboProbe · 🇹🇷 TR · Anti-Censor #2"
+      - "TurboProbe · 🇷🇺 RU · Reality #47"
+      - "TurboProbe · 🇷🇺 RU · Reality #104"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (95)"
+      - "TurboProbe · 🇵🇱 PL · Anti-Censor (96)"
+      - "TurboProbe · 🌐 Global · Reality (97)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (98)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (99)"
+      - "TurboProbe · 🇬🇧 GB · Reality #373"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (101)"
+      - "TurboProbe · 🇷🇺 RU · Reality #606"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (103)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #9"
+      - "TurboProbe · 🇷🇺 RU · Reality #56"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (106)"
+      - "TurboProbe · 🇷🇺 RU · Reality #342"
+      - "TurboProbe · 🇵🇱 PL · Reality #490"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (109)"
+      - "TurboProbe · 🇵🇱 PL · Anti-Censor (110)"
+      - "TurboProbe · 🇷🇺 RU · Reality #596"
+      - "TurboProbe · 🌐 Global · Reality #69 (112)"
+      - "TurboProbe · 🇳🇱 NL · Reality (113)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (114)"
+      - "TurboProbe · 🇵🇱 PL · Reality #461"
+      - "TurboProbe · 🇷🇺 RU · Reality #343"
+      - "TurboProbe · 🌐 Global · Reality #11"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (118)"
+      - "TurboProbe · 🇷🇺 RU · Reality #344"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (120)"
+      - "TurboProbe · 🇷🇺 RU · Reality #629"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (122)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (123)"
+      - "TurboProbe · 🇷🇺 RU · Reality #80"
+      - "TurboProbe · 🇵🇱 PL · Reality #426"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (126)"
+      - "TurboProbe · 🇷🇺 RU · Reality #605"
+      - "TurboProbe · 🇷🇺 RU · Reality #374"
+      - "TurboProbe · 🌐 Global · Reality #39 (129)"
+      - "TurboProbe · 🇩🇪 DE · Reality (130)"
+      - "TurboProbe · 🌐 Global · Reality (131)"
+      - "TurboProbe · 🇷🇺 RU · Reality #53"
+      - "TurboProbe · 🇷🇺 RU · Reality #402"
+      - "TurboProbe · 🇷🇺 RU · Reality #55"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (135)"
+      - "TurboProbe · 🌐 Global · Anti-Censor (136)"
+      - "TurboProbe · 🇷🇺 RU · Reality #304"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (138)"
+      - "TurboProbe · 🌐 Global · Reality (139)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (140)"
+      - "TurboProbe · 🌐 Global · Reality (141)"
+      - "TurboProbe · 🇩🇪 DE · Reality (142)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (143)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (144)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (145)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (146)"
+      - "TurboProbe · 🇷🇺 RU · Reality #483"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (148)"
+      - "TurboProbe · 🇷🇺 RU · Reality #35"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (150)"
+      - "TurboProbe · 🇳🇱 NL · Reality #432"
+      - "TurboProbe · 🇬🇧 GB · Reality (152)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (153)"
+      - "TurboProbe · 🇷🇺 RU · Reality #544"
+      - "TurboProbe · 🇩🇰 DK · Reality"
+      - "TurboProbe · 🇳🇱 NL · Reality (156)"
+      - "TurboProbe · 🌐 Global · Reality (157)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (158)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (159)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (160)"
+      - "TurboProbe · 🇷🇺 RU · Reality #375"
+      - "TurboProbe · 🌐 Global · Reality (162)"
+      - "TurboProbe · 🇹🇷 TR · Reality #341"
+      - "TurboProbe · 🇩🇪 DE · Reality (164)"
+      - "TurboProbe · 🇬🇧 GB · Reality (165)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (166)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #8"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (168)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (169)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (170)"
+      - "TurboProbe · 🌐 Global · Anti-Censor (171)"
+  - name: "🚀 SELECT"
+    type: select
+    proxies:
+      - "⚡ TURBOPROBE-AUTO"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #14"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2"
+      - "TurboProbe · 🇺🇸 US · Reality #283"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #24"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #22"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (6)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (7)"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #13"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #21"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #16"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (12)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (13)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (14)"
+      - "TurboProbe · 🇺🇸 US · Anti-Censor"
+      - "TurboProbe · 🇺🇸 US · Anti-Censor (16)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (17)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (18)"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #23"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (20)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (21)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (22)"
+      - "TurboProbe · 🇺🇸 US · Anti-Censor (23)"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #27"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (25)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (26)"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor #2 (27)"
+      - "TurboProbe · 🇺🇸 US · Anti-Censor (28)"
+      - "TurboProbe · 🇳🇱 NL · Hy2-Speed #20"
+      - "TurboProbe · 🇳🇱 NL · Anti-Censor (30)"
+      - "TurboProbe · 🇳🇱 NL · Reality"
+      - "TurboProbe · 🇩🇪 DE · Reality #443"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2"
+      - "TurboProbe · 🇷🇺 RU · Reality #622"
+      - "TurboProbe · 🇷🇺 RU · Reality #624"
+      - "TurboProbe · 🌐 Global · Reality"
+      - "TurboProbe · 🌐 Global · Reality (37)"
+      - "TurboProbe · 🇷🇺 RU · Reality #621"
+      - "TurboProbe · 🌐 Global · Anti-Censor"
+      - "TurboProbe · 🌐 Global · Anti-Censor (40)"
+      - "TurboProbe · 🌐 Global · Anti-Censor (41)"
+      - "TurboProbe · 🌐 Global · Anti-Censor (42)"
+      - "TurboProbe · 🌐 Global · Anti-Censor (43)"
+      - "TurboProbe · 🇷🇺 RU · Reality #103"
+      - "TurboProbe · 🇩🇪 DE · Anti-Censor #2"
+      - "TurboProbe · 🇬🇧 GB · Reality"
+      - "TurboProbe · 🇷🇺 RU · Reality #308"
+      - "TurboProbe · 🌐 Global · Reality (48)"
+      - "TurboProbe · 🌐 Global · Reality (49)"
+      - "TurboProbe · 🌐 Global · Reality (50)"
+      - "TurboProbe · 🌐 Global · Reality #39"
+      - "TurboProbe · 🌐 Global · Anti-Censor (52)"
+      - "TurboProbe · 🇷🇺 RU · Reality #28"
+      - "TurboProbe · 🇷🇺 RU · Reality #38"
+      - "TurboProbe · 🌐 Global · Reality #69"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor"
+      - "TurboProbe · 🌐 Global · Reality #51"
+      - "TurboProbe · 🌐 Global · Anti-Censor (58)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (59)"
+      - "TurboProbe · 🇷🇺 RU · Reality #677"
+      - "TurboProbe · 🇬🇧 GB · Anti-Censor #2"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (62)"
+      - "TurboProbe · 🇷🇺 RU · Reality #340"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (64)"
+      - "TurboProbe · 🇹🇷 TR · Reality #346"
+      - "TurboProbe · 🌐 Global · Reality (66)"
+      - "TurboProbe · 🇷🇺 RU · Reality #678"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (68)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (69)"
+      - "TurboProbe · 🇬🇷 GR · Reality"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (71)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (72)"
+      - "TurboProbe · 🌐 Global · Reality #66"
+      - "TurboProbe · 🇹🇷 TR · Reality"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (75)"
+      - "TurboProbe · 🌐 Global · Reality (76)"
+      - "TurboProbe · 🇩🇪 DE · Reality"
+      - "TurboProbe · 🇷🇺 RU · Reality #425"
+      - "TurboProbe · 🌐 Global · Reality (79)"
+      - "TurboProbe · 🇷🇺 RU · Reality #680"
+      - "TurboProbe · 🇷🇺 RU · Reality #394"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (82)"
+      - "TurboProbe · 🇷🇺 RU · Reality #37"
+      - "TurboProbe · 🌐 Global · Reality (84)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (85)"
+      - "TurboProbe · 🇷🇺 RU · Reality #119"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (87)"
+      - "TurboProbe · 🌐 Global · Reality (88)"
+      - "TurboProbe · 🇷🇺 RU · Reality #166"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (90)"
+      - "TurboProbe · 🇵🇱 PL · Anti-Censor"
+      - "TurboProbe · 🇹🇷 TR · Anti-Censor #2"
+      - "TurboProbe · 🇷🇺 RU · Reality #47"
+      - "TurboProbe · 🇷🇺 RU · Reality #104"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (95)"
+      - "TurboProbe · 🇵🇱 PL · Anti-Censor (96)"
+      - "TurboProbe · 🌐 Global · Reality (97)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (98)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (99)"
+      - "TurboProbe · 🇬🇧 GB · Reality #373"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (101)"
+      - "TurboProbe · 🇷🇺 RU · Reality #606"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (103)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #9"
+      - "TurboProbe · 🇷🇺 RU · Reality #56"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (106)"
+      - "TurboProbe · 🇷🇺 RU · Reality #342"
+      - "TurboProbe · 🇵🇱 PL · Reality #490"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (109)"
+      - "TurboProbe · 🇵🇱 PL · Anti-Censor (110)"
+      - "TurboProbe · 🇷🇺 RU · Reality #596"
+      - "TurboProbe · 🌐 Global · Reality #69 (112)"
+      - "TurboProbe · 🇳🇱 NL · Reality (113)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (114)"
+      - "TurboProbe · 🇵🇱 PL · Reality #461"
+      - "TurboProbe · 🇷🇺 RU · Reality #343"
+      - "TurboProbe · 🌐 Global · Reality #11"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (118)"
+      - "TurboProbe · 🇷🇺 RU · Reality #344"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (120)"
+      - "TurboProbe · 🇷🇺 RU · Reality #629"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (122)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (123)"
+      - "TurboProbe · 🇷🇺 RU · Reality #80"
+      - "TurboProbe · 🇵🇱 PL · Reality #426"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (126)"
+      - "TurboProbe · 🇷🇺 RU · Reality #605"
+      - "TurboProbe · 🇷🇺 RU · Reality #374"
+      - "TurboProbe · 🌐 Global · Reality #39 (129)"
+      - "TurboProbe · 🇩🇪 DE · Reality (130)"
+      - "TurboProbe · 🌐 Global · Reality (131)"
+      - "TurboProbe · 🇷🇺 RU · Reality #53"
+      - "TurboProbe · 🇷🇺 RU · Reality #402"
+      - "TurboProbe · 🇷🇺 RU · Reality #55"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (135)"
+      - "TurboProbe · 🌐 Global · Anti-Censor (136)"
+      - "TurboProbe · 🇷🇺 RU · Reality #304"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #2 (138)"
+      - "TurboProbe · 🌐 Global · Reality (139)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (140)"
+      - "TurboProbe · 🌐 Global · Reality (141)"
+      - "TurboProbe · 🇩🇪 DE · Reality (142)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (143)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (144)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (145)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (146)"
+      - "TurboProbe · 🇷🇺 RU · Reality #483"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (148)"
+      - "TurboProbe · 🇷🇺 RU · Reality #35"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (150)"
+      - "TurboProbe · 🇳🇱 NL · Reality #432"
+      - "TurboProbe · 🇬🇧 GB · Reality (152)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (153)"
+      - "TurboProbe · 🇷🇺 RU · Reality #544"
+      - "TurboProbe · 🇩🇰 DK · Reality"
+      - "TurboProbe · 🇳🇱 NL · Reality (156)"
+      - "TurboProbe · 🌐 Global · Reality (157)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (158)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (159)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (160)"
+      - "TurboProbe · 🇷🇺 RU · Reality #375"
+      - "TurboProbe · 🌐 Global · Reality (162)"
+      - "TurboProbe · 🇹🇷 TR · Reality #341"
+      - "TurboProbe · 🇩🇪 DE · Reality (164)"
+      - "TurboProbe · 🇬🇧 GB · Reality (165)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (166)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor #8"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (168)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (169)"
+      - "TurboProbe · 🇷🇺 RU · Anti-Censor (170)"
+      - "TurboProbe · 🌐 Global · Anti-Censor (171)"
+
+rules:
+  - DOMAIN-SUFFIX,openai.com,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,claude.ai,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,youtube.com,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,discord.com,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,instagram.com,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,x.com,⚡ TURBOPROBE-AUTO
+  - DOMAIN-SUFFIX,twitter.com,⚡ TURBOPROBE-AUTO
+  - GEOIP,RU,DIRECT
+  - MATCH,⚡ TURBOPROBE-AUTO

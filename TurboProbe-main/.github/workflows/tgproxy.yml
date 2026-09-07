@@ -1,0 +1,108 @@
+name: TurboProbe TGProxy Pipeline
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: tgproxy-pipeline
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  harvest-tg-proxies:
+    name: Harvest & Verify TG Proxies
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install aiohttp requests
+
+      - name: Run TGProxy Sleuth Discovery Bot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python tgproxy/discover_tg_sources.py || true
+
+      - name: Run TGProxy Harvester & DC Verifier
+        run: |
+          python -c "
+          import asyncio, sys
+          sys.path.insert(0, '.')
+          from tgproxy.tg_aggregator import run_tg_harvest
+          from tgproxy.exporter import export_all
+
+          async def main():
+              proxies = await run_tg_harvest(test_limit=0)
+              export_all(proxies)
+
+          asyncio.run(main())
+          "
+
+      - name: Verify, Commit and Push Results
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Backup generated files
+          mkdir -p /tmp/tg_backup
+          cp -r sub/tg /tmp/tg_backup/ || true
+          cp docs/tg/proxies.json /tmp/tg_backup/ || true
+          cp tgproxy/discovered_tg_sources.json /tmp/tg_backup/ || true
+
+          # Resilient push loop
+          MAX_ATTEMPTS=5
+          ATTEMPT=1
+          PUSHED=0
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS..."
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # Restore files
+            mkdir -p sub/tg docs/tg
+            cp -r /tmp/tg_backup/tg/* sub/tg/ 2>/dev/null || true
+            cp /tmp/tg_backup/proxies.json docs/tg/ 2>/dev/null || true
+            cp /tmp/tg_backup/discovered_tg_sources.json tgproxy/ 2>/dev/null || true
+
+            git add -f sub/tg/ docs/tg/proxies.json tgproxy/discovered_tg_sources.json || true
+            
+            if git diff --cached --quiet; then
+              echo "No new changes to commit."
+              PUSHED=1
+              break
+            fi
+
+            git commit -m "chore(tgproxy): auto-update telegram proxies [$(date -u +'%Y-%m-%d %H:%M UTC')] [skip ci]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>" || true
+            
+            if git push origin HEAD:main; then
+              PUSHED=1
+              echo "Successfully pushed changes to main."
+              break
+            fi
+
+            echo "Push failed. Retrying in $((ATTEMPT * 2))s..."
+            sleep $((ATTEMPT * 2))
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          if [ $PUSHED -ne 1 ]; then
+            echo "Failed to push after $MAX_ATTEMPTS attempts."
+            exit 1
+          fi

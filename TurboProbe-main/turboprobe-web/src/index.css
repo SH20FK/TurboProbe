@@ -1,0 +1,212 @@
+@import "tailwindcss";
+
+:root,
+.dark {
+  /* TurboProbe Clean M3 Charcoal Espresso */
+  --bg-app: #13110F;
+  --bg-card: #1C1916;
+  --bg-card-hover: #26221E;
+  --bg-chip: #24201C;
+  --bg-chip-hover: #302A24;
+  --bg-chip-active: #C25E30;
+  --text-chip-active: #FFFFFF;
+  --text-main: #FAF5F0;
+  --text-muted: #A8A29E;
+  --border-main: rgba(245, 230, 215, 0.11);
+  --border-hover: rgba(194, 94, 48, 0.45);
+  --primary-accent: #E08244;
+  --primary-accent-bg: rgba(194, 94, 48, 0.14);
+  --secondary-accent: #10B981;
+
+  --bg-dot-color: rgba(250, 245, 240, 0.05);
+
+  color-scheme: dark;
+}
+
+.light {
+  /* TurboProbe Clean M3 Warm Linen Cream & High-Contrast Typography */
+  --bg-app: #F5F3EF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FAF7F2;
+  --bg-chip: #EDE8DF;
+  --bg-chip-hover: #E3DCCF;
+  --bg-chip-active: #C25E30;
+  --text-chip-active: #FFFFFF;
+  --text-main: #1C1917;
+  --text-muted: #57534E;
+  --border-main: rgba(44, 38, 32, 0.12);
+  --border-hover: rgba(194, 94, 48, 0.5);
+  --primary-accent: #C25E30;
+  --primary-accent-bg: rgba(194, 94, 48, 0.08);
+  --secondary-accent: #059669;
+
+  --bg-dot-color: rgba(44, 38, 32, 0.07);
+
+  color-scheme: light;
+}
+
+/* Telegram Dark Mode */
+.theme-tg,
+.dark .theme-tg,
+:root.dark .theme-tg,
+:root.theme-tg.dark,
+:root.theme-tg:not(.light) {
+  --bg-app: #0E1621;
+  --bg-card: #17212B;
+  --bg-card-hover: #202E3D;
+  --bg-chip: #1E2C3A;
+  --bg-chip-hover: #27384A;
+  --bg-chip-active: #2481CC;
+  --text-chip-active: #FFFFFF;
+  --text-main: #F5F7FA;
+  --text-muted: #8E9BA8;
+  --border-main: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(42, 171, 238, 0.45);
+  --primary-accent: #2AABEE;
+  --primary-accent-bg: rgba(42, 171, 238, 0.14);
+  --secondary-accent: #10B981;
+  --bg-dot-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Telegram Light Mode */
+.light .theme-tg,
+:root.light .theme-tg,
+:root.theme-tg.light {
+  --bg-app: #F0F4F8;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #E8EFF6;
+  --bg-chip: #E1ECF4;
+  --bg-chip-hover: #D4E4F0;
+  --bg-chip-active: #2481CC;
+  --text-chip-active: #FFFFFF;
+  --text-main: #111B24;
+  --text-muted: #536474;
+  --border-main: rgba(36, 129, 204, 0.12);
+  --border-hover: rgba(36, 129, 204, 0.4);
+  --primary-accent: #2481CC;
+  --primary-accent-bg: rgba(36, 129, 204, 0.08);
+  --secondary-accent: #059669;
+  --bg-dot-color: rgba(36, 129, 204, 0.07);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background-color: var(--primary-accent, #C25E30) !important;
+  color: #FFFFFF !important;
+}
+
+::-moz-selection {
+  background-color: var(--primary-accent, #C25E30) !important;
+  color: #FFFFFF !important;
+}
+
+.theme-tg ::selection,
+:root.theme-tg ::selection,
+.theme-tg *::selection {
+  background-color: #2481CC !important;
+  color: #FFFFFF !important;
+}
+
+.theme-tg ::-moz-selection,
+:root.theme-tg ::-moz-selection,
+.theme-tg *::-moz-selection {
+  background-color: #2481CC !important;
+  color: #FFFFFF !important;
+}
+
+html, body, #root {
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  font-family: var(--font-body, 'Onest', system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+header, footer, .theme-transition {
+  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.font-display {
+  font-family: 'Unbounded', system-ui, -apple-system, sans-serif;
+}
+
+.font-body {
+  font-family: 'Onest', system-ui, -apple-system, sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* MagicUI Animated Theme Toggler View Transition Rules */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+/* Material Ripple Keyframe Animation */
+@keyframes m3-ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-m3-ripple {
+  animation: m3-ripple 500ms cubic-bezier(0.05, 0.7, 0.1, 1.0) forwards;
+}
+
+/* Shimmer Wave Skeleton Keyframe Animation */
+@keyframes shimmer-wave {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer-wave {
+  animation: shimmer-wave 1.8s infinite linear;
+}
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-main);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
