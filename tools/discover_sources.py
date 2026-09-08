@@ -436,26 +436,26 @@ def gh_api_get(url: str, max_retries: int = 3):
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
                 rem = resp.headers.get("x-ratelimit-remaining")
-                if rem and int(rem) < 5:
+                if rem is not None and int(rem) == 0:
                     reset_time = int(resp.headers.get("x-ratelimit-reset", 0))
                     sleep_sec = max(reset_time - int(time.time()), 2)
-                    if 0 < sleep_sec < 60:
-                        print(f"    ⏳ Rate limit low ({rem} left), cooling down for {sleep_sec}s...", flush=True)
+                    if 0 < sleep_sec <= 60:
+                        print(f"    ⏳ Rate limit reached (0 left), cooling down for {sleep_sec}s...", flush=True)
                         time.sleep(sleep_sec)
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             if e.code in (403, 429):
                 reset_time = int(e.headers.get("x-ratelimit-reset", 0))
                 sleep_sec = max(reset_time - int(time.time()), 5)
-                if sleep_sec > 120:
-                    print(f"    ⚠️ GitHub Rate limit reached (reset in {sleep_sec}s). Backing off.", flush=True)
+                if sleep_sec > 60:
+                    print(f"    ⚠️ GitHub Rate limit reached (reset in {sleep_sec}s). Skipping further search queries.", flush=True)
                     break
                 print(f"    ⚠️ GitHub Rate limit hit (code {e.code}). Sleeping {sleep_sec}s before retry...", flush=True)
                 time.sleep(sleep_sec)
             else:
                 if attempt == max_retries - 1:
                     return {}
-                time.sleep(2)
+                time.sleep(1)
         except Exception:
             if attempt == max_retries - 1:
                 return {}
