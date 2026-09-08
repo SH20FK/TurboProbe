@@ -1,6 +1,8 @@
 name: VPN Subscription Auto-Aggregator
 
 on:
+  schedule:
+    - cron: '0 */4 * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -84,14 +86,19 @@ jobs:
           ulimit -n 65536 || true
           python tools/discover_sources.py
 
+      - name: Run TGProxy Harvester & DC Verifier
+        run: |
+          ulimit -n 65536 || true
+          python tgproxy/tg_aggregator.py || true
+
       - name: Run VPN Auto-Aggregator (Fast)
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'fast' }}
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'fast') }}
         run: |
           ulimit -n 65536 || true
           python tools/aggregator.py --fast
 
       - name: Run VPN Auto-Aggregator (Full)
-        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full') }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full' }}
         run: |
           ulimit -n 65536 || true
           python tools/aggregator.py
@@ -114,8 +121,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
           # 1. Backup newly generated subscription and crawler artifacts to /tmp
-          mkdir -p /tmp/tp_backup_sub /tmp/tp_backup_tools
+          mkdir -p /tmp/tp_backup_sub /tmp/tp_backup_tools /tmp/tp_backup_tg
           cp -r sub/* /tmp/tp_backup_sub/ 2>/dev/null || true
+          cp -r docs/tg/* /tmp/tp_backup_tg/ 2>/dev/null || true
           rm -f /tmp/tp_backup_sub/ru-verified.json
           cp tools/discovered_sources.json tools/dead_nodes.json tools/node_history.json tools/telegram_feed.txt /tmp/tp_backup_tools/ 2>/dev/null || true
 
@@ -124,13 +132,14 @@ jobs:
           git reset --hard origin/main
 
           # 3. Restore newly generated subscription files
-          mkdir -p sub docs/sub
+          mkdir -p sub docs/sub docs/tg
           cp -r /tmp/tp_backup_sub/* sub/
           cp -r /tmp/tp_backup_sub/* docs/sub/
+          cp -r /tmp/tp_backup_tg/* docs/tg/ 2>/dev/null || true
           cp /tmp/tp_backup_tools/* tools/ 2>/dev/null || true
 
           # 4. Stage ONLY subscription and database files
-          git add -f sub/ docs/sub/ tools/discovered_sources.json tools/dead_nodes.json tools/node_history.json tools/telegram_feed.txt || true
+          git add -f sub/ docs/sub/ docs/tg/ tools/discovered_sources.json tools/dead_nodes.json tools/node_history.json tools/telegram_feed.txt || true
           if git diff --cached --quiet; then
             echo "No subscription updates detected relative to origin/main."
           else
