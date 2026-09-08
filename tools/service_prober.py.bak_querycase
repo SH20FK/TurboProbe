@@ -671,71 +671,6 @@ def is_valid_xray_uuid(value: str) -> bool:
         return False
 
 
-# --- canonical query-key handling (case-insensitive URI params) ---
-# Feeds spell parameters inconsistently: headertype, allowinsecure, Host,
-# packetencoding. The parsers below look up exact camelCase names, so without
-# this normalisation those nodes lose their transport settings entirely.
-CANONICAL_QUERY_KEYS = {
-    "type": "type",
-    "security": "security",
-    "encryption": "encryption",
-    "flow": "flow",
-    "sni": "sni",
-    "fp": "fp",
-    "pbk": "pbk",
-    "sid": "sid",
-    "spx": "spx",
-    "alpn": "alpn",
-    "host": "host",
-    "path": "path",
-    "mode": "mode",
-    "seed": "seed",
-    "extra": "extra",
-    "key": "key",
-    "headertype": "headerType",
-    "servicename": "serviceName",
-    "quicsecurity": "quicSecurity",
-    "allowinsecure": "allowInsecure",
-    "allow_insecure": "allowInsecure",
-    "insecure": "insecure",
-    "packetencoding": "packetEncoding",
-    "packet-encoding": "packetEncoding",
-    "mldsa65verify": "mldsa65Verify",
-    "pinnedpeercertsha256": "pinnedPeerCertSha256",
-    "pin": "pin",
-    "verifypeercertbyname": "verifyPeerCertByName",
-    "vpcn": "vpcn",
-    "ech": "ech",
-    "obfs": "obfs",
-    "obfs-password": "obfs-password",
-    "auth": "auth",
-    "peer": "peer",
-    "congestion_control": "congestion_control",
-    "udp_relay_mode": "udp_relay_mode",
-}
-
-
-def canonicalize_query_keys(query):
-    """Add canonical camelCase aliases for case-variant query keys.
-
-    Original keys are preserved; aliases are only added when the canonical
-    spelling is absent, so an explicit correct value always wins.
-    """
-    if not isinstance(query, dict):
-        return query
-    for raw_key in list(query.keys()):
-        lowered = str(raw_key).strip().lower()
-        # Strip HTML-escaped separators such as "amp;type".
-        if lowered.startswith("amp;"):
-            lowered = lowered[4:]
-        canonical = CANONICAL_QUERY_KEYS.get(lowered)
-        if not canonical or canonical == raw_key:
-            continue
-        if canonical not in query and query.get(raw_key):
-            query[canonical] = query[raw_key]
-    return query
-
-
 def parse_vless_uri(uri: str, tag: str) -> dict:
     try:
         parsed = urllib.parse.urlparse(uri)
@@ -744,7 +679,7 @@ def parse_vless_uri(uri: str, tag: str) -> dict:
         port = parsed.port if parsed.port is not None else 443
         if not host or not 1 <= port <= 65535:
             return None
-        query = canonicalize_query_keys(urllib.parse.parse_qs(parsed.query))
+        query = urllib.parse.parse_qs(parsed.query)
 
         security = normalize_stream_security(query.get("security", ["none"])[0], "none")
         net_type = normalize_xray_transport(query.get("type", ["tcp"])[0])
@@ -830,7 +765,7 @@ def parse_trojan_uri(uri: str, tag: str) -> dict:
         port = parsed.port if parsed.port is not None else 443
         if not host or not 1 <= port <= 65535:
             return None
-        query = canonicalize_query_keys(urllib.parse.parse_qs(parsed.query))
+        query = urllib.parse.parse_qs(parsed.query)
 
         security = normalize_stream_security(query.get("security", ["tls"])[0], "tls")
         net_type = normalize_xray_transport(query.get("type", ["tcp"])[0])
@@ -1055,7 +990,7 @@ def probe_hy2_tuic_batch(slots: list) -> list:
         for i, (uri, proto) in enumerate(slots):
             try:
                 parsed = urllib.parse.urlparse(uri)
-                q = canonicalize_query_keys(urllib.parse.parse_qs(parsed.query))
+                q = urllib.parse.parse_qs(parsed.query)
                 host, port, port_range = parse_host_and_port(uri)
                 if not host or not 1 <= port <= 65535:
                     continue
@@ -1571,7 +1506,7 @@ def generate_clash_meta_yaml(nodes: list) -> str:
             host = (parsed.hostname or "").strip('[]')
             port = parsed.port or 443
             user = parsed.username or ""
-            query = canonicalize_query_keys(urllib.parse.parse_qs(parsed.query))
+            query = urllib.parse.parse_qs(parsed.query)
 
             country = node.get("country", "GLOBAL") if isinstance(node, dict) else "GLOBAL"
             flag = country_code_to_flag(country)
@@ -1758,7 +1693,7 @@ def _uri_expects_tls(uri: str, proto: str, parsed) -> bool:
     """Returns whether the node endpoint speaks TLS on its transport port."""
     if proto in ("hy2", "hysteria2", "tuic", "wireguard", "ss"):
         return False
-    query = canonicalize_query_keys(urllib.parse.parse_qs(parsed.query))
+    query = urllib.parse.parse_qs(parsed.query)
     security = str(query.get("security", [""])[0]).lower()
     if security in ("tls", "reality"):
         return True

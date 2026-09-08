@@ -32,9 +32,32 @@ def add_log(msg: str):
         ts = datetime.now().strftime("%H:%M:%S")
         line = f"[{ts}] {msg}"
         state["logs"].append(line)
-        if len(state["logs"]) > 100:
+        if len(state["logs"]) > 200:
             state["logs"].pop(0)
         print(line, flush=True)
+
+def run_command_streaming(cmd: list, cwd: str, env: dict):
+    """Runs command and streams stdout/stderr line by line in real-time."""
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            cwd=cwd,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            errors="replace",
+        )
+        for line in proc.stdout:
+            clean = line.strip()
+            if clean:
+                add_log(clean)
+        proc.wait()
+        return proc.returncode
+    except Exception as e:
+        add_log(f"💥 Ошибка запуска команды {cmd[0]}: {e}")
+        return 1
 
 def install_engine_binaries():
     """Ensures Xray-core and Mihomo binaries are installed in /tmp/bin."""
@@ -49,7 +72,7 @@ def install_engine_binaries():
         subprocess.run(["unzip", "-o", "-q", "/tmp/xray.zip", "-d", bin_dir])
         if os.path.exists(xray_bin):
             os.chmod(xray_bin, 0o755)
-            add_log("✅ [Setup] Xray-core готов!")
+            add_log("✅ [Setup] Xray-core успешно установлен!")
 
     mihomo_bin = os.path.join(bin_dir, "mihomo")
     if not os.path.exists(mihomo_bin):
@@ -59,10 +82,10 @@ def install_engine_binaries():
         if os.path.exists("/tmp/mihomo"):
             shutil.move("/tmp/mihomo", mihomo_bin)
             os.chmod(mihomo_bin, 0o755)
-            add_log("✅ [Setup] Mihomo готов!")
+            add_log("✅ [Setup] Mihomo успешно установлен!")
 
 def run_update_cycle():
-    """Executes full update cycle: TGProxy -> VPN Aggregator -> Sync -> Commit & Push."""
+    """Executes full update cycle with real-time log streaming and auto GitHub sync."""
     with state_lock:
         if state["is_running"]:
             add_log("⚠️ Сбор уже выполняется, повторный запуск пропущен.")
@@ -76,7 +99,7 @@ def run_update_cycle():
 
     try:
         add_log("=" * 60)
-        add_log("🚀 [TurboProbe Pipeline] Запуск полного цикла обновления...")
+        add_log("🚀 [TurboProbe Pipeline] Запуск полного цикла сбора и валидации...")
         add_log("=" * 60)
 
         # 1. Setup engine binaries
@@ -91,20 +114,21 @@ def run_update_cycle():
         subprocess.run(["git", "config", "user.name", "SH20FK"], cwd=root_dir, env=env)
         subprocess.run(["git", "config", "user.email", "salamatinsana940@gmail.com"], cwd=root_dir, env=env)
 
-        # 3. TGProxy Collection
-        add_log("📡 [1/4] Сбор Telegram MTProto & Web-прокси...")
-        p1 = subprocess.run([sys.executable, "tgproxy/tg_aggregator.py"], cwd=root_dir, env=env, capture_output=True, text=True)
-        for line in p1.stdout.splitlines()[-5:]:
-            add_log(f"  {line}")
+        # 3. Pull latest changes if remote was updated
+        if token:
+            push_url = f"https://x-access-token:{token}@github.com/SH20FK/TurboProbe.git"
+            subprocess.run(["git", "pull", "--rebase", push_url, "main"], cwd=root_dir, env=env, capture_output=True)
 
-        # 4. VPN Aggregator & Prober (High-Yield engine)
-        add_log("⚡ [2/4] Глубокий сбор и валидация VPN узлов через Xray...")
-        p2 = subprocess.run([sys.executable, "tools/aggregator.py", "--fast"], cwd=root_dir, env=env, capture_output=True, text=True)
-        for line in p2.stdout.splitlines()[-8:]:
-            add_log(f"  {line}")
+        # 4. TGProxy Collection
+        add_log("📡 [1/3] Запуск сбора Telegram MTProto & Web-прокси...")
+        run_command_streaming([sys.executable, "tgproxy/tg_aggregator.py"], cwd=root_dir, env=env)
 
-        # 5. Sync sub to docs/sub
-        add_log("📁 [3/4] Синхронизация файлов подписок (sub -> docs/sub)...")
+        # 5. VPN Aggregator & Deep Prober
+        add_log("⚡ [2/3] Запуск глубокого сбора VPN узлов (Tier-1 + Prober)...")
+        run_command_streaming([sys.executable, "tools/aggregator.py", "--fast"], cwd=root_dir, env=env)
+
+        # 6. Sync sub to docs/sub
+        add_log("📁 [3/3] Синхронизация файлов подписок (sub -> docs/sub)...")
         sub_dir = os.path.join(root_dir, "sub")
         docs_sub = os.path.join(root_dir, "docs", "sub")
         if os.path.exists(sub_dir):
@@ -116,7 +140,7 @@ def run_update_cycle():
                 else:
                     shutil.copy2(s, d)
 
-        # 6. Read latest stats
+        # 7. Read latest stats
         try:
             stats_path = os.path.join(sub_dir, "stats.json")
             if os.path.exists(stats_path):
@@ -134,8 +158,8 @@ def run_update_cycle():
         except Exception as e:
             add_log(f"⚠️ Ошибка чтения stats: {e}")
 
-        # 7. Git Commit & Push
-        add_log("🚀 [4/4] Отправка обновлений в GitHub...")
+        # 8. Git Commit & Push
+        add_log("🚀 Публикация обновлений в GitHub...")
         subprocess.run(["git", "add", "-A"], cwd=root_dir, env=env)
         git_st = subprocess.run(["git", "status", "--porcelain"], cwd=root_dir, env=env, capture_output=True, text=True).stdout
         if git_st.strip() and token:
@@ -166,11 +190,10 @@ def run_update_cycle():
             state["status"] = "🟢 Готов к работе (IDLE)"
 
 def background_scheduler_loop():
-    """Background loop that runs the pipeline immediately on startup and every 4 hours thereafter."""
-    time.sleep(3)
+    """Background loop that runs immediately on startup and every 4 hours thereafter."""
+    time.sleep(5)
     while True:
         run_update_cycle()
-        # Sleep for 4 hours (14400 seconds)
         add_log("😴 Следующий автоматический сбор через 4 часа...")
         time.sleep(14400)
 
@@ -205,7 +228,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TurboProbe 24/7 Cloud Daemon</title>
-    <meta http-equiv="refresh" content="10">
+    <meta http-equiv="refresh" content="5">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {{ background: #0B0F19; color: #F1F5F9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
@@ -251,7 +274,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
 
         <div>
             <div class="flex items-center justify-between mb-2">
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Живой лог демона (автообновление каждые 10с)</span>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Живой лог демона (Realtime Stream)</span>
                 <span class="text-xs text-slate-500">Render 24/7 Worker</span>
             </div>
             <pre class="bg-slate-950 border border-slate-800/80 rounded-xl p-4 text-xs font-mono text-slate-300 h-72 overflow-y-auto whitespace-pre-wrap">{log_text}</pre>
