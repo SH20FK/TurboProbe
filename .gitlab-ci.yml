@@ -1,0 +1,41 @@
+# TurboProbe Discovery Hunter Pipeline (GitLab CI/CD)
+# Runs autonomous deep discovery across Telegram, GitHub Search, and Global Aggregators.
+
+stages:
+  - discover
+
+variables:
+  GIT_DEPTH: "1"
+
+discovery_hunter:
+  stage: discover
+  image: python:3.11-slim
+  timeout: 30m
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq curl git > /dev/null
+    - pip install -q -r requirements.txt aiohttp requests
+    - git config --global user.name "SH20FK"
+    - git config --global user.email "salamatinsana940@gmail.com"
+  script:
+    - echo "🕵️ [TurboProbe Hunter] Starting autonomous source discovery..."
+    
+    # 1. Discover VPN sources (Telegram + GitHub Search + Global Aggregators)
+    - python tools/discover_sources.py
+    
+    # 2. Discover Telegram MTProto & Web Proxies
+    - python tgproxy/discover_tg_sources.py
+    
+    # 3. Commit and Push discovered sources to GitHub
+    - git add -f tools/discovered_sources.json tools/telegram_feed.txt tgproxy/discovered_tg_sources.json || true
+    - |
+      if [ -n "$(git status --porcelain)" ]; then
+        NOW=$(date -u +"%Y-%m-%d %H:%M UTC")
+        git commit -m "chore(hunter): update discovered sources pool [$NOW]" --author="SH20FK <salamatinsana940@gmail.com>"
+        git push "https://x-access-token:${GITHUB_TOKEN}@github.com/SH20FK/TurboProbe.git" HEAD:main
+        echo "🎉 [Success] Fresh sources pool pushed to GitHub!"
+      else
+        echo "✨ Discovered sources pool is already up to date."
+      fi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
