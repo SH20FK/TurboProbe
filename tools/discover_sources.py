@@ -34,7 +34,7 @@ TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 DISCOVERED_PATH = os.path.join(TOOLS_DIR, "discovered_sources.json")
 TELEGRAM_FEED_PATH = os.path.join(TOOLS_DIR, "telegram_feed.txt")
 
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip()
+GITHUB_TOKEN = (os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or "").strip()
 if not GITHUB_TOKEN:
     env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
     if os.path.isfile(env_path):
