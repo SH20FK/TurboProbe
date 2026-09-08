@@ -51,30 +51,13 @@ GITHUB_API = "https://api.github.com"
 # =============================================================================
 GITHUB_CODE_QUERIES = [
     "vless:// security=reality extension:txt",
-    "hysteria2:// extension:txt",
-    "trojan:// extension:txt",
-    "tuic:// extension:txt",
-    "anytls:// extension:txt",
-    "vless:// pbk= extension:txt",
-    "vless:// fp=chrome extension:txt",
     "filename:reality.txt vless://",
     "filename:all.txt vless://",
-    "filename:vless.txt vless://",
     "filename:nodes.txt vless://",
-    "filename:sub.txt vless://",
-    "filename:hysteria2.txt",
-    "filename:tuic.txt",
     "path:sub extension:txt vless://",
-    "path:category extension:txt",
-    "path:protocols extension:txt",
-    "clash.meta proxies: extension:yaml",
-    "clash-meta proxies: extension:yaml",
-    "vless:// gosuslugi extension:txt",
-    "vless:// sber extension:txt",
-    "vless:// vk.com extension:txt",
-    "WHITE-CIDR-RU extension:txt",
-    "WHITE-SNI-RU extension:txt",
-    "vless-reality-white-lists",
+    "hysteria2:// extension:txt",
+    "trojan:// extension:txt",
+    "vless:// pbk= extension:txt",
 ]
 
 # =============================================================================
@@ -473,20 +456,19 @@ def discover_from_github_code() -> set:
     found_raw_urls = set()
     for query in GITHUB_CODE_QUERIES:
         q_enc = urllib.parse.quote(query)
-        for page in range(1, MAX_SEARCH_PAGES + 1):
-            api_url = f"{GITHUB_API}/search/code?q={q_enc}&per_page=30&page={page}"
-            try:
-                data = gh_api_get(api_url)
-                items = data.get("items", [])
-                if not items:
-                    break
-                for item in items:
-                    raw_url = item.get("html_url", "").replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
-                    if raw_url:
-                        found_raw_urls.add(raw_url)
-                time.sleep(REQUEST_PAUSE)
-            except Exception:
-                break
+        api_url = f"{GITHUB_API}/search/code?q={q_enc}&per_page=30"
+        try:
+            data = gh_api_get(api_url)
+            items = data.get("items", []) if isinstance(data, dict) else []
+            if not items:
+                continue
+            for item in items:
+                raw_url = item.get("html_url", "").replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+                if raw_url:
+                    found_raw_urls.add(raw_url)
+            time.sleep(6.5)  # 6.5s pacing strictly respects GitHub 10 req/min Code Search limit
+        except Exception:
+            break
     print(f"  🔎 GitHub Code Search yielded {len(found_raw_urls)} candidate raw files", flush=True)
     return found_raw_urls
 
