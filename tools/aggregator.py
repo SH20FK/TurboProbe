@@ -1535,11 +1535,17 @@ def main():
     save_node_history(history_map)
 
     # Socket timing is only a prefilter diagnostic, never the displayed ping.
-    # Probe all selected candidates so UDP and unusual Reality transports are
-    # not rejected by generic TCP/SSL heuristics.
+    # Stage 2: Deep verify ONLY reachable nodes + UDP protocols
     from service_prober import deep_verify_nodes
     tcp_alive_count = len(alive_tuples)
-    checked_nodes = deep_verify_nodes(candidate_uris, return_results=True)
+    udp_protos = ("hy2://", "hysteria2://", "tuic://", "wireguard://")
+    deep_probe_candidates = [item[0] for item in alive_tuples]
+    for u in candidate_uris:
+        if u.lower().startswith(udp_protos) and u not in deep_probe_candidates:
+            deep_probe_candidates.append(u)
+
+    print(f"🔬 [Deep Verification Gate] Deep probing {len(deep_probe_candidates)} reachable nodes with multi-core Xray/Mihomo...", flush=True)
+    checked_nodes = deep_verify_nodes(deep_probe_candidates, return_results=True)
     alive_tuples = [
         (sanitize_node_remark(n["uri"], n["ping_ms"]), n["ping_ms"], key, None)
         for key, n in checked_nodes.items()

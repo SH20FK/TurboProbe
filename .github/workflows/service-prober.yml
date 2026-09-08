@@ -71,9 +71,9 @@ jobs:
           fi
           /usr/local/bin/mihomo -v || true
 
-      - name: Run Deep Service Prober
+      - name: Run Deep Service Prober (Staged Fast Prober)
         env:
-          TP_XRAY_WORKERS: "2"
+          TP_XRAY_WORKERS: "4"
           TP_BATCH_SIZE: "12"
         run: |
           ulimit -n 65536 || true
@@ -81,7 +81,7 @@ jobs:
           if [ -z "$LIMIT" ]; then
             LIMIT="0"
           fi
-          python tools/service_prober.py --limit "$LIMIT"
+          python tools/fastprobe_ru.py --limit "$LIMIT" --workers 16 --json-out sub/ru-verified.json || python tools/service_prober.py --limit "$LIMIT"
 
       - name: Copy subscriptions to docs for GitHub Pages hosting
         run: |

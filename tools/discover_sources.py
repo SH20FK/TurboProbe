@@ -422,8 +422,8 @@ def fetch_url(url: str, timeout: int = 8, headers: dict = None) -> str:
     except Exception:
         return ""
 
-def gh_api_get(url: str, max_retries: int = 3):
-    """Makes an authenticated or unauthenticated request to GitHub API with rate-limit backoff."""
+def gh_api_get(url: str, max_retries: int = 1):
+    """Makes an authenticated or unauthenticated request to GitHub API with fail-fast fallback."""
     headers = {
         "Accept": "application/vnd.github+json",
         "User-Agent": "TurboProbe-Source-Discovery/3.0",
@@ -432,61 +432,35 @@ def gh_api_get(url: str, max_retries: int = 3):
         headers["Authorization"] = f"Bearer {GITHUB_TOKEN}"
     req = urllib.request.Request(url, headers=headers)
     
-    for attempt in range(max_retries):
-        try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                rem = resp.headers.get("x-ratelimit-remaining")
-                if rem is not None and int(rem) == 0:
-                    reset_time = int(resp.headers.get("x-ratelimit-reset", 0))
-                    sleep_sec = max(reset_time - int(time.time()), 2)
-                    if 0 < sleep_sec <= 60:
-                        print(f"    ⏳ Rate limit reached (0 left), cooling down for {sleep_sec}s...", flush=True)
-                        time.sleep(sleep_sec)
-                return json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            if e.code in (403, 429):
-                reset_time = int(e.headers.get("x-ratelimit-reset", 0))
-                sleep_sec = max(reset_time - int(time.time()), 5)
-                if sleep_sec > 60:
-                    print(f"    ⚠️ GitHub Rate limit reached (reset in {sleep_sec}s). Skipping further search queries.", flush=True)
-                    break
-                print(f"    ⚠️ GitHub Rate limit hit (code {e.code}). Sleeping {sleep_sec}s before retry...", flush=True)
-                time.sleep(sleep_sec)
-            else:
-                if attempt == max_retries - 1:
-                    return {}
-                time.sleep(1)
-        except Exception:
-            if attempt == max_retries - 1:
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            rem = resp.headers.get("x-ratelimit-remaining")
+            if rem is not None and int(rem) < 5:
                 return {}
-            time.sleep(2)
-    return {}
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError:
+        return {}
+    except Exception:
+        return {}
 
 # =============================================================================
 # 1. 🔍 GITHUB CODE SEARCH DISCOVERY
 # =============================================================================
 def discover_from_github_code() -> set:
-    if not GITHUB_TOKEN:
-        print("  ⚠️ No GITHUB_TOKEN in local env; GitHub Code Search API will run in CI workflow.", flush=True)
-        return set()
-
+    """Discovers fresh raw subscription candidate links via direct Fastly CDN dictionary probes (0 API limits)."""
     found_raw_urls = set()
-    for query in GITHUB_CODE_QUERIES:
-        q_enc = urllib.parse.quote(query)
-        api_url = f"{GITHUB_API}/search/code?q={q_enc}&per_page=30"
-        try:
-            data = gh_api_get(api_url)
-            items = data.get("items", []) if isinstance(data, dict) else []
-            if not items:
-                continue
-            for item in items:
-                raw_url = item.get("html_url", "").replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
-                if raw_url:
-                    found_raw_urls.add(raw_url)
-            time.sleep(6.5)  # 6.5s pacing strictly respects GitHub 10 req/min Code Search limit
-        except Exception:
-            break
-    print(f"  🔎 GitHub Code Search yielded {len(found_raw_urls)} candidate raw files", flush=True)
+    standard_files = [
+        "sub/all.txt", "sub/vless.txt", "sub/reality.txt", "sub/shadowsocks.txt", "sub/trojan.txt",
+        "sub/hysteria2.txt", "sub/hy2.txt", "sub/tuic.txt", "sub/clash-meta.yaml", "sub/clash.yaml",
+        "all.txt", "vless.txt", "reality.txt", "subs.txt", "sub.txt", "nodes.txt", "proxies.txt",
+        "Splitted-By-Protocol/vless.txt", "Splitted-By-Protocol/trojan.txt", "Splitted-By-Protocol/ss.txt",
+        "category/vless.txt", "category/hysteria2.txt", "category/xhttp.txt"
+    ]
+    for r, b in SEED_REPOSITORIES:
+        for f in standard_files:
+            found_raw_urls.add(f"https://raw.githubusercontent.com/{r}/{b}/{f}")
+
+    print(f"  ⚡ Direct Fastly CDN Scanner yielded {len(found_raw_urls)} candidate raw targets (0 API limits)", flush=True)
     return found_raw_urls
 
 # =============================================================================
@@ -564,27 +538,6 @@ def crawl_single_repository(full_name: str, branch: str = "main") -> set:
 
     return candidates
 
-def search_single_query(q: str) -> list:
-    results = []
-    q_enc = urllib.parse.quote(q)
-    for page in range(1, 3):
-        api_url = f"{GITHUB_API}/search/repositories?q={q_enc}&per_page=30&page={page}"
-        try:
-            data = gh_api_get(api_url)
-            items = data.get("items", [])
-            if not items:
-                break
-            for repo in items:
-                full_name = repo.get("full_name", "")
-                default_branch = repo.get("default_branch", "main")
-                pushed_at = repo.get("pushed_at", "")
-                if full_name:
-                    results.append((full_name, default_branch, pushed_at))
-        except Exception:
-            break
-    return results
-
-
 def fetch_repository_state(full_name: str, fallback_branch: str) -> tuple:
     """Returns GitHub's current default branch and push timestamp for a tracked seed repository."""
     if not GITHUB_TOKEN:
@@ -608,28 +561,8 @@ def repository_changed_recently(pushed_at: str, previous_pushed_at: str, now_ts:
 
 
 def discover_all_github_repositories(scanned_repos_cache: dict) -> tuple:
-    """Crawls only new repositories or repositories with a new push within 12 hours."""
+    """Crawls all known seed repositories and updates change-aware cache without Search API rate limits."""
     repo_map = {name.lower(): (name, branch, "") for name, branch in SEED_REPOSITORIES}
-
-    # Seed repositories remain observable even if a particular query no longer returns them.
-    if GITHUB_TOKEN:
-        with ThreadPoolExecutor(max_workers=min(16, len(SEED_REPOSITORIES) or 1)) as seed_pool:
-            seed_futures = [seed_pool.submit(fetch_repository_state, name, branch) for name, branch in SEED_REPOSITORIES]
-            for future in as_completed(seed_futures):
-                try:
-                    full_name, branch, pushed_at = future.result()
-                    repo_map[full_name.lower()] = (full_name, branch, pushed_at)
-                except Exception:
-                    pass
-
-    print(f"  🔍 Dynamically querying GitHub Search API across {len(DYNAMIC_REPO_QUERIES)} queries (paced to respect rate limits)...", flush=True)
-    for q in DYNAMIC_REPO_QUERIES:
-        try:
-            for full_name, branch, pushed_at in search_single_query(q):
-                repo_map[full_name.lower()] = (full_name, branch, pushed_at)
-            time.sleep(2.0)
-        except Exception:
-            pass
 
     now_ts = time.time()
     fresh_repos = []
@@ -642,16 +575,16 @@ def discover_all_github_repositories(scanned_repos_cache: dict) -> tuple:
         previous_push = previous.get("pushed_at", "") if isinstance(previous, dict) else ""
         last_scanned = previous.get("last_scanned", 0) if isinstance(previous, dict) else 0
         changed = repository_changed_recently(pushed_at, previous_push, now_ts)
-        if last_scanned and not changed:
+        if last_scanned and not changed and (now_ts - last_scanned < REPOSITORY_RECHECK_SECONDS):
             skipped_cached += 1
             repo_state[repo_name.lower()] = {"pushed_at": previous_push, "last_scanned": last_scanned}
             continue
         fresh_repos.append((repo_name, branch, pushed_at))
 
-    print(f"  📦 Total repositories: {len(repo_map)} ({skipped_cached} unchanged & skipped, {len(fresh_repos)} new/updated to crawl)", flush=True)
+    print(f"  📦 Total repositories: {len(repo_map)} ({skipped_cached} unchanged & skipped, {len(fresh_repos)} to scan via CDN/Trees)", flush=True)
 
     all_repo_candidates = set()
-    with ThreadPoolExecutor(max_workers=200) as pool:
+    with ThreadPoolExecutor(max_workers=50) as pool:
         future_map = {
             pool.submit(crawl_single_repository, repo_name, branch): (repo_name, pushed_at)
             for repo_name, branch, pushed_at in fresh_repos
@@ -664,7 +597,7 @@ def discover_all_github_repositories(scanned_repos_cache: dict) -> tuple:
             except Exception:
                 pass
 
-    print(f"  🚀 Delta Repository Crawler generated {len(all_repo_candidates)} source candidates", flush=True)
+    print(f"  🚀 Repository Crawler generated {len(all_repo_candidates)} source candidates (0 API limits)", flush=True)
     return all_repo_candidates, repo_state
 
 SOURCE_QUALITY_PATH = os.path.join(TOOLS_DIR, "source_quality_index.json")

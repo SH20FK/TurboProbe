@@ -1526,9 +1526,20 @@ def deep_verify_nodes(uris: list, batch_size: int = BATCH_SIZE, return_results=F
         raise RuntimeError("Xray unavailable; refusing to publish TCP-only candidates")
     unique = list({node_id(u): u for u in uris}.values())
     pool = [(i, u, 0.0, "GLOBAL", u.split("://", 1)[0].lower()) for i, u in enumerate(unique)]
+    
+    # Fast TCP/TLS prefilter to eliminate dead nodes in seconds
+    if len(pool) > 1:
+        try:
+            tiers = asyncio.run(run_async_syn_prefilter(pool, concurrency=500))
+            reachable = tiers.get("tls", []) + tiers.get("tcp", [])
+            if reachable:
+                pool = reachable
+        except Exception:
+            pass
+
     batches = [pool[i:i + batch_size] for i in range(0, len(pool), batch_size)]
     verified = {}
-    with ThreadPoolExecutor(max_workers=min(NUM_XRAY_WORKERS, len(batches))) as executor:
+    with ThreadPoolExecutor(max_workers=min(NUM_XRAY_WORKERS, len(batches) or 1)) as executor:
         futures = [executor.submit(run_batch_probe, xray_bin, b, basic_only=True) for b in batches]
         for future in as_completed(futures):
             for n in future.result():
@@ -2011,8 +2022,27 @@ def main():
         proto = uri.split("://")[0].lower() if "://" in uri else "vless"
         probe_pool.append((i, uri, 50.0, "GLOBAL", proto))
 
-    # No generic TLS/ICMP prefilter: only the actual tunnel decides liveness.
-    print(f"🚀 Launching Parallel Multi-Core Xray Cluster ({NUM_XRAY_WORKERS} concurrent Xray instances, {batch_size * NUM_XRAY_WORKERS} parallel nodes)...", flush=True)
+    # 🩺 2-Stage Verification: Stage 1 = Ultra-fast TCP/TLS Prefilter -> Stage 2 = Multi-core Xray Tunnel Prober
+    print(f"🩺 [Stage 1: TCP/TLS Prefilter] Probing reachability across {len(probe_pool)} candidate nodes (500 async sockets)...", flush=True)
+    t_pre_start = time.perf_counter()
+    try:
+        tiers = asyncio.run(run_async_syn_prefilter(probe_pool, concurrency=500))
+        reachable_pool = tiers.get("tls", []) + tiers.get("tcp", [])
+    except Exception as e:
+        print(f"  ⚠️ Prefilter fallback: {e}", flush=True)
+        reachable_pool = probe_pool
+
+    elapsed_pre = round(time.perf_counter() - t_pre_start, 2)
+    print(f"✨ [Stage 1 Complete] {len(reachable_pool)} reachable nodes found out of {len(probe_pool)} in {elapsed_pre}s (pruned {len(probe_pool) - len(reachable_pool)} dead nodes).", flush=True)
+
+    if not reachable_pool:
+        print("⚠️ No reachable candidate nodes survived prefilter.", flush=True)
+        if args.vantage == "ru-local":
+            with open(os.path.join(SUB_DIR, "ru-verified.json"), "w", encoding="utf-8") as f:
+                json.dump({}, f, indent=2, ensure_ascii=False)
+        return
+
+    print(f"🚀 [Stage 2: Xray Deep Prober] Launching Parallel Multi-Core Cluster ({NUM_XRAY_WORKERS} concurrent Xray instances, {batch_size * NUM_XRAY_WORKERS} parallel nodes)...", flush=True)
 
     def execute_probe_round(pool_items: list, round_label: str) -> list:
         round_slot_queue = queue.Queue()
@@ -2047,17 +2077,12 @@ def main():
                 print(f"  🧪 [{round_label}] Batch {b_idx + 1}/{num_batches} ({batch_len} nodes) -> {len(results)} confirmed ONLINE (round total: {len(round_results)})", flush=True)
         return round_results
 
-    verified_alive_nodes = execute_probe_round(probe_pool, "Pass 1")
+    verified_alive_nodes = execute_probe_round(reachable_pool, "Pass 1")
 
     # Retry pass: a flaky Xray instance used to mass-reject otherwise live nodes.
-    # Any unconfirmed node gets one more chance with brand-new instances before
-    # it is declared dead; only nodes failing both passes are discarded.
-    # On massive pools (CI full runs) most failures are genuinely dead tunnels;
-    # re-probing tens of thousands of corpses doubles wall time for nothing,
-    # so the retry round is capped to a sane slice.
     RETRY_ROUND_CAP = 2000
     alive_keys_first_pass = {get_node_key(n["uri"]) for n in verified_alive_nodes}
-    failed_probe_items = [item for item in probe_pool if get_node_key(item[1]) not in alive_keys_first_pass]
+    failed_probe_items = [item for item in reachable_pool if get_node_key(item[1]) not in alive_keys_first_pass]
     if failed_probe_items and len(failed_probe_items) <= RETRY_ROUND_CAP:
         print(f"\n🔁 [Retry Round] Re-probing {len(failed_probe_items)} unconfirmed node(s) with fresh Xray instances...", flush=True)
         retry_results = execute_probe_round(failed_probe_items, "Retry")
