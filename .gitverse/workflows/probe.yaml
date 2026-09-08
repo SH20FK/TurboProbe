@@ -1,0 +1,74 @@
+name: TurboProbe RU Engine (GitVerse CI)
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+concurrency:
+  group: gitverse-turboprobe
+  cancel-in-progress: true
+
+jobs:
+  validate-and-publish:
+    name: Fast Probe RU & Sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies & Xray-core
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt aiohttp requests
+          
+          # Install Xray-core
+          curl -fL -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/download/v26.3.27/Xray-linux-64.zip
+          sudo unzip -o -q /tmp/xray.zip -d /usr/local/bin/
+          sudo chmod +x /usr/local/bin/xray
+          
+          # Install Mihomo
+          curl -fL -s -o /tmp/mihomo.gz https://github.com/MetaCubeX/mihomo/releases/download/v1.19.16/mihomo-linux-amd64-v1.19.16.gz
+          gunzip -f /tmp/mihomo.gz
+          sudo mv /tmp/mihomo /usr/local/bin/mihomo
+          sudo chmod +x /usr/local/bin/mihomo
+
+      - name: Run Telegram Proxy Harvester
+        run: |
+          python tgproxy/tg_aggregator.py || true
+
+      - name: Run TurboProbe High-Yield Engine
+        run: |
+          python tools/aggregator.py --fast
+
+      - name: Sync subscriptions to docs/sub
+        run: |
+          python -c "import shutil, os; [shutil.copytree(os.path.join('sub', i), os.path.join('docs/sub', i), dirs_exist_ok=True) if os.path.isdir(os.path.join('sub', i)) else shutil.copy2(os.path.join('sub', i), os.path.join('docs/sub', i)) for i in os.listdir('sub') if os.path.exists('sub')]"
+
+      - name: Commit and Push updates to GitHub & GitVerse
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "SH20FK"
+          git config --global user.email "salamatinsana940@gmail.com"
+          git add -A
+          if [ -n "$(git status --porcelain)" ]; then
+            NOW=$(date -u +"%Y-%m-%d %H:%M UTC")
+            git commit -m "chore(gitverse): auto-update VPN & TGProxy databases [$NOW]" --author="SH20FK <salamatinsana940@gmail.com>"
+            if [ -n "$GITHUB_TOKEN" ]; then
+              git push "https://x-access-token:${GITHUB_TOKEN}@github.com/SH20FK/TurboProbe.git" HEAD:main || true
+            fi
+            git push origin HEAD:main || true
+            echo "🎉 [Success] Fresh databases verified and published!"
+          else
+            echo "✨ All nodes and databases are already up to date."
+          fi
