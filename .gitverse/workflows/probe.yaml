@@ -42,13 +42,21 @@ jobs:
           sudo mv /tmp/mihomo /usr/local/bin/mihomo
           sudo chmod +x /usr/local/bin/mihomo
 
-      - name: Run Telegram Proxy Harvester
+      - name: Run Discovery Bot (Search new VPN sources)
+        run: |
+          python tools/discover_sources.py || true
+
+      - name: Run TGProxy Discovery Bot (Search new TG sources)
+        run: |
+          python tgproxy/discover_tg_sources.py || true
+
+      - name: Run Telegram Proxy Harvester & Verifier
         run: |
           python tgproxy/tg_aggregator.py || true
 
-      - name: Run TurboProbe High-Yield Engine
+      - name: Run Full TurboProbe Engine (Deep Validation)
         run: |
-          python tools/aggregator.py --fast
+          python tools/aggregator.py
 
       - name: Sync subscriptions to docs/sub
         run: |
