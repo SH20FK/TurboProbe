@@ -58,12 +58,16 @@ class LabClient:
         if start.get('status') != 'pending' or not isinstance(req_id, str) or not req_id:
             raise LabError('Unexpected LatencyLab job response')
         deadline = self.clock() + timeout
+        polls = 0
         while self.clock() < deadline:
             job = self.request('GET', '/api/lab/job/' + quote(req_id, safe=''))
             if job.get('status') == 'done':
                 return passes_all(job.get('result'), operators)
             if job.get('status') != 'pending':
                 raise LabError('LatencyLab job did not complete')
+            polls += 1
+            if polls % 6 == 0:
+                print('LatencyLab: job still pending', flush=True)
             self.sleep(poll_interval)
         raise LabError('LatencyLab job timed out; submission will not be repeated')
 
@@ -109,6 +113,7 @@ def check_candidates(nodes, clients, *, allow_partial=False, summary=None):
         ops = clients[index].operators()
         accepted = clients[index].check(node['uri'], ops)
         attempted += 1
+        print(f'LatencyLab progress: {attempted}/{len(nodes)}; current {"passed" if accepted else "rejected"}', flush=True)
         if summary is not None:
             summary['attempted'] = attempted
         if accepted:

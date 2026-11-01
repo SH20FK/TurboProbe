@@ -45,6 +45,27 @@ class SourceTests(unittest.TestCase):
 
 
 class RankingTests(unittest.TestCase):
+    def test_rejected_outbound_is_removed_from_retested_xray_config(self):
+        prober = probe.service_prober
+        inspected = []
+        def check(binary, filename):
+            config = json.loads(Path(filename).read_text())
+            tags = [o['tag'] for o in config['outbounds']]
+            inspected.append(tags)
+            return (1, 'failed outbound config with tag out_0') if 'out_0' in tags else (0, '')
+        def outbound(uri, tag):
+            return {'tag': tag, 'protocol': 'trojan', 'settings': {'servers': []}}
+        batch = [(i, 'trojan://pass@example.com:443', 0, 'GLOBAL', 'trojan') for i in range(2)]
+        with patch.object(prober, 'uri_to_xray_outbound', side_effect=outbound), \
+             patch.object(prober, 'run_xray_config_test', side_effect=check), \
+             patch.object(prober.subprocess, 'Popen', side_effect=OSError('test stops before networking')):
+            prober.run_batch_probe('xray', batch, basic_only=True)
+        self.assertEqual(inspected, [['blocked', 'out_0', 'out_1'], ['blocked', 'out_1']])
+
+    def test_invalid_reality_path_rejected_before_core_start(self):
+        outbound = {'streamSettings': {'security': 'reality', 'network': 'tcp', 'realitySettings': {'spiderX': '%25252F'}}}
+        self.assertIsNone(probe.service_prober.prepare_outbound_for_current_xray(outbound))
+
     def test_daily_ranking_selects_best_200(self):
         nodes = [{'uri': str(i), 'ping_ms': i + 1, 'verified': True,
                   'verification_policy': 'tunnel-https-v1'} for i in range(250)]

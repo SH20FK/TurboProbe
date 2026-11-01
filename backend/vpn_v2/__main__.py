@@ -68,6 +68,7 @@ def main():
     if not verified:
         raise LabError('No tunnel-verified candidates; shadow output was not replaced')
     verified = measure_selected(verified)
+    print(f'LatencyLab phase: checking {len(verified)} selected nodes', flush=True)
     lab_summary = {}
     passed = check_candidates(verified, [LabClient(token) for token in tokens], allow_partial=True, summary=lab_summary)
     report = {'schema_version': 1, 'mode': 'shadow', 'updated_at': datetime.now(timezone.utc).isoformat(),

@@ -574,6 +574,10 @@ def prepare_outbound_for_current_xray(outbound: dict):
     if stream.get("network") not in REALITY_COMPATIBLE_TRANSPORTS:
         return None
     reality = stream.get("realitySettings") or {}
+    # Malformed optional paths must not poison an entire Xray batch.
+    spider = reality.get('spiderX', '/')
+    if not isinstance(spider, str) or not spider.startswith('/'):
+        return None
     public_key = normalize_reality_public_key(reality.get("password") or reality.get("publicKey"))
     short_id = normalize_reality_short_id(reality.get("shortId"))
     if not public_key or short_id is None:
@@ -1329,6 +1333,9 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
     cfg_file = os.path.join(tmp_dir, "config.json")
 
     def write_config():
+        # This list is constructed by concatenation, not shared with outbounds.
+        # Rebuild it after dropping rejected nodes before retesting the batch.
+        cfg['outbounds'] = [{"tag": "blocked", "protocol": "blackhole"}] + outbounds
         with open(cfg_file, "w", encoding="utf-8") as f:
             json.dump(cfg, f)
 
