@@ -18,7 +18,7 @@ def main():
     parser.add_argument('--from-candidates', help='resume collection checkpoint without fetching again')
     parser.add_argument('--out', required=True, help='private shadow report path')
     parser.add_argument('--candidate-limit', type=int, default=5000)
-    parser.add_argument('--select', type=int, default=60)
+    parser.add_argument('--select', type=int, default=200)
     parser.add_argument('--collect-only', action='store_true')
     parser.add_argument('--install-cores', action='store_true', help='install missing Xray/Mihomo into local bin')
     parser.add_argument('--publish', action='store_true', help='write accepted artifacts to sub and docs/sub')
@@ -30,8 +30,8 @@ def main():
         parser.error('shadow output must be inside backend/vpn_v2/.local')
     if not 1 <= args.candidate_limit <= 10000:
         parser.error('candidate limit must be between 1 and 10000')
-    if not 1 <= args.select <= 65:
-        parser.error('select must be between 1 and 65')
+    if not 1 <= args.select <= 200:
+        parser.error('select must be between 1 and 200')
     if args.collect_only and (args.publish or args.push):
         parser.error('collection cannot publish')
     if args.sources:
@@ -68,10 +68,11 @@ def main():
     if not verified:
         raise LabError('No tunnel-verified candidates; shadow output was not replaced')
     verified = measure_selected(verified)
-    passed = check_candidates(verified, [LabClient(token) for token in tokens])
+    lab_summary = {}
+    passed = check_candidates(verified, [LabClient(token) for token in tokens], allow_partial=True, summary=lab_summary)
     report = {'schema_version': 1, 'mode': 'shadow', 'updated_at': datetime.now(timezone.utc).isoformat(),
               'source_count': len(source_urls), 'source_errors': errors, 'candidate_count': len(candidates),
-              'selected_count': len(verified), 'nodes': passed,
+              'selected_count': len(verified), 'nodes': passed, 'latencylab': lab_summary,
               'speed_measurement': 'bounded 4 MiB HTTPS download through selected tunnels'}
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_name(target.name + '.tmp')
@@ -81,6 +82,8 @@ def main():
     finally:
         temporary.unlink(missing_ok=True)
     print(f'Run completed: {len(passed)}/{len(verified)} nodes passed all operators.')
+    if lab_summary.get('quota_exhausted'):
+        print(f"Daily quota exhausted after {lab_summary['attempted']} checks; unchecked nodes excluded.")
     if args.publish:
         publish(report, Path(__file__).resolve().parents[2])
     if args.push:

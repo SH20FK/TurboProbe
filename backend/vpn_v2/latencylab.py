@@ -85,10 +85,12 @@ def passes_all(result, expected):
     return set(seen) == set(expected) and all(seen.values())
 
 
-def check_candidates(nodes, clients):
+def check_candidates(nodes, clients, *, allow_partial=False, summary=None):
     if not clients:
         raise LabError('LatencyLab credentials are not configured')
-    index, passed, accounts = 0, [], {}
+    index, passed, accounts, attempted = 0, [], {}, 0
+    if summary is not None:
+        summary.update(attempted=0, quota_exhausted=False)
     for node in nodes:
         while index < len(clients):
             account, remaining = clients[index].stats()
@@ -99,9 +101,17 @@ def check_candidates(nodes, clients):
                 break
             index += 1
         if index == len(clients):
+            if allow_partial and attempted:
+                if summary is not None:
+                    summary['quota_exhausted'] = True
+                break
             raise LabError('LatencyLab quota exhausted')
         ops = clients[index].operators()
-        if clients[index].check(node['uri'], ops):
+        accepted = clients[index].check(node['uri'], ops)
+        attempted += 1
+        if summary is not None:
+            summary['attempted'] = attempted
+        if accepted:
             checked = datetime.now(timezone.utc)
             passed.append({**node, 'latencylab_operators': ops, 'latencylab_verified': True,
                            'latencylab_checked_at': checked.isoformat(),

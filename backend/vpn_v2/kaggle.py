@@ -1,4 +1,4 @@
-"""Kaggle entry point: test=50 candidates/top 10; production=5000/top 60."""
+"""Daily Kaggle entry point: test=50 candidates/top 10; production=5000/top 200."""
 import argparse
 import subprocess
 import sys
@@ -13,7 +13,7 @@ def main():
     output = 'backend/vpn_v2/.local/' + ('production' if args.production else 'test50') + '.json'
     command = [sys.executable, '-m', 'backend.vpn_v2', '--out', output,
                '--candidate-limit', '5000' if args.production else '50',
-               '--select', '60' if args.production else '10', '--install-cores']
+               '--select', '200' if args.production else '10', '--install-cores']
     if args.production:
         command.append('--push')
     subprocess.run(command, cwd=root, check=True)

@@ -19,7 +19,7 @@ then check every selected node on all currently online LatencyLab operators.
 Speed never changes ping order. Fewer than ten successes means fewer than ten
 API checks. The runner installs missing cores from official GitHub releases.
 
-Add `--production` to the command for up to 5000 candidates/top 60 and GitHub
+Add `--production` to the command for up to 5000 candidates/top 200 and GitHub
 publication. A fresh isolated checkout stages only VPN artifacts in `sub/` and
 `docs/sub/`. Push conflicts are retried from fresh checkouts without force push.
 Telegram and the separate Intersvyaz snapshot are preserved. API failure aborts
@@ -46,12 +46,18 @@ Private `.local` reports contain proxy credentials. Do not expose them as public
 notebook outputs/artifacts. Previous reports are preserved on quota/network/job
 failure. Ambiguous POSTs are not retried. Check account statistics before and
 after the first live run to establish polling quota cost; daily capacity is not
-guaranteed. The first account is consumed before the second is used.
+guaranteed. The first account is consumed before the second is used. Production
+attempts up to 200 checks per daily run. If both quotas are exhausted after some
+completed checks, only successful completed checks are published; unchecked nodes
+are excluded and the report records quota exhaustion. Zero available checks or
+any other API/network failure preserves the previous publication.
 
 ## Cutover
 
 Run the test in Kaggle first and review its private report. After it succeeds,
-schedule external Kaggle runs at 00:00, 08:00, 16:00 UTC with `--production`.
+schedule one daily Kaggle run with `--production`, preferably after 00:00 UTC
+(05:00 Yekaterinburg), when the LatencyLab daily quota resets. Allow time for
+the run to finish before expecting the new subscription.
 The runner performs one cycle; it does not configure the Kaggle account schedule.
 Set GitHub repository variable `VPN_RUNNER=kaggle` to suspend the legacy VPN
 Actions during cutover; Telegram is independent. Clear it for rollback.

@@ -45,6 +45,13 @@ class SourceTests(unittest.TestCase):
 
 
 class RankingTests(unittest.TestCase):
+    def test_daily_ranking_selects_best_200(self):
+        nodes = [{'uri': str(i), 'ping_ms': i + 1, 'verified': True,
+                  'verification_policy': 'tunnel-https-v1'} for i in range(250)]
+        ranked = probe.rank(list(reversed(nodes)))
+        self.assertEqual(len(ranked), 200)
+        self.assertEqual([n['ping_ms'] for n in ranked], list(range(1, 201)))
+
     def test_only_verified_finite_tunnel_latency_sorted_by_ping(self):
         nodes = [{'uri': str(i), 'verified': True, 'verification_policy': 'tunnel-https-v1',
                   'ping_ms': p, 'speed_mbps': speed} for i, (p, speed) in enumerate([(20, 100), (10, 1), (float('nan'), 5)])]
@@ -62,6 +69,29 @@ class RankingTests(unittest.TestCase):
 
 
 class LabTests(unittest.TestCase):
+    def test_daily_budget_uses_100_from_each_account(self):
+        class Account:
+            def __init__(self, user): self.user, self.used = user, 0
+            def stats(self): return self.user, 100 - self.used
+            def operators(self): return ['mts']
+            def check(self, uri, operators): self.used += 1; return True
+        a, b = Account(1), Account(2)
+        summary = {}
+        passed = latencylab.check_candidates([{'uri': str(i)} for i in range(201)], [a, b],
+                                            allow_partial=True, summary=summary)
+        self.assertEqual((a.used, b.used, len(passed)), (100, 100, 200))
+        self.assertEqual(summary, {'attempted': 200, 'quota_exhausted': True})
+
+    def test_kaggle_modes_keep_small_test_and_daily_production(self):
+        from backend.vpn_v2 import kaggle
+        for production, expected in [(False, '10'), (True, '200')]:
+            with patch('sys.argv', ['kaggle'] + (['--production'] if production else [])), \
+                 patch.object(kaggle.subprocess, 'run') as run:
+                kaggle.main()
+                command = run.call_args.args[0]
+                self.assertEqual(command[command.index('--select') + 1], expected)
+                self.assertEqual('--push' in command, production)
+
     def test_all_operators_must_be_present_and_successful(self):
         ops = ['mts', 't2']
         good = {'results': [{'operator': 'mts', 'ok': True}, {'operator': 't2', 'ok': True}]}

@@ -12,7 +12,7 @@ if str(LEGACY_DIR) not in sys.path:
 import service_prober
 
 
-def rank(nodes, limit=60):
+def rank(nodes, limit=200):
     eligible = []
     for node in nodes:
         ping = node.get('ping_ms')
