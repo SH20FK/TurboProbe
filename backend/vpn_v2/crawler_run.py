@@ -11,11 +11,15 @@ class CrawlRun:
         if persistent and not token: raise ValueError('GitHub credentials required for persistent crawler state')
         self.deadline = time.monotonic()+seconds
         self.local_deadline = self.deadline-5400
+        print('Crawler startup: opening local SQLite registry',flush=True)
         self.store = Store(directory/'crawler.sqlite')
         self.branch = StateBranch(token) if persistent else None
         self.ready = False
         try:
-            if self.branch: self.branch.open(self.store)
+            if self.branch:
+                print('Crawler startup: restoring crawler-state from GitHub',flush=True)
+                self.branch.open(self.store)
+                print('Crawler startup: remote state ready',flush=True)
             crawler.seed(self.store)
             self.ready = True
         except BaseException:
@@ -36,12 +40,14 @@ class CrawlRun:
             for url in urls: self.store.add(url)
         discovery_errors = []
         if discovery:
+            print('Discovery phase started (maximum 30 minutes)',flush=True)
             try:
                 discovery_errors = crawler.discover(self.store,token,min(self.local_deadline,time.monotonic()+1800))
             except TimeoutError:
                 discovery_errors.append('discovery_time_budget')
             self.checkpoint()
         from .crawler_store import public_url,source_id
+        print('Discovery finished; starting source downloads',flush=True)
         only = {source_id(public_url(u)) for u in urls if public_url(u)} if urls is not None else None
         uris,errors,metrics = crawler.collect(self.store,self.local_deadline,only=only)
         metrics['scope'] = 'custom_sources' if only is not None else 'all_eligible_sources'

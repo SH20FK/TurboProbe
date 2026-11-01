@@ -69,7 +69,7 @@ class Store:
         ''')
         self.db.commit()
 
-    def add(self, url, depth=0):
+    def add(self, url, depth=0, *, commit=True):
         url = public_url(url)
         if not url: return False
         path = urlsplit(url).path.lower()
@@ -86,7 +86,7 @@ class Store:
                 self.db.execute('UPDATE sources SET url=?,etag=NULL,last_modified=NULL WHERE id=?', (url, ident))
         else:
             self.db.execute('INSERT INTO sources(id,url,depth) VALUES(?,?,?)', (ident,url,depth))
-        self.db.commit()
+        if commit: self.db.commit()
         return prior is None
 
     def due(self):

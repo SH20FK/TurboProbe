@@ -32,7 +32,7 @@ def main():
         parser.error('lab-limit must be 1..200')
     root = Path(__file__).resolve().parents[2]
     output = 'backend/vpn_v2/.local/' + ('production' if args.production else 'test50') + '.json'
-    command = [sys.executable, '-m', 'backend.vpn_v2', '--out', output,
+    command = [sys.executable, '-u', '-m', 'backend.vpn_v2', '--out', output,
                '--candidate-limit', '0' if args.production else '50',
                '--select', str(args.lab_limit or (200 if args.production else 10)), '--install-cores']
     if args.production:

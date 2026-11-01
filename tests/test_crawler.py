@@ -17,6 +17,23 @@ URI = 'vless://11111111-2222-3333-4444-555555555555@example.com:443?security=tls
 
 
 class RegistryTests(unittest.TestCase):
+    def test_seed_import_commits_once_and_is_not_reimported(self):
+        import aggregator
+        import discover_sources
+        root=Path(self.temp.name)/'seed';root.mkdir()
+        (root/'discovered_sources.json').write_text(json.dumps({'https://example.com/'+str(i)+'.txt':{} for i in range(100)}))
+        statements=[]
+        self.store.db.set_trace_callback(statements.append)
+        with patch.object(crawler,'LEGACY_DIR',root), \
+             patch.object(aggregator,'SOURCES',[]), \
+             patch.object(discover_sources,'TELEGRAM_CHANNELS',[]), \
+             patch.object(discover_sources,'SEED_REPOSITORIES',[]):
+            crawler.seed(self.store)
+            crawler.seed(self.store)
+        self.assertEqual(sum(s == 'COMMIT' for s in statements),1)
+        self.assertEqual(len(self.store.due()),100)
+        self.store.db.set_trace_callback(None)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.now = 1000000

@@ -72,6 +72,7 @@ class GitHub:
                         wait = max(wait,float(response.headers.get('X-RateLimit-Reset','0'))-time.time())
                 except ValueError: wait = 60
                 if attempt == 2 or self.clock()+wait >= self.deadline: raise DownloadError('github_rate_limit')
+                print(f'GitHub rate limit: waiting {wait:.0f}s before retry',flush=True)
                 self.sleep(wait)
                 continue
             if response.status_code != 200: raise DownloadError('github_http_'+str(response.status_code))
@@ -91,6 +92,8 @@ class GitHub:
             # one broad term consume all discovery time on every fresh session.
             queue = [{'q':q,'start':str(start),'end':str(end),'page':1} for start,end in ranges for q in search_queries()]
         repos = {}
+        pages = 0
+        print(f'GitHub search: {len(queue)} queued partitions',flush=True)
         while queue:
             job = queue[0]
             data,headers = self.get('/search/repositories?q='+quote(job['q']+' pushed:'+job['start']+'..'+job['end'])+'&sort=updated&per_page=100&page='+str(job['page']))
@@ -111,6 +114,9 @@ class GitHub:
                 else: queue.pop(0)
             self.store.db.execute("INSERT OR REPLACE INTO meta VALUES('search_queue',?)",(json.dumps(queue),))
             self.store.db.commit()
+            pages += 1
+            if pages % 10 == 0:
+                print(f'GitHub search: {pages} pages; {len(repos)} repositories found; {len(queue)} partitions left',flush=True)
         return repos
 
     def scan(self, name):
@@ -144,17 +150,22 @@ class GitHub:
 def seed(store):
     import aggregator
     import discover_sources as legacy
-    if store.db.execute("SELECT value FROM meta WHERE key='seed_v1'").fetchone(): return
-    for url in aggregator.SOURCES: store.add(url)
+    if store.db.execute("SELECT value FROM meta WHERE key='seed_v1'").fetchone():
+        print('Source registry already initialized',flush=True)
+        return
+    print('Importing initial source registry in one transaction',flush=True)
+    for url in aggregator.SOURCES: store.add(url,commit=False)
     path = LEGACY_DIR/'discovered_sources.json'
     if path.exists():
-        for url in json.loads(path.read_text(encoding='utf-8')):
-            if not url.startswith('_'): store.add(url)
-    for channel in legacy.TELEGRAM_CHANNELS: store.add('https://t.me/s/'+channel)
+        for index,url in enumerate(json.loads(path.read_text(encoding='utf-8')),1):
+            if not url.startswith('_'): store.add(url,commit=False)
+            if index % 2000 == 0: print(f'Registry import: {index} legacy entries processed',flush=True)
+    for channel in legacy.TELEGRAM_CHANNELS: store.add('https://t.me/s/'+channel,commit=False)
     for repo,branch in legacy.SEED_REPOSITORIES:
         store.db.execute('INSERT OR IGNORE INTO repos(name,branch) VALUES(?,?)',(repo,branch))
     store.db.execute("INSERT INTO meta VALUES('seed_v1','1')")
     store.db.commit()
+    print(f"Registry import complete: {store.db.execute('SELECT count(*) FROM sources').fetchone()[0]} sources",flush=True)
 
 
 def discover(store, token, deadline):
@@ -169,6 +180,7 @@ def discover(store, token, deadline):
         # Secondary forges use the same bounded downloader and source admission.
         secondary = Http(min(deadline,discovery_start+900))
         for forge in ('gitverse','gitlab','codeberg'):
+            print(f'Secondary discovery: {forge}',flush=True)
             try: discover_forge(store,forge,secondary)
             except (DownloadError,TimeoutError,ValueError,KeyError,TypeError,AttributeError): errors.append(forge+'_discovery_incomplete')
         repositories = dict(store.db.execute('SELECT name,branch FROM repos'))
@@ -176,7 +188,7 @@ def discover(store, token, deadline):
         for index,name in enumerate(repositories,1):
             try: github.scan(name)
             except DownloadError as exc: errors.append(str(exc))
-            if index % 25 == 0: print(f'Repository progress: {index}/{len(repositories)}',flush=True)
+            if index % 5 == 0: print(f'Repository progress: {index}/{len(repositories)}',flush=True)
     finally:
         github.session.close()
     return errors
