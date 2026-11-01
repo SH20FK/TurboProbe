@@ -70,7 +70,15 @@ def main():
     verified = measure_selected(verified)
     print(f'LatencyLab phase: checking {len(verified)} selected nodes', flush=True)
     lab_summary = {}
-    passed = check_candidates(verified, [LabClient(token) for token in tokens], allow_partial=True, summary=lab_summary)
+    try:
+        passed = check_candidates(verified, [LabClient(token) for token in tokens], allow_partial=True, summary=lab_summary)
+        if lab_summary.get('agent_errors'):
+            raise LabError('LatencyLab agent errors: publication withheld; inspect private failure report')
+    except LabError:
+        failure = {'mode': 'failed-not-for-publication', 'selected': verified, 'latencylab': lab_summary}
+        target.with_name(target.stem + '-failed.json').write_text(json.dumps(failure, ensure_ascii=False, indent=2), encoding='utf-8')
+        print('Private failure report saved; previous publication preserved.', flush=True)
+        raise
     report = {'schema_version': 1, 'mode': 'shadow', 'updated_at': datetime.now(timezone.utc).isoformat(),
               'source_count': len(source_urls), 'source_errors': errors, 'candidate_count': len(candidates),
               'selected_count': len(verified), 'nodes': passed, 'latencylab': lab_summary,

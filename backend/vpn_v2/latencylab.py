@@ -13,20 +13,41 @@ class LabError(RuntimeError):
     pass
 
 
+class LabJobError(LabError):
+    """The upstream agent explicitly finished this job with an error."""
+    pass
+
+
 class LabClient:
     def __init__(self, token, session=None, sleep=time.sleep, clock=time.monotonic):
         self.session = session or requests.Session()
         self.session.trust_env = False
         self.session.headers.update({'Authorization': 'Bearer ' + token, 'Accept': 'application/json'})
         self.sleep, self.clock = sleep, clock
+        self.last_result = None
 
     def request(self, method, path, **kwargs):
-        try:
-            response = self.session.request(method, BASE + path, timeout=(10, 30),
-                                            allow_redirects=False, **kwargs)
-        except requests.RequestException as exc:
-            # Network errors can contain sensitive URLs or request details.
-            raise LabError('LatencyLab request failed: ' + type(exc).__name__) from None
+        for attempt in range(3 if method == 'GET' else 1):
+            try:
+                response = self.session.request(method, BASE + path, timeout=(10, 30),
+                                                allow_redirects=False, **kwargs)
+            except requests.RequestException as exc:
+                if method == 'GET' and attempt < 2:
+                    self.sleep(2 ** (attempt + 1))
+                    continue
+                raise LabError('LatencyLab request failed: ' + type(exc).__name__) from None
+            if response.status_code == 502 and path.startswith('/api/lab/job/'):
+                try:
+                    payload = response.json()
+                except ValueError:
+                    payload = {}
+                if isinstance(payload, dict) and payload.get('status') == 'error':
+                    raise LabJobError('LatencyLab agent failed this job (HTTP 502)')
+            if method == 'GET' and response.status_code in (502, 503, 504) and attempt < 2:
+                print(f'LatencyLab: temporary HTTP {response.status_code}; retrying GET', flush=True)
+                self.sleep(2 ** (attempt + 1))
+                continue
+            break
         if response.status_code != 200:
             raise LabError('LatencyLab HTTP ' + str(response.status_code))
         try:
@@ -53,6 +74,7 @@ class LabClient:
         return sorted(set(online))
 
     def check(self, uri, operators, timeout=180, poll_interval=5):
+        self.last_result = None
         start = self.request('POST', '/api/lab/vpn-key', json={'uri': uri, 'operators': operators, 'operator': 'multiscan'})
         req_id = start.get('req_id')
         if start.get('status') != 'pending' or not isinstance(req_id, str) or not req_id:
@@ -62,6 +84,7 @@ class LabClient:
         while self.clock() < deadline:
             job = self.request('GET', '/api/lab/job/' + quote(req_id, safe=''))
             if job.get('status') == 'done':
+                self.last_result = job.get('result')
                 return passes_all(job.get('result'), operators)
             if job.get('status') != 'pending':
                 raise LabError('LatencyLab job did not complete')
@@ -94,7 +117,7 @@ def check_candidates(nodes, clients, *, allow_partial=False, summary=None):
         raise LabError('LatencyLab credentials are not configured')
     index, passed, accounts, attempted = 0, [], {}, 0
     if summary is not None:
-        summary.update(attempted=0, quota_exhausted=False)
+        summary.update(attempted=0, quota_exhausted=False, agent_errors=0, results=[])
     for node in nodes:
         while index < len(clients):
             account, remaining = clients[index].stats()
@@ -111,11 +134,28 @@ def check_candidates(nodes, clients, *, allow_partial=False, summary=None):
                 break
             raise LabError('LatencyLab quota exhausted')
         ops = clients[index].operators()
-        accepted = clients[index].check(node['uri'], ops)
+        started = time.monotonic()
+        try:
+            accepted = clients[index].check(node['uri'], ops)
+        except LabJobError:
+            attempted += 1
+            if summary is not None:
+                summary['attempted'] = attempted
+                summary['agent_errors'] += 1
+                summary['results'].append({'candidate_index': attempted-1, 'status': 'agent_error', 'operators': ops})
+            print(f'LatencyLab progress: {attempted}/{len(nodes)}; agent error (not a node rejection)', flush=True)
+            if summary is None:
+                raise
+            continue
         attempted += 1
-        print(f'LatencyLab progress: {attempted}/{len(nodes)}; current {"passed" if accepted else "rejected"}', flush=True)
+        print(f'LatencyLab progress: {attempted}/{len(nodes)}; current {"passed" if accepted else "rejected"}; {time.monotonic()-started:.0f}s', flush=True)
         if summary is not None:
             summary['attempted'] = attempted
+            result = getattr(clients[index], 'last_result', None)
+            summary['results'].append({'candidate_index': attempted-1, 'accepted': accepted, 'operators': ops, 'result': result})
+            rows = result.get('results', [result]) if isinstance(result, dict) else []
+            statuses = {r.get('operator'): r.get('ok') is True for r in rows if isinstance(r, dict)}
+            print('LatencyLab operators: ' + ', '.join(op + '=' + ('OK' if statuses.get(op) else 'FAIL/MISSING') for op in ops), flush=True)
         if accepted:
             checked = datetime.now(timezone.utc)
             passed.append({**node, 'latencylab_operators': ops, 'latencylab_verified': True,

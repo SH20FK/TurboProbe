@@ -90,6 +90,32 @@ class RankingTests(unittest.TestCase):
 
 
 class LabTests(unittest.TestCase):
+    def test_temporary_get_502_retries_but_post_is_never_retried(self):
+        from unittest.mock import Mock
+        bad = Mock(status_code=502)
+        bad.json.return_value = {}
+        good = Mock(status_code=200)
+        good.json.return_value = {'ok': True}
+        session = Mock()
+        session.request.side_effect = [bad, good]
+        client = latencylab.LabClient('unused', session=session, sleep=lambda _: None)
+        self.assertTrue(client.request('GET', '/api/lab/job/one')['ok'])
+        self.assertEqual(session.request.call_count, 2)
+        session.request.reset_mock(side_effect=True)
+        session.request.return_value = bad
+        with self.assertRaises(latencylab.LabError): client.request('POST', '/api/lab/vpn-key')
+        self.assertEqual(session.request.call_count, 1)
+
+    def test_terminal_agent_error_is_not_retried_or_counted_as_rejection(self):
+        from unittest.mock import Mock
+        response = Mock(status_code=502)
+        response.json.return_value = {'ok': False, 'status': 'error', 'error': 'private agent detail'}
+        session = Mock()
+        session.request.return_value = response
+        client = latencylab.LabClient('unused', session=session)
+        with self.assertRaises(latencylab.LabJobError): client.request('GET', '/api/lab/job/one')
+        self.assertEqual(session.request.call_count, 1)
+
     def test_daily_budget_uses_100_from_each_account(self):
         class Account:
             def __init__(self, user): self.user, self.used = user, 0
@@ -101,7 +127,9 @@ class LabTests(unittest.TestCase):
         passed = latencylab.check_candidates([{'uri': str(i)} for i in range(201)], [a, b],
                                             allow_partial=True, summary=summary)
         self.assertEqual((a.used, b.used, len(passed)), (100, 100, 200))
-        self.assertEqual(summary, {'attempted': 200, 'quota_exhausted': True})
+        self.assertEqual(summary['attempted'], 200)
+        self.assertTrue(summary['quota_exhausted'])
+        self.assertEqual(summary['agent_errors'], 0)
 
     def test_kaggle_modes_keep_small_test_and_daily_production(self):
         from backend.vpn_v2 import kaggle
