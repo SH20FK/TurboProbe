@@ -8,8 +8,8 @@ from pathlib import Path
 import subprocess
 import tempfile
 from .crawler_store import public_url
+from .crawler_archive import TABLES, columns, public_rows, read_archive, read_legacy, write_archive
 
-TABLES = ('meta','repos','sources','nodes','source_nodes','observations','checks','jobs')
 BRANCH = 'crawler-state'
 REMOTE = 'https://github.com/SH20FK/TurboProbe.git'
 
@@ -18,42 +18,13 @@ def encode(store):
     sources = {r[0] for r in store.db.execute('SELECT id,url FROM sources') if public_url(r[1])}
     data = {}
     for table in TABLES:
-        columns = [r[1] for r in store.db.execute('PRAGMA table_info('+table+')')]
-        rows = []
-        for row in store.db.execute('SELECT * FROM '+table):
-            record = dict(zip(columns,row))
-            if table == 'sources' and record['id'] not in sources: continue
-            if 'source' in record and record['source'] not in sources: continue
-            text = json.dumps(record)
-            if any(prefix in text.lower() for prefix in ('ghp_','github_pat_','bearer ','ll_')): continue
-            # Check/job payloads contain private API diagnostics; only metadata travels.
-            if table in ('checks','jobs'): record['payload'] = '{}'
-            rows.append([record[c] for c in columns])
-        data[table] = {'columns':columns,'rows':rows}
+        data[table] = {'columns':columns(store,table),'rows':list(public_rows(store,table,sources))}
     return gzip.compress(json.dumps({'version':1,'tables':data},ensure_ascii=False).encode(),mtime=0)
 
 
 def restore(store, compressed):
-    with gzip.GzipFile(fileobj=io.BytesIO(compressed)) as stream:
-        body = stream.read(100*1024*1024+1)
-    if len(body)>100*1024*1024: raise ValueError('crawler state too large')
-    data = json.loads(body)
-    if data.get('version') != 1: raise ValueError('unknown crawler state version')
-    # Validate the complete envelope before changing local state.
-    for table in TABLES:
-        expected = [r[1] for r in store.db.execute('PRAGMA table_info('+table+')')]
-        item = data['tables'][table]
-        if item['columns'] != expected or any(len(row)!=len(expected) for row in item['rows']):
-            raise ValueError('invalid crawler state table')
-    with store.db:
-        for table in TABLES:
-            store.db.execute('DELETE FROM '+table)
-            rows = data['tables'][table]['rows']
-            if table == 'sources':
-                url_index = data['tables'][table]['columns'].index('url')
-                if any(not public_url(r[url_index]) for r in rows): raise ValueError('unsafe source in remote state')
-            if rows:
-                store.db.executemany('INSERT INTO '+table+' VALUES('+','.join('?' for _ in rows[0])+')',rows)
+    # Bytes wrapper retained for callers with small version-1 fixtures.
+    read_legacy(store,io.BytesIO(compressed))
 
 
 class StateBranch:
@@ -75,7 +46,11 @@ class StateBranch:
         if exists.returncode == 0:
             if self.git('clone','--quiet','--depth','1','--single-branch','--branch',BRANCH,REMOTE,str(self.path)).returncode:
                 raise RuntimeError('Cannot download crawler state')
-            restore(store,(self.path/'state.json.gz').read_bytes())
+            if (self.path/'state.json').exists():
+                read_archive(store,self.path)
+            else:
+                with (self.path/'state.json.gz').open('rb') as stream:
+                    read_legacy(store,stream)
             journal = self.path/'jobs.json'
             if journal.exists():
                 rows = json.loads(journal.read_text(encoding='utf-8'))
@@ -93,14 +68,17 @@ class StateBranch:
                 if self.git(*args).returncode: raise RuntimeError('Cannot initialize crawler state')
 
     def save(self, store):
-        (self.path/'state.json.gz').write_bytes(encode(store))
+        print('Crawler checkpoint: compressing public state in parts',flush=True)
+        write_archive(store,self.path)
         (self.path/'README.md').write_text('TurboProbe public crawler state. No workflows or site assets.\n',encoding='utf-8')
-        if self.git('add','state.json.gz','README.md').returncode: raise RuntimeError('State staging failed')
+        if self.git('add','-A','--','state.json','state','README.md').returncode: raise RuntimeError('State staging failed')
+        if self.git('rm','--ignore-unmatch','--cached','--','state.json.gz').returncode: raise RuntimeError('Legacy state removal failed')
         if self.git('diff','--cached','--quiet').returncode == 0: return
         if self.git('-c','user.name=TurboProbe','-c','user.email=turboprobe@users.noreply.github.com','commit','-m','chore: crawler checkpoint').returncode:
             raise RuntimeError('State commit failed')
         if self.git('push','origin','HEAD:'+BRANCH).returncode:
             raise RuntimeError('State push failed; local checkpoint preserved, no force push')
+        print('Crawler checkpoint: saved to GitHub crawler-state',flush=True)
 
     def save_jobs(self, store):
         rows = store.db.execute('SELECT run,node,request_id,account,status FROM jobs').fetchall()

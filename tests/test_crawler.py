@@ -151,7 +151,7 @@ class ApiTests(unittest.TestCase):
                 try:
                     branch.open(first);branch.save(first)
                     files=branch.git('ls-tree','--name-only','HEAD').stdout.decode().splitlines()
-                    self.assertEqual(set(files),{'README.md','state.json.gz'})
+                    self.assertEqual(set(files),{'README.md','state.json','state'})
                 finally:branch.close()
                 branch=StateBranch('unused')
                 try:

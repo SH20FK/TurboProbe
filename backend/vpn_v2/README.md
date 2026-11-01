@@ -57,6 +57,11 @@ runner should run at a time; a conflicting state push fails without force push.
   placed there. Public proxy configurations and source URLs can be visible there.
   API credentials, authenticated/query-token URLs and raw HTML/API bodies are
   excluded. Unknown query parameters are conservatively rejected.
+  Checkpoints stream into gzip parts with at most 16 MiB of JSON each, with
+  checksums and transactional restore. The whole JSON is never held in memory.
+  Old single-file checkpoints migrate automatically, including those above
+  the former 100 MiB restore limit. A checkpoint log confirms a successful push;
+  merely having a SQLite file under `/kaggle/working` is not a remote backup.
 - GitHub discovery covers protocol topics, names/descriptions/README, several
   languages, paginated results and recursive/non-recursive tree traversal. Search
   is date-partitioned and its unfinished queue persists across sessions. Secondary
