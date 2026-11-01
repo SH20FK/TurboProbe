@@ -26,7 +26,7 @@ def rank(nodes, limit=200):
     return sorted(eligible, key=lambda n: n['ping_ms'])[:limit]
 
 
-def verify(uris, batch_size=12, workers=None):
+def verify(uris, batch_size=12, workers=None, *, deadline=float('inf'), checkpoint=None):
     # Reuse the battle-tested tunnel engine only; do not call its main/exporter.
     # UDP candidates bypass TCP prefilter in the engine. All results require the strict gate.
     for name in ('xray', 'mihomo'):
@@ -38,6 +38,7 @@ def verify(uris, batch_size=12, workers=None):
         raise ValueError('probe worker/batch limits exceeded')
     usable = []
     for uri in uris:
+        if time.monotonic() >= deadline: raise TimeoutError('verification deadline')
         if uri.split('://')[0].lower() in ('hy2', 'hysteria2', 'tuic'):
             usable.append(uri)
             continue
@@ -54,13 +55,19 @@ def verify(uris, batch_size=12, workers=None):
     async def prefilter():
         sem = asyncio.Semaphore(128)
         async def check(uri):
+            if time.monotonic() >= deadline: raise TimeoutError('verification deadline')
             if uri.split('://')[0].lower() in ('hy2', 'hysteria2', 'tuic'):
                 return uri
             writer = None
             try:
                 host, port, _ = service_prober.parse_host_and_port(uri)
                 async with sem:
-                    _, writer = await asyncio.wait_for(asyncio.open_connection(host, port), 1.5)
+                    if time.monotonic() >= deadline: raise TimeoutError('verification deadline')
+                    from .crawler_http import public_addresses
+                    from .crawler_http import DownloadError
+                    try: addresses = await asyncio.wait_for(asyncio.to_thread(public_addresses,host,port),1.5)
+                    except DownloadError: return None
+                    _, writer = await asyncio.wait_for(asyncio.open_connection(addresses[0], port), 1.5)
                 return uri
             except (OSError, ValueError, asyncio.TimeoutError):
                 return None
@@ -76,20 +83,29 @@ def verify(uris, batch_size=12, workers=None):
     verified = {}
     started = time.monotonic()
     xray = service_prober.get_xray_binary_path()
+    def batch_probe(batch):
+        if time.monotonic() >= deadline: raise TimeoutError('verification deadline')
+        return service_prober.run_batch_probe(xray,batch,basic_only=True)
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(service_prober.run_batch_probe, xray, batch, basic_only=True): len(batch) for batch in batches}
+        futures = {pool.submit(batch_probe,batch): batch for batch in batches}
         done = 0
-        for future in as_completed(futures):
-            rows = future.result()
-            done += futures[future]
-            for node in rows:
-                if node.get('verified') is True and node.get('verification_policy') == 'tunnel-https-v1':
-                    verified[node['uri'].split('#')[0]] = node
-            print(f'Tunnel progress: {done}/{len(slots)} checked; {len(verified)} verified; {time.monotonic()-started:.0f}s', flush=True)
+        try:
+            for future in as_completed(futures):
+                rows = future.result()
+                done += len(futures[future])
+                if checkpoint: checkpoint(futures[future],rows)
+                for node in rows:
+                    if node.get('verified') is True and node.get('verification_policy') == 'tunnel-https-v1':
+                        verified[node['uri'].split('#')[0]] = node
+                print(f'Tunnel progress: {done}/{len(slots)} checked; {len(verified)} verified; {time.monotonic()-started:.0f}s', flush=True)
+                if time.monotonic() >= deadline:
+                    raise TimeoutError('full candidate pool did not complete within budget')
+        finally:
+            for pending in futures: pending.cancel()
     return list(verified.values())
 
 
-def measure_selected(nodes):
+def measure_selected(nodes, *, deadline=float('inf')):
     """Bounded 4 MiB HTTPS measurement for selected nodes; ping stays unchanged."""
     from verification import make_session, read_response
     from requests import RequestException
@@ -112,6 +128,7 @@ def measure_selected(nodes):
     # Used only by this single-process CLI, after initial verification finishes.
     with patch.object(service_prober, 'measure_tunnel', measure):
         for i, node in enumerate(nodes):
+            if time.monotonic() >= deadline: raise TimeoutError('speed measurement deadline')
             slot = (i, node['uri'], 0, node.get('country', 'GLOBAL'), node['uri'].split('://')[0])
             for row in service_prober.run_batch_probe(xray, [slot], basic_only=True):
                 measurements[row['uri']] = row['speed_mbps']

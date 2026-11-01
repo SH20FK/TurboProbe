@@ -1078,20 +1078,6 @@ def main():
         print(f"  🧹 Pruned {pruned_inactive} expired inactive source record(s)", flush=True)
     existing = retained_existing
 
-    # Multi-Armed Bandit / Thompson Sampling auto-pruning: Keep only top 150 highest-yield sources
-    active_sources = {k: v for k, v in existing.items() if k != "_metadata" and isinstance(v, dict)}
-    if len(active_sources) > 150:
-        sorted_by_score = sorted(
-            active_sources.items(),
-            key=lambda item: thompson_sampling_score(item[1].get("mab_alpha", 1), item[1].get("mab_beta", 1)),
-            reverse=True
-        )
-        kept_sources = dict(sorted_by_score[:150])
-        pruned_low_yield = len(active_sources) - 150
-        kept_sources["_metadata"] = metadata
-        existing = kept_sources
-        print(f"  🧹 Auto-pruned {pruned_low_yield} low-yield sources (capped to top 150 highest quality)", flush=True)
-
     # 3. Save updated database & metadata
     metadata["scanned_repos"] = scanned_repos_cache
     metadata["dead_urls"] = active_dead_urls

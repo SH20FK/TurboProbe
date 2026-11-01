@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import time
+import json
+import hashlib
 from datetime import datetime, timezone, timedelta
 from urllib.parse import quote
 import requests
@@ -25,11 +27,25 @@ class LabClient:
         self.session.headers.update({'Authorization': 'Bearer ' + token, 'Accept': 'application/json'})
         self.sleep, self.clock = sleep, clock
         self.last_result = None
+        self.deadline = float('inf')
+        self.store = None
+
+    def attach_store(self, store, run, account, checkpoint):
+        self.store,self.run,self.account,self.checkpoint = store,run,account,checkpoint
+
+    def save_job(self, node, req_id, status, payload=None):
+        if self.store:
+            self.store.db.execute('INSERT OR REPLACE INTO jobs VALUES(?,?,?,?,?,?)',
+                (self.run,node,req_id,self.account,status,json.dumps(payload or {})))
+            self.store.db.commit()
+            self.checkpoint()
 
     def request(self, method, path, **kwargs):
         for attempt in range(3 if method == 'GET' else 1):
+            remaining = self.deadline-self.clock()
+            if remaining <= 0: raise TimeoutError('LatencyLab run deadline')
             try:
-                response = self.session.request(method, BASE + path, timeout=(10, 30),
+                response = self.session.request(method, BASE + path, timeout=(min(10,remaining), min(30,remaining)),
                                                 allow_redirects=False, **kwargs)
             except requests.RequestException as exc:
                 if method == 'GET' and attempt < 2:
@@ -75,16 +91,33 @@ class LabClient:
 
     def check(self, uri, operators, timeout=180, poll_interval=5):
         self.last_result = None
-        start = self.request('POST', '/api/lab/vpn-key', json={'uri': uri, 'operators': operators, 'operator': 'multiscan'})
-        req_id = start.get('req_id')
-        if start.get('status') != 'pending' or not isinstance(req_id, str) or not req_id:
-            raise LabError('Unexpected LatencyLab job response')
-        deadline = self.clock() + timeout
+        node = hashlib.sha256(uri.split('#',1)[0].encode()).hexdigest()
+        prior = self.store.db.execute("SELECT request_id,status FROM jobs WHERE node=? AND account=? ORDER BY rowid DESC LIMIT 1",(node,self.account)).fetchone() if self.store else None
+        req_id = prior[0] if prior and prior[1] == 'pending' else None
+        if prior and prior[1] == 'submitting':
+            active = self.request('GET','/api/lab/job/active')
+            if active.get('status') == 'pending' and active.get('scan_target','').split('#')[0] == uri.split('#')[0]:
+                req_id = active.get('req_id')
+            else:
+                raise LabError('Previous submission is uncertain; refusing duplicate POST; inspect private job state')
+        if not req_id:
+            self.save_job(node,None,'submitting')
+            start = self.request('POST', '/api/lab/vpn-key', json={'uri': uri, 'operators': operators, 'operator': 'multiscan'})
+            req_id = start.get('req_id')
+            if start.get('status') != 'pending' or not isinstance(req_id, str) or not req_id:
+                raise LabError('Unexpected LatencyLab job response')
+        self.save_job(node,req_id,'pending')
+        deadline = min(self.deadline,self.clock() + timeout)
         polls = 0
         while self.clock() < deadline:
-            job = self.request('GET', '/api/lab/job/' + quote(req_id, safe=''))
+            try:
+                job = self.request('GET', '/api/lab/job/' + quote(req_id, safe=''))
+            except LabJobError:
+                self.save_job(node,req_id,'agent_error')
+                raise
             if job.get('status') == 'done':
                 self.last_result = job.get('result')
+                self.save_job(node,req_id,'done',self.last_result)
                 return passes_all(job.get('result'), operators)
             if job.get('status') != 'pending':
                 raise LabError('LatencyLab job did not complete')
@@ -112,13 +145,14 @@ def passes_all(result, expected):
     return set(seen) == set(expected) and all(seen.values())
 
 
-def check_candidates(nodes, clients, *, allow_partial=False, summary=None):
+def check_candidates(nodes, clients, *, allow_partial=False, summary=None, deadline=float('inf')):
     if not clients:
         raise LabError('LatencyLab credentials are not configured')
     index, passed, accounts, attempted = 0, [], {}, 0
     if summary is not None:
         summary.update(attempted=0, quota_exhausted=False, agent_errors=0, results=[])
     for node in nodes:
+        if time.monotonic() >= deadline: raise TimeoutError('LatencyLab run deadline')
         while index < len(clients):
             account, remaining = clients[index].stats()
             if account in (v for k, v in accounts.items() if k != index):
@@ -134,6 +168,7 @@ def check_candidates(nodes, clients, *, allow_partial=False, summary=None):
                 break
             raise LabError('LatencyLab quota exhausted')
         ops = clients[index].operators()
+        clients[index].deadline = deadline
         started = time.monotonic()
         try:
             accepted = clients[index].check(node['uri'], ops)

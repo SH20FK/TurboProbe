@@ -1,86 +1,115 @@
-# VPN pipeline / Kaggle
+# Daily crawler / Kaggle
 
-Python 3.11+, `pip install -r requirements.txt`, internet enabled.
-In Kaggle Secrets, enable access for this notebook to `LATENCYLAB_API_KEY_1`,
-`LATENCYLAB_API_KEY_2` (different accounts, used in that order) and `GITHUB_TOKEN`
-(repository contents write permission, production only). Environment variables
-with the same names also work. Credentials are never passed as CLI arguments.
+Requires Python 3.11+, Git, `pip install -r requirements.txt` and Internet access.
+Enable notebook access to Kaggle Secrets `LATENCYLAB_API_KEY_1`,
+`LATENCYLAB_API_KEY_2`, `GITHUB_TOKEN`. Environment variables with these names
+also work. GitHub requires repository contents write access to SH20FK/TurboProbe.
 
-From a notebook with the repository cloned:
+## First full-crawler control run (maximum 10 LatencyLab jobs)
+
+Create a private Kaggle notebook, enable Internet, leave accelerator None, and
+run this complete cell. The output may contain public proxy credentials, so
+keep notebook outputs private. Tokens are not printed or passed as CLI arguments.
 
 ```python
+import os
+import pathlib
 import subprocess
-subprocess.run(['python', '-m', 'backend.vpn_v2.kaggle'], cwd='/kaggle/working/TurboProbe', check=True)
+import sys
+from kaggle_secrets import UserSecretsClient
+
+repo = pathlib.Path('/kaggle/working/TurboProbe')
+secrets = UserSecretsClient()
+for name in ('LATENCYLAB_API_KEY_1', 'LATENCYLAB_API_KEY_2', 'GITHUB_TOKEN'):
+    value = secrets.get_secret(name).strip()
+    if not value:
+        raise RuntimeError(f'Missing secret: {name}')
+    os.environ[name] = value
+if not repo.exists():
+    subprocess.run(['git', 'clone', '--depth', '1',
+                    'https://github.com/SH20FK/TurboProbe.git', str(repo)], check=True)
+else:
+    subprocess.run(['git', '-C', str(repo), 'pull', '--ff-only', 'origin', 'main'], check=True)
+subprocess.run([sys.executable, '-m', 'pip', 'install', '-q',
+                '-r', str(repo / 'requirements.txt')], check=True)
+subprocess.run([sys.executable, '-u', '-m', 'backend.vpn_v2.kaggle',
+                '--production', '--lab-limit', '10'], cwd=repo, check=True)
 ```
 
-Default test: collect 50 candidates, verify real Xray/Mihomo tunnels, select up
-to 10 by HTTPS latency, measure a bounded 4 MiB download through those tunnels,
-then check every selected node on all currently online LatencyLab operators.
-Speed never changes ping order. Fewer than ten successes means fewer than ten
-API checks. The runner installs missing cores from official GitHub releases.
+This runs full discovery and the complete eligible source pool; only the final
+LatencyLab selection is limited to ten. It can publish subscriptions after a
+complete successful run. It does not configure a Kaggle account schedule.
 
-Add `--production` to run source discovery, download the entire known source
-registry and current Telegram pages, verify every collected unique candidate,
-then select the top 200 by tunnel latency for LatencyLab and GitHub
-publication. A fresh isolated checkout stages only VPN artifacts in `sub/` and
-`docs/sub/`. Push conflicts are retried from fresh checkouts without force push.
-Telegram and the separate Intersvyaz snapshot are preserved. API failure aborts
-publication; a completed all-negative check publishes an empty snapshot.
+After reviewing timing, source errors, local coverage and actual API quota cost,
+the daily command is `python -u -m backend.vpn_v2.kaggle --production` (up to 200
+LatencyLab checks). Schedule once daily after 00:00 UTC. Set GitHub repository
+variable `VPN_RUNNER=kaggle` to suspend legacy VPN Actions at cutover; Telegram
+and the independent one-hour Intersvyaz profile remain separate. Only one Kaggle
+runner should run at a time; a conflicting state push fails without force push.
 
-## Two-stage test
+## Crawler behavior
+
+- Full runs use SQLite in `.local/state/crawler.sqlite`. The old registry is
+  imported once, filtered and canonically deduplicated. Daily active sources and
+  due quarantine entries are attempted; ranking does not truncate the pool.
+- Public branch `crawler-state` contains only filtered portable state and a small
+  API job journal. It is initialized automatically; no workflows/site assets are
+  placed there. Public proxy configurations and source URLs can be visible there.
+  API credentials, authenticated/query-token URLs and raw HTML/API bodies are
+  excluded. Unknown query parameters are conservatively rejected.
+- GitHub discovery covers protocol topics, names/descriptions/README, several
+  languages, paginated results and recursive/non-recursive tree traversal. Search
+  is date-partitioned and its unfinished queue persists across sessions. Secondary
+  forges use bounded fallback paths and the common downloader. Discovery has a
+  30-minute budget (10 minutes of search); API limits/incomplete results are
+  reported, never described as exhaustive coverage of the internet.
+- Downloads have verified TLS, public-IP pinning, up to three guarded HTTPS
+  redirects, 24 workers, at most two requests per host, retry/backoff and a 4 MiB
+  body limit. Unsupported/compressed bodies are reported, not silently parsed.
+- Responses are parsed once; ETag/Last-Modified and normalized key caches survive
+  sessions. A 304 reuses keys but every eligible key still undergoes current
+  tunnel verification. Mirrors retain provenance but keys are tested only once.
+- Supported URI parameters are preserved. Broad search terms can find projects
+  for protocols not yet supported by the checker; this does not imply support.
+- After three substantive failures a source is quarantined for 1/3/7 days.
+  Rate limits, platform errors and challenge pages do not add dead-source strikes.
+  Quality uses smoothed fractional credit for unique working tunnels, duplicates
+  and download cost. Telegram publication dates, first observation and source
+  observation times are separate; a key without a publication date is not called new.
+
+## Deadlines, failures and rollback
+
+The whole cycle has a six-hour watchdog; local discovery/collection/verification
+must finish within 4.5 hours, leaving 90 minutes for speed/API/publication. An
+incomplete local pool is never published as a complete top-200. SQLite checkpoints
+survive phase failures and the state branch is saved on orderly exit. Abrupt
+session termination can lose work since the last remote checkpoint.
+
+API POST submission intent and accepted request ID are journaled before further
+requests. Restart polls known pending jobs. An ambiguous POST is not resubmitted;
+if no matching active job can be established, the run stops for inspection. Do
+not erase the journal just to retry. Polling cost must be measured in the first
+live run. Quota exhaustion, agent errors or a deadline preserve the old public
+subscription, rather than publishing an unfinished API selection.
+
+Reports under `.local`: `*-candidates.json`, the final report, `*-failed.json`
+for API errors, `*-incomplete.json` for time budget exhaustion. Failed runs return
+nonzero. Public artifacts are generated in an isolated main-branch checkout;
+only VPN files are staged. Per-file replacements are atomic; a Git commit is the
+complete publication unit. Updated Worker source must be deployed separately
+for 24-hour LatencyLab expiry. Static TXT/YAML cannot revoke themselves offline.
+
+To roll back code without deleting state or rewriting Git history:
 
 ```sh
-python -m backend.vpn_v2 --out backend/vpn_v2/.local/test50.json --candidate-limit 50 --collect-only
-python -m backend.vpn_v2 --from-candidates backend/vpn_v2/.local/test50-candidates.json --out backend/vpn_v2/.local/test50.json --candidate-limit 50 --select 10 --install-cores
+git fetch origin d644574ce5571ea52d969876044c3e6a2ae1c30f
+git switch --detach d644574ce5571ea52d969876044c3e6a2ae1c30f
 ```
 
-If this machine cannot verify any tunnel, a separate diagnostic can still select
-the fastest ten TCP-reachable candidates for an external comparison:
+The prior runner ignores `crawler-state`; keep it for recovery. To return to
+current code: `git switch main` then `git pull --ff-only`. To restore legacy VPN
+Actions, clear `VPN_RUNNER`. Never force-push the subscription or state branches.
 
-```sh
-python -m backend.vpn_v2.smoke --latencylab
-```
-
-This diagnostic writes only a private report. TCP timings are not tunnel ping;
-the diagnostic cannot publish subscriptions, even after LatencyLab success.
-
-Private `.local` reports contain proxy credentials. Do not expose them as public
-notebook outputs/artifacts. Previous reports are preserved on quota/network/job
-failure. Ambiguous POSTs are not retried. Check account statistics before and
-after the first live run to establish polling quota cost; daily capacity is not
-guaranteed. The first account is consumed before the second is used. Production
-attempts up to 200 checks per daily run. If both quotas are exhausted after some
-completed checks, only successful completed checks are published; unchecked nodes
-are excluded and the report records quota exhaustion. Zero available checks or
-any other API/network failure preserves the previous publication.
-
-## Cutover
-
-Run the test in Kaggle first and review its private report. After it succeeds,
-schedule one daily Kaggle run with `--production`, preferably after 00:00 UTC
-(05:00 Yekaterinburg), when the LatencyLab daily quota resets. Allow time for
-the run to finish before expecting the new subscription.
-The runner performs one cycle; it does not configure the Kaggle account schedule.
-Set GitHub repository variable `VPN_RUNNER=kaggle` to suspend the legacy VPN
-Actions during cutover; Telegram is independent. Clear it for rollback.
-
-The site and updated Worker source accept LatencyLab confirmations for at most
-24 hours. Deploy the updated Worker separately. Static TXT/YAML files cannot
-revoke themselves when the runner is offline: use the Worker for strict expiry.
-The independent Intersvyaz profile keeps its one-hour policy.
-
-The parser and tunnel engine still use legacy adapters in `backend/vpn`; do not
-remove these files yet. New orchestration does not read old node-history JSON.
-Source failures are reported by index without logging URLs/tokens. HTTPS source
-redirects are currently rejected. Files are replaced atomically individually;
-the Git commit is the complete publication unit.
-
-Full collection uses `--candidate-limit 0` (the CLI default); positive limits are
-explicit test modes. There is no first-45 source limit in full mode. Discovery
-searches are finite and subject to provider limits; this is not an exhaustive
-search of the internet. Every registered URL is attempted, but unavailable,
-redirecting or oversized sources are reported as failures. Subscription formats
-usually do not include per-key creation timestamps, so current downloads and
-recent Telegram pages cannot prove that an individual key is newly created.
-Expect a full registry sweep and tunnel verification to take substantially longer
-than the 50-key test. Discovery state is kept in the private local state directory.
+Local checks: `python -m unittest discover -s tests` and
+`node --test tests/test_ru_worker.mjs`. Legacy parsers/core adapters are still
+dependencies and must not be deleted before they are replaced.

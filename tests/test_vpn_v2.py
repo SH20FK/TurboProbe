@@ -135,7 +135,7 @@ class LabTests(unittest.TestCase):
         from backend.vpn_v2 import kaggle
         for production, expected in [(False, '10'), (True, '200')]:
             with patch('sys.argv', ['kaggle'] + (['--production'] if production else [])), \
-                 patch.object(kaggle.subprocess, 'run') as run:
+                 patch.object(kaggle, 'run_cycle') as run:
                 kaggle.main()
                 command = run.call_args.args[0]
                 self.assertEqual(command[command.index('--select') + 1], expected)
@@ -197,17 +197,19 @@ class ShadowTests(unittest.TestCase):
                      'verification_policy': 'tunnel-https-v1'} for i in range(250)]
         with tempfile.TemporaryDirectory(dir=private) as tmp:
             report = Path(tmp) / 'run.json'
+            from unittest.mock import Mock
+            import time
+            run = Mock(deadline=time.monotonic()+21600,local_deadline=time.monotonic()+16200)
+            run.collect.return_value = (candidates, [], {'urls':100})
             with patch('sys.argv', ['vpn_v2', '--out', str(report), '--discover']), \
-                 patch.object(cli, 'discover') as discovery, \
-                 patch.object(cli, 'known_sources', return_value=['https://example.com/sub'] * 100), \
-                 patch.object(cli, 'collect_all', return_value=(candidates, [])) as collector, \
+                 patch.object(cli, 'CrawlRun', return_value=run), \
                  patch.object(cli, 'load', return_value='unused'), \
                  patch.object(cli, 'verify', return_value=verified) as verifier, \
-                 patch.object(cli, 'measure_selected', side_effect=lambda nodes: nodes), \
+                 patch.object(cli, 'measure_selected', side_effect=lambda nodes, **kw: nodes), \
                  patch.object(cli, 'check_candidates', return_value=[]) as lab:
                 cli.main()
-            discovery.assert_called_once()
-            self.assertEqual(len(collector.call_args.args[0]), 100)
+            self.assertTrue(run.collect.call_args.args[0])
+            run.close.assert_called_once()
             self.assertEqual(len(verifier.call_args.args[0]), 12001)
             self.assertEqual(len(lab.call_args.args[0]), 200)
 
@@ -224,7 +226,7 @@ class ShadowTests(unittest.TestCase):
                  patch.object(cli, 'fetch_all', return_value=(['x'], [])), \
                  patch.object(cli, 'normalize', return_value=['x']), \
                  patch.object(cli, 'verify', return_value=[{'uri': 'x', 'ping_ms': 1, 'verified': True, 'verification_policy': 'tunnel-https-v1'}]), \
-                 patch.object(cli, 'measure_selected', side_effect=lambda n: n), \
+                 patch.object(cli, 'measure_selected', side_effect=lambda n, **kw: n), \
                  patch.object(cli, 'check_candidates', side_effect=latencylab.LabError('offline')):
                 with self.assertRaises(latencylab.LabError):
                     cli.main()
