@@ -287,8 +287,6 @@ URI_REGEX = re.compile(
 )
 
 SSL_CTX = ssl.create_default_context()
-SSL_CTX.check_hostname = False
-SSL_CTX.verify_mode = ssl.CERT_NONE
 
 
 def parse_host_and_port(uri: str) -> tuple[str, int, str]:
@@ -1285,7 +1283,7 @@ async def async_fetch_single_url_aiohttp(session: aiohttp.ClientSession, sem: as
 
 async def async_fetch_sources_pool(sources: list, concurrency: int = 150, timeout: float = 4.5) -> tuple:
     sem = asyncio.Semaphore(concurrency)
-    conn = aiohttp.TCPConnector(limit=concurrency, ssl=False, ttl_dns_cache=300)
+    conn = aiohttp.TCPConnector(limit=concurrency, ttl_dns_cache=300)
     client_timeout = aiohttp.ClientTimeout(total=timeout, connect=2.5)
     
     all_uris = []

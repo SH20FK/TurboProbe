@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   probe:
+    if: vars.VPN_RUNNER != 'kaggle'
     name: Probe Services & Domestic Russian Accessibility
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -81,7 +82,7 @@ jobs:
           if [ -z "$LIMIT" ]; then
             LIMIT="0"
           fi
-          python backend/vpn/fastprobe_ru.py --limit "$LIMIT" --workers 16 --json-out sub/ru-verified.json || python backend/vpn/service_prober.py --limit "$LIMIT"
+          python backend/vpn/service_prober.py --limit "$LIMIT"
 
       - name: Copy subscriptions to docs for GitHub Pages hosting
         run: |

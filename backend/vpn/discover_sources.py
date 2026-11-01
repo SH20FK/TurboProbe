@@ -954,9 +954,9 @@ def main():
 
         if httpx:
             try:
-                client_ctx = httpx.AsyncClient(http2=True, timeout=8.0, limits=limits, verify=False)
+                client_ctx = httpx.AsyncClient(http2=True, timeout=8.0, limits=limits)
             except Exception:
-                client_ctx = httpx.AsyncClient(http2=False, timeout=8.0, limits=limits, verify=False)
+                client_ctx = httpx.AsyncClient(http2=False, timeout=8.0, limits=limits)
             async with client_ctx as client:
                 async def _task(identity, url):
                     prior = existing_by_identity.get(identity)

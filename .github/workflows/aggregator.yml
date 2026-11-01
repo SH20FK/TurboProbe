@@ -24,6 +24,7 @@ permissions:
 
 jobs:
   aggregate:
+    if: vars.VPN_RUNNER != 'kaggle'
     name: Aggregate & Deduplicate VPN Subscriptions
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -99,7 +100,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'prober_only' }}
         run: |
           ulimit -n 65536 || true
-          python backend/vpn/fastprobe_ru.py --limit 0 --workers 16 --json-out sub/ru-verified.json || python backend/vpn/service_prober.py --limit 0
+          python backend/vpn/service_prober.py --limit 0
 
 
       - name: Copy subscriptions to docs for GitHub Pages hosting

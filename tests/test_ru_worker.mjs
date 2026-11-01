@@ -5,6 +5,15 @@ import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {handleRu, selectRuNodes, VANTAGE, POLICY} from '../backend/worker/ru.js';
 import worker from '../backend/worker/index.js';
+import {labFresh} from '../backend/worker/index.js';
+test('LatencyLab confirmations expire at 24 hours and reject malformed intervals',()=>{
+ const now=Date.now();
+ const n={latencylab_verified:true,latencylab_operators:['mts'],latencylab_checked_at:new Date(now-1000).toISOString(),expires_at:new Date(now+1000).toISOString()};
+ assert.equal(labFresh(n,now),true);
+ assert.equal(labFresh(n,now+1000),false);
+ assert.equal(labFresh({...n,latencylab_operators:[]},now),false);
+ assert.equal(labFresh({...n,expires_at:new Date(now+86400_000).toISOString()},now),false);
+});
 const now = Date.parse('2026-09-07T18:00:00Z');
 const uri='tuic://User:Secret@example.com:443?sni=test#TurboProbe · проверено';
 const node={uri,id:createHash('sha256').update(uri.split('#')[0]).digest('hex'),verified:true,ru_verified:true,verification_policy:POLICY,vantage_id:VANTAGE,ping_ms:60,checked_at:new Date(now-1000).toISOString(),expires_at:new Date(now+3599000).toISOString()};

@@ -88,8 +88,13 @@ export function indexNode(node: NodeItem, index: number): NodeItem {
 
   const checked = Date.parse(node.checked_at || '');
   const age = Date.now() - checked;
+  const labChecked = Date.parse(node.latencylab_checked_at || '');
+  const expires = Date.parse(node.expires_at || '');
+  const labValid = node.latencylab_verified === true && (node.latencylab_operators?.length || 0) > 0 &&
+    Number.isFinite(labChecked) && Number.isFinite(expires) && labChecked <= Date.now() && expires > Date.now() &&
+    expires > labChecked && expires - labChecked <= 86400_000 && Date.now() - labChecked < 86400_000;
   const verified = node.verified === true && node.verification_policy === 'tunnel-https-v1'
-    && Number.isFinite(checked) && age >= 0 && age < 3600_000;
+    && (node.latencylab_verified === true ? labValid : Number.isFinite(checked) && age >= 0 && age < 3600_000);
   const ping = verified && typeof node.ping_ms === 'number' && Number.isFinite(node.ping_ms) && node.ping_ms > 0 ? node.ping_ms : 0;
   if (!verified) serviceSet.clear();
   const health = verified && typeof node.health === 'number' ? node.health : 0;
