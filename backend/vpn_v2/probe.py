@@ -2,9 +2,7 @@
 import math
 import time
 import asyncio
-import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from unittest.mock import patch
 import shutil
 import sys
 from pathlib import Path
@@ -52,30 +50,8 @@ def verify(uris, batch_size=12, workers=None, *, deadline=float('inf'), checkpoi
     print(f'Config preflight: {len(usable)}/{len(uris)} usable; {len(uris)-len(usable)} unsupported', flush=True)
     uris = usable
     print(f'TCP prefilter: {len(uris)} candidates', flush=True)
-    async def prefilter():
-        sem = asyncio.Semaphore(128)
-        async def check(uri):
-            if time.monotonic() >= deadline: raise TimeoutError('verification deadline')
-            if uri.split('://')[0].lower() in ('hy2', 'hysteria2', 'tuic'):
-                return uri
-            writer = None
-            try:
-                host, port, _ = service_prober.parse_host_and_port(uri)
-                async with sem:
-                    if time.monotonic() >= deadline: raise TimeoutError('verification deadline')
-                    from .crawler_http import public_addresses
-                    from .crawler_http import DownloadError
-                    try: addresses = await asyncio.wait_for(asyncio.to_thread(public_addresses,host,port),1.5)
-                    except DownloadError: return None
-                    _, writer = await asyncio.wait_for(asyncio.open_connection(addresses[0], port), 1.5)
-                return uri
-            except (OSError, ValueError, asyncio.TimeoutError):
-                return None
-            finally:
-                if writer:
-                    writer.close()
-        return [u for u in await asyncio.gather(*(check(u) for u in uris)) if u]
-    reachable = asyncio.run(prefilter())
+    from .probe_prefilter import prefilter
+    reachable = asyncio.run(prefilter(uris,service_prober.parse_host_and_port,deadline))
     print(f'TCP prefilter complete: {len(reachable)}/{len(uris)} retained (UDP bypasses TCP)', flush=True)
     slots = [(i, u, 0, 'GLOBAL', u.split('://')[0].lower()) for i,u in enumerate(reachable)]
     batches = [slots[i:i+batch_size] for i in range(0, len(slots), batch_size)]
@@ -116,7 +92,7 @@ def measure_selected(nodes, *, deadline=float('inf')):
         try:
             with make_session(port) as session:
                 status, body = read_response(session, 'https://speed.cloudflare.com/__down?bytes=4194304',
-                                             start + 20, 5, 4194304)
+                                             min(deadline,start + 20), 5, 4194304)
             if status != 200 or len(body) != 4194304:
                 return None
             speed = round(len(body) * 8 / 1_000_000 / max(time.monotonic() - start, .001), 2)
@@ -125,13 +101,11 @@ def measure_selected(nodes, *, deadline=float('inf')):
             return None
 
     xray = service_prober.get_xray_binary_path()
-    # Used only by this single-process CLI, after initial verification finishes.
-    with patch.object(service_prober, 'measure_tunnel', measure):
-        for i, node in enumerate(nodes):
-            if time.monotonic() >= deadline: raise TimeoutError('speed measurement deadline')
-            slot = (i, node['uri'], 0, node.get('country', 'GLOBAL'), node['uri'].split('://')[0])
-            for row in service_prober.run_batch_probe(xray, [slot], basic_only=True):
-                measurements[row['uri']] = row['speed_mbps']
-            print(f'Speed progress: {i+1}/{len(nodes)}; measured {len(measurements)}', flush=True)
+    for start in range(0,len(nodes),12):
+        if time.monotonic() >= deadline: raise TimeoutError('speed measurement deadline')
+        batch = [(start+i,n['uri'],0,n.get('country','GLOBAL'),n['uri'].split('://')[0]) for i,n in enumerate(nodes[start:start+12])]
+        for row in service_prober.run_batch_probe(xray,batch,basic_only=True,measurement=measure,measurement_workers=1):
+            measurements[row['uri']] = row['speed_mbps']
+        print(f'Speed progress: {min(start+12,len(nodes))}/{len(nodes)}; measured {len(measurements)}',flush=True)
     return [{**n, 'speed_mbps': measurements.get(n['uri']), 'speed_transfer_bytes': 4194304,
              'speed_status': 'measured' if n['uri'] in measurements else 'unavailable'} for n in nodes]

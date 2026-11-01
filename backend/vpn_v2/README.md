@@ -69,6 +69,12 @@ runner should run at a time; a conflicting state push fails without force push.
 - Responses are parsed once; ETag/Last-Modified and normalized key caches survive
   sessions. A 304 reuses keys but every eligible key still undergoes current
   tunnel verification. Mirrors retain provenance but keys are tested only once.
+- The TCP prefilter shares DNS and endpoint results within a run, tries up to
+  four public addresses per hostname and never uses TCP success to verify UDP
+  protocols. Each distinct proxy configuration still receives its own tunnel test.
+- Selected speed measurements reuse up to 12 core listeners per batch. Downloads
+  remain sequential to avoid measuring competition between our own speed tests.
+  Measurement callbacks are scoped to the invocation without global monkeypatching.
 - Supported URI parameters are preserved. Broad search terms can find projects
   for protocols not yet supported by the checker; this does not imply support.
 - After three substantive failures a source is quarantined for 1/3/7 days.

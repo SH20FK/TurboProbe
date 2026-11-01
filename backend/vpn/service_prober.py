@@ -1044,7 +1044,7 @@ def parse_host_and_port(uri: str) -> tuple[str, int, str]:
         return "", 443, "443"
 
 
-def probe_hy2_tuic_batch(slots: list) -> list:
+def probe_hy2_tuic_batch(slots: list, measurement=None, measurement_workers=None) -> list:
     """Mihomo per-node SOCKS listeners, explicit proxy pinning, shared strict gate."""
     if not slots:
         return []
@@ -1113,9 +1113,9 @@ def probe_hy2_tuic_batch(slots: list) -> list:
             uri, proto, port = slot
             if port in missing:
                 return None
-            result = measure_tunnel(port, timeout=PROBE_TIMEOUT)
+            result = (measurement or measure_tunnel)(port, timeout=PROBE_TIMEOUT)
             return {**result, "uri": uri, "protocol": proto, "services": {}} if result else None
-        with ThreadPoolExecutor(max_workers=min(12, len(valid_slots))) as pool:
+        with ThreadPoolExecutor(max_workers=min(measurement_workers or 12, len(valid_slots))) as pool:
             return [r for r in pool.map(check_slot, valid_slots) if r]
     finally:
         if proc:
@@ -1259,8 +1259,9 @@ def diagnose_xray_config(xray_bin: str, cfg_file: str) -> str:
     return f"config test exit {return_code}: {output or 'no output'}"
 
 
-def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT, basic_only: bool = False) -> list:
-    """Runs a batch through Xray; basic_only uses ipwho.is and skips service checks."""
+def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT, basic_only: bool = False,
+                    measurement=None, measurement_workers=None) -> list:
+    """Runs a batch through real cores; optionally inject a bounded measurement."""
     inbounds = []
     outbounds = []
     rules = []
@@ -1315,7 +1316,7 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
 
     # Fast concurrent Hy2 / TUIC batch verification via Mihomo native controller
     if fallback_slots:
-        hy2_results = probe_hy2_tuic_batch(fallback_slots)
+        hy2_results = probe_hy2_tuic_batch(fallback_slots, measurement=measurement, measurement_workers=measurement_workers) if measurement else probe_hy2_tuic_batch(fallback_slots)
         results.extend(hy2_results)
 
     if not active_slots:
@@ -1458,7 +1459,11 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
                 return results
 
         probe_fn = probe_node_basic_liveness if basic_only else probe_node_liveness_and_services
-        with ThreadPoolExecutor(max_workers=len(active_slots)) as pool:
+        if measurement:
+            def probe_fn(port, uri):
+                value = measurement(port,timeout=PROBE_TIMEOUT)
+                return (True,value['country'],value['ping_ms'],value['speed_mbps'],{}) if value else (False,'GLOBAL',0,0,{})
+        with ThreadPoolExecutor(max_workers=min(measurement_workers or len(active_slots),len(active_slots))) as pool:
             futures = {
                 pool.submit(probe_fn, port, uri): (uri, proto)
                 for (_, port, uri, _, _, proto) in active_slots

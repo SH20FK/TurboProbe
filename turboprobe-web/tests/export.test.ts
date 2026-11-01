@@ -1,6 +1,6 @@
-import { parseProxyUriToClashProxy, generateClashMetaYaml } from './clashExport.ts';
-import { indexNode, extractCountryTokens, computeDisplayTitle } from './nodeIndexer.ts';
-import type { NodeItem } from '../types/index.ts';
+import { parseProxyUriToClashProxy, generateClashMetaYaml } from '../src/utils/clashExport.ts';
+import { indexNode, extractCountryTokens, computeDisplayTitle } from '../src/utils/nodeIndexer.ts';
+import type { NodeItem } from '../src/types/index.ts';
 
 function runTests() {
   console.log('--- Running Frontend Verification Tests ---');
@@ -61,7 +61,7 @@ function runTests() {
   if (!yaml.includes('proxies:') || !yaml.includes('proxy-groups:') || !yaml.includes('rules:')) {
     throw new Error('Clash YAML missing core sections');
   }
-  if (!yaml.includes('type: vless') || !yaml.includes('type: trojan') || !yaml.includes('type: hysteria2')) {
+  if (!/type: "?vless"?/.test(yaml) || !/type: "?trojan"?/.test(yaml) || !/type: "?hysteria2"?/.test(yaml)) {
     throw new Error('Clash YAML missing proxy types');
   }
   console.log('✓ Test 5: Clash Meta YAML generated cleanly');

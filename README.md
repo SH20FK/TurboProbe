@@ -2,7 +2,8 @@
 
 ## Структура проекта
 
-- `backend/vpn/` — сбор источников, проверка VPN-узлов и служебные данные.
+- `backend/vpn_v2/` — ежедневный crawler, SQLite-реестр, проверка узлов, LatencyLab и публикация из Kaggle; [инструкция запуска](backend/vpn_v2/README.md).
+- `backend/vpn/` — парсеры и адаптеры Xray/Mihomo, а также прежний конвейер для отката.
 - `backend/telegram/` — сбор, проверка и экспорт Telegram-прокси.
 - `backend/worker/` — Cloudflare Worker для динамических подписок.
 - `turboprobe-web/` — исходники сайта; `npm ci` и `npm run build` собирают его в `docs/`.
