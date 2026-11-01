@@ -7,7 +7,7 @@ from pathlib import Path
 
 from .latencylab import LabClient, LabError, check_candidates
 from .probe import rank, verify, measure_selected, service_prober
-from .sources import fetch_all, normalize
+from .sources import fetch_all, normalize, known_sources, discover, collect_all
 from .secrets import load
 from .export import publish
 
@@ -17,7 +17,8 @@ def main():
     parser.add_argument('--sources', help='UTF-8 file containing one source URL per line; default: curated sources')
     parser.add_argument('--from-candidates', help='resume collection checkpoint without fetching again')
     parser.add_argument('--out', required=True, help='private shadow report path')
-    parser.add_argument('--candidate-limit', type=int, default=5000)
+    parser.add_argument('--candidate-limit', type=int, default=0, help='0 = all collected keys; positive number = limited test')
+    parser.add_argument('--discover', action='store_true', help='search for new sources before downloading the full registry')
     parser.add_argument('--select', type=int, default=200)
     parser.add_argument('--collect-only', action='store_true')
     parser.add_argument('--install-cores', action='store_true', help='install missing Xray/Mihomo into local bin')
@@ -28,28 +29,43 @@ def main():
     target = Path(args.out).resolve()
     if not target.is_relative_to(private_dir):
         parser.error('shadow output must be inside backend/vpn_v2/.local')
-    if not 1 <= args.candidate_limit <= 10000:
-        parser.error('candidate limit must be between 1 and 10000')
+    if args.candidate_limit < 0:
+        parser.error('candidate limit cannot be negative')
     if not 1 <= args.select <= 200:
         parser.error('select must be between 1 and 200')
     if args.collect_only and (args.publish or args.push):
         parser.error('collection cannot publish')
+    state_dir = private_dir / 'state'
+    if args.discover and args.from_candidates:
+        parser.error('discovery cannot be combined with a candidate checkpoint')
+    if args.discover:
+        print('Discovery phase: searching for new sources', flush=True)
+        discover(state_dir, load('GITHUB_TOKEN'))
     if args.sources:
         source_urls = [line.strip() for line in Path(args.sources).read_text(encoding='utf-8').splitlines()
                        if line.strip() and not line.lstrip().startswith('#')]
     else:
-        import aggregator
-        source_urls = aggregator.SOURCES[:45]
+        source_urls = known_sources(state_dir)
+        if args.candidate_limit > 0 and not args.discover:
+            source_urls = source_urls[:45]
+    print(f'Source registry: {len(source_urls)} URLs; candidate limit: {args.candidate_limit or "ALL"}', flush=True)
     if not source_urls:
         parser.error('source list is empty')
     if args.from_candidates:
-        candidates = json.loads(Path(args.from_candidates).read_text(encoding='utf-8'))['uris'][:args.candidate_limit]
+        candidates = json.loads(Path(args.from_candidates).read_text(encoding='utf-8'))['uris']
         if not isinstance(candidates, list) or not all(isinstance(u, str) for u in candidates):
             parser.error('invalid candidate checkpoint')
         errors = []
+    elif args.candidate_limit == 0:
+        candidates, errors = collect_all(source_urls)
+        feed = state_dir / 'telegram_feed.txt'
+        if feed.exists():
+            candidates = list(dict.fromkeys(normalize([feed.read_text(encoding='utf-8')]) + candidates))
     else:
         contents, errors = fetch_all(source_urls)
         candidates = normalize(contents)[:args.candidate_limit]
+    if args.candidate_limit:
+        candidates = candidates[:args.candidate_limit]
     if not candidates:
         raise LabError('No candidates retrieved; shadow output was not replaced')
     target.parent.mkdir(parents=True, exist_ok=True)

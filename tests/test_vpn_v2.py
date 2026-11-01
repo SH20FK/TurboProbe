@@ -189,6 +189,28 @@ class LabTests(unittest.TestCase):
 
 
 class ShadowTests(unittest.TestCase):
+    def test_full_mode_does_not_truncate_keys_before_verification(self):
+        private = Path(cli.__file__).resolve().parent / '.local'
+        private.mkdir(exist_ok=True)
+        candidates = ['key-' + str(i) for i in range(12001)]
+        verified = [{'uri': str(i), 'ping_ms': i+1, 'verified': True,
+                     'verification_policy': 'tunnel-https-v1'} for i in range(250)]
+        with tempfile.TemporaryDirectory(dir=private) as tmp:
+            report = Path(tmp) / 'run.json'
+            with patch('sys.argv', ['vpn_v2', '--out', str(report), '--discover']), \
+                 patch.object(cli, 'discover') as discovery, \
+                 patch.object(cli, 'known_sources', return_value=['https://example.com/sub'] * 100), \
+                 patch.object(cli, 'collect_all', return_value=(candidates, [])) as collector, \
+                 patch.object(cli, 'load', return_value='unused'), \
+                 patch.object(cli, 'verify', return_value=verified) as verifier, \
+                 patch.object(cli, 'measure_selected', side_effect=lambda nodes: nodes), \
+                 patch.object(cli, 'check_candidates', return_value=[]) as lab:
+                cli.main()
+            discovery.assert_called_once()
+            self.assertEqual(len(collector.call_args.args[0]), 100)
+            self.assertEqual(len(verifier.call_args.args[0]), 12001)
+            self.assertEqual(len(lab.call_args.args[0]), 200)
+
     def test_failed_lab_check_preserves_previous_report(self):
         private_dir = Path(cli.__file__).resolve().parent / '.local'
         private_dir.mkdir(exist_ok=True)
@@ -197,7 +219,7 @@ class ShadowTests(unittest.TestCase):
             source_file, report = root / 'sources.txt', root / 'report.json'
             source_file.write_text('https://example.com/sub\n', encoding='utf-8')
             report.write_text('{"old": true}', encoding='utf-8')
-            with patch('sys.argv', ['vpn_v2', '--sources', str(source_file), '--out', str(report)]), \
+            with patch('sys.argv', ['vpn_v2', '--sources', str(source_file), '--out', str(report), '--candidate-limit', '50']), \
                  patch.dict('os.environ', {'LATENCYLAB_API_KEY_1': 'one', 'LATENCYLAB_API_KEY_2': 'two'}), \
                  patch.object(cli, 'fetch_all', return_value=(['x'], [])), \
                  patch.object(cli, 'normalize', return_value=['x']), \

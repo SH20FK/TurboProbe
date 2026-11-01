@@ -12,9 +12,10 @@ def main():
     root = Path(__file__).resolve().parents[2]
     output = 'backend/vpn_v2/.local/' + ('production' if args.production else 'test50') + '.json'
     command = [sys.executable, '-m', 'backend.vpn_v2', '--out', output,
-               '--candidate-limit', '5000' if args.production else '50',
+               '--candidate-limit', '0' if args.production else '50',
                '--select', '200' if args.production else '10', '--install-cores']
     if args.production:
+        command.append('--discover')
         command.append('--push')
     subprocess.run(command, cwd=root, check=True)
 

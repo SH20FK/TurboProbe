@@ -19,7 +19,9 @@ then check every selected node on all currently online LatencyLab operators.
 Speed never changes ping order. Fewer than ten successes means fewer than ten
 API checks. The runner installs missing cores from official GitHub releases.
 
-Add `--production` to the command for up to 5000 candidates/top 200 and GitHub
+Add `--production` to run source discovery, download the entire known source
+registry and current Telegram pages, verify every collected unique candidate,
+then select the top 200 by tunnel latency for LatencyLab and GitHub
 publication. A fresh isolated checkout stages only VPN artifacts in `sub/` and
 `docs/sub/`. Push conflicts are retried from fresh checkouts without force push.
 Telegram and the separate Intersvyaz snapshot are preserved. API failure aborts
@@ -72,3 +74,13 @@ remove these files yet. New orchestration does not read old node-history JSON.
 Source failures are reported by index without logging URLs/tokens. HTTPS source
 redirects are currently rejected. Files are replaced atomically individually;
 the Git commit is the complete publication unit.
+
+Full collection uses `--candidate-limit 0` (the CLI default); positive limits are
+explicit test modes. There is no first-45 source limit in full mode. Discovery
+searches are finite and subject to provider limits; this is not an exhaustive
+search of the internet. Every registered URL is attempted, but unavailable,
+redirecting or oversized sources are reported as failures. Subscription formats
+usually do not include per-key creation timestamps, so current downloads and
+recent Telegram pages cannot prove that an individual key is newly created.
+Expect a full registry sweep and tunnel verification to take substantially longer
+than the 50-key test. Discovery state is kept in the private local state directory.
