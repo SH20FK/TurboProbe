@@ -33,9 +33,9 @@ finished.
 
 Usage
 -----
-  python tools\\fastprobe_ru.py --limit 150 --workers 16 --json-out fast.json
-  python tools\\fastprobe_ru.py --tcp-only --limit 1500
-  python tools\\fastprobe_ru.py --calibrate --uri "vless://..."
+  python backend\\vpn\\fastprobe_ru.py --limit 150 --workers 16 --json-out fast.json
+  python backend\\vpn\\fastprobe_ru.py --tcp-only --limit 1500
+  python backend\\vpn\\fastprobe_ru.py --calibrate --uri "vless://..."
 """
 import argparse
 import io
@@ -53,7 +53,7 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(HERE)
+ROOT = os.path.dirname(os.path.dirname(HERE))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
@@ -62,8 +62,8 @@ import service_prober as sp  # noqa: E402
 try:
     from verification import measure_tunnel
 except Exception as exc:  # pragma: no cover
-    print("ERROR: could not import tools/verification.py (%r)" % (exc,))
-    print("Run this from the repository root so that tools/ is importable.")
+    print("ERROR: could not import backend/vpn/verification.py (%r)" % (exc,))
+    print("Run this from the repository root so that backend/vpn/ is importable.")
     raise SystemExit(2)
 
 # Reuse the policy's own endpoints and session builder when available so the

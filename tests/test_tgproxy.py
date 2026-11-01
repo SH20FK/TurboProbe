@@ -4,7 +4,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from tgproxy.tg_aggregator import TGProxy, COUNTRY_MAP
+from backend.telegram.tg_aggregator import TGProxy, COUNTRY_MAP
 
 class TestTGProxy(unittest.TestCase):
     def test_mtproto_faketls_properties(self):

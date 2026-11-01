@@ -16,9 +16,9 @@ node; it is only something worth probing.
 
 Usage
 -----
-  python tools\\refresh_candidates.py
-  python tools\\refresh_candidates.py --sources ru --workers 24
-  python tools\\refresh_candidates.py --out sub\\all.txt      # overwrite the feed
+  python backend\\vpn\\refresh_candidates.py
+  python backend\\vpn\\refresh_candidates.py --sources ru --workers 24
+  python backend\\vpn\\refresh_candidates.py --out sub\\all.txt      # overwrite the feed
 """
 import argparse
 import collections
@@ -31,7 +31,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(HERE)
+ROOT = os.path.dirname(os.path.dirname(HERE))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
@@ -229,7 +229,7 @@ def main():
     print("  wrote %d candidates to %s" % (len(ordered), args.out))
 
     print("\nNext: probe them, since none of this is verified yet.")
-    print("  python tools\\triage_ru.py --file %s --limit 150 --workers 3 --timeout 12 --json-out triage4.json"
+    print("  python backend\\vpn\\triage_ru.py --file %s --limit 150 --workers 3 --timeout 12 --json-out triage4.json"
           % os.path.relpath(args.out, ROOT).replace("/", "\\"))
     return 0
 

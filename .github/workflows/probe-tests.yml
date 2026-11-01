@@ -3,8 +3,9 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'tools/**'
-      - 'worker/**'
+      - 'backend/vpn/**'
+      - 'backend/telegram/**'
+      - 'backend/worker/**'
       - 'tests/**'
       - 'turboprobe-web/**'
       - '.github/workflows/probe-tests.yml'

@@ -4,7 +4,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from tools.aggregator import (
+from backend.vpn.aggregator import (
     parse_host_and_port,
     is_basic_proxy_uri,
     extract_proxies_from_clash_yaml,

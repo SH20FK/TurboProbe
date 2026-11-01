@@ -90,8 +90,8 @@ except Exception:
 
 from verification import (measure_tunnel, node_id, POLICY, check_ru_network, write_ru_snapshot)
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TOOLS_DIR = os.path.join(ROOT_DIR, "tools")
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 BIN_DIR = os.path.join(TOOLS_DIR, "bin")
 SUB_DIR = os.path.join(ROOT_DIR, "sub")
 SERVICES_DIR = os.path.join(SUB_DIR, "services")
@@ -1917,7 +1917,7 @@ def main():
                         if u and u not in candidates:
                             candidates.append(u)
 
-    # 1c. Check tools/node_history.json as last-resort fallback OR to
+    # 1c. Check backend/vpn/node_history.json as last-resort fallback OR to
     #     supplement with hy2/tuic nodes that are never in sub/*.txt yet.
     hist_path = os.path.join(TOOLS_DIR, "node_history.json")
     UDP_PROTOS_SEED = {"hy2://", "hysteria2://", "tuic://"}

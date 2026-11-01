@@ -81,25 +81,25 @@ jobs:
       - name: Run TGProxy Harvester & DC Verifier
         run: |
           ulimit -n 65536 || true
-          python tgproxy/tg_aggregator.py || true
+          python backend/telegram/tg_aggregator.py || true
 
       - name: Run VPN Auto-Aggregator (Fast)
         if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'fast') }}
         run: |
           ulimit -n 65536 || true
-          python tools/aggregator.py --fast
+          python backend/vpn/aggregator.py --fast
 
       - name: Run VPN Auto-Aggregator (Full)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full' }}
         run: |
           ulimit -n 65536 || true
-          python tools/aggregator.py
+          python backend/vpn/aggregator.py
 
       - name: Run VPN Service Prober (Prober Only)
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'prober_only' }}
         run: |
           ulimit -n 65536 || true
-          python tools/fastprobe_ru.py --limit 0 --workers 16 --json-out sub/ru-verified.json || python tools/service_prober.py --limit 0
+          python backend/vpn/fastprobe_ru.py --limit 0 --workers 16 --json-out sub/ru-verified.json || python backend/vpn/service_prober.py --limit 0
 
 
       - name: Copy subscriptions to docs for GitHub Pages hosting
@@ -117,7 +117,7 @@ jobs:
           cp -r sub/* /tmp/tp_backup_sub/ 2>/dev/null || true
           cp -r docs/tg/* /tmp/tp_backup_tg/ 2>/dev/null || true
           rm -f /tmp/tp_backup_sub/ru-verified.json
-          cp tools/discovered_sources.json tools/dead_nodes.json tools/node_history.json tools/telegram_feed.txt /tmp/tp_backup_tools/ 2>/dev/null || true
+          cp backend/vpn/discovered_sources.json backend/vpn/dead_nodes.json backend/vpn/node_history.json backend/vpn/telegram_feed.txt /tmp/tp_backup_tools/ 2>/dev/null || true
 
           # 2. Fetch and hard-reset to latest origin/main to preserve all UI/frontend changes
           git fetch origin main
@@ -128,10 +128,10 @@ jobs:
           cp -r /tmp/tp_backup_sub/* sub/
           cp -r /tmp/tp_backup_sub/* docs/sub/
           cp -r /tmp/tp_backup_tg/* docs/tg/ 2>/dev/null || true
-          cp /tmp/tp_backup_tools/* tools/ 2>/dev/null || true
+          cp /tmp/tp_backup_tools/* backend/vpn/ 2>/dev/null || true
 
           # 4. Stage ONLY subscription and database files
-          git add -f sub/ docs/sub/ docs/tg/ tools/discovered_sources.json tools/dead_nodes.json tools/node_history.json tools/telegram_feed.txt || true
+          git add -f sub/ docs/sub/ docs/tg/ backend/vpn/discovered_sources.json backend/vpn/dead_nodes.json backend/vpn/node_history.json backend/vpn/telegram_feed.txt || true
           if git diff --cached --quiet; then
             echo "No subscription updates detected relative to origin/main."
           else
@@ -153,8 +153,8 @@ jobs:
               git reset --hard origin/main
               cp -r /tmp/tp_backup_sub/* sub/
               cp -r /tmp/tp_backup_sub/* docs/sub/
-              cp /tmp/tp_backup_tools/* tools/ 2>/dev/null || true
-              git add -f sub/ docs/sub/ tools/discovered_sources.json tools/dead_nodes.json tools/node_history.json tools/telegram_feed.txt || true
+              cp /tmp/tp_backup_tools/* backend/vpn/ 2>/dev/null || true
+              git add -f sub/ docs/sub/ backend/vpn/discovered_sources.json backend/vpn/dead_nodes.json backend/vpn/node_history.json backend/vpn/telegram_feed.txt || true
               git commit -m "chore(sub): auto-update VPN subscriptions [$(date -u +'%Y-%m-%d %H:%M UTC')]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>" || true
               SLEEP_TIME=$((ATTEMPT * 2))
               sleep $SLEEP_TIME

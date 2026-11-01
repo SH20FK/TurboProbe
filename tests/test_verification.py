@@ -9,7 +9,7 @@ from unittest.mock import patch
 from datetime import datetime, timezone, timedelta
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'tools'))
+sys.path.insert(0, str(ROOT / 'backend' / 'vpn'))
 import verification as v
 import service_prober as prober
 import aggregator
@@ -158,13 +158,13 @@ class IntegrationPolicyTests(unittest.TestCase):
         self.assertFalse(prober.verify_nodes_with_globalping_ru(nodes)[0]['ru_verified'])
 
     def test_default_xray_outbound_blocks_unmatched_traffic(self):
-        source=(ROOT/'tools/service_prober.py').read_text()
+        source=(ROOT/'backend/vpn/service_prober.py').read_text()
         self.assertIn('"outbounds": [{"tag": "blocked", "protocol": "blackhole"}] + outbounds',source)
         self.assertIn('"outboundTag": out_tag',source)
         self.assertNotIn('"protocol": "freedom"',source)
 
     def test_mihomo_default_rejects_and_tuic_password_is_preserved(self):
-        source=(ROOT/'tools/service_prober.py').read_text()
+        source=(ROOT/'backend/vpn/service_prober.py').read_text()
         self.assertIn('"rules": ["MATCH,REJECT"]',source)
         self.assertIn('"proxy": name',source)
         self.assertIn('parsed.password or q.get("password"',source)

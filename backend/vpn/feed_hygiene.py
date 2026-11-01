@@ -18,9 +18,9 @@ or --quarantine-history.
 
 Usage
 -----
-  python tools\\feed_hygiene.py                        # report only
-  python tools\\feed_hygiene.py --apply                # rewrite the feed file
-  python tools\\feed_hygiene.py --quarantine-history   # distrust old successes
+  python backend\\vpn\\feed_hygiene.py                        # report only
+  python backend\\vpn\\feed_hygiene.py --apply                # rewrite the feed file
+  python backend\\vpn\\feed_hygiene.py --quarantine-history   # distrust old successes
 """
 import argparse
 import collections
@@ -32,7 +32,7 @@ import shutil
 import urllib.parse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(HERE)
+ROOT = os.path.dirname(os.path.dirname(HERE))
 DEFAULT_FEED = os.path.join(ROOT, "sub", "all.txt")
 HISTORY = os.path.join(HERE, "node_history.json")
 

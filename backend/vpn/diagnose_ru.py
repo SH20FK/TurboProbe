@@ -3,9 +3,9 @@
 Unlike the batch prober, this prints Xray's own log and every HTTPS error
 instead of counting a node as failed. Run from the repository root:
 
-    python tools/diagnose_ru.py            # first candidate
-    python tools/diagnose_ru.py 3          # 4th candidate
-    python tools/diagnose_ru.py "vless://..."
+    python backend/vpn/diagnose_ru.py            # first candidate
+    python backend/vpn/diagnose_ru.py 3          # 4th candidate
+    python backend/vpn/diagnose_ru.py "vless://..."
 """
 from __future__ import annotations
 

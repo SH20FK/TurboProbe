@@ -5,8 +5,8 @@ This separates two very different causes of failure:
   * the server is reachable and even speaks TLS, but rejects our session
     (then the credentials in the feed are stale, or our config is wrong)
 
-    python tools/tcpcheck_ru.py --limit 150
-    python tools/tcpcheck_ru.py --file sub/reality.txt --limit 100 --workers 40
+    python backend/vpn/tcpcheck_ru.py --limit 150
+    python backend/vpn/tcpcheck_ru.py --file sub/reality.txt --limit 100 --workers 40
 
 No proxy, no Xray, no tunnel: just sockets. Fast (seconds, not minutes).
 """

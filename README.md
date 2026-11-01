@@ -1,5 +1,16 @@
 # TurboProbe
 
+## Структура проекта
+
+- `backend/vpn/` — сбор источников, проверка VPN-узлов и служебные данные.
+- `backend/telegram/` — сбор, проверка и экспорт Telegram-прокси.
+- `backend/worker/` — Cloudflare Worker для динамических подписок.
+- `turboprobe-web/` — исходники сайта; `npm ci` и `npm run build` собирают его в `docs/`.
+- `sub/` — готовые подписки и данные, доступные по стабильным ссылкам; `docs/sub/` — их копия для GitHub Pages.
+- `.github/workflows/` — расписание обновлений и проверки; `tests/` — автоматические тесты.
+
+Команды запускаются из корня репозитория: `python backend/vpn/aggregator.py --fast`, `python backend/vpn/service_prober.py --help` и `python -m unittest discover -s tests`. Для Worker: `node --test tests/test_ru_worker.mjs`. Проверка узлов требует установленных Xray и, для некоторых протоколов, Mihomo.
+
 Агрегатор и генератор бесплатных VPN-подписок (VLESS Reality, VMess, Trojan, Shadowsocks, Hysteria 2) и Telegram-прокси (MTProto Fake-TLS, SOCKS5).
 
 [Веб-интерфейс](https://sh20fk.github.io/TurboProbe/) · [TGProxy Hub](https://sh20fk.github.io/TurboProbe/#tg) · [English](README_EN.md)

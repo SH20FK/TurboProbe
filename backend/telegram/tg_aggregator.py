@@ -520,7 +520,7 @@ def decode_faketls_sni(secret: Optional[str]) -> Optional[str]:
         return None
 
 def save_tg_proxies_output(proxies: List[TGProxy]):
-    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     sub_tg = os.path.join(root_dir, "sub", "tg")
     docs_tg = os.path.join(root_dir, "docs", "tg")
     docs_sub_tg = os.path.join(root_dir, "docs", "sub", "tg")

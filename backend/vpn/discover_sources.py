@@ -36,7 +36,7 @@ TELEGRAM_FEED_PATH = os.path.join(TOOLS_DIR, "telegram_feed.txt")
 
 GITHUB_TOKEN = (os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or "").strip()
 if not GITHUB_TOKEN:
-    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
     if os.path.isfile(env_path):
         with open(env_path, "r", encoding="utf-8") as _ef:
             for _line in _ef:
@@ -891,12 +891,12 @@ def main():
     if gist_keys:
         telegram_keys.extend(gist_keys)
 
-    # Save direct harvested keys into tools/telegram_feed.txt
+    # Save direct harvested keys into backend/vpn/telegram_feed.txt
     if telegram_keys:
         unique_tg = list(dict.fromkeys(telegram_keys))
         with open(TELEGRAM_FEED_PATH, "w", encoding="utf-8") as f:
             f.write("\n".join(unique_tg))
-        print(f"\n💾 Saved {len(unique_tg)} fresh direct keys to tools/telegram_feed.txt", flush=True)
+        print(f"\n💾 Saved {len(unique_tg)} fresh direct keys to backend/vpn/telegram_feed.txt", flush=True)
 
     # Validate genuinely new identities, plus known GitHub sources only when the
     # repository has a new push inside the last 12 hours. Commit URLs and branches

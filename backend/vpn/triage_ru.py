@@ -3,10 +3,10 @@
 The batch prober only counts pass/fail. This tool classifies every failure so
 you can tell "the feed is stale" apart from "our harness is broken".
 
-    python tools/triage_ru.py                  # first 40 candidates of sub/all.txt
-    python tools/triage_ru.py --limit 200
-    python tools/triage_ru.py --file sub/reality.txt --limit 60 --workers 8
-    python tools/triage_ru.py --uri "vless://..."   # positive control
+    python backend/vpn/triage_ru.py                  # first 40 candidates of sub/all.txt
+    python backend/vpn/triage_ru.py --limit 200
+    python backend/vpn/triage_ru.py --file sub/reality.txt --limit 60 --workers 8
+    python backend/vpn/triage_ru.py --uri "vless://..."   # positive control
 
 Each node gets its own Xray process and its own SOCKS port, so a single bad
 node cannot poison the others.

@@ -81,7 +81,7 @@ jobs:
           if [ -z "$LIMIT" ]; then
             LIMIT="0"
           fi
-          python tools/fastprobe_ru.py --limit "$LIMIT" --workers 16 --json-out sub/ru-verified.json || python tools/service_prober.py --limit "$LIMIT"
+          python backend/vpn/fastprobe_ru.py --limit "$LIMIT" --workers 16 --json-out sub/ru-verified.json || python backend/vpn/service_prober.py --limit "$LIMIT"
 
       - name: Copy subscriptions to docs for GitHub Pages hosting
         run: |
@@ -97,7 +97,7 @@ jobs:
           mkdir -p /tmp/tp_prober_sub /tmp/tp_prober_tools
           cp -r sub/* /tmp/tp_prober_sub/ 2>/dev/null || true
           rm -f /tmp/tp_prober_sub/ru-verified.json
-          cp tools/dead_nodes.json tools/node_history.json /tmp/tp_prober_tools/ 2>/dev/null || true
+          cp backend/vpn/dead_nodes.json backend/vpn/node_history.json /tmp/tp_prober_tools/ 2>/dev/null || true
 
           # 2. Fetch and hard-reset to latest origin/main to preserve all UI/frontend changes
           git fetch origin main
@@ -107,10 +107,10 @@ jobs:
           mkdir -p sub docs/sub
           cp -r /tmp/tp_prober_sub/* sub/
           cp -r /tmp/tp_prober_sub/* docs/sub/
-          cp /tmp/tp_prober_tools/* tools/ 2>/dev/null || true
+          cp /tmp/tp_prober_tools/* backend/vpn/ 2>/dev/null || true
 
           # 4. Stage ONLY subscription and database files
-          git add -f sub/ docs/sub/ tools/dead_nodes.json tools/node_history.json || true
+          git add -f sub/ docs/sub/ backend/vpn/dead_nodes.json backend/vpn/node_history.json || true
           if git diff --cached --quiet; then
             echo "No changes in probed services relative to origin/main."
           else
@@ -132,8 +132,8 @@ jobs:
               git reset --hard origin/main
               cp -r /tmp/tp_prober_sub/* sub/
               cp -r /tmp/tp_prober_sub/* docs/sub/
-              cp /tmp/tp_prober_tools/* tools/ 2>/dev/null || true
-              git add -f sub/ docs/sub/ tools/dead_nodes.json tools/node_history.json || true
+              cp /tmp/tp_prober_tools/* backend/vpn/ 2>/dev/null || true
+              git add -f sub/ docs/sub/ backend/vpn/dead_nodes.json backend/vpn/node_history.json || true
               git commit -m "chore(prober): update verified service feeds [$(date -u +'%Y-%m-%d %H:%M UTC')]" --author="github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>" || true
               SLEEP_TIME=$((ATTEMPT * 2))
               sleep $SLEEP_TIME

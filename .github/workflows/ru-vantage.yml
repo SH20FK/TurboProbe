@@ -39,7 +39,7 @@ jobs:
       - name: Probe from the actual ISP (other VPNs must be off)
         run: |
           if ($env:PROBE_LIMIT -notmatch '^\d+$') { throw 'Invalid candidate limit' }
-          python tools/service_prober.py --vantage ru-local --limit $env:PROBE_LIMIT --batch-size 6 --timeout 5
+          python backend/vpn/service_prober.py --vantage ru-local --limit $env:PROBE_LIMIT --batch-size 6 --timeout 5
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Publish only the RU snapshot to the selected branch
         env:

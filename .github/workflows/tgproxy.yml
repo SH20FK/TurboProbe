@@ -37,15 +37,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python tgproxy/discover_tg_sources.py || true
+          python backend/telegram/discover_tg_sources.py || true
 
       - name: Run TGProxy Harvester & DC Verifier
         run: |
           python -c "
           import asyncio, sys
           sys.path.insert(0, '.')
-          from tgproxy.tg_aggregator import run_tg_harvest
-          from tgproxy.exporter import export_all
+          from backend.telegram.tg_aggregator import run_tg_harvest
+          from backend.telegram.exporter import export_all
 
           async def main():
               proxies = await run_tg_harvest(test_limit=0)
@@ -63,7 +63,7 @@ jobs:
           mkdir -p /tmp/tg_backup
           cp -r sub/tg /tmp/tg_backup/ || true
           cp docs/tg/proxies.json /tmp/tg_backup/ || true
-          cp tgproxy/discovered_tg_sources.json /tmp/tg_backup/ || true
+          cp backend/telegram/discovered_tg_sources.json /tmp/tg_backup/ || true
 
           # Resilient push loop
           MAX_ATTEMPTS=5
@@ -79,9 +79,9 @@ jobs:
             mkdir -p sub/tg docs/tg
             cp -r /tmp/tg_backup/tg/* sub/tg/ 2>/dev/null || true
             cp /tmp/tg_backup/proxies.json docs/tg/ 2>/dev/null || true
-            cp /tmp/tg_backup/discovered_tg_sources.json tgproxy/ 2>/dev/null || true
+            cp /tmp/tg_backup/discovered_tg_sources.json backend/telegram/ 2>/dev/null || true
 
-            git add -f sub/tg/ docs/tg/proxies.json tgproxy/discovered_tg_sources.json || true
+            git add -f sub/tg/ docs/tg/proxies.json backend/telegram/discovered_tg_sources.json || true
             
             if git diff --cached --quiet; then
               echo "No new changes to commit."

@@ -53,7 +53,7 @@ try:
 except Exception:
     pass
 
-SUB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sub")
+SUB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "sub")
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 DISCOVERED_SOURCES_PATH = os.path.join(TOOLS_DIR, "discovered_sources.json")
 NODE_HISTORY_PATH = os.path.join(TOOLS_DIR, "node_history.json")
@@ -1261,7 +1261,7 @@ def prioritize_sources_by_quality(sources: list) -> list:
 
 
 def load_discovered_sources() -> list:
-    """Loads source URLs auto-confirmed by tools/discover_sources.py, if any."""
+    """Loads source URLs auto-confirmed by backend/vpn/discover_sources.py, if any."""
     if not os.path.exists(DISCOVERED_SOURCES_PATH):
         return []
     try:

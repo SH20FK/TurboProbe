@@ -4,8 +4,8 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from tgproxy.tg_aggregator import TGProxy
-from tgproxy.exporter import export_all
+from backend.telegram.tg_aggregator import TGProxy
+from backend.telegram.exporter import export_all
 
 class TestTGExporter(unittest.TestCase):
     def test_export_structure(self):
