@@ -5,22 +5,39 @@ import sys
 import os
 import signal
 from pathlib import Path
+from .resources import runtime_monitor
 
 
-def run_cycle(command, root):
+def signal_job(process, signum):
+    # Signal a group only if this child is its leader and it is not our own group.
+    try:
+        if os.getpgid(process.pid)==process.pid and process.pid!=os.getpgrp():
+            os.killpg(process.pid,signum)
+            return
+    except ProcessLookupError:return
+    process.send_signal(signum)
+
+
+def _run_cycle(command, root):
     if os.name != 'posix':
         return subprocess.run(command,cwd=root,check=True,timeout=21600)
     process = subprocess.Popen(command,cwd=root,start_new_session=True)
     try:
         result = process.wait(timeout=21600)
     except (subprocess.TimeoutExpired,KeyboardInterrupt):
-        os.killpg(process.pid,signal.SIGTERM)
+        signal_job(process,signal.SIGTERM)
         try: process.wait(timeout=10)
         except subprocess.TimeoutExpired:
-            os.killpg(process.pid,signal.SIGKILL)
+            signal_job(process,signal.SIGKILL)
             process.wait()
         raise
+    print(f'Runtime child exit code: {result}',flush=True)
     if result: raise subprocess.CalledProcessError(result,command)
+
+
+def run_cycle(command,root):
+    with runtime_monitor(root):
+        return _run_cycle(command,root)
 
 
 def main():

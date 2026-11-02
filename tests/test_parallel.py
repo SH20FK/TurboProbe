@@ -146,11 +146,11 @@ class StorageScaleTests(unittest.TestCase):
 
 class ResourceTests(unittest.TestCase):
     def test_profile_scales_but_stays_within_caps(self):
-        for cpus,downloads,cores in ((1,24,2),(2,32,4),(4,64,8),(64,64,8)):
+        for cpus,downloads,cores in ((1,24,1),(2,32,2),(4,64,4),(64,64,4)):
             with patch.object(resources,'cpu_count',return_value=cpus):
                 result = resources.concurrency()
             self.assertEqual((result['downloads'],result['probe_workers']),(downloads,cores))
-            self.assertLessEqual(result['probe_batch']*result['probe_workers'],128)
+            self.assertLessEqual(result['probe_batch']*result['probe_workers'],32)
 
     def test_cgroup_quota_limits_host_cpu_count(self):
         with patch.object(resources.os,'process_cpu_count',return_value=64,create=True), \

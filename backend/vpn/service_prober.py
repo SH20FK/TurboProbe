@@ -201,6 +201,26 @@ TARGET_SERVICES = {
 # =============================================================================
 # 📦 XRAY CORE AUTO-SETUP
 # =============================================================================
+def core_environment():
+    """Bound each Go core independently of the host's advertised CPU count."""
+    return {**os.environ,'GOMAXPROCS':'1','GOMEMLIMIT':'192MiB','GOGC':'75'}
+
+
+def stop_core_process(proc):
+    """Only terminate the Popen child; never signal its possibly shared process group."""
+    if proc is None: return
+    try:
+        if proc.poll() is None:
+            proc.terminate()
+        try:
+            proc.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=2)
+    except ProcessLookupError:
+        pass
+
+
 def get_xray_binary_path() -> str:
     """Finds or downloads xray binary for current OS."""
     os_name = platform.system().lower()
@@ -1102,11 +1122,11 @@ def probe_hy2_tuic_batch(slots: list, measurement=None, measurement_workers=None
         with open(cfg_file, "w", encoding="utf-8") as f:
             json.dump(cfg, f)
         check = subprocess.run([mihomo_bin, "-t", "-d", tmp_dir, "-f", cfg_file],
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15,env=core_environment())
         if check.returncode:
             return []
         proc = subprocess.Popen([mihomo_bin, "-d", tmp_dir, "-f", cfg_file],
-                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,env=core_environment())
         missing = set(wait_for_ports_ready(ports, max_wait=MIHOMO_STARTUP_TIMEOUT))
         if proc.poll() is not None:
             return []
@@ -1119,9 +1139,7 @@ def probe_hy2_tuic_batch(slots: list, measurement=None, measurement_workers=None
         with ThreadPoolExecutor(max_workers=min(measurement_workers or 12, len(valid_slots))) as pool:
             return [r for r in pool.map(check_slot, valid_slots) if r]
     finally:
-        if proc:
-            proc.kill()
-            proc.wait(timeout=5)
+        stop_core_process(proc)
         for port in ports:
             release_socks_port(port)
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -1247,6 +1265,7 @@ def run_xray_config_test(xray_bin: str, cfg_file: str) -> tuple:
             capture_output=True,
             text=True,
             timeout=15,
+            env=core_environment(),
         )
         output = "\n".join(part.strip() for part in (completed.stdout, completed.stderr) if part.strip())
         return completed.returncode, output[-2000:]
@@ -1421,14 +1440,13 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
             # thread below discards it silently.
             "stdout": subprocess.PIPE,
             "stderr": subprocess.STDOUT,
+            "env": core_environment(),
         }
         if os.name == "nt":
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = subprocess.SW_HIDE
             popen_kwargs["startupinfo"] = startupinfo
-        else:
-            popen_kwargs["start_new_session"] = True
 
         proc = subprocess.Popen([xray_bin, "run", "-c", cfg_file], **popen_kwargs)
 
@@ -1490,23 +1508,7 @@ def run_batch_probe(xray_bin: str, batch: list, base_port: int = BASE_SOCKS_PORT
     except Exception as e:
         print(f"  [!] Batch probe error: {e}", flush=True)
     finally:
-        if proc:
-            try:
-                if os.name == "nt":
-                    subprocess.call(
-                        ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
-                else:
-                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-                proc.wait(timeout=1.5)
-            except Exception:
-                try:
-                    proc.kill()
-                    proc.wait(timeout=1.0)
-                except Exception:
-                    pass
+        stop_core_process(proc)
         shutil.rmtree(tmp_dir, ignore_errors=True)
         _release_allocated()
 

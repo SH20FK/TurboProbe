@@ -109,7 +109,7 @@ runner should run at a time; a conflicting state push fails without force push.
   four public addresses per hostname and never uses TCP success to verify UDP
   protocols. At most 128 endpoint workers are created, instead of a Task per key.
   Each distinct proxy configuration still receives its own tunnel test.
-- Tunnel verification uses 2–8 core workers with batches of 16 (up to 128 tunnels
+- Tunnel verification uses 1–4 core workers with batches of 8 (up to 32 tunnels
   concurrently by default). CPU affinity and cgroup-v2 quotas constrain automatic
   sizing. `--download-workers 1..64`, `--probe-workers 1..8` and
   `--probe-batch-size 1..32` override the standalone `backend.vpn_v2` CLI.
@@ -119,6 +119,11 @@ runner should run at a time; a conflicting state push fails without force push.
 - Logs show the known queue size and throughput. Final crawler metrics separate
   parsing, storage and aggregate download work (download work overlaps in time).
   These metrics do not guarantee that an arbitrary pool fits the six-hour budget.
+- Each Go core receives `GOMAXPROCS=1`, a soft `GOMEMLIMIT=192MiB` and `GOGC=75`.
+  Core cleanup targets only its own child PID; it never kills a shared process
+  group. Cores inherit the dedicated runner job group so its watchdog can still
+  stop the whole owned job. `runtime-health.jsonl` and periodic logs record
+  cgroup memory/PID usage and OOM counters when available, without credentials.
 - Selected speed measurements reuse up to 12 core listeners per batch. Downloads
   remain sequential to avoid measuring competition between our own speed tests.
   Measurement callbacks are scoped to the invocation without global monkeypatching.

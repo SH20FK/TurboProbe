@@ -7,6 +7,39 @@ from backend.vpn_v2 import probe
 
 
 class ProbeOptimizationTests(unittest.TestCase):
+    def test_watchdog_does_not_signal_parent_notebook_group(self):
+        from backend.vpn_v2 import kaggle
+        import signal
+        proc=Mock(pid=123)
+        with patch.object(kaggle.os,'getpgid',return_value=456,create=True), \
+             patch.object(kaggle.os,'getpgrp',return_value=456,create=True), \
+             patch.object(kaggle.os,'killpg',create=True) as group:
+            kaggle.signal_job(proc,signal.SIGTERM)
+        group.assert_not_called();proc.send_signal.assert_called_once_with(signal.SIGTERM)
+
+    def test_cleanup_terminates_only_owned_pid_never_a_process_group(self):
+        proc=Mock();proc.poll.return_value=None
+        with patch.object(probe.service_prober.os,'killpg',create=True) as kill_group:
+            probe.service_prober.stop_core_process(proc)
+        proc.terminate.assert_called_once();proc.wait.assert_called_once()
+        proc.kill.assert_not_called();kill_group.assert_not_called()
+
+    def test_cleanup_kills_only_the_child_after_terminate_timeout(self):
+        import subprocess
+        proc=Mock();proc.poll.return_value=None
+        proc.wait.side_effect=[subprocess.TimeoutExpired('core',2),0]
+        with patch.object(probe.service_prober.os,'killpg',create=True) as kill_group:
+            probe.service_prober.stop_core_process(proc)
+        proc.kill.assert_called_once();kill_group.assert_not_called()
+
+    def test_go_core_resources_are_bounded_without_affecting_parent_environment(self):
+        import os
+        with patch.dict(os.environ,{'GOMAXPROCS':'128'}):
+            env=probe.service_prober.core_environment()
+            self.assertEqual(env['GOMAXPROCS'],'1')
+            self.assertEqual(env['GOMEMLIMIT'],'192MiB')
+            self.assertEqual(os.environ['GOMAXPROCS'],'128')
+
     def test_shared_endpoint_is_checked_once_and_tries_second_ip(self):
         uris = ['trojan://'+str(i)+'@example.com:443' for i in range(3)]
         writer = Mock()

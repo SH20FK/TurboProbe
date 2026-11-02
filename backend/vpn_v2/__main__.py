@@ -38,7 +38,7 @@ def main():
     parser.add_argument('--budget-seconds',type=int,default=21600)
     parser.add_argument('--download-workers',type=int,help='1..64; default adapts to available CPUs')
     parser.add_argument('--probe-workers',type=int,help='1..8 core processes; default adapts to available CPUs')
-    parser.add_argument('--probe-batch-size',type=int,default=16,help='1..32 tunnels per core batch')
+    parser.add_argument('--probe-batch-size',type=int,default=8,help='1..32 tunnels per core batch')
     parser.add_argument('--collect-only',action='store_true')
     parser.add_argument('--install-cores',action='store_true')
     parser.add_argument('--publish',action='store_true')
