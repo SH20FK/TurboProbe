@@ -2,10 +2,12 @@
 import math
 import time
 import asyncio
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 import shutil
 import sys
 from pathlib import Path
+from .parallel import completed
+from .resources import concurrency
 
 LEGACY_DIR = Path(__file__).resolve().parents[1] / 'vpn'
 if str(LEGACY_DIR) not in sys.path:
@@ -24,14 +26,16 @@ def rank(nodes, limit=200):
     return sorted(eligible, key=lambda n: n['ping_ms'])[:limit]
 
 
-def verify(uris, batch_size=12, workers=None, *, deadline=float('inf'), checkpoint=None):
+def verify(uris, batch_size=None, workers=None, *, deadline=float('inf'), checkpoint=None):
     # Reuse the battle-tested tunnel engine only; do not call its main/exporter.
     # UDP candidates bypass TCP prefilter in the engine. All results require the strict gate.
     for name in ('xray', 'mihomo'):
         exe = name + ('.exe' if sys.platform == 'win32' else '')
         if not shutil.which(name) and not (LEGACY_DIR / 'bin' / exe).is_file():
             raise RuntimeError(f'{name} must be installed before running the shadow probe')
-    workers = workers or 4
+    profile = concurrency()
+    workers = workers if workers is not None else profile['probe_workers']
+    batch_size = batch_size if batch_size is not None else profile['probe_batch']
     if not 1 <= workers <= 8 or not 1 <= batch_size <= 32:
         raise ValueError('probe worker/batch limits exceeded')
     usable = []
@@ -54,8 +58,9 @@ def verify(uris, batch_size=12, workers=None, *, deadline=float('inf'), checkpoi
     reachable = asyncio.run(prefilter(uris,service_prober.parse_host_and_port,deadline))
     print(f'TCP prefilter complete: {len(reachable)}/{len(uris)} retained (UDP bypasses TCP)', flush=True)
     slots = [(i, u, 0, 'GLOBAL', u.split('://')[0].lower()) for i,u in enumerate(reachable)]
-    batches = [slots[i:i+batch_size] for i in range(0, len(slots), batch_size)]
-    print(f'Tunnel phase: {len(batches)} batches, {workers} parallel core workers', flush=True)
+    batches = (slots[i:i+batch_size] for i in range(0, len(slots), batch_size))
+    print(f'Tunnel phase: {math.ceil(len(slots)/batch_size)} batches, {workers} parallel core workers, '
+          f'up to {workers*batch_size} simultaneous tunnels', flush=True)
     verified = {}
     started = time.monotonic()
     xray = service_prober.get_xray_binary_path()
@@ -63,21 +68,19 @@ def verify(uris, batch_size=12, workers=None, *, deadline=float('inf'), checkpoi
         if time.monotonic() >= deadline: raise TimeoutError('verification deadline')
         return service_prober.run_batch_probe(xray,batch,basic_only=True)
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(batch_probe,batch): batch for batch in batches}
         done = 0
-        try:
-            for future in as_completed(futures):
-                rows = future.result()
-                done += len(futures[future])
-                if checkpoint: checkpoint(futures[future],rows)
-                for node in rows:
-                    if node.get('verified') is True and node.get('verification_policy') == 'tunnel-https-v1':
-                        verified[node['uri'].split('#')[0]] = node
-                print(f'Tunnel progress: {done}/{len(slots)} checked; {len(verified)} verified; {time.monotonic()-started:.0f}s', flush=True)
-                if time.monotonic() >= deadline:
-                    raise TimeoutError('full candidate pool did not complete within budget')
-        finally:
-            for pending in futures: pending.cancel()
+        for batch,future in completed(pool,batches,batch_probe,workers,deadline):
+            rows = future.result()
+            done += len(batch)
+            if checkpoint: checkpoint(batch,rows)
+            for node in rows:
+                if node.get('verified') is True and node.get('verification_policy') == 'tunnel-https-v1':
+                    verified[node['uri'].split('#')[0]] = node
+            elapsed = time.monotonic()-started
+            print(f'Tunnel progress: {done}/{len(slots)} checked; {len(verified)} verified; '
+                  f'{elapsed:.0f}s; {done/max(elapsed,.001):.1f} keys/s', flush=True)
+            if time.monotonic() >= deadline:
+                raise TimeoutError('full candidate pool did not complete within budget')
     return list(verified.values())
 
 

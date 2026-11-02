@@ -40,6 +40,11 @@ TRACE = b'ip=8.8.8.8\nloc=DE\ntls=TLSv1.3\n'
 TRANSFER = (200, b'x' * v.TRANSFER_BYTES)
 
 class TunnelTests(unittest.TestCase):
+    def test_two_failures_skip_impossible_third_target_and_transfer(self):
+        f = Factory([(503,b''),v.requests.exceptions.Timeout('unreachable')])
+        self.assertIsNone(v.measure_tunnel(1,session_factory=f))
+        self.assertEqual(len(f.calls),2)
+
     def test_two_https_and_complete_transfer_required(self):
         factory = Factory([(204, b''), (204, b''), (503, b''), TRANSFER])
         result = v.measure_tunnel(12345, session_factory=factory)

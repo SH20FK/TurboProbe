@@ -35,7 +35,7 @@ class CrawlRun:
         self.store.db.commit()
         if self.branch: self.branch.save_jobs(self.store)
 
-    def collect(self, discovery, token, urls=None):
+    def collect(self, discovery, token, urls=None, *, workers=None):
         if urls is not None:
             for url in urls: self.store.add(url)
         discovery_errors = []
@@ -49,7 +49,7 @@ class CrawlRun:
         from .crawler_store import public_url,source_id
         print('Discovery finished; starting source downloads',flush=True)
         only = {source_id(public_url(u)) for u in urls if public_url(u)} if urls is not None else None
-        uris,errors,metrics = crawler.collect(self.store,self.local_deadline,only=only)
+        uris,errors,metrics = crawler.collect(self.store,self.local_deadline,only=only,workers=workers)
         metrics['scope'] = 'custom_sources' if only is not None else 'all_eligible_sources'
         metrics['discovery_errors'] = discovery_errors
         metrics['registry'] = dict(self.store.db.execute('SELECT status,count(*) FROM sources GROUP BY status'))

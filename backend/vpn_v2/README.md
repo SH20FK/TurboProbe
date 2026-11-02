@@ -69,14 +69,30 @@ runner should run at a time; a conflicting state push fails without force push.
   30-minute budget (10 minutes of search); API limits/incomplete results are
   reported, never described as exhaustive coverage of the internet.
 - Downloads have verified TLS, public-IP pinning, up to three guarded HTTPS
-  redirects, 24 workers, at most two requests per host, retry/backoff and a 4 MiB
+  redirects, 24–64 workers depending on available CPUs, at most two requests per host, retry/backoff and a 4 MiB
   body limit. Unsupported/compressed bodies are reported, not silently parsed.
-- Responses are parsed once; ETag/Last-Modified and normalized key caches survive
+- The download queue schedules hosts fairly before occupying threads. Only a
+  bounded number of response bodies can be waiting for parsing; it never submits
+  the whole registry to the executor. The in-memory mirror cache is limited to
+  8 MiB/128 entries. Evicted mirrors may be parsed again without losing keys.
+- ETag/Last-Modified and normalized key caches survive
   sessions. A 304 reuses keys but every eligible key still undergoes current
-  tunnel verification. Mirrors retain provenance but keys are tested only once.
+  tunnel verification. A 304 does not rewrite node/provenance rows in SQLite;
+  changed sources use bulk inserts. Mirrors retain provenance but keys are tested only once.
 - The TCP prefilter shares DNS and endpoint results within a run, tries up to
   four public addresses per hostname and never uses TCP success to verify UDP
-  protocols. Each distinct proxy configuration still receives its own tunnel test.
+  protocols. At most 128 endpoint workers are created, instead of a Task per key.
+  Each distinct proxy configuration still receives its own tunnel test.
+- Tunnel verification uses 2–8 core workers with batches of 16 (up to 128 tunnels
+  concurrently by default). CPU affinity and cgroup-v2 quotas constrain automatic
+  sizing. `--download-workers 1..64`, `--probe-workers 1..8` and
+  `--probe-batch-size 1..32` override the standalone `backend.vpn_v2` CLI.
+  Core batches are submitted lazily. Two failed HTTPS targets immediately reject
+  a node that cannot pass the unchanged 2-of-3 gate; successful nodes still need
+  the full transfer. GitHub API requests and LatencyLab jobs remain sequential.
+- Logs show the known queue size and throughput. Final crawler metrics separate
+  parsing, storage and aggregate download work (download work overlaps in time).
+  These metrics do not guarantee that an arbitrary pool fits the six-hour budget.
 - Selected speed measurements reuse up to 12 core listeners per batch. Downloads
   remain sequential to avoid measuring competition between our own speed tests.
   Measurement callbacks are scoped to the invocation without global monkeypatching.

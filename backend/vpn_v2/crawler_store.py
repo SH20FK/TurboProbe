@@ -96,20 +96,26 @@ class Store:
     def cached(self, ident):
         return [r[0] for r in self.db.execute('SELECT n.uri FROM nodes n JOIN source_nodes s ON n.id=s.node WHERE s.source=? ORDER BY n.id', (ident,))]
 
-    def success(self, row, uris, headers, seconds=0, published=None):
+    def success(self, row, uris, headers, seconds=0, published=None, *, unchanged=False):
         now = self.clock()
-        old_published = dict(self.db.execute('SELECT node,published FROM source_nodes WHERE source=?',(row['id'],))) if published is None else {}
-        self.db.execute('DELETE FROM source_nodes WHERE source=?', (row['id'],))
-        ids = []
-        for uri in uris:
-            ident = hashlib.sha256(uri.split('#',1)[0].encode()).hexdigest()
-            ids.append(ident)
-            self.db.execute('INSERT OR IGNORE INTO nodes VALUES(?,?,?)', (ident,uri,now))
-            self.db.execute('INSERT INTO source_nodes VALUES(?,?,?)', (row['id'],ident,(published or {}).get(uri,old_published.get(ident))))
-        digest = hashlib.sha256('\n'.join(sorted(ids)).encode()).hexdigest()
+        if unchanged:
+            # 304 reuses existing links and timestamps; do not rewrite millions of rows.
+            digest, count = row['content_hash'], len(uris)
+            if digest is None: raise ValueError('missing parsed source cache')
+        else:
+            unique = {hashlib.sha256(uri.split('#',1)[0].encode()).hexdigest():uri for uri in uris}
+            count = len(unique)
+            digest = hashlib.sha256('\n'.join(sorted(unique)).encode()).hexdigest()
+            if digest != row['content_hash'] or published is not None:
+                old_published = dict(self.db.execute('SELECT node,published FROM source_nodes WHERE source=?',(row['id'],))) if published is None else {}
+                self.db.execute('DELETE FROM source_nodes WHERE source=?', (row['id'],))
+                self.db.executemany('INSERT OR IGNORE INTO nodes VALUES(?,?,?)',
+                    ((ident,uri,now) for ident,uri in unique.items()))
+                self.db.executemany('INSERT INTO source_nodes VALUES(?,?,?)',
+                    ((row['id'],ident,(published or {}).get(uri,old_published.get(ident))) for ident,uri in unique.items()))
         self.db.execute("UPDATE sources SET status='active',failures=0,due=0,reason=NULL,etag=?,last_modified=?,content_hash=?,last_seen=?,cost=? WHERE id=?",
             (headers.get('etag',row.get('etag')),headers.get('last-modified',row.get('last_modified')),digest,now,seconds,row['id']))
-        self.db.execute('INSERT INTO observations VALUES(?,?,?,?,?)', (row['id'],now,'active',len(ids),None))
+        self.db.execute('INSERT INTO observations VALUES(?,?,?,?,?)', (row['id'],now,'active',count,None))
         self.db.commit()
 
     def failure(self, row, reason, substantive=True):

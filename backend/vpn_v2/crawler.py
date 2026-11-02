@@ -1,14 +1,17 @@
 """One registry, one fetch/parse stage, bounded public link discovery."""
 import json
 import re
+import sys
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from collections import OrderedDict
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlsplit, quote
 import requests
 from .sources import LEGACY_DIR, normalize
 from .crawler_http import Http, DownloadError
 from .crawler_store import public_url
+from .parallel import host_downloads
+from .resources import concurrency
 
 # Discovery vocabulary includes projects without protocol topics. Every query is
 # paginated separately; date partitions avoid GitHub's 1000-result search ceiling.
@@ -142,7 +145,7 @@ class GitHub:
         else: paths = [item['path'] for item in tree.get('tree',[]) if item.get('type') == 'blob']
         for path in paths:
             if useful_path(path) or path.lower() == 'readme.md':
-                self.store.add('https://raw.githubusercontent.com/'+name+'/'+ref+'/'+quote(path,safe='/'))
+                self.store.add('https://raw.githubusercontent.com/'+name+'/'+ref+'/'+quote(path,safe='/'),commit=False)
         self.store.db.execute('INSERT OR REPLACE INTO repos VALUES(?,?,?,?)',(name,branch,headers.get('ETag'),pushed))
         self.store.db.commit()
 
@@ -183,7 +186,7 @@ def discover(store, token, deadline):
             print(f'Secondary discovery: {forge}',flush=True)
             try: discover_forge(store,forge,secondary)
             except (DownloadError,TimeoutError,ValueError,KeyError,TypeError,AttributeError): errors.append(forge+'_discovery_incomplete')
-        repositories = dict(store.db.execute('SELECT name,branch FROM repos'))
+        repositories = dict(store.db.execute('SELECT name,branch FROM repos ORDER BY updated IS NOT NULL,updated,name'))
         print(f'Discovery: {len(repositories)} repositories queued',flush=True)
         for index,name in enumerate(repositories,1):
             try: github.scan(name)
@@ -219,37 +222,72 @@ def discover_forge(store, forge, http):
                     if forge == 'gitlab': target = f'https://gitlab.com/{name}/-/raw/{quote(branch,safe="")}/{path}'
                     elif forge == 'gitverse': target = f'https://gitverse.ru/api/repos/{name}/raw/branch/{quote(branch,safe="")}/{path}'
                     else: target = f'https://codeberg.org/{name}/raw/branch/{quote(branch,safe="")}/{path}'
-                    store.add(target)
+                    store.add(target,commit=False)
+                store.db.commit()
             if len(rows)<20: break
 
 
-def collect(store, deadline, http=None, only=None):
+class ParsedCache:
+    """A small mirror cache, rather than every parsed source for the entire run."""
+    def __init__(self, max_bytes=8*1024*1024, max_entries=128):
+        self.max_bytes, self.max_entries = max_bytes, max_entries
+        self.items = OrderedDict()
+        self.bytes = 0
+
+    def get(self, digest):
+        item = self.items.get(digest)
+        if item is not None:
+            self.items.move_to_end(digest)
+            return item[0]
+        return None
+
+    def put(self, digest, uris):
+        prior = self.items.pop(digest,None)
+        if prior is not None:
+            self.bytes -= prior[1]
+        size = sys.getsizeof(uris) + sum(sys.getsizeof(uri) for uri in uris)
+        if size > self.max_bytes:
+            return
+        while self.items and (self.bytes+size > self.max_bytes or len(self.items) >= self.max_entries):
+            _, (_, removed) = self.items.popitem(last=False)
+            self.bytes -= removed
+        self.items[digest] = (uris, size)
+        self.bytes += size
+
+
+def collect(store, deadline, http=None, only=None, workers=None):
     from discover_sources import extract_subscription_urls_from_text
     http = http or Http(deadline)
-    class CancellablePool(ThreadPoolExecutor):
-        def __exit__(self, kind, value, traceback):
-            if kind is not None: http.deadline = 0
-            self.shutdown(wait=True,cancel_futures=kind is not None)
-            return False
+    workers = workers if workers is not None else concurrency()['downloads']
+    if not 1 <= workers <= 64:
+        raise ValueError('download worker limit must be 1..64')
+    def cancel():
+        http.deadline = 0
     visited,keys,errors = set(),{},[]
     successful = cached = duplicates = 0
-    parsed_bodies = {}
+    parsed_bodies = ParsedCache()
+    started = time.monotonic()
+    download_seconds = parse_seconds = storage_seconds = 0
+    scheduled = 0
+    print(f'Crawler concurrency: {workers} downloads, at most 2 per host; bounded response cache',flush=True)
     for wave in range(3):
         rows = [r for r in store.due() if r['id'] not in visited and r['depth'] <= 2 and (only is None or r['id'] in only)]
         if not rows: break
+        scheduled += len(rows)
+        print(f'Crawler wave {wave+1}: {len(rows)} sources; {scheduled-len(visited)} queued',flush=True)
         def fetch(row):
             headers = {}
             if row['etag']: headers['If-None-Match'] = row['etag']
             if row['last_modified']: headers['If-Modified-Since'] = row['last_modified']
             start = time.monotonic()
             return (*http.fetch(row['url'],headers=headers),time.monotonic()-start)
-        with CancellablePool(max_workers=24) as pool:
-            pending = {pool.submit(fetch,r):r for r in rows}
-            for future in as_completed(pending):
-                row = pending.pop(future)
+        with host_downloads(rows,fetch,workers,deadline,cancel) as downloads:
+            for row,future in downloads:
                 visited.add(row['id'])
                 try:
                     code,headers,body,seconds = future.result()
+                    download_seconds += seconds
+                    phase_started = time.monotonic()
                     if code == 304:
                         uris = store.cached(row['id'])
                         if not uris and row['content_hash'] is None: raise DownloadError('cache_missing')
@@ -258,13 +296,14 @@ def collect(store, deadline, http=None, only=None):
                         if any(marker in body.lower() for marker in ('cf-chl-','g-recaptcha','just a moment...')):
                             raise DownloadError('platform_challenge')
                         digest = __import__('hashlib').sha256(body.encode()).hexdigest()
-                        if digest not in parsed_bodies:
-                            parsed_bodies[digest] = [u for u in normalize([body]) if supported(u)]
-                        uris = parsed_bodies[digest]
+                        uris = parsed_bodies.get(digest)
+                        if uris is None:
+                            uris = [u for u in normalize([body]) if supported(u)]
+                            parsed_bodies.put(digest,uris)
                     if row['depth'] < 2 and code == 200:
                         for link in extract_subscription_urls_from_text(body):
                             if public_url(link):
-                                store.add(link,row['depth']+1)
+                                store.add(link,row['depth']+1,commit=False)
                                 if only is not None:
                                     from .crawler_store import source_id
                                     only.add(source_id(public_url(link)))
@@ -277,7 +316,10 @@ def collect(store, deadline, http=None, only=None):
                             match = re.search(r'<time[^>]*datetime="([^"]+)"',block)
                             if match:
                                 for uri in normalize([block]): published[uri] = match[1]
-                    store.success(row,uris,headers,seconds,published if code != 304 else None)
+                    parse_seconds += time.monotonic()-phase_started
+                    phase_started = time.monotonic()
+                    store.success(row,uris,headers,seconds,published if is_page and code != 304 else None,unchanged=code==304)
+                    storage_seconds += time.monotonic()-phase_started
                     successful += 1
                     for uri in uris:
                         ident = __import__('hashlib').sha256(uri.split('#',1)[0].encode()).hexdigest()
@@ -286,9 +328,14 @@ def collect(store, deadline, http=None, only=None):
                 except DownloadError as exc:
                     store.failure(row,str(exc),exc.substantive)
                     errors.append({'source_id':row['id'],'reason':str(exc)})
-                if len(visited)%50 == 0 or len(visited) == len(rows):
-                    print(f'Crawler: {len(visited)} URLs; {len(keys)} keys; {len(errors)} errors; {cached} cached',flush=True)
-    return list(keys.values()), errors, {'urls':len(visited),'successful':successful,'cached':cached,'duplicates':duplicates,'bytes':http.bytes}
+                if len(visited)%50 == 0 or len(visited) == scheduled:
+                    elapsed = time.monotonic()-started
+                    print(f'Crawler: {len(visited)}/{scheduled} URLs; {scheduled-len(visited)} queued; '
+                          f'{len(keys)} keys; {len(errors)} errors; {cached} cached; '
+                          f'{len(visited)/max(elapsed,.001):.1f} URLs/s',flush=True)
+    return list(keys.values()), errors, {'urls':len(visited),'successful':successful,'cached':cached,'duplicates':duplicates,'bytes':http.bytes,
+        'workers':workers,'elapsed_seconds':time.monotonic()-started,'download_work_seconds':download_seconds,
+        'parse_seconds':parse_seconds,'storage_seconds':storage_seconds}
 
 
 def supported(uri):

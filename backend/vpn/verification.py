@@ -102,7 +102,9 @@ def measure_tunnel(port, timeout=5.0, session_factory=make_session):
     deadline = time.monotonic() + max(20.0, timeout * 8)
     samples, passed = [], []
     country = "GLOBAL"
-    for endpoint, kind in ENDPOINTS:
+    for index, (endpoint, kind) in enumerate(ENDPOINTS):
+        if len(samples) + len(ENDPOINTS) - index < 2:
+            return None  # Two failures already make the strict 2-of-3 gate impossible.
         start = time.monotonic()
         try:
             with session_factory(port) as session:

@@ -11,6 +11,7 @@ from .sources import fetch_all, normalize, known_sources
 from .secrets import load
 from .export import publish
 from .crawler_run import CrawlRun
+from .resources import concurrency
 
 
 def write_report(path, data):
@@ -33,6 +34,9 @@ def main():
     parser.add_argument('--discover',action='store_true')
     parser.add_argument('--crawler-state',action='store_true',help='restore/checkpoint the public crawler-state branch')
     parser.add_argument('--budget-seconds',type=int,default=21600)
+    parser.add_argument('--download-workers',type=int,help='1..64; default adapts to available CPUs')
+    parser.add_argument('--probe-workers',type=int,help='1..8 core processes; default adapts to available CPUs')
+    parser.add_argument('--probe-batch-size',type=int,default=16,help='1..32 tunnels per core batch')
     parser.add_argument('--collect-only',action='store_true')
     parser.add_argument('--install-cores',action='store_true')
     parser.add_argument('--publish',action='store_true')
@@ -43,6 +47,9 @@ def main():
     if not target.is_relative_to(private): parser.error('output must be inside backend/vpn_v2/.local')
     if args.candidate_limit < 0 or not 1 <= args.select <= 200: parser.error('invalid candidate/select limit')
     if not 5401 <= args.budget_seconds <= 21600: parser.error('budget must be 5401..21600 seconds')
+    if args.download_workers is not None and not 1 <= args.download_workers <= 64: parser.error('download-workers must be 1..64')
+    if args.probe_workers is not None and not 1 <= args.probe_workers <= 8: parser.error('probe-workers must be 1..8')
+    if not 1 <= args.probe_batch_size <= 32: parser.error('probe-batch-size must be 1..32')
     if args.collect_only and (args.publish or args.push): parser.error('collection cannot publish')
     if args.discover and args.from_candidates: parser.error('discovery cannot use a candidate checkpoint')
     run = None
@@ -51,6 +58,9 @@ def main():
     local_deadline = deadline-5400
     run_id = datetime.now(timezone.utc).isoformat()
     metrics,summary = {},{}
+    profile = concurrency()
+    print(f"Runtime: {profile['cpus']} available CPUs; downloads={args.download_workers or profile['downloads']}; "
+          f"core workers={args.probe_workers or profile['probe_workers']}; tunnels/core={args.probe_batch_size}",flush=True)
     try:
         urls = [l.strip() for l in Path(args.sources).read_text(encoding='utf-8').splitlines() if l.strip() and not l.lstrip().startswith('#')] if args.sources else None
         if args.from_candidates:
@@ -60,7 +70,7 @@ def main():
         elif args.candidate_limit == 0 or args.crawler_state or args.discover:
             run = CrawlRun(private/'state',load('GITHUB_TOKEN'),args.crawler_state,args.budget_seconds)
             deadline,local_deadline = run.deadline,run.local_deadline
-            candidates,errors,metrics = run.collect(args.discover,load('GITHUB_TOKEN'),urls)
+            candidates,errors,metrics = run.collect(args.discover,load('GITHUB_TOKEN'),urls,workers=args.download_workers)
         else:
             urls = urls or known_sources(private/'state')[:45]
             contents,errors = fetch_all(urls)
@@ -80,7 +90,7 @@ def main():
         if run:
             def checkpoint(batch, rows):
                 run.store.record_checks(run_id,[item[1] for item in batch],rows,update_scores=False)
-        all_verified = verify(candidates,deadline=local_deadline,checkpoint=checkpoint)
+        all_verified = verify(candidates,batch_size=args.probe_batch_size,workers=args.probe_workers,deadline=local_deadline,checkpoint=checkpoint)
         if run:
             run.store.record_checks(run_id,candidates,all_verified)
             run.checkpoint()
