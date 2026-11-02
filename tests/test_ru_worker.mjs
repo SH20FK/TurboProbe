@@ -86,3 +86,13 @@ test('UI indexer hides legacy, stale and non-finite latency', async()=>{
  const old=indexNode({uri,ping_ms:60,ru_verified:true,health:95},0);
  assert.equal(old.ping_ms,0);assert.equal(old.ru_verified,false);
 });
+
+test('daily tunnel profile expires without acquiring LatencyLab status',async()=>{
+ const {tunnelDailyFresh}=await import('../backend/worker/index.js');
+ const checked=Date.now()-7200_000;
+ const n={verified:true,verification_policy:'tunnel-https-v1',verification_scope:'tunnel_daily',checked_at:new Date(checked).toISOString(),expires_at:new Date(checked+86400_000).toISOString()};
+ assert.equal(tunnelDailyFresh(n),true);
+ assert.equal(tunnelDailyFresh({...n,expires_at:new Date(Date.now()-1).toISOString()}),false);
+ assert.equal(tunnelDailyFresh({...n,expires_at:new Date(checked+2*86400_000).toISOString()}),false);
+ assert.equal(n.latencylab_verified,undefined);
+});

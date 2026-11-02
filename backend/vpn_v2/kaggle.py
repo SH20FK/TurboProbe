@@ -35,7 +35,7 @@ def main():
         if args.production or args.cached_only or args.candidate_limit is not None:parser.error('cached-queue is a separate mode')
         if args.lab_limit is not None and not 1<=args.lab_limit<=200:parser.error('lab-limit must be 1..200')
         root=Path(__file__).resolve().parents[2]
-        run_cycle([sys.executable,'-u','-m','backend.vpn_v2.cached_queue','--select',str(args.lab_limit or 10)],root)
+        run_cycle([sys.executable,'-u','-m','backend.vpn_v2.cached_queue','--select',str(args.lab_limit or 200)],root)
         return
     if args.lab_limit is not None and not 1 <= args.lab_limit <= 200:
         parser.error('lab-limit must be 1..200')

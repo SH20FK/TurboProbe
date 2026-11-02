@@ -1580,6 +1580,7 @@ def generate_clash_meta_yaml(nodes: list) -> str:
     proxies = []
     proxy_names = []
     seen = set()
+    lab_proxy_names = []
 
     for idx, node in enumerate(nodes, start=1):
         uri = node.get("uri", "") if isinstance(node, dict) else str(node)
@@ -1602,6 +1603,9 @@ def generate_clash_meta_yaml(nodes: list) -> str:
                 name = f"{clean_name} ({suffix})"
                 suffix += 1
             seen.add(name)
+
+            if isinstance(node,dict) and node.get("latencylab_verified") is True:
+                lab_proxy_names.append(name)
 
             if proto == "vless":
                 security = query.get("security", ["none"])[0].lower()
@@ -1723,6 +1727,9 @@ def generate_clash_meta_yaml(nodes: list) -> str:
 
     group_members = "\n".join([f'      - "{_escape_yaml_val(n)}"' for n in proxy_names])
 
+    lab_members = "\n".join(f'      - "{_escape_yaml_val(n)}"' for n in lab_proxy_names if n in proxy_names)
+    lab_group = f'  - name: "LatencyLab"\n    type: select\n    proxies:\n{lab_members}\n' if lab_members else ""
+
     return f"""port: 7890
 socks-port: 7891
 allow-lan: false
@@ -1745,7 +1752,7 @@ proxy-groups:
     proxies:
       - "⚡ TURBOPROBE-AUTO"
 {group_members}
-
+{lab_group}
 rules:
   - DOMAIN-SUFFIX,openai.com,⚡ TURBOPROBE-AUTO
   - DOMAIN-SUFFIX,claude.ai,⚡ TURBOPROBE-AUTO

@@ -2,6 +2,8 @@
 import argparse
 from datetime import datetime,timezone,timedelta
 import json
+import gzip
+import hashlib
 from pathlib import Path
 import time
 
@@ -14,7 +16,11 @@ from .secrets import load
 
 def load_progress(path):
     if not path.exists(): return {'version':1,'cursor':'','processed':0,'cycle':1,'best':[]}
-    value=json.loads(path.read_text(encoding='utf-8'))
+    if path.suffix=='.gz':
+        with gzip.open(path,'rb') as stream:body=stream.read(256*1024*1024+1)
+        if len(body)>256*1024*1024:raise ValueError('Queue checkpoint exceeds size budget')
+        value=json.loads(body)
+    else:value=json.loads(path.read_text(encoding='utf-8'))
     import re
     if (value.get('version')!=1 or not re.fullmatch('[a-f0-9]{64}|',value.get('cursor','!'))
             or type(value.get('processed')) is not int or value['processed']<0
@@ -48,70 +54,124 @@ def save_progress(run,progress,private):
     run.branch.save_progress(progress)
 
 
-def run_queue(run,progress,private,select=10,window=1000):
+def run_queue(run,progress,private,select=200,window=1000):
     total=run.store.db.execute('SELECT count(*) FROM nodes').fetchone()[0]
     if not total: raise LabError('Saved cache is empty; no source crawl was started')
-    # Prior winners are refreshed, while the cursor still advances through other keys.
+    def ident(uri):return hashlib.sha256(uri.split('#',1)[0].encode()).hexdigest()
+    local={n['id']:n for n in progress.get('local',[])}
+    lab={n['id']:n for n in progress.get('lab',[])}
+    def remember(nodes):
+        for n in nodes:
+            key=ident(n['uri'])
+            local[key]={'id':key,'ping_ms':n['ping_ms'],'country':n.get('country','GLOBAL'),'checked_at':n['checked_at']}
+    def current_nodes():
+        now=datetime.now(timezone.utc);result=[]
+        for key,n in list(local.items()):
+            try:age=(now-datetime.fromisoformat(n['checked_at'])).total_seconds()
+            except (ValueError,TypeError,KeyError):age=86400
+            if not 0<=age<86400:local.pop(key);continue
+            row=run.store.db.execute('SELECT uri FROM nodes WHERE id=?',(key,)).fetchone()
+            if not row:continue
+            item={**n,'uri':row[0],'verified':True,'verification_policy':'tunnel-https-v1',
+                  'verification_scope':'tunnel_daily','ping_kind':'https_tunnel',
+                  'expires_at':(datetime.fromisoformat(n['checked_at'])+timedelta(hours=24)).isoformat(),
+                  'protocol':row[0].split('://')[0]}
+            confirmation=lab.get(key)
+            if confirmation:
+                try:valid=datetime.fromisoformat(confirmation['expires_at'])>now
+                except (ValueError,TypeError,KeyError):valid=False
+                if valid:item.update({k:v for k,v in confirmation.items() if k!='id'})
+                else:lab.pop(key,None)
+            result.append(item)
+        return sorted(result,key=lambda n:n['ping_ms'])
+    def checkpoint():
+        progress['local']=list(local.values());progress['lab']=list(lab.values())
+        save_progress(run,progress,private)
+    def publish_current():
+        nodes=current_nodes()
+        if not nodes:return False
+        report={'schema_version':1,'publication_profile':'tunnel-and-latencylab','mode':'cached-rolling',
+                'updated_at':datetime.now(timezone.utc).isoformat(),'candidate_count':progress['processed'],
+                'nodes':nodes,'selected_count':sum(n.get('latencylab_verified') is True for n in nodes),
+                'crawler':{'scope':'checked_cache_subset','cached_pool_size':total,
+                           'processed_in_cycle':progress['processed'],'cycle':progress['cycle']}}
+        (private.parent/'rolling-result.json').write_text(json.dumps(report,ensure_ascii=False),encoding='utf-8')
+        push_snapshot(report,load('GITHUB_TOKEN'))
+        print(f'PUBLISHED: {len(nodes)} tunnel nodes; {report["selected_count"]} in LatencyLab group',flush=True)
+        return True
+    lab_paused=False
+    def lab_batch(all_nodes):
+        nonlocal lab_paused
+        if lab_paused or time.monotonic()>=run.deadline:return False
+        today=datetime.now(timezone.utc).date().isoformat()
+        daily=progress.get('daily',{})
+        if daily.get('date')!=today:daily={'date':today,'reserved':[]}
+        progress['daily']=daily
+        remaining=max(0,select-len(daily['reserved']))
+        selected=[n for n in all_nodes if ident(n['uri']) not in daily['reserved'] and n.get('latencylab_verified') is not True][:min(20,remaining)]
+        if selected:
+            selected=measure_selected(selected,deadline=run.deadline)
+            remember(selected)
+            # Reserve before POST; uncertainty must never cause duplicate daily spending.
+            daily['reserved'].extend(ident(n['uri']) for n in selected)
+            checkpoint()
+            clients=[LabClient(load(name)) for name in ('LATENCYLAB_API_KEY_1','LATENCYLAB_API_KEY_2')]
+            for i,client in enumerate(clients):client.attach_store(run.store,datetime.now(timezone.utc).isoformat(),i,run.checkpoint_jobs)
+            summary={}
+            try:
+                passed=check_candidates(selected,clients,allow_partial=True,summary=summary,deadline=run.deadline)
+                for n in passed:
+                    key=ident(n['uri']);remember([n])
+                    lab[key]={'id':key,**{k:n[k] for k in ('latencylab_verified','latencylab_checked_at','latencylab_operators','expires_at')}}
+                print(f'LatencyLab daily reserved: {len(daily["reserved"])}/{select}; accepted this batch: {len(passed)}',flush=True)
+            except LabError as error:
+                lab_paused=True
+                print(f'LatencyLab: {error}; ordinary verification continues',flush=True)
+            checkpoint()
+            if summary.get('quota_exhausted') or summary.get('agent_errors'):lab_paused=True
+            return True
+        return False
     prior=fresh_best(progress['best'])
     progress['best']=verify([n['uri'] for n in prior],deadline=run.local_deadline) if prior else []
-    published=False
-    lab_attempted=False
-    windows=0
+    still_good={ident(n['uri']) for n in progress['best']}
+    for old in prior:
+        key=ident(old['uri'])
+        if key not in still_good:local.pop(key,None);lab.pop(key,None)
+    remember(progress['best'])
+    published=False;windows=0
     print(f'Rolling queue: {total} stored keys; cycle {progress["cycle"]}; '
-          f'{progress["processed"]} processed in this cycle; window={window}',flush=True)
+          f'{progress["processed"]} processed; LatencyLab daily ceiling={select}',flush=True)
     while time.monotonic()<run.local_deadline:
         rows=next_window(run.store,progress['cursor'],window)
         if not rows:
-            if windows: break
+            if windows:break
             progress.update(cursor='',processed=0,cycle=progress['cycle']+1)
             rows=next_window(run.store,'',window)
-        try:
-            verified=verify([r[1] for r in rows],deadline=run.local_deadline)
+        try:verified=verify([r[1] for r in rows],deadline=run.local_deadline)
         except TimeoutError:
-            print('Local time budget reached; unfinished window will be retried next run',flush=True)
-            break
-        best={n['uri'].split('#',1)[0]:n for n in fresh_best(progress['best'])}
-        best.update({n['uri'].split('#',1)[0]:n for n in verified})
-        progress['best']=rank(list(best.values()),200)
-        progress['cursor']=rows[-1][0]
-        progress['processed']+=len(rows)
-        windows+=1
-        save_progress(run,progress,private)
-        exhausted=not next_window(run.store,progress['cursor'],1)
-        print(f'Queue progress: {progress["processed"]}/{total}; '
-              f'{len(progress["best"])} fresh winners retained',flush=True)
-        if not lab_attempted and (len(progress['best'])>=select or exhausted):
-            lab_attempted=True
-            selected=measure_selected(rank(progress['best'],select),deadline=run.deadline)
-            if selected:
-                summary={}
-                clients=[LabClient(load(name)) for name in ('LATENCYLAB_API_KEY_1','LATENCYLAB_API_KEY_2')]
-                for i,client in enumerate(clients):client.attach_store(run.store,datetime.now(timezone.utc).isoformat(),i,run.checkpoint_jobs)
-                try:
-                    passed=check_candidates(selected,clients,allow_partial=False,summary=summary,deadline=run.deadline)
-                    if summary.get('agent_errors'):raise LabError('LatencyLab agent errors; previous subscription preserved')
-                    report={'schema_version':1,'mode':'cached-rolling','updated_at':datetime.now(timezone.utc).isoformat(),
-                            'candidate_count':progress['processed'],'selected_count':len(selected),'nodes':passed,
-                            'latencylab':summary,'crawler':{'scope':'checked_cache_subset','cached_pool_size':total,
-                            'processed_in_cycle':progress['processed'],'cycle':progress['cycle']}}
-                    (private.parent/'rolling-result.json').write_text(json.dumps(report,ensure_ascii=False),encoding='utf-8')
-                    if passed:
-                        push_snapshot(report,load('GITHUB_TOKEN'))
-                        published=True
-                        print(f'PUBLISHED: {len(passed)} nodes. Continuing the remaining queue without additional LatencyLab jobs.',flush=True)
-                    else:print('No LatencyLab passes; old subscription preserved. Continuing local queue.',flush=True)
-                except LabError as error:print(f'LatencyLab: {error}; local queue continues',flush=True)
-        if exhausted:break
-    # Cursor moves only after a whole window finishes and its checkpoint is saved.
-    save_progress(run,progress,private)
-    print(f'Queue saved: cycle {progress["cycle"]}, processed {progress["processed"]}/{total}. '
-          'Next run resumes at the saved cursor.',flush=True)
-    if not published:raise LabError('Queue results saved; no new subscription published in this run')
+            print('Local budget reached; unfinished window will be retried next run',flush=True);break
+        good={ident(n['uri']) for n in verified}
+        for key,_ in rows:
+            if key not in good:local.pop(key,None);lab.pop(key,None)
+        remember(verified)
+        all_nodes=current_nodes()
+        progress['best']=rank(all_nodes,200)
+        progress['cursor']=rows[-1][0];progress['processed']+=len(rows);windows+=1
+        checkpoint()
+        published=publish_current() or published
+        if lab_batch(all_nodes):published=publish_current() or published
+        print(f'Queue progress: {progress["processed"]}/{total}; {len(local)} fresh tunnel nodes',flush=True)
+        if not next_window(run.store,progress['cursor'],1):break
+    while time.monotonic()<run.deadline and lab_batch(current_nodes()):
+        published=publish_current() or published
+    checkpoint()
+    print(f'Queue saved: {progress["processed"]}/{total}; next run resumes at cursor',flush=True)
+    if not published:raise LabError('Queue saved; no fresh tunnel nodes available for publication')
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--select',type=int,default=10)
+    parser.add_argument('--select',type=int,default=200)
     parser.add_argument('--window',type=int,default=1000)
     args=parser.parse_args()
     if not 1<=args.select<=200 or not 1<=args.window<=5000:parser.error('invalid select/window size')
@@ -121,7 +181,9 @@ def main():
     run=CrawlRun(private/'rolling-state',load('GITHUB_TOKEN'),True,persist_checkpoints=False)
     try:
         service_prober.get_xray_binary_path();service_prober.get_mihomo_binary_path()
-        progress=load_progress(run.branch.path/'probe-progress.json')
+        progress_path=run.branch.path/'probe-progress.json.gz'
+        if not progress_path.exists():progress_path=run.branch.path/'probe-progress.json'
+        progress=load_progress(progress_path)
         run_queue(run,progress,private/'probe-progress.json',args.select,args.window)
     finally:run.close()
 

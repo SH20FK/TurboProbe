@@ -6,6 +6,12 @@ export function labFresh(node, now = Date.now()) {
     Number.isFinite(checked) && Number.isFinite(expires) && checked <= now && expires > now && expires > checked &&
     expires - checked <= 86400_000 && now - checked < 86400_000;
 }
+export function tunnelDailyFresh(node, now = Date.now()) {
+  const checked = Date.parse(node.checked_at || '');
+  const expires = Date.parse(node.expires_at || '');
+  return node.verification_scope === 'tunnel_daily' && Number.isFinite(checked) && Number.isFinite(expires) &&
+    checked <= now && now - checked < 86400_000 && expires > now && expires > checked && expires - checked <= 86400_000;
+}
 /**
  * ⚡ TurboProbe Dynamic Subscription Worker
  * Multi-service on-the-fly proxy aggregator & filter
@@ -391,7 +397,7 @@ async function fetchFirstSuccessfulJson(mirrors, timeoutMs = 3500) {
       const data = await res.json();
       const list = Array.isArray(data) ? data : (data && Array.isArray(data.nodes) ? data.nodes : []);
       const validList = list.filter(n => n && n.verified === true && n.verification_policy === POLICY &&
-        (n.latencylab_verified === true ? labFresh(n) : fresh(n.checked_at)) && typeof n.uri === 'string' && !n.uri.startsWith('<') && !n.uri.startsWith('=') && !n.uri.startsWith('>'));
+        (n.latencylab_verified === true ? labFresh(n) : n.verification_scope === 'tunnel_daily' ? tunnelDailyFresh(n) : fresh(n.checked_at)) && typeof n.uri === 'string' && !n.uri.startsWith('<') && !n.uri.startsWith('=') && !n.uri.startsWith('>'));
       if (validList.length > 0) {
         return validList;
       }

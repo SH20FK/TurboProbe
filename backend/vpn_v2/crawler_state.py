@@ -126,8 +126,10 @@ class StateBranch:
         text = json.dumps(progress,ensure_ascii=False,separators=(',',':'))
         if any(marker in text.lower() for marker in ('ghp_','github_pat_','bearer ','KGAT_'.lower(),'ll_')):
             raise ValueError('unsafe probe progress')
-        (self.path/'probe-progress.json').write_text(text,encoding='utf-8')
-        if self.git('add','probe-progress.json').returncode: raise RuntimeError('Progress staging failed')
+        (self.path/'probe-progress.json.gz').write_bytes(gzip.compress(text.encode(),compresslevel=3,mtime=0))
+        (self.path/'probe-progress.json').unlink(missing_ok=True)
+        if self.git('add','probe-progress.json.gz').returncode: raise RuntimeError('Progress staging failed')
+        if self.git('rm','--ignore-unmatch','--cached','--','probe-progress.json').returncode:raise RuntimeError('Progress migration failed')
         if self.git('diff','--cached','--quiet').returncode == 0: return
         if self.git('-c','user.name=TurboProbe','-c','user.email=turboprobe@users.noreply.github.com',
                     'commit','-m','chore: checkpoint rolling tunnel queue').returncode:

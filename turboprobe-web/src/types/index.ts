@@ -38,6 +38,7 @@ export interface NodeItem {
   ping_ms?: number;
   verified?: boolean;
   verification_policy?: string;
+  verification_scope?: string;
   checked_at?: string;
   latencylab_verified?: boolean;
   latencylab_checked_at?: string;

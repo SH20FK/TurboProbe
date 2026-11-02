@@ -120,6 +120,17 @@ def measure_tunnel(port, timeout=5.0, session_factory=make_session):
             continue
     if len(samples) < 2:
         return None
+    if country == 'GLOBAL':
+        try:
+            with session_factory(port) as session:
+                status,body = read_response(session,'https://ipwho.is/',deadline,min(timeout,3),16384)
+            geo = json.loads(body) if status == 200 else {}
+            code = str(geo.get('country_code','')).upper()
+            if (geo.get('success') is True and ipaddress.ip_address(geo.get('ip','')).is_global
+                    and len(code)==2 and code.isascii() and code.isalpha()):
+                country = code
+        except (requests.RequestException,OSError,ValueError,TypeError,AttributeError):
+            pass
     start = time.monotonic()
     try:
         with session_factory(port) as session:

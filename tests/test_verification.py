@@ -46,7 +46,7 @@ class TunnelTests(unittest.TestCase):
         self.assertEqual(len(f.calls),2)
 
     def test_two_https_and_complete_transfer_required(self):
-        factory = Factory([(204, b''), (204, b''), (503, b''), TRANSFER])
+        factory = Factory([(204, b''), (204, b''), (503, b''), (503,b''), TRANSFER])
         result = v.measure_tunnel(12345, session_factory=factory)
         self.assertTrue(result['verified'])
         self.assertGreater(result['ping_ms'], 0)

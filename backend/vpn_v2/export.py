@@ -14,11 +14,20 @@ def render(snapshot, existing=()):
     if not is_fresh(snapshot):
         raise ValueError('snapshot is expired or invalid')
     nodes = snapshot['nodes']
-    if any(n.get('latencylab_verified') is not True or n.get('verified') is not True or
+    mixed = snapshot.get('publication_profile') == 'tunnel-and-latencylab'
+    if any((not mixed and n.get('latencylab_verified') is not True) or n.get('verified') is not True or
            n.get('verification_policy') != 'tunnel-https-v1' for n in nodes):
         raise ValueError('LatencyLab verification is required for publication')
     now = datetime.now(timezone.utc)
     for node in nodes:
+        if mixed and node.get('latencylab_verified') is not True:
+            checked = datetime.fromisoformat(node['checked_at'])
+            expires = datetime.fromisoformat(node['expires_at'])
+            if (node.get('verification_scope') != 'tunnel_daily' or checked.tzinfo is None
+                    or not 0 <= (now-checked).total_seconds() < 86400
+                    or expires <= now or not 0 < (expires-checked).total_seconds() <= 86400):
+                raise ValueError('Tunnel measurement expired or invalid')
+            continue
         checked = datetime.fromisoformat(node['latencylab_checked_at'])
         expires = datetime.fromisoformat(node['expires_at'])
         if checked > now or expires <= now or (expires - checked).total_seconds() > 86400:
@@ -43,6 +52,11 @@ def render(snapshot, existing=()):
                  'trojan': lambda n: n['uri'].startswith('trojan://'),
                  'shadowsocks': lambda n: n['uri'].startswith('ss://')}
     for name, pred in protocols.items(): files[name + '.txt'] = lines([n for n in nodes if pred(n)])
+    lab = [n for n in nodes if n.get('latencylab_verified') is True]
+    files['latencylab.txt'] = lines(lab)
+    files['latencylab/base64.txt'] = base64.b64encode(lines(lab).encode()).decode()
+    files['latencylab/nodes.json'] = js({**payload,'nodes':lab,'total_nodes':len(lab)})
+    files['latencylab/clash.yaml'] = service_prober.generate_clash_meta_yaml(lab)
     countries = sorted({n.get('country', '').lower() for n in nodes} - {'', 'global'})
     for cc in countries:
         if len(cc) != 2 or not cc.isalpha(): continue
@@ -57,14 +71,18 @@ def render(snapshot, existing=()):
     files['services/ai-bundle.txt'] = ''
     files['services/index.json'] = js({'updated_at': snapshot['updated_at'],
         'services': {name.split('/')[-1]: len(value.splitlines()) for name,value in files.items() if name.startswith('services/')}})
-    files['chunks/chunk-001.txt'] = lines(nodes)
-    files['chunks/index.json'] = js({'chunk_size': 500, 'total_nodes': len(nodes), 'chunks':
-        [{'file': 'chunks/chunk-001.txt', 'count': len(nodes), 'ping_min_ms': nodes[0]['ping_ms'],
-          'ping_max_ms': nodes[-1]['ping_ms']}] if nodes else []})
+    chunks = []
+    files['chunks/chunk-001.txt'] = ''
+    for offset in range(0,len(nodes),500):
+        part = nodes[offset:offset+500]
+        name = f'chunks/chunk-{offset//500+1:03d}.txt'
+        files[name] = lines(part)
+        chunks.append({'file':name,'count':len(part),'ping_min_ms':part[0]['ping_ms'],'ping_max_ms':part[-1]['ping_ms']})
+    files['chunks/index.json'] = js({'chunk_size':500,'total_nodes':len(nodes),'chunks':chunks})
     yaml = service_prober.generate_clash_meta_yaml(nodes)
     for name in ('clash.yaml', 'clash-meta.yaml', 'clash.meta.yaml'): files[name] = yaml
     files['stats.json'] = js({'updated_at': snapshot['updated_at'], 'total_nodes': len(nodes),
-                             'alive_verified_nodes': len(nodes), 'latencylab_verified_nodes': len(nodes),
+                             'alive_verified_nodes': len(nodes), 'latencylab_verified_nodes': len(lab),
                              'best_ping_ms': nodes[0]['ping_ms'] if nodes else None,
                              'avg_ping_ms': sum(n['ping_ms'] for n in nodes) / len(nodes) if nodes else None,
                              'countries': dict(Counter(n.get('country', 'GLOBAL') for n in nodes))})

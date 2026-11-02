@@ -14,6 +14,12 @@ from node_labels import format_uri
 
 
 class LabelTests(unittest.TestCase):
+    def test_lab_group_contains_only_operator_confirmed_nodes(self):
+        nodes=[{'uri':f'trojan://p{i}@example.com:443','country':'DE','latencylab_verified':i==1} for i in range(2)]
+        document=yaml.safe_load(probe.service_prober.generate_clash_meta_yaml(nodes))
+        group=next(g for g in document['proxy-groups'] if g['name']=='LatencyLab')
+        self.assertEqual(group['proxies'],['TurboProbe 🇩🇪 DE (2)'])
+
     def test_short_label_changes_only_fragment(self):
         uri='trojan://CaseSensitive@example.com:443?sni=other.test&type=ws&path=%2Ftest#spam'
         result=format_uri(uri,'DE')
@@ -81,3 +87,20 @@ class CachedRunTests(unittest.TestCase):
             run.collect.assert_not_called()
             run.cached_candidates.assert_called_once_with(2)
             run.close.assert_called_once()
+
+class MixedExportTests(unittest.TestCase):
+    def test_ordinary_tunnel_is_not_mislabeled_as_lab_and_expires(self):
+        from datetime import datetime,timezone,timedelta
+        from backend.vpn_v2.export import render
+        now=datetime.now(timezone.utc)
+        node={'uri':'trojan://p@example.com:443','country':'DE','verified':True,'verification_policy':'tunnel-https-v1',
+              'verification_scope':'tunnel_daily','checked_at':now.isoformat(),'ping_ms':25,'expires_at':(now+timedelta(hours=24)).isoformat()}
+        snapshot={'schema_version':1,'publication_profile':'tunnel-and-latencylab','updated_at':now.isoformat(),'nodes':[node]}
+        files=render(snapshot)
+        self.assertTrue(files['all.txt'])
+        self.assertEqual(files['latencylab.txt'],'')
+        self.assertEqual(json.loads(files['stats.json'])['latencylab_verified_nodes'],0)
+        snapshot['nodes']=[{**node,'checked_at':(now-timedelta(hours=25)).isoformat()}]
+        with self.assertRaises(ValueError):render(snapshot)
+        snapshot.pop('publication_profile');snapshot['nodes']=[node]
+        with self.assertRaises(ValueError):render(snapshot)
