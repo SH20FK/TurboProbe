@@ -15,6 +15,7 @@ class CrawlRun:
         self.store = Store(directory/'crawler.sqlite')
         self.branch = StateBranch(token) if persistent else None
         self.ready = False
+        self.checkpoint_failed = False
         try:
             if self.branch:
                 print('Crawler startup: restoring crawler-state from GitHub',flush=True)
@@ -29,7 +30,13 @@ class CrawlRun:
 
     def checkpoint(self):
         self.store.db.commit()
-        if self.branch: self.branch.save(self.store)
+        if self.branch:
+            try:
+                self.branch.save(self.store)
+                self.checkpoint_failed = False
+            except BaseException:
+                self.checkpoint_failed = True
+                raise
 
     def checkpoint_jobs(self):
         self.store.db.commit()
@@ -67,7 +74,7 @@ class CrawlRun:
 
     def close(self):
         try:
-            if self.ready: self.checkpoint()
+            if self.ready and not self.checkpoint_failed: self.checkpoint()
         finally:
             self.store.close()
             if self.branch: self.branch.close()

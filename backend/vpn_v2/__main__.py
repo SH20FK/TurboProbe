@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -123,7 +124,13 @@ def main():
         write_report(target.with_name(target.stem+'-incomplete.json'),{'status':'incomplete','crawler':metrics,'latencylab':summary})
         raise LabError('Six-hour run budget exhausted; checkpoints saved, publication withheld') from None
     finally:
-        if run: run.close()
+        if run:
+            original_error = sys.exc_info()[1]
+            try:
+                run.close()
+            except Exception as checkpoint_error:
+                if original_error is None: raise
+                print(f'Checkpoint on exit failed: {checkpoint_error}; preserving original {type(original_error).__name__}',flush=True)
 
 
 if __name__ == '__main__':

@@ -4,6 +4,9 @@ import gzip
 import io
 import json
 import os
+import re
+import shutil
+import time
 from pathlib import Path
 import subprocess
 import tempfile
@@ -32,6 +35,7 @@ class StateBranch:
         if not token: raise ValueError('GitHub credentials required for persistent crawler state')
         self.temp = tempfile.TemporaryDirectory(prefix='turboprobe_state_')
         self.path = Path(self.temp.name)/'repo'
+        self._redact = (token,base64.b64encode(('x-access-token:'+token).encode()).decode())
         self.env = {**os.environ,'GIT_TERMINAL_PROMPT':'0','GIT_CONFIG_COUNT':'1',
                     'GIT_CONFIG_KEY_0':'http.https://github.com/.extraheader',
                     'GIT_CONFIG_VALUE_0':'AUTHORIZATION: basic '+base64.b64encode(('x-access-token:'+token).encode()).decode()}
@@ -39,6 +43,26 @@ class StateBranch:
     def git(self, *args):
         return subprocess.run(['git',*args],cwd=self.path if self.path.exists() else self.temp.name,
                               env=self.env,capture_output=True,timeout=180)
+
+    def push(self):
+        for attempt in range(3):
+            result = self.git('-c','http.version=HTTP/1.1','push','origin','HEAD:'+BRANCH)
+            if not result.returncode: return
+            detail = (result.stderr+result.stdout).decode('utf-8','replace')
+            for secret in self._redact: detail = detail.replace(secret,'[redacted]')
+            detail = re.sub(r'https?://\S+','[remote]',detail)
+            detail = re.sub(r'(?i)(?:gh[pousr]_|github_pat_|KGAT_)[A-Za-z0-9_]+','[redacted]',detail)
+            detail = re.sub(r'(?im)^.*authorization.*$','[authorization redacted]',detail)
+            detail = detail[-1600:].strip()
+            # A conflict/auth failure needs attention; retry only transport failures.
+            transient = any(s in detail.lower() for s in ('http 500','http 502','http 503','http 504',
+                'connection reset','remote end hung up','rpc failed','could not resolve host','timed out'))
+            conflict = any(s in detail.lower() for s in ('fetch first','non-fast-forward','permission denied','authentication failed','http 403'))
+            if transient and not conflict and attempt < 2:
+                print(f'Crawler state: temporary push failure; retry {attempt+1}/2',flush=True)
+                time.sleep(2**attempt)
+                continue
+            raise RuntimeError('State push failed; checkpoint preserved, no force push. Git: '+detail)
 
     def open(self, store):
         exists = self.git('ls-remote','--exit-code','--heads',REMOTE,BRANCH)
@@ -69,15 +93,24 @@ class StateBranch:
 
     def save(self, store):
         print('Crawler checkpoint: compressing public state in parts',flush=True)
-        write_archive(store,self.path)
+        backup = store.path.parent/'public-checkpoint'
+        backup.mkdir(exist_ok=True)
+        write_archive(store,backup)
+        # The prepared checkpoint must survive TemporaryDirectory cleanup/failure.
+        target = self.path/'state'
+        if target.is_symlink(): raise ValueError('unsafe checkpoint directory')
+        target.mkdir(exist_ok=True)
+        for old in target.glob('*.jsonl.gz'): old.unlink()
+        shutil.copytree(backup/'state',target,dirs_exist_ok=True)
+        shutil.copyfile(backup/'state.json',self.path/'state.json')
+        (self.path/'state.json.gz').unlink(missing_ok=True)
         (self.path/'README.md').write_text('TurboProbe public crawler state. No workflows or site assets.\n',encoding='utf-8')
         if self.git('add','-A','--','state.json','state','README.md').returncode: raise RuntimeError('State staging failed')
         if self.git('rm','--ignore-unmatch','--cached','--','state.json.gz').returncode: raise RuntimeError('Legacy state removal failed')
         if self.git('diff','--cached','--quiet').returncode == 0: return
         if self.git('-c','user.name=TurboProbe','-c','user.email=turboprobe@users.noreply.github.com','commit','-m','chore: crawler checkpoint').returncode:
             raise RuntimeError('State commit failed')
-        if self.git('push','origin','HEAD:'+BRANCH).returncode:
-            raise RuntimeError('State push failed; local checkpoint preserved, no force push')
+        self.push()
         print('Crawler checkpoint: saved to GitHub crawler-state',flush=True)
 
     def save_jobs(self, store):
@@ -87,8 +120,7 @@ class StateBranch:
         if self.git('diff','--cached','--quiet').returncode == 0: return
         if self.git('-c','user.name=TurboProbe','-c','user.email=turboprobe@users.noreply.github.com','commit','-m','chore: API job checkpoint').returncode:
             raise RuntimeError('Job journal commit failed')
-        if self.git('push','origin','HEAD:'+BRANCH).returncode:
-            raise RuntimeError('Job journal push failed; refusing untracked API submission')
+        self.push()
 
     def close(self):
         self.temp.cleanup()

@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from backend.vpn_v2 import crawler_archive as archive
 from backend.vpn_v2.crawler_state import StateBranch, encode, restore
@@ -15,6 +15,39 @@ URI = 'vless://11111111-2222-3333-4444-555555555555@example.com:443?security=tls
 
 
 class ArchiveTests(unittest.TestCase):
+    def test_push_reports_sanitized_git_reason_and_does_not_retry_conflict(self):
+        branch = StateBranch('private-token')
+        try:
+            branch.git = Mock(return_value=subprocess.CompletedProcess([],1,b'',b'! [rejected] HEAD -> crawler-state (fetch first) https://host/private-token'))
+            with self.assertRaisesRegex(RuntimeError,'fetch first') as error:
+                branch.push()
+            self.assertNotIn('private-token',str(error.exception))
+            self.assertEqual(branch.git.call_count,1)
+        finally: branch.close()
+
+    def test_transport_failure_retries_without_force(self):
+        branch = StateBranch('unused')
+        try:
+            branch.git = Mock(side_effect=[subprocess.CompletedProcess([],1,b'',b'RPC failed; HTTP 502'),subprocess.CompletedProcess([],0,b'',b'')])
+            with patch('backend.vpn_v2.crawler_state.time.sleep'):
+                branch.push()
+            self.assertEqual(branch.git.call_count,2)
+            self.assertTrue(all('--force' not in c.args for c in branch.git.call_args_list))
+        finally: branch.close()
+
+    def test_failed_push_leaves_archive_after_temporary_checkout_is_closed(self):
+        bare = self.root/'backup-remote.git'
+        subprocess.run(['git','init','--bare',str(bare)],capture_output=True,check=True)
+        with patch('backend.vpn_v2.crawler_state.REMOTE',str(bare)):
+            branch = StateBranch('unused')
+            try:
+                branch.open(self.store)
+                with patch.object(branch,'push',side_effect=RuntimeError('push failed')):
+                    with self.assertRaises(RuntimeError):branch.save(self.store)
+            finally:branch.close()
+        archive.read_archive(self.target,self.store.path.parent/'public-checkpoint')
+        self.assertEqual(self.target.db.execute('SELECT count(*) FROM nodes').fetchone()[0],12)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
