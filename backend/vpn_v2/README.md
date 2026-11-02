@@ -62,6 +62,10 @@ runner should run at a time; a conflicting state push fails without force push.
   Old single-file checkpoints migrate automatically, including those above
   the former 100 MiB restore limit. A checkpoint log confirms a successful push;
   merely having a SQLite file under `/kaggle/working` is not a remote backup.
+  Prepared public archives also remain in `.local/state/public-checkpoint/`
+  when a push fails. Transport failures receive bounded retries with HTTP/1.1;
+  Git diagnostics are redacted. Conflicts never trigger a force push, and an
+  exit-checkpoint error does not hide an earlier collection/probe exception.
 - GitHub discovery covers protocol topics, names/descriptions/README, several
   languages, paginated results and recursive/non-recursive tree traversal. Search
   is date-partitioned and its unfinished queue persists across sessions. Secondary

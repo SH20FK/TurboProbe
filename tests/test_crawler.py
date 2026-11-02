@@ -137,6 +137,17 @@ class RegistryTests(unittest.TestCase):
 
 
 class ApiTests(unittest.TestCase):
+    def test_failed_exit_checkpoint_does_not_mask_original_collection_error(self):
+        private=Path(cli.__file__).resolve().parent/'.local'
+        private.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=private) as temp:
+            run=Mock(deadline=time.monotonic()+21600,local_deadline=time.monotonic()+16200)
+            run.collect.side_effect=ValueError('original parser error')
+            run.close.side_effect=RuntimeError('checkpoint push failed')
+            with patch('sys.argv',['vpn_v2','--out',str(Path(temp)/'run.json'),'--push']), \
+                 patch.object(cli,'CrawlRun',return_value=run),patch.object(cli,'load',return_value='unused'):
+                with self.assertRaisesRegex(ValueError,'original parser error'):cli.main()
+
     def test_state_branch_roundtrip_is_data_only(self):
         import subprocess
         with tempfile.TemporaryDirectory() as temp:
