@@ -6,7 +6,7 @@ from . import crawler
 
 
 class CrawlRun:
-    def __init__(self, directory, token, persistent, seconds=21600):
+    def __init__(self, directory, token, persistent, seconds=21600, *, persist_checkpoints=True):
         if not 5401 <= seconds <= 21600: raise ValueError('run budget must reserve 90 minutes for API and publication')
         if persistent and not token: raise ValueError('GitHub credentials required for persistent crawler state')
         self.deadline = time.monotonic()+seconds
@@ -15,6 +15,7 @@ class CrawlRun:
         self.store = Store(directory/'crawler.sqlite')
         self.branch = StateBranch(token) if persistent else None
         self.ready = False
+        self.persist_checkpoints = persist_checkpoints
         self.checkpoint_failed = False
         try:
             if self.branch:
@@ -30,7 +31,7 @@ class CrawlRun:
 
     def checkpoint(self):
         self.store.db.commit()
-        if self.branch:
+        if self.branch and self.persist_checkpoints:
             try:
                 self.branch.save(self.store)
                 self.checkpoint_failed = False
@@ -41,6 +42,14 @@ class CrawlRun:
     def checkpoint_jobs(self):
         self.store.db.commit()
         if self.branch: self.branch.save_jobs(self.store)
+
+    def cached_candidates(self, limit=0):
+        total = self.store.db.execute('SELECT count(*) FROM nodes').fetchone()[0]
+        rows = self.store.db.execute('SELECT uri FROM nodes ORDER BY id LIMIT ?', (limit or -1,))
+        uris = [r[0] for r in rows]
+        print(f'Cached-only: {len(uris)}/{total} stored keys; no source downloads or discovery',flush=True)
+        return uris,[],{'scope':'cached_sample' if limit and limit<total else 'cached_pool',
+                       'cached_pool_size':total,'unique_keys':len(uris),'urls':0}
 
     def collect(self, discovery, token, urls=None, *, workers=None):
         if urls is not None:

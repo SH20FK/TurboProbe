@@ -88,27 +88,38 @@ def measure_selected(nodes, *, deadline=float('inf')):
     """Bounded 4 MiB HTTPS measurement for selected nodes; ping stays unchanged."""
     from verification import make_session, read_response
     from requests import RequestException
+    from .geolocation import country_through_tunnel
     measurements = {}
 
     def measure(port, timeout=5):
         start = time.monotonic()
+        country, speed = 'GLOBAL', None
         try:
             with make_session(port) as session:
+                country = country_through_tunnel(session,min(deadline,start+10))
+                start = time.monotonic()  # Geolocation is not part of the speed measurement.
                 status, body = read_response(session, 'https://speed.cloudflare.com/__down?bytes=4194304',
                                              min(deadline,start + 20), 5, 4194304)
-            if status != 200 or len(body) != 4194304:
-                return None
-            speed = round(len(body) * 8 / 1_000_000 / max(time.monotonic() - start, .001), 2)
-            return {'country': 'GLOBAL', 'ping_ms': 1, 'speed_mbps': speed}
+            if status == 200 and len(body) == 4194304:
+                speed = round(len(body) * 8 / 1_000_000 / max(time.monotonic() - start, .001), 2)
         except (RequestException, OSError, ValueError):
-            return None
+            pass
+        return {'country':country,'ping_ms':1,'speed_mbps':speed}
 
     xray = service_prober.get_xray_binary_path()
     for start in range(0,len(nodes),12):
         if time.monotonic() >= deadline: raise TimeoutError('speed measurement deadline')
         batch = [(start+i,n['uri'],0,n.get('country','GLOBAL'),n['uri'].split('://')[0]) for i,n in enumerate(nodes[start:start+12])]
         for row in service_prober.run_batch_probe(xray,batch,basic_only=True,measurement=measure,measurement_workers=1):
-            measurements[row['uri']] = row['speed_mbps']
+            measurements[row['uri']] = row
         print(f'Speed progress: {min(start+12,len(nodes))}/{len(nodes)}; measured {len(measurements)}',flush=True)
-    return [{**n, 'speed_mbps': measurements.get(n['uri']), 'speed_transfer_bytes': 4194304,
-             'speed_status': 'measured' if n['uri'] in measurements else 'unavailable'} for n in nodes]
+    result = []
+    for node in nodes:
+        measured = measurements.get(node['uri'],{})
+        country = measured.get('country','GLOBAL')
+        if country == 'GLOBAL': country = node.get('country','GLOBAL')
+        speed = measured.get('speed_mbps')
+        result.append({**node,'country':country,'country_source':'tunnel_https' if country!='GLOBAL' else 'unknown',
+                       'speed_mbps':speed,'speed_transfer_bytes':4194304,
+                       'speed_status':'measured' if speed is not None else 'unavailable'})
+    return result

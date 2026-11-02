@@ -5,6 +5,25 @@ Enable notebook access to Kaggle Secrets `LATENCYLAB_API_KEY_1`,
 `LATENCYLAB_API_KEY_2`, `GITHUB_TOKEN`. Environment variables with these names
 also work. GitHub requires repository contents write access to SH20FK/TurboProbe.
 
+Rolling cached verification: `python -u -m backend.vpn_v2.kaggle --cached-queue
+--lab-limit 10`. It restores the saved cache without crawling and checks windows
+of 1,000 keys in stable ID order. `probe-progress.json` on `crawler-state` stores
+the cursor and up to 200 fresh tunnel results. Each completed window advances the
+cursor; an interrupted window is retried. Further sessions resume, eventually
+wrapping to a new cycle, including keys inserted before the old cursor.
+
+Once enough winners exist, up to 10 receive LatencyLab checks and accepted nodes
+are published immediately. Local checking then continues until its 4.5-hour budget
+or the end of the cycle, with no more LatencyLab jobs in that run. The publication
+is explicitly a top of the checked subset, not a global top of an unfinished pool.
+Prior winners are reverified next run, and retained results expire after 24 hours.
+No accepted nodes means the old subscription stays. Queue runs publish only small
+progress/API journals instead of repeatedly uploading the large crawler snapshot.
+Public labels are `TurboProbe 🇩🇪 DE` (or `TurboProbe 🌐` when unknown). URI fragments
+and VMess `ps` contain only this label; Clash adds suffixes only for name collisions.
+For selected nodes, country comes from verified HTTPS through the SOCKS tunnel,
+Cloudflare trace with an ipwho.is fallback, not from a label or SNI.
+
 ## First full-crawler control run (maximum 10 LatencyLab jobs)
 
 Create a private Kaggle notebook, enable Internet, leave accelerator None, and

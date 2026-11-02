@@ -23,7 +23,8 @@ def render(snapshot, existing=()):
         expires = datetime.fromisoformat(node['expires_at'])
         if checked > now or expires <= now or (expires - checked).total_seconds() > 86400:
             raise ValueError('Node confirmation expired or invalid')
-    nodes = sorted(nodes, key=lambda n: n['ping_ms'])
+    nodes = [{**n,'uri':service_prober.format_verified_remark(n['uri'],n.get('country','GLOBAL'),'',0)}
+             for n in sorted(nodes,key=lambda n:n['ping_ms'])]
     def lines(items): return '\n'.join(n['uri'] for n in items)
     def js(data): return json.dumps(data, ensure_ascii=False, indent=2)
     payload = {**snapshot, 'mode': 'published', 'schema_version': 2,

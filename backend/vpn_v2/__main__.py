@@ -29,6 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--sources')
     parser.add_argument('--from-candidates')
+    parser.add_argument('--cached-only',action='store_true',help='verify stored keys without discovery/source downloads')
     parser.add_argument('--out',required=True)
     parser.add_argument('--candidate-limit',type=int,default=0,help='0 = all active sources and keys; positive = limited test')
     parser.add_argument('--select',type=int,default=200)
@@ -53,6 +54,7 @@ def main():
     if not 1 <= args.probe_batch_size <= 32: parser.error('probe-batch-size must be 1..32')
     if args.collect_only and (args.publish or args.push): parser.error('collection cannot publish')
     if args.discover and args.from_candidates: parser.error('discovery cannot use a candidate checkpoint')
+    if args.cached_only and (args.discover or args.sources or args.from_candidates): parser.error('cached-only cannot collect new sources')
     run = None
     started = time.monotonic()
     deadline = started+args.budget_seconds
@@ -64,7 +66,11 @@ def main():
           f"core workers={args.probe_workers or profile['probe_workers']}; tunnels/core={args.probe_batch_size}",flush=True)
     try:
         urls = [l.strip() for l in Path(args.sources).read_text(encoding='utf-8').splitlines() if l.strip() and not l.lstrip().startswith('#')] if args.sources else None
-        if args.from_candidates:
+        if args.cached_only:
+            run = CrawlRun(private/'cached-state',load('GITHUB_TOKEN'),True,args.budget_seconds,persist_checkpoints=False)
+            deadline,local_deadline = run.deadline,run.local_deadline
+            candidates,errors,metrics = run.cached_candidates(args.candidate_limit)
+        elif args.from_candidates:
             candidates = json.loads(Path(args.from_candidates).read_text(encoding='utf-8'))['uris']
             if not isinstance(candidates,list) or not all(isinstance(u,str) for u in candidates): parser.error('invalid checkpoint')
             errors = []
@@ -93,7 +99,7 @@ def main():
                 run.store.record_checks(run_id,[item[1] for item in batch],rows,update_scores=False)
         all_verified = verify(candidates,batch_size=args.probe_batch_size,workers=args.probe_workers,deadline=local_deadline,checkpoint=checkpoint)
         if run:
-            run.store.record_checks(run_id,candidates,all_verified)
+            run.store.record_checks(run_id,candidates,all_verified,update_scores=not args.cached_only)
             run.checkpoint()
         selected = rank(all_verified,args.select)
         if not selected: raise LabError('No tunnel-verified candidates; previous publication preserved')
@@ -106,6 +112,7 @@ def main():
         try:
             passed = check_candidates(selected,clients,allow_partial=False,summary=summary,deadline=deadline)
             if summary.get('agent_errors'): raise LabError('Agent errors; publication withheld')
+            if not passed and (args.push or args.publish): raise LabError('No nodes passed LatencyLab; previous subscription preserved')
         except LabError:
             write_report(target.with_name(target.stem+'-failed.json'),{'mode':'failed-not-for-publication','selected':selected,'latencylab':summary})
             raise

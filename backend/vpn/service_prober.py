@@ -28,6 +28,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from node_labels import format_uri
 try:
     from aggregator import (
         detect_country_code,
@@ -1566,16 +1567,12 @@ def country_code_to_flag(cc: str) -> str:
     return "".join(chr(127397 + ord(c)) for c in cc.upper())
 
 def format_verified_remark(uri: str, country: str, purpose: str, idx: int, ping_ms: float = 0.0) -> str:
-    base = uri.split('#')[0]
-    flag = country_code_to_flag(country)
-    badge = f"{flag} {country}" if country != "GLOBAL" else "🌐 Global"
-    remark = f"TurboProbe · {badge} · {purpose} #{idx:02d}"
-    return f"{base}#{remark}"
+    return format_uri(uri,country)
 
 def _escape_yaml_val(val: str) -> str:
     if val is None:
         return ""
-    return str(val).replace('\\', '\\\\').replace('"', '\\"')
+    return json.dumps(str(val),ensure_ascii=False)[1:-1].replace('\u2028','\\u2028').replace('\u2029','\\u2029')
 
 def generate_clash_meta_yaml(nodes: list) -> str:
     """Generates standard Clash Meta YAML with auto url-test and select groups."""
@@ -1596,17 +1593,14 @@ def generate_clash_meta_yaml(nodes: list) -> str:
             user = parsed.username or ""
             query = canonicalize_query_keys(urllib.parse.parse_qs(parsed.query))
 
-            country = node.get("country", "GLOBAL") if isinstance(node, dict) else "GLOBAL"
-            flag = country_code_to_flag(country)
-            raw_tag = urllib.parse.unquote(parsed.fragment).strip() if parsed.fragment else ""
-            if raw_tag:
-                clean_name = re.sub(r'[:"\'\[\]]', '', raw_tag).strip()[:35]
-            else:
-                clean_name = f"TurboProbe {flag} {country} #{idx:02d}"
+            from node_labels import label
+            clean_name = label(node.get('country','GLOBAL') if isinstance(node,dict) else 'GLOBAL')
             
             name = clean_name
-            if name in seen:
-                name = f"{name} ({idx})"
+            suffix = 2
+            while name in seen:
+                name = f"{clean_name} ({suffix})"
+                suffix += 1
             seen.add(name)
 
             if proto == "vless":

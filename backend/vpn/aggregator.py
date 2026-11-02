@@ -1021,29 +1021,10 @@ def get_country_badge(code: str) -> str:
     return f"{flag} {code}"
 
 def sanitize_node_remark(uri: str, ping_ms: float = 0.0, purpose: str = None, idx: int = None) -> str:
-    """Cleans spam from remarks and formats: TurboProbe · [Flag] [Country] · [Purpose] #[Index]"""
-    base_uri = uri.split('#')[0]
-    low = uri.lower()
-    
-    # 🌍 Universal Country detection
-    cc = detect_country_code(uri)
-    country_badge = get_country_badge(cc)
-    
-    # 🎯 Purpose detection (Priority-ordered prefix matching to avoid ss:// false-matches on vless/vmess)
-    if not purpose:
-        if any(kw in low for kw in WHITELIST_SNI_KEYWORDS): purpose = "Anti-Censor"
-        elif "security=reality" in low or "pbk=" in low: purpose = "Reality"
-        elif low.startswith("hy2://") or low.startswith("hysteria2://") or "hy2://" in low or "hysteria2://" in low: purpose = "Hy2-Speed"
-        elif low.startswith("tuic://") or "tuic://" in low: purpose = "TUIC"
-        elif low.startswith("trojan://") or "trojan://" in low: purpose = "Trojan"
-        elif low.startswith("vless://") or "vless://" in low: purpose = "VLESS"
-        elif low.startswith("vmess://") or "vmess://" in low: purpose = "VMess"
-        elif low.startswith("ss://") or "ss://" in low: purpose = "Shadowsocks"
-        else: purpose = "Ultra-Fast"
-    
-    suffix = f" #{idx:02d}" if idx is not None else ""
-    remark = f"TurboProbe · {country_badge} · {purpose}{suffix}"
-    return f"{base_uri}#{remark}"
+    """Short label; actual tunnel exporters pass an observed country separately."""
+    from node_labels import format_uri
+    return format_uri(uri,detect_country_code(uri))
+
 
 def relabel_pool_with_purpose(nodes: list, purpose: str) -> list:
     """Re-labels an entire pool of URIs with a specific purpose remark and unique index numbers."""
@@ -1078,15 +1059,19 @@ def generate_clash_meta_yaml(nodes: list) -> str:
                 uri = "vless://" + uri[5:]
 
             parsed = urllib.parse.urlparse(uri)
-            clean_name = f"TurboProbe-{idx:03d}"
+            clean_name = f"{parsed.scheme} {parsed.hostname or idx}"
             if '#' in uri:
                 raw_name = urllib.parse.unquote(uri.split('#')[-1]).strip()
                 if raw_name:
-                    clean_name = re.sub(r'[:"\'\[\]]', '', raw_name).strip()[:48]
+                    clean_name = raw_name
                     
-            name = f"{clean_name} #{idx:03d}"
-            if name in seen_names:
-                name = f"{name}-{idx}"
+            from node_labels import label
+            clean_name = label(detect_country_code(uri))
+            name = clean_name
+            suffix = 2
+            while name in seen_names:
+                name = f"{clean_name} ({suffix})"
+                suffix += 1
             seen_names.add(name)
             
             proto = parsed.scheme.lower()
