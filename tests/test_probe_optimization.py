@@ -7,6 +7,23 @@ from backend.vpn_v2 import probe
 
 
 class ProbeOptimizationTests(unittest.TestCase):
+    def test_stability_rejects_first_pass_only_and_keeps_conservative_latency(self):
+        first=[{'uri':'trojan://a@example.com:443#old','ping_ms':20},
+               {'uri':'trojan://b@example.com:443','ping_ms':10}]
+        second=[{'uri':'trojan://a@example.com:443#new','ping_ms':30,'country':'DE'}]
+        with patch.object(probe,'verify',side_effect=[first,second]) as verify:
+            result=probe.verify_stable(['input'],deadline=123)
+        self.assertEqual(len(result),1)
+        self.assertEqual(result[0]['ping_ms'],30)
+        self.assertEqual(result[0]['verification_rounds'],2)
+        self.assertEqual(verify.call_args_list[1].args[0],[n['uri'] for n in first])
+        self.assertEqual(verify.call_args_list[1].kwargs['deadline'],123)
+
+    def test_empty_first_pass_does_not_start_second_core_round(self):
+        with patch.object(probe,'verify',return_value=[]) as verify:
+            self.assertEqual(probe.verify_stable(['input']),[])
+        self.assertEqual(verify.call_count,1)
+
     def test_watchdog_does_not_signal_parent_notebook_group(self):
         from backend.vpn_v2 import kaggle
         import signal

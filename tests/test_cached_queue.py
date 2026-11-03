@@ -16,6 +16,17 @@ def verified(uris,**kwargs):
 
 
 class RollingQueueTests(unittest.TestCase):
+    def test_recheck_mode_publishes_only_stability_engine_results(self):
+        progress=q.load_progress(self.path)
+        def stable(uris,**kw):return [{**n,'verification_rounds':2} for n in verified(uris[:1])]
+        with patch.object(q,'verify_stable',side_effect=stable) as engine, \
+             patch.object(q,'verify') as single,patch.object(q,'push_snapshot') as push:
+            q.run_queue(self.run,progress,self.path,select=0,window=2,max_windows=1,recheck=True)
+        single.assert_not_called()
+        self.assertEqual(engine.call_count,1)
+        self.assertEqual(len(progress['local']),1)
+        self.assertEqual(push.call_args.args[0]['nodes'][0]['verification_rounds'],2)
+
     def test_bounded_pilot_checkpoints_one_window_without_lab_keys(self):
         progress=q.load_progress(self.path)
         with patch.object(q,'verify',side_effect=verified) as engine, \

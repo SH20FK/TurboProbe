@@ -88,6 +88,15 @@ this control mode. Site artifacts are read back from published `main` and deploy
 explicitly because commits made with `GITHUB_TOKEN` do not trigger Pages builds.
 Private reports and the SQLite database are not uploaded as public Actions artifacts.
 
+The workflow defaults to `recheck=true`: every successful tunnel must pass again
+with a fresh Xray/Mihomo process. Each round requires 2 of 3 validated HTTPS
+responses and a complete 64 KiB HTTPS download. Published latency uses the worse
+of the two round medians; `verification_rounds=2` is retained with node metadata.
+With `lab_limit=0`, no Lab credentials are injected or API jobs submitted, and
+local checking uses the budget except for five minutes reserved for publication.
+This checks from the GitHub runner's network, not from Russian mobile operators
+or the independent Intersvyaz vantage. It does not certify service-specific access.
+
 
 - Full runs use SQLite in `.local/state/crawler.sqlite`. The old registry is
   imported once, filtered and canonically deduplicated. Daily active sources and

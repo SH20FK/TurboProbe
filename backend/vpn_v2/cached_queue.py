@@ -10,7 +10,7 @@ import time
 from .crawler_run import CrawlRun
 from .github import push_snapshot
 from .latencylab import LabClient,LabError,check_candidates
-from .probe import verify,rank,measure_selected,service_prober
+from .probe import verify,verify_stable,rank,measure_selected,service_prober
 from .secrets import load
 
 
@@ -54,7 +54,8 @@ def save_progress(run,progress,private):
     run.branch.save_progress(progress)
 
 
-def run_queue(run,progress,private,select=200,window=1000,max_windows=0):
+def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=False):
+    engine=verify_stable if recheck else verify
     total=run.store.db.execute('SELECT count(*) FROM nodes').fetchone()[0]
     if not total: raise LabError('Saved cache is empty; no source crawl was started')
     def ident(uri):return hashlib.sha256(uri.split('#',1)[0].encode()).hexdigest()
@@ -63,7 +64,8 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0):
     def remember(nodes):
         for n in nodes:
             key=ident(n['uri'])
-            local[key]={'id':key,'ping_ms':n['ping_ms'],'country':n.get('country','GLOBAL'),'checked_at':n['checked_at']}
+            local[key]={'id':key,'ping_ms':n['ping_ms'],'country':n.get('country','GLOBAL'),'checked_at':n['checked_at'],
+                        'verification_rounds':n.get('verification_rounds',1)}
     def current_nodes():
         now=datetime.now(timezone.utc);result=[]
         for key,n in list(local.items()):
@@ -132,7 +134,7 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0):
             return True
         return False
     prior=fresh_best(progress['best'])
-    progress['best']=verify([n['uri'] for n in prior],deadline=run.local_deadline) if prior else []
+    progress['best']=engine([n['uri'] for n in prior],deadline=run.local_deadline) if prior else []
     still_good={ident(n['uri']) for n in progress['best']}
     for old in prior:
         key=ident(old['uri'])
@@ -147,7 +149,7 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0):
             if windows:break
             progress.update(cursor='',processed=0,cycle=progress['cycle']+1)
             rows=next_window(run.store,'',window)
-        try:verified=verify([r[1] for r in rows],deadline=run.local_deadline)
+        try:verified=engine([r[1] for r in rows],deadline=run.local_deadline)
         except TimeoutError:
             print('Local budget reached; unfinished window will be retried next run',flush=True);break
         good={ident(n['uri']) for n in verified}
@@ -176,6 +178,7 @@ def main():
     parser.add_argument('--window',type=int,default=1000)
     parser.add_argument('--max-windows',type=int,default=0,help='0 continues until the local budget; 1 is a bounded pilot')
     parser.add_argument('--budget-seconds',type=int,default=21600)
+    parser.add_argument('--recheck',action='store_true',help='require a second complete HTTPS pass with fresh cores')
     args=parser.parse_args()
     if not 0<=args.select<=200 or not 1<=args.window<=5000 or args.max_windows<0:parser.error('invalid select/window size')
     if not 5401<=args.budget_seconds<=21600:parser.error('invalid time budget')
@@ -184,12 +187,14 @@ def main():
         if not load(name):raise LabError(f'Missing secret: {name}')
     private=Path(__file__).resolve().parent/'.local'
     run=CrawlRun(private/'rolling-state',load('GITHUB_TOKEN'),True,args.budget_seconds,persist_checkpoints=False)
+    if not args.select:
+        run.local_deadline=run.deadline-300  # No Lab stage: retain five minutes for final checkpoint/publication.
     try:
         service_prober.get_xray_binary_path();service_prober.get_mihomo_binary_path()
         progress_path=run.branch.path/'probe-progress.json.gz'
         if not progress_path.exists():progress_path=run.branch.path/'probe-progress.json'
         progress=load_progress(progress_path)
-        run_queue(run,progress,private/'probe-progress.json',args.select,args.window,args.max_windows)
+        run_queue(run,progress,private/'probe-progress.json',args.select,args.window,args.max_windows,args.recheck)
     finally:run.close()
 
 

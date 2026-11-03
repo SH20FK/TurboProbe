@@ -12,6 +12,10 @@ on:
         description: 'Windows of 1000 saved keys (1 = pilot, 0 = continue within budget)'
         type: string
         default: '1'
+      recheck:
+        description: 'Require two full HTTPS tunnel checks with fresh cores'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -38,10 +42,11 @@ jobs:
       - name: Verify complete windows and publish fresh results
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          LATENCYLAB_API_KEY_1: ${{ secrets.LATENCYLAB_API_KEY_1 }}
-          LATENCYLAB_API_KEY_2: ${{ secrets.LATENCYLAB_API_KEY_2 }}
+          LATENCYLAB_API_KEY_1: ${{ inputs.lab_limit != '0' && secrets.LATENCYLAB_API_KEY_1 || '' }}
+          LATENCYLAB_API_KEY_2: ${{ inputs.lab_limit != '0' && secrets.LATENCYLAB_API_KEY_2 || '' }}
           LAB_LIMIT: ${{ inputs.lab_limit }}
           WINDOWS: ${{ inputs.windows }}
+          RECHECK: ${{ inputs.recheck }}
         run: |
           python - <<'PY'
           import os
@@ -52,7 +57,9 @@ jobs:
           if limit and not all(os.environ.get(n, '').strip() for n in ('LATENCYLAB_API_KEY_1', 'LATENCYLAB_API_KEY_2')):
               raise SystemExit('Add LATENCYLAB_API_KEY_1 and LATENCYLAB_API_KEY_2 to repository Actions secrets, or select lab_limit=0')
           PY
-          timeout --signal=TERM --kill-after=30s 20400s python -u -m backend.vpn_v2.cached_queue --select "$LAB_LIMIT" --max-windows "$WINDOWS" --budget-seconds 19800
+          EXTRA=()
+          if [ "$RECHECK" = 'true' ]; then EXTRA+=(--recheck); fi
+          timeout --signal=TERM --kill-after=30s 20400s python -u -m backend.vpn_v2.cached_queue --select "$LAB_LIMIT" --max-windows "$WINDOWS" --budget-seconds 19800 "${EXTRA[@]}"
       - name: Read published site from main
         env:
           GITHUB_TOKEN: ${{ github.token }}

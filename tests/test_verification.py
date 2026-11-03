@@ -178,12 +178,14 @@ class PublicationTests(unittest.TestCase):
     def test_zero_verified_nodes_replace_old_cloud_exports(self):
         import contextlib
         import io
+        async def reachable(pool, **kwargs):
+            return {'tcp': pool, 'tls': []}
         with tempfile.TemporaryDirectory() as d:
             root=Path(d); sub=root/'sub'; sub.mkdir(); tools=root/'tools'; tools.mkdir()
             uri='vless://11111111-2222-3333-4444-555555555555@example.com:443'
             for name in ['all.txt','reality.txt','hysteria2.txt']:
                 (sub/name).write_text(uri)
-            with patch.multiple(prober,ROOT_DIR=str(root),SUB_DIR=str(sub),TOOLS_DIR=str(tools),SERVICES_DIR=str(sub/'services')), patch.object(prober,'get_xray_binary_path',return_value='xray'), patch.object(prober,'run_batch_probe',return_value=[]), patch.object(sys,'argv',['service_prober.py','--limit','1']), contextlib.redirect_stdout(io.StringIO()):
+            with patch.multiple(prober,ROOT_DIR=str(root),SUB_DIR=str(sub),TOOLS_DIR=str(tools),SERVICES_DIR=str(sub/'services')), patch.object(prober,'get_xray_binary_path',return_value='xray'), patch.object(prober,'run_async_syn_prefilter',side_effect=reachable), patch.object(prober,'run_batch_probe',return_value=[]), patch.object(sys,'argv',['service_prober.py','--limit','1']), contextlib.redirect_stdout(io.StringIO()):
                 prober.main()
             self.assertEqual(json.loads((sub/'nodes.json').read_text())['nodes'],[])
             for name in ['all.txt','reality.txt','hysteria2.txt']:

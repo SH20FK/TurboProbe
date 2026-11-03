@@ -84,6 +84,23 @@ def verify(uris, batch_size=None, workers=None, *, deadline=float('inf'), checkp
     return list(verified.values())
 
 
+def verify_stable(uris, **kwargs):
+    """Require two complete strict passes, with a fresh core lifecycle per pass."""
+    first = verify(uris, **kwargs)
+    if not first:
+        return []
+    print(f'Stability phase: rechecking {len(first)} first-pass tunnels with fresh cores', flush=True)
+    second = {n['uri'].split('#', 1)[0]: n for n in verify([n['uri'] for n in first], **kwargs)}
+    result = []
+    for node in first:
+        repeat = second.get(node['uri'].split('#', 1)[0])
+        if repeat:
+            result.append({**repeat, 'ping_ms': max(node['ping_ms'], repeat['ping_ms']),
+                           'verification_rounds': 2, 'first_pass_ping_ms': node['ping_ms']})
+    print(f'Stability complete: {len(result)}/{len(first)} confirmed twice', flush=True)
+    return result
+
+
 def measure_selected(nodes, *, deadline=float('inf')):
     """Bounded 4 MiB HTTPS measurement for selected nodes; ping stays unchanged."""
     from verification import make_session, read_response
