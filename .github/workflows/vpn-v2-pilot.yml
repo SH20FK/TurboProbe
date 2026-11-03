@@ -1,0 +1,81 @@
+name: VPN v2 control run
+
+on:
+  workflow_dispatch:
+    inputs:
+      lab_limit:
+        description: 'LatencyLab daily ceiling (0 = HTTPS tunnel checks only)'
+        type: choice
+        default: '10'
+        options: ['0', '10', '200']
+      windows:
+        description: 'Windows of 1000 saved keys (1 = pilot, 0 = continue within budget)'
+        type: string
+        default: '1'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: vpn-v2-state-writer
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Verify complete windows and publish fresh results
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LATENCYLAB_API_KEY_1: ${{ secrets.LATENCYLAB_API_KEY_1 }}
+          LATENCYLAB_API_KEY_2: ${{ secrets.LATENCYLAB_API_KEY_2 }}
+          LAB_LIMIT: ${{ inputs.lab_limit }}
+          WINDOWS: ${{ inputs.windows }}
+        run: |
+          python - <<'PY'
+          import os
+          limit = int(os.environ['LAB_LIMIT'])
+          windows = int(os.environ['WINDOWS'])
+          if limit not in (0, 10, 200) or not 0 <= windows <= 1000:
+              raise SystemExit('Invalid run limits')
+          if limit and not all(os.environ.get(n, '').strip() for n in ('LATENCYLAB_API_KEY_1', 'LATENCYLAB_API_KEY_2')):
+              raise SystemExit('Add LATENCYLAB_API_KEY_1 and LATENCYLAB_API_KEY_2 to repository Actions secrets, or select lab_limit=0')
+          PY
+          timeout --signal=TERM --kill-after=30s 20400s python -u -m backend.vpn_v2.cached_queue --select "$LAB_LIMIT" --max-windows "$WINDOWS" --budget-seconds 19800
+      - name: Read published site from main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import base64, os, subprocess
+          env = {**os.environ, 'GIT_CONFIG_COUNT': '1',
+                 'GIT_CONFIG_KEY_0': 'http.https://github.com/.extraheader',
+                 'GIT_CONFIG_VALUE_0': 'AUTHORIZATION: basic ' + base64.b64encode(('x-access-token:' + os.environ['GITHUB_TOKEN']).encode()).decode()}
+          subprocess.run(['git', 'fetch', '--depth', '1', 'origin', 'main'], env=env, check=True)
+          subprocess.run(['git', 'restore', '--source=FETCH_HEAD', '--', 'docs'], check=True)
+          PY
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+  deploy-site:
+    needs: probe
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy published subscriptions and site
+        id: deployment
+        uses: actions/deploy-pages@v4

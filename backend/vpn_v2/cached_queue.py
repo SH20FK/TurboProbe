@@ -54,7 +54,7 @@ def save_progress(run,progress,private):
     run.branch.save_progress(progress)
 
 
-def run_queue(run,progress,private,select=200,window=1000):
+def run_queue(run,progress,private,select=200,window=1000,max_windows=0):
     total=run.store.db.execute('SELECT count(*) FROM nodes').fetchone()[0]
     if not total: raise LabError('Saved cache is empty; no source crawl was started')
     def ident(uri):return hashlib.sha256(uri.split('#',1)[0].encode()).hexdigest()
@@ -161,6 +161,7 @@ def run_queue(run,progress,private,select=200,window=1000):
         published=publish_current() or published
         if lab_batch(all_nodes):published=publish_current() or published
         print(f'Queue progress: {progress["processed"]}/{total}; {len(local)} fresh tunnel nodes',flush=True)
+        if max_windows and windows>=max_windows:break
         if not next_window(run.store,progress['cursor'],1):break
     while time.monotonic()<run.deadline and lab_batch(current_nodes()):
         published=publish_current() or published
@@ -173,18 +174,22 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--select',type=int,default=200)
     parser.add_argument('--window',type=int,default=1000)
+    parser.add_argument('--max-windows',type=int,default=0,help='0 continues until the local budget; 1 is a bounded pilot')
+    parser.add_argument('--budget-seconds',type=int,default=21600)
     args=parser.parse_args()
-    if not 1<=args.select<=200 or not 1<=args.window<=5000:parser.error('invalid select/window size')
-    for name in ('GITHUB_TOKEN','LATENCYLAB_API_KEY_1','LATENCYLAB_API_KEY_2'):
+    if not 0<=args.select<=200 or not 1<=args.window<=5000 or args.max_windows<0:parser.error('invalid select/window size')
+    if not 5401<=args.budget_seconds<=21600:parser.error('invalid time budget')
+    names=('GITHUB_TOKEN',)+(('LATENCYLAB_API_KEY_1','LATENCYLAB_API_KEY_2') if args.select else ())
+    for name in names:
         if not load(name):raise LabError(f'Missing secret: {name}')
     private=Path(__file__).resolve().parent/'.local'
-    run=CrawlRun(private/'rolling-state',load('GITHUB_TOKEN'),True,persist_checkpoints=False)
+    run=CrawlRun(private/'rolling-state',load('GITHUB_TOKEN'),True,args.budget_seconds,persist_checkpoints=False)
     try:
         service_prober.get_xray_binary_path();service_prober.get_mihomo_binary_path()
         progress_path=run.branch.path/'probe-progress.json.gz'
         if not progress_path.exists():progress_path=run.branch.path/'probe-progress.json'
         progress=load_progress(progress_path)
-        run_queue(run,progress,private/'probe-progress.json',args.select,args.window)
+        run_queue(run,progress,private/'probe-progress.json',args.select,args.window,args.max_windows)
     finally:run.close()
 
 

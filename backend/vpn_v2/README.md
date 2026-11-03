@@ -71,6 +71,24 @@ runner should run at a time; a conflicting state push fails without force push.
 
 ## Crawler behavior
 
+### GitHub Actions control run
+
+Run **VPN v2 control run** from the Actions tab. It has no schedule: the default
+is one window of 1,000 saved keys and a daily ceiling of 10 LatencyLab jobs.
+Set repository Actions secrets `LATENCYLAB_API_KEY_1` and `LATENCYLAB_API_KEY_2`.
+GitHub supplies its own short-lived repository token for state and subscription
+pushes; a separate personal GitHub token is not required. Select `lab_limit=0`
+for a tunnel-only pilot without LatencyLab credentials. Those nodes remain ordinary
+HTTPS tunnel confirmations, not operator confirmations.
+
+`windows=0` continues the rolling queue within a 5.5-hour pipeline budget, leaving
+time before GitHub's six-hour job limit for setup and cleanup. Completed windows
+and API reservations persist on `crawler-state`. No new sources are crawled in
+this control mode. Site artifacts are read back from published `main` and deployed
+explicitly because commits made with `GITHUB_TOKEN` do not trigger Pages builds.
+Private reports and the SQLite database are not uploaded as public Actions artifacts.
+
+
 - Full runs use SQLite in `.local/state/crawler.sqlite`. The old registry is
   imported once, filtered and canonically deduplicated. Daily active sources and
   due quarantine entries are attempted; ranking does not truncate the pool.

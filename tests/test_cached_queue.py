@@ -16,6 +16,16 @@ def verified(uris,**kwargs):
 
 
 class RollingQueueTests(unittest.TestCase):
+    def test_bounded_pilot_checkpoints_one_window_without_lab_keys(self):
+        progress=q.load_progress(self.path)
+        with patch.object(q,'verify',side_effect=verified) as engine, \
+             patch.object(q,'check_candidates') as lab,patch.object(q,'push_snapshot'):
+            q.run_queue(self.run,progress,self.path,select=0,window=2,max_windows=1)
+        self.assertEqual(engine.call_count,1)
+        self.assertEqual(progress['processed'],2)
+        self.assertEqual(q.load_progress(self.path)['cursor'],self.ids[1])
+        lab.assert_not_called()
+
     def test_up_to_200_unique_lab_checks_while_all_240_tunnels_are_retained(self):
         self.store.db.execute('DELETE FROM nodes')
         uris=[f'trojan://extra{i}@example.com:443' for i in range(240)]
