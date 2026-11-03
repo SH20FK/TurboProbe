@@ -2,11 +2,12 @@ import asyncio
 import time
 import unittest
 from unittest.mock import AsyncMock, Mock, patch
-from backend.vpn_v2.probe_prefilter import prefilter
+from backend.vpn_v2.probe_prefilter import prefilter, ProbeCache, RUN_CACHE
 from backend.vpn_v2 import probe
 
 
 class ProbeOptimizationTests(unittest.TestCase):
+    def setUp(self): RUN_CACHE.items.clear()
     def test_stability_rejects_first_pass_only_and_keeps_conservative_latency(self):
         first=[{'uri':'trojan://a@example.com:443#old','ping_ms':20},
                {'uri':'trojan://b@example.com:443','ping_ms':10}]
@@ -69,7 +70,7 @@ class ProbeOptimizationTests(unittest.TestCase):
         self.assertEqual(connect.await_count,2)
         writer.close.assert_called_once()
 
-    def test_udp_requires_public_dns_but_never_tcp_connect(self):
+    def test_udp_is_deferred_to_tunnel_phase(self):
         uris = ['hy2://password@example.com:443']
         with patch('backend.vpn_v2.probe_prefilter.public_addresses',return_value=['8.8.8.8']), \
              patch('backend.vpn_v2.probe_prefilter.asyncio.open_connection',new_callable=AsyncMock) as tcp:
@@ -95,3 +96,42 @@ class ProbeOptimizationTests(unittest.TestCase):
              patch.object(probe.service_prober,'run_batch_probe') as engine:
             with self.assertRaises(TimeoutError):probe.measure_selected([{'uri':'x'}],deadline=0)
             engine.assert_not_called()
+
+
+class CrossWindowCacheTests(unittest.TestCase):
+    def test_credentials_share_tcp_across_event_loops_but_expiry_rechecks(self):
+        cache=ProbeCache()
+        writer=Mock()
+        clock=[100.0]
+        with patch('backend.vpn_v2.probe_prefilter.time.monotonic',side_effect=lambda:clock[0]), patch('backend.vpn_v2.probe_prefilter.public_addresses',return_value=['8.8.8.8']) as dns, patch('backend.vpn_v2.probe_prefilter.asyncio.open_connection',new_callable=AsyncMock,return_value=(Mock(),writer)) as tcp:
+            for password in ('a','b'):
+                uri=f'trojan://{password}@cache.test:443'
+                self.assertEqual(asyncio.run(prefilter([uri],probe.service_prober.parse_host_and_port,1000,cache=cache)),[uri])
+            self.assertEqual(dns.call_count,1);self.assertEqual(tcp.await_count,1)
+            clock[0]=161
+            asyncio.run(prefilter([uri],probe.service_prober.parse_host_and_port,1000,cache=cache))
+            self.assertEqual(tcp.await_count,2);self.assertEqual(dns.call_count,1)
+            clock[0]=401
+            asyncio.run(prefilter([uri],probe.service_prober.parse_host_and_port,1000,cache=cache))
+            self.assertEqual(dns.call_count,2)
+
+    def test_negative_cache_expires_and_capacity_is_bounded(self):
+        cache=ProbeCache(limit=2)
+        with patch('backend.vpn_v2.probe_prefilter.time.monotonic',return_value=100):
+            cache.put('a',False,10);self.assertIs(cache.get('a'),False)
+            cache.put('b',True,60);cache.put('c',True,60)
+            self.assertIsNone(cache.get('a'));self.assertEqual(len(cache.items),2)
+        with patch('backend.vpn_v2.probe_prefilter.time.monotonic',return_value=161):
+            self.assertIsNone(cache.get('b'))
+
+    def test_udp_never_resolves_or_connects_in_phase_one(self):
+        uris=['hy2://p@missing.test:443','tuic://u:p@missing.test:443']
+        with patch('backend.vpn_v2.probe_prefilter.public_addresses') as dns, patch('backend.vpn_v2.probe_prefilter.asyncio.open_connection') as tcp:
+            self.assertEqual(asyncio.run(prefilter(uris,probe.service_prober.parse_host_and_port,time.monotonic()+30,cache=ProbeCache())),uris)
+        dns.assert_not_called();tcp.assert_not_called()
+
+    def test_low_memory_reduces_core_count_and_batch(self):
+        from backend.vpn_v2 import resources
+        with patch.object(resources,'cpu_count',return_value=8), patch.object(resources,'runtime_sample',return_value={'memory_max':1024**3,'memory_current':512*1024**2}):
+            profile=resources.concurrency()
+        self.assertEqual((profile['probe_workers'],profile['probe_batch']),(1,8))

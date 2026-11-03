@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, Mock, patch
 from backend.vpn_v2.parallel import completed, host_downloads
 from backend.vpn_v2.crawler import ParsedCache
 from backend.vpn_v2.crawler_store import Store
-from backend.vpn_v2.probe_prefilter import prefilter
+from backend.vpn_v2.probe_prefilter import prefilter, ProbeCache, RUN_CACHE
 from backend.vpn_v2 import resources, probe
 
 
@@ -90,6 +90,7 @@ class QueueTests(unittest.TestCase):
 
 
 class PrefilterScaleTests(unittest.TestCase):
+    def setUp(self): RUN_CACHE.items.clear()
     def test_many_credentials_create_only_endpoint_workers_and_keep_order(self):
         uris = [f'trojan://p{i}@h{i%10}.test:443' for i in range(10000)]
         create = asyncio.create_task
@@ -100,13 +101,13 @@ class PrefilterScaleTests(unittest.TestCase):
             result = asyncio.run(prefilter(uris,probe.service_prober.parse_host_and_port,time.monotonic()+30))
         self.assertEqual(result,uris)
         self.assertEqual(dns.call_count,10)
-        self.assertEqual(tcp.await_count,10)
+        self.assertEqual(tcp.await_count,1)
         self.assertEqual(tasks.call_count,20)
 
-    def test_udp_with_failed_dns_is_not_retained(self):
+    def test_udp_skips_phase_one_even_with_failed_dns(self):
         with patch('backend.vpn_v2.probe_prefilter.public_addresses',side_effect=OSError('DNS failure')), \
              patch('backend.vpn_v2.probe_prefilter.asyncio.open_connection',new_callable=AsyncMock) as tcp:
-            self.assertEqual(asyncio.run(prefilter(['hy2://p@h.test:443'],probe.service_prober.parse_host_and_port,time.monotonic()+30)),[])
+            self.assertEqual(asyncio.run(prefilter(['hy2://p@h.test:443'],probe.service_prober.parse_host_and_port,time.monotonic()+30)),['hy2://p@h.test:443'])
         tcp.assert_not_called()
 
 
@@ -146,11 +147,11 @@ class StorageScaleTests(unittest.TestCase):
 
 class ResourceTests(unittest.TestCase):
     def test_profile_scales_but_stays_within_caps(self):
-        for cpus,downloads,cores in ((1,24,1),(2,32,2),(4,64,4),(64,64,4)):
-            with patch.object(resources,'cpu_count',return_value=cpus):
+        for cpus,downloads,cores in ((1,24,2),(2,32,4),(4,64,8),(64,64,8)):
+            with patch.object(resources,'cpu_count',return_value=cpus), patch.object(resources,'runtime_sample',return_value={}):
                 result = resources.concurrency()
             self.assertEqual((result['downloads'],result['probe_workers']),(downloads,cores))
-            self.assertLessEqual(result['probe_batch']*result['probe_workers'],32)
+            self.assertLessEqual(result['probe_batch']*result['probe_workers'],256)
 
     def test_cgroup_quota_limits_host_cpu_count(self):
         with patch.object(resources.os,'process_cpu_count',return_value=64,create=True), \
