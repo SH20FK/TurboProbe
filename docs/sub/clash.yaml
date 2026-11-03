@@ -6,6 +6,14 @@ log-level: info
 
 proxies:
   - name: "TurboProbe 🇺🇸 US"
+    type: hysteria2
+    server: "155.248.209.237"
+    port: 33333
+    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
+    udp: true
+    sni: "off"
+    skip-cert-verify: false
+  - name: "TurboProbe 🇺🇸 US (2)"
     type: vless
     server: "167.17.69.171"
     port: 443
@@ -18,7 +26,7 @@ proxies:
     reality-opts:
       public-key: "ALT8hIGeZEhi0sQFbXP_ntBg8Xo-v7i0YCLrqTnBxRk"
       short-id: "0990d22f"
-  - name: "TurboProbe 🇺🇸 US (2)"
+  - name: "TurboProbe 🇺🇸 US (3)"
     type: trojan
     server: "169.197.140.171"
     port: 443
@@ -26,27 +34,19 @@ proxies:
     udp: true
     sni: "cdn.discoverfreshgraduatejobsstartyourprofessionaljourney.com"
     network: tcp
-  - name: "TurboProbe 🇺🇸 US (3)"
+  - name: "TurboProbe 🇺🇸 US (4)"
     type: vless
-    server: "169.40.42.104"
-    port: 443
-    uuid: "d65cc14c-f53f-4fe2-b262-97856601319c"
+    server: "107.173.237.146"
+    port: 8443
+    uuid: "1d39f715-2740-4d99-bc3b-197cc48dcee7"
     udp: true
     tls: true
-    servername: "yahoo.com"
-    client-fingerprint: "ios"
-    network: tcp
+    servername: "updates.cdn-apple.com"
+    client-fingerprint: "chrome"
+    network: raw
     reality-opts:
-      public-key: "e2RLf57Li_-MDZGE9ss1BWPgP54mqRb5PfXhW2jcVVg"
-      short-id: "c39cc7310a"
-  - name: "TurboProbe 🇺🇸 US (4)"
-    type: hysteria2
-    server: "155.248.209.237"
-    port: 33333
-    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
-    udp: true
-    sni: "off"
-    skip-cert-verify: false
+      public-key: "D3ojIs3AUKP_tV0E4TEjh90HBVJp24Nq3qMfdxD30kc"
+      short-id: "df8611c07d"
   - name: "TurboProbe 🇺🇸 US (5)"
     type: vless
     server: "15.204.97.206"
@@ -62,6 +62,19 @@ proxies:
       short-id: "01"
   - name: "TurboProbe 🇺🇸 US (6)"
     type: vless
+    server: "169.40.42.104"
+    port: 443
+    uuid: "d65cc14c-f53f-4fe2-b262-97856601319c"
+    udp: true
+    tls: true
+    servername: "yahoo.com"
+    client-fingerprint: "ios"
+    network: tcp
+    reality-opts:
+      public-key: "e2RLf57Li_-MDZGE9ss1BWPgP54mqRb5PfXhW2jcVVg"
+      short-id: "c39cc7310a"
+  - name: "TurboProbe 🇺🇸 US (7)"
+    type: vless
     server: "23.95.222.127"
     port: 8443
     uuid: "352ff568-f971-4613-bf48-92997a5d44ed"
@@ -73,6 +86,19 @@ proxies:
     reality-opts:
       public-key: "ribQDOlZ69PzvZ1EDF0EcmMvbq_T5RQrVRBSGUU2riU"
       short-id: "35cd899f8de04801"
+  - name: "TurboProbe 🇺🇸 US (8)"
+    type: vless
+    server: "ww13.levikogjgfdd.ir"
+    port: 23576
+    uuid: "48ff2b70-e180-582f-8866-d9a2edeed5f5"
+    udp: true
+    tls: true
+    servername: "fuck.rkn"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "1y5h2FGWKXTJ9xLPCqPo6Mw7RxoZzh6fGkEQKNxpZ3s"
+      short-id: "01"
   - name: "TurboProbe 🇳🇱 NL"
     type: vless
     server: "51.158.206.103"
@@ -99,19 +125,27 @@ proxies:
     reality-opts:
       public-key: "1y5h2FGWKXTJ9xLPCqPo6Mw7RxoZzh6fGkEQKNxpZ3s"
       short-id: "01"
-  - name: "TurboProbe 🇺🇸 US (7)"
+  - name: "TurboProbe 🇫🇷 FR"
     type: vless
-    server: "169.40.42.224"
-    port: 443
-    uuid: "d65cc14c-f53f-4fe2-b262-97856601319c"
+    server: "51.77.217.70"
+    port: 2053
+    uuid: "bf16ee0c-8b3c-41e4-ab3a-8b48033c404e"
     udp: true
     tls: true
-    servername: "yahoo.com"
-    client-fingerprint: "random"
+    servername: "www.apple.com"
+    client-fingerprint: "chrome"
     network: tcp
     reality-opts:
-      public-key: "e2RLf57Li_-MDZGE9ss1BWPgP54mqRb5PfXhW2jcVVg"
-      short-id: "c39cc7310a"
+      public-key: "g63cT3uI0Y5iUtj3m__RYz7nmR1eIK4AYikdnZCl63w"
+      short-id: "bfe58beb41f1d09f"
+  - name: "TurboProbe 🇵🇱 PL"
+    type: hysteria2
+    server: "13.143.189.147"
+    port: 4444
+    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
+    udp: true
+    sni: "pl2.nexfile.net"
+    skip-cert-verify: false
   - name: "TurboProbe 🇯🇵 JP"
     type: vless
     server: "18.183.215.124"
@@ -125,7 +159,66 @@ proxies:
     reality-opts:
       public-key: "1DJr9toke7FRuSXjibBVuNvRnLnJnN5kXwUBG6Romzg"
       short-id: "03653bc03be10c97"
-  - name: "TurboProbe 🇺🇸 US (8)"
+  - name: "TurboProbe 🇩🇪 DE"
+    type: vless
+    server: "178.17.52.236"
+    port: 2083
+    uuid: "6da2c981-8c77-4340-bda3-93399b7aea26"
+    udp: true
+    tls: true
+    servername: "maps.blog-forme.ru"
+    client-fingerprint: "edge"
+    network: xhttp
+    reality-opts:
+      public-key: "mbi4BZAuiq_L6pfhG2xxWmtosq0Z1Pzf18fvNSWKMxY"
+      short-id: "3258252d44113e23"
+  - name: "TurboProbe 🇳🇱 NL (3)"
+    type: vless
+    server: "qq.utiltools.site"
+    port: 443
+    uuid: "4054fdc2-ee80-4419-8a8e-d937df4719e2"
+    udp: true
+    tls: true
+    servername: "qq.utiltools.site"
+    client-fingerprint: "safari"
+    network: tcp
+    reality-opts:
+      public-key: "drY21DHNOr6ezJLA2B10mzTExeJ9-gVBfTBNLwVBtWI"
+  - name: "TurboProbe 🇺🇸 US (9)"
+    type: vless
+    server: "169.40.42.224"
+    port: 443
+    uuid: "d65cc14c-f53f-4fe2-b262-97856601319c"
+    udp: true
+    tls: true
+    servername: "yahoo.com"
+    client-fingerprint: "random"
+    network: tcp
+    reality-opts:
+      public-key: "e2RLf57Li_-MDZGE9ss1BWPgP54mqRb5PfXhW2jcVVg"
+      short-id: "c39cc7310a"
+  - name: "TurboProbe 🇷🇴 RO"
+    type: hysteria2
+    server: "185.156.44.99"
+    port: 443
+    password: "gf1%3Agfhysteria2024"
+    udp: true
+    sni: "speedtest.tinkoff.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe 🇫🇮 FI"
+    type: vless
+    server: "94.156.79.93"
+    port: 443
+    uuid: "1a5e7720-abf3-4b9b-bc9b-9a900a04b434"
+    udp: true
+    tls: true
+    servername: "www.microsoft.com"
+    client-fingerprint: "firefox"
+    network: raw
+    reality-opts:
+      public-key: "_0fpFqEEuCso3B8K7AAcMjctwG_xfCxO2PdKzGd_-hg"
+      short-id: "f129dcdbf64f"
+  - name: "TurboProbe 🇺🇸 US (10)"
     type: vless
     server: "195.123.240.65"
     port: 443
@@ -138,20 +231,7 @@ proxies:
     reality-opts:
       public-key: "StPbcmBuzpuYUfa4oZ5SI3Bq1OSF_-oU1vp2AcyvQVE"
       short-id: "19296c9f1bf9c7b1"
-  - name: "TurboProbe 🇵🇱 PL"
-    type: vless
-    server: "54.37.136.194"
-    port: 2053
-    uuid: "e8a432c8-5d84-49a5-b822-67ed761a58f9"
-    udp: true
-    tls: true
-    servername: "www.cloudflare.com"
-    client-fingerprint: "firefox"
-    network: tcp
-    reality-opts:
-      public-key: "Vemd9Jjk5xKO8qSC3g8VVagwcb4J1BcTvp86CswQC0A"
-      short-id: "50ba05992b05c1c3"
-  - name: "TurboProbe 🇺🇸 US (9)"
+  - name: "TurboProbe 🇺🇸 US (11)"
     type: vless
     server: "162.35.8.62"
     port: 443
@@ -166,20 +246,94 @@ proxies:
       short-id: "29b29106d4769e3a"
     grpc-opts:
       grpc-service-name: "aa7f1b042f73"
-  - name: "TurboProbe 🇯🇵 JP (2)"
+  - name: "TurboProbe 🇵🇱 PL (2)"
     type: vless
-    server: "104.16.111.102"
-    port: 443
-    uuid: "4e4f1f70-5e56-4a76-bb9d-db087f4690c4"
+    server: "54.37.136.194"
+    port: 2053
+    uuid: "e8a432c8-5d84-49a5-b822-67ed761a58f9"
     udp: true
     tls: true
-    servername: "jp3.yohototo.top"
-    client-fingerprint: "unsafe"
-    network: ws
-    ws-opts:
-      path: "/tyxyws"
-      headers:
-        Host: "jp3.yohototo.top"
+    servername: "www.cloudflare.com"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "Vemd9Jjk5xKO8qSC3g8VVagwcb4J1BcTvp86CswQC0A"
+      short-id: "50ba05992b05c1c3"
+  - name: "TurboProbe 🇳🇱 NL (4)"
+    type: vless
+    server: "104.239.12.81"
+    port: 443
+    uuid: "d806a58b-33aa-42e0-b170-395e49c16b37"
+    udp: true
+    tls: true
+    servername: "www.microsoft.com"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "Y0noOXC8qHmbM0GmDpj-9BBwKSOtHs-uMbNfKU050GQ"
+      short-id: "b558b9305a0b"
+  - name: "TurboProbe 🇬🇧 GB"
+    type: vless
+    server: "node-uk.connectsuite.org"
+    port: 8443
+    uuid: "c08f0056-7a6d-4931-813b-aaa3cdd00aed"
+    udp: true
+    tls: true
+    servername: "node-uk.connectsuite.org"
+    client-fingerprint: "chrome"
+    network: tcp
+  - name: "TurboProbe 🇸🇬 SG"
+    type: vless
+    server: "54.251.9.130"
+    port: 24146
+    uuid: "9d9a048b-3aea-4b3e-b106-1106bf301feb"
+    udp: true
+    tls: true
+    servername: "www.intel.com"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "VeluC9A7XDurAWQNgXKShS2SJSgoK79QHFgiAMYrvGo"
+      short-id: "7205d9079521832c"
+  - name: "TurboProbe 🇳🇱 NL (5)"
+    type: vless
+    server: "86.54.28.75"
+    port: 443
+    uuid: "44ae52b9-76fc-444d-8e43-186b4384b80a"
+    udp: true
+    tls: true
+    servername: "www.apple.com"
+    client-fingerprint: "chrome"
+    network: tcp
+    reality-opts:
+      public-key: "PryGoq51ilG0eLUPl9i0xCvmk1xpwkyFSr_tG4GNLlU"
+      short-id: "1d86d17709852910"
+  - name: "TurboProbe 🇫🇮 FI (2)"
+    type: vless
+    server: "107.181.151.128"
+    port: 443
+    uuid: "8cc7d0fc-1b83-4ee3-b51d-8a03a9b19435"
+    udp: true
+    tls: true
+    servername: "www.microsoft.com"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "zfsjt2A8ur0qHWIuCG7F9W4wZN3VTuL6fkTljC-9R0s"
+      short-id: "87174b37ce3b"
+  - name: "TurboProbe 🇫🇮 FI (3)"
+    type: vless
+    server: "107.181.151.128"
+    port: 443
+    uuid: "75113671-63e3-452d-87d3-261a37e8b472"
+    udp: true
+    tls: true
+    servername: "www.mozilla.org"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "zfsjt2A8ur0qHWIuCG7F9W4wZN3VTuL6fkTljC-9R0s"
+      short-id: "baf023e1026a"
 
 proxy-groups:
   - name: "⚡ TURBOPROBE-AUTO"
@@ -194,14 +348,27 @@ proxy-groups:
       - "TurboProbe 🇺🇸 US (4)"
       - "TurboProbe 🇺🇸 US (5)"
       - "TurboProbe 🇺🇸 US (6)"
+      - "TurboProbe 🇺🇸 US (7)"
+      - "TurboProbe 🇺🇸 US (8)"
       - "TurboProbe 🇳🇱 NL"
       - "TurboProbe 🇳🇱 NL (2)"
-      - "TurboProbe 🇺🇸 US (7)"
-      - "TurboProbe 🇯🇵 JP"
-      - "TurboProbe 🇺🇸 US (8)"
+      - "TurboProbe 🇫🇷 FR"
       - "TurboProbe 🇵🇱 PL"
+      - "TurboProbe 🇯🇵 JP"
+      - "TurboProbe 🇩🇪 DE"
+      - "TurboProbe 🇳🇱 NL (3)"
       - "TurboProbe 🇺🇸 US (9)"
-      - "TurboProbe 🇯🇵 JP (2)"
+      - "TurboProbe 🇷🇴 RO"
+      - "TurboProbe 🇫🇮 FI"
+      - "TurboProbe 🇺🇸 US (10)"
+      - "TurboProbe 🇺🇸 US (11)"
+      - "TurboProbe 🇵🇱 PL (2)"
+      - "TurboProbe 🇳🇱 NL (4)"
+      - "TurboProbe 🇬🇧 GB"
+      - "TurboProbe 🇸🇬 SG"
+      - "TurboProbe 🇳🇱 NL (5)"
+      - "TurboProbe 🇫🇮 FI (2)"
+      - "TurboProbe 🇫🇮 FI (3)"
   - name: "🚀 SELECT"
     type: select
     proxies:
@@ -212,14 +379,27 @@ proxy-groups:
       - "TurboProbe 🇺🇸 US (4)"
       - "TurboProbe 🇺🇸 US (5)"
       - "TurboProbe 🇺🇸 US (6)"
+      - "TurboProbe 🇺🇸 US (7)"
+      - "TurboProbe 🇺🇸 US (8)"
       - "TurboProbe 🇳🇱 NL"
       - "TurboProbe 🇳🇱 NL (2)"
-      - "TurboProbe 🇺🇸 US (7)"
-      - "TurboProbe 🇯🇵 JP"
-      - "TurboProbe 🇺🇸 US (8)"
+      - "TurboProbe 🇫🇷 FR"
       - "TurboProbe 🇵🇱 PL"
+      - "TurboProbe 🇯🇵 JP"
+      - "TurboProbe 🇩🇪 DE"
+      - "TurboProbe 🇳🇱 NL (3)"
       - "TurboProbe 🇺🇸 US (9)"
-      - "TurboProbe 🇯🇵 JP (2)"
+      - "TurboProbe 🇷🇴 RO"
+      - "TurboProbe 🇫🇮 FI"
+      - "TurboProbe 🇺🇸 US (10)"
+      - "TurboProbe 🇺🇸 US (11)"
+      - "TurboProbe 🇵🇱 PL (2)"
+      - "TurboProbe 🇳🇱 NL (4)"
+      - "TurboProbe 🇬🇧 GB"
+      - "TurboProbe 🇸🇬 SG"
+      - "TurboProbe 🇳🇱 NL (5)"
+      - "TurboProbe 🇫🇮 FI (2)"
+      - "TurboProbe 🇫🇮 FI (3)"
 
 rules:
   - DOMAIN-SUFFIX,openai.com,⚡ TURBOPROBE-AUTO
