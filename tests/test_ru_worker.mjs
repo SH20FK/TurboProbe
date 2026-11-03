@@ -69,7 +69,7 @@ test('generic worker rejects stale/legacy JSON and never fetches TXT fallback',a
  globalThis.fetch=async url=>{urls.push(url);return new Response(JSON.stringify({nodes:[{uri,ping_ms:60}]}));};
  try {
   assert.equal((await worker.fetch(req('/sub'),{},{})).status,503);
-  assert.ok(urls.every(url=>url.endsWith('.json')));
+  assert.ok(urls.every(url=>new URL(url).pathname.endsWith('.json')));
  }finally{globalThis.fetch=original;}
 });
 // Node's built-in type stripping exercises the actual pure TypeScript module.
@@ -95,4 +95,42 @@ test('daily tunnel profile expires without acquiring LatencyLab status',async()=
  assert.equal(tunnelDailyFresh({...n,expires_at:new Date(Date.now()-1).toISOString()}),false);
  assert.equal(tunnelDailyFresh({...n,expires_at:new Date(checked+2*86400_000).toISOString()}),false);
  assert.equal(n.latencylab_verified,undefined);
+});
+
+
+test('generic worker reads only canonical uncached publication and exposes its timestamp',async()=>{
+ const original=globalThis.fetch;const calls=[];
+ const checked=Date.now()-1000;
+ const current={...node,uri:'vless://current@example.com:443#current',verification_scope:'tunnel_daily',checked_at:new Date(checked).toISOString(),expires_at:new Date(checked+86400_000).toISOString()};
+ const updated=new Date().toISOString();
+ globalThis.fetch=async(url,options)=>{calls.push({url,options});return new Response(JSON.stringify({updated_at:updated,nodes:[current]}));};
+ try {
+  const res=await worker.fetch(req('/sub'),{},{});
+  assert.equal(res.status,200);assert.equal(await res.text(),current.uri);
+  assert.equal(res.headers.get('X-TurboProbe-Updated-At'),updated);
+  assert.equal(res.headers.get('X-TurboProbe-Version'),'canonical-snapshot-v1');
+  assert.equal(res.headers.get('Cache-Control'),'no-store');
+  assert.equal(calls.length,1);
+  const url=new URL(calls[0].url);
+  assert.equal(url.origin+url.pathname,'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/nodes.json');
+  assert.ok(url.searchParams.get('t'));
+  assert.equal(calls[0].options.cache,'no-store');
+  assert.equal(calls[0].options.cf,undefined);
+ }finally{globalThis.fetch=original;}
+});
+test('empty, invalid, unavailable or expired canonical snapshot cannot resurrect a mirror',async()=>{
+ const original=globalThis.fetch;
+ try {
+  for(const data of [{nodes:[]},{nodes:[node]},[],{},null,'down']){
+   let calls=0;
+   globalThis.fetch=async()=>{calls++;if(data==='down')throw new Error('upstream unavailable');return new Response(JSON.stringify(data));};
+   assert.equal((await worker.fetch(req('/sub'),{},{})).status,503);
+   assert.equal(calls,1);
+  }
+ }finally{globalThis.fetch=original;}
+});
+test('health exposes deployed version without caching',async()=>{
+ const res=await worker.fetch(req('/health'),{},{});
+ assert.equal(res.headers.get('Cache-Control'),'no-store');
+ assert.equal((await res.json()).version,'canonical-snapshot-v1');
 });

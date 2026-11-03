@@ -17,34 +17,24 @@ export function tunnelDailyFresh(node, now = Date.now()) {
  * Multi-service on-the-fly proxy aggregator & filter
  *
  * Supported URLs:
- * - https://turboprobe.workers.dev/sub
- * - https://turboprobe.workers.dev/sub?services=chatgpt,gemini
- * - https://turboprobe.workers.dev/sub?country=de&max_ping=80
- * - https://turboprobe.workers.dev/sub/chatgpt+gemini
- * - https://turboprobe.workers.dev/sub/ai
- * - https://turboprobe.workers.dev/sub/clash
+ * - https://sub.turboprobe.workers.dev/sub
+ * - https://sub.turboprobe.workers.dev/sub?services=chatgpt,gemini
+ * - https://sub.turboprobe.workers.dev/sub?country=de&max_ping=80
+ * - https://sub.turboprobe.workers.dev/sub/chatgpt+gemini
+ * - https://sub.turboprobe.workers.dev/sub/ai
+ * - https://sub.turboprobe.workers.dev/sub/clash
  */
 
-const JSON_MIRRORS = [
-  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/preview.json',
-  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/docs/sub/preview.json',
-  'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub/preview.json',
-  'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/docs/sub/preview.json',
-  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/nodes.json',
-];
-
-const TEXT_MIRRORS = [
-  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/all.txt',
-  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/top50.txt',
-  'https://cdn.jsdelivr.net/gh/SH20FK/TurboProbe@main/sub/top50.txt',
-  'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/anti-whitelist.txt',
-];
+const SNAPSHOT_URL = 'https://raw.githubusercontent.com/SH20FK/TurboProbe/main/sub/nodes.json';
+const WORKER_VERSION = 'canonical-snapshot-v1';
 
 const COMMON_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Profile-Update-Interval': '6',
   'Subscription-Userinfo': 'upload=0; download=0; total=1073741824000; expire=0',
-  'Cache-Control': 'no-store'
+  'Cache-Control': 'no-store',
+  'X-TurboProbe-Version': WORKER_VERSION,
+  'Access-Control-Expose-Headers': 'X-TurboProbe-Version, X-TurboProbe-Updated-At, X-TurboProbe-Source'
 };
 
 export default {
@@ -71,13 +61,15 @@ export default {
         JSON.stringify({
           status: 'ok',
           project: 'TurboProbe Dynamic Subscription Generator',
-          usage: '/?services=chatgpt,gemini&country=de'
+          usage: '/sub?services=chatgpt,gemini&country=de',
+          version: WORKER_VERSION,
+          source: SNAPSHOT_URL
         }, null, 2),
         {
           headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'Access-Control-Allow-Origin': '*',
-            'Cache-Control': 'public, max-age=300'
+            ...COMMON_HEADERS
           }
         }
       );
@@ -121,8 +113,7 @@ svg{display:block;margin:0 auto 24px;opacity:.95;}
       return new Response(landing, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-store'
+          ...COMMON_HEADERS
         }
       });
     }
@@ -191,66 +182,18 @@ svg{display:block;margin:0 auto 24px;opacity:.95;}
         }
       }
 
-      // 4. Parallel fetch Cached preview.json / nodes.json with Promise.any and timeout fallbacks
-      let allNodes = await fetchFirstSuccessfulJson(JSON_MIRRORS, 3500);
-
-      // If all JSON mirrors fail, parallel fallback to raw text lists
+      // Use one authoritative publication, never race a stale mirror against it.
+      const snapshot = await fetchPublishedSnapshot();
+      const allNodes = snapshot.nodes;
+      const snapshotHeaders = {
+        ...COMMON_HEADERS,
+        'X-TurboProbe-Source': SNAPSHOT_URL,
+        ...(snapshot.updatedAt ? {'X-TurboProbe-Updated-At': snapshot.updatedAt} : {})
+      };
       if (allNodes.length === 0) {
-        const lines = []; // No metadata: cannot establish freshness or verification.
-        if (lines.length > 0) {
-          const userAgent = (request.headers.get('User-Agent') || '').toLowerCase();
-          const isClash = format === 'clash' || format === 'meta' || format === 'yaml' ||
-                          path.includes('/clash') || path.includes('/meta') ||
-                          userAgent.includes('clash') || userAgent.includes('mihomo') || userAgent.includes('flclash') || userAgent.includes('stash');
-          
-          if (isClash) {
-            const clashYaml = generateClashMetaYaml(lines.map(u => ({ uri: u })));
-            return new Response(clashYaml, {
-              headers: {
-                ...COMMON_HEADERS,
-                'Content-Type': 'text/yaml; charset=utf-8',
-                'Content-Disposition': 'inline; filename="TurboProbe_Clash.yaml"'
-              }
-            });
-          }
-
-          if (format === 'singbox' || format === 'sing-box' || path.includes('/singbox')) {
-            const sbJson = generateSingboxJson(lines.map(u => ({ uri: u })));
-            return new Response(JSON.stringify(sbJson, null, 2), {
-              headers: {
-                ...COMMON_HEADERS,
-                'Content-Type': 'application/json; charset=utf-8',
-                'Content-Disposition': 'inline; filename="TurboProbe_Singbox.json"'
-              }
-            });
-          }
-
-          if (format === 'base64' || format === 'b64' || path.includes('/base64')) {
-            const b64 = safeBase64Encode(lines.join('\n'));
-            return new Response(b64, {
-              headers: {
-                ...COMMON_HEADERS,
-                'Content-Type': 'text/plain; charset=utf-8',
-                'Content-Disposition': 'inline; filename="TurboProbe_Base64.txt"'
-              }
-            });
-          }
-
-          return new Response(lines.join('\n'), {
-            headers: {
-              ...COMMON_HEADERS,
-              'Content-Type': 'text/plain; charset=utf-8',
-              'Content-Disposition': 'inline; filename="TurboProbe_Sub.txt"'
-            }
-          });
-        }
         return new Response('No active nodes available.', {
           status: 503,
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'Access-Control-Allow-Origin': '*',
-            'Cache-Control': 'no-cache, no-store'
-          }
+          headers: {...snapshotHeaders, 'Content-Type': 'text/plain; charset=utf-8'}
         });
       }
 
@@ -310,7 +253,7 @@ svg{display:block;margin:0 auto 24px;opacity:.95;}
 
       // Empty means empty: never substitute nodes that violate the filters.
       if (matching.length === 0) {
-        return new Response("No nodes match the requested filters.", {status: 503, headers: {"Cache-Control": "no-store", "Access-Control-Allow-Origin": "*"}});
+        return new Response("No nodes match the requested filters.", {status: 503, headers: snapshotHeaders});
       }
 
       // Cap to requested limit
@@ -326,7 +269,7 @@ svg{display:block;margin:0 auto 24px;opacity:.95;}
         const clashYaml = generateClashMetaYaml(finalNodes);
         return new Response(clashYaml, {
           headers: {
-            ...COMMON_HEADERS,
+            ...snapshotHeaders,
             'Content-Type': 'text/yaml; charset=utf-8',
             'Content-Disposition': 'inline; filename="TurboProbe_Clash.yaml"'
           }
@@ -337,7 +280,7 @@ svg{display:block;margin:0 auto 24px;opacity:.95;}
         const sbJson = generateSingboxJson(finalNodes);
         return new Response(JSON.stringify(sbJson, null, 2), {
           headers: {
-            ...COMMON_HEADERS,
+            ...snapshotHeaders,
             'Content-Type': 'application/json; charset=utf-8',
             'Content-Disposition': 'inline; filename="TurboProbe_Singbox.json"'
           }
@@ -351,7 +294,7 @@ svg{display:block;margin:0 auto 24px;opacity:.95;}
         const b64 = safeBase64Encode(outputText);
         return new Response(b64, {
           headers: {
-            ...COMMON_HEADERS,
+            ...snapshotHeaders,
             'Content-Type': 'text/plain; charset=utf-8',
             'Content-Disposition': 'inline; filename="TurboProbe_Base64.txt"'
           }
@@ -361,7 +304,7 @@ svg{display:block;margin:0 auto 24px;opacity:.95;}
       // Plain text URI list
       return new Response(outputText, {
         headers: {
-          ...COMMON_HEADERS,
+          ...snapshotHeaders,
           'Content-Type': 'text/plain; charset=utf-8',
           'Content-Disposition': 'inline; filename="TurboProbe_Sub.txt"'
         }
@@ -369,10 +312,10 @@ svg{display:block;margin:0 auto 24px;opacity:.95;}
 
     } catch (err) {
       return new Response(`Worker Error: ${err.message}`, {
-        status: 500,
+        status: 503,
         headers: {
+          ...COMMON_HEADERS,
           'Content-Type': 'text/plain; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
           'Cache-Control': 'no-cache, no-store'
         }
       });
@@ -380,71 +323,29 @@ svg{display:block;margin:0 auto 24px;opacity:.95;}
   }
 };
 
-/**
- * Parallel upstream JSON mirror fetcher using Promise.any and abort timeouts.
- */
-async function fetchFirstSuccessfulJson(mirrors, timeoutMs = 3500) {
-  const promises = mirrors.map(async (mirrorUrl) => {
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
-    try {
-      const res = await fetch(mirrorUrl, {
-        signal: controller ? controller.signal : undefined,
-        headers: { 'User-Agent': 'TurboProbe-EdgeWorker/2.0' },
-        cf: { cacheTtl: 60, cacheEverything: true }
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : (data && Array.isArray(data.nodes) ? data.nodes : []);
-      const validList = list.filter(n => n && n.verified === true && n.verification_policy === POLICY &&
-        (n.latencylab_verified === true ? labFresh(n) : n.verification_scope === 'tunnel_daily' ? tunnelDailyFresh(n) : fresh(n.checked_at)) && typeof n.uri === 'string' && !n.uri.startsWith('<') && !n.uri.startsWith('=') && !n.uri.startsWith('>'));
-      if (validList.length > 0) {
-        return validList;
-      }
-      throw new Error('Empty or invalid nodes list');
-    } finally {
-      if (timeoutId) clearTimeout(timeoutId);
-    }
-  });
-
+/** Fetch current main directly; stale CDN mirrors must never resurrect removed nodes. */
+export async function fetchPublishedSnapshot(timeoutMs = 6000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await Promise.any(promises);
-  } catch (_) {
-    return [];
-  }
-}
-
-/**
- * Parallel upstream plaintext mirror fetcher using Promise.any and abort timeouts.
- */
-async function fetchFirstSuccessfulText(mirrors, timeoutMs = 3500) {
-  const promises = mirrors.map(async (mirrorUrl) => {
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
-    try {
-      const res = await fetch(mirrorUrl, {
-        signal: controller ? controller.signal : undefined,
-        headers: { 'User-Agent': 'TurboProbe-EdgeWorker/2.0' }
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      const lines = text
-        .split(/\r?\n/)
-        .map(l => l.trim())
-        .filter(l => l && !l.startsWith('#') && !l.startsWith('//') && !l.startsWith('<') && !l.startsWith('=') && !l.startsWith('>'));
-      if (lines.length > 0) {
-        return lines;
-      }
-      throw new Error('Empty text content');
-    } finally {
-      if (timeoutId) clearTimeout(timeoutId);
-    }
-  });
-
-  try {
-    return await Promise.any(promises);
-  } catch (_) {
-    return [];
+    const url = new URL(SNAPSHOT_URL);
+    url.searchParams.set('t', String(Date.now()));
+    const res = await fetch(url.toString(), {
+      signal: controller.signal,
+      cache: 'no-store',
+      headers: {'User-Agent': 'TurboProbe-EdgeWorker/3.0', 'Cache-Control': 'no-cache'}
+    });
+    if (!res.ok) throw new Error(`Publication HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data || !Array.isArray(data.nodes)) throw new Error('Invalid publication snapshot');
+    const now = Date.now();
+    const nodes = data.nodes.filter(n => n && n.verified === true && n.verification_policy === POLICY &&
+      (n.latencylab_verified === true ? labFresh(n, now) : n.verification_scope === 'tunnel_daily' ? tunnelDailyFresh(n, now) : fresh(n.checked_at, now)) &&
+      typeof n.uri === 'string' && !n.uri.startsWith('<') && !n.uri.startsWith('=') && !n.uri.startsWith('>'));
+    const stamp = Date.parse(data.updated_at || '');
+    return {nodes, updatedAt: Number.isFinite(stamp) ? new Date(stamp).toISOString() : null};
+  } finally {
+    clearTimeout(timer);
   }
 }
 

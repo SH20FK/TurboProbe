@@ -13,4 +13,6 @@
    npx wrangler deploy
    ```
 3. Ссылка сразу станет доступна:
-   `https://turboprobe.workers.dev/sub`
+   `https://sub.turboprobe.workers.dev/sub`
+
+Worker читает только актуальный `main/sub/nodes.json` без кэширования. Ошибка источника или пустой набор дают HTTP 503; старые зеркала и TXT не подставляются. Ответ содержит `X-TurboProbe-Version`, а для корректного снимка — `X-TurboProbe-Updated-At`. Новый проверенный снимок из Actions доступен при следующем запросе без повторного деплоя Worker.
