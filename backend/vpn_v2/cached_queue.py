@@ -65,7 +65,8 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
         for n in nodes:
             key=ident(n['uri'])
             local[key]={'id':key,'ping_ms':n['ping_ms'],'country':n.get('country','GLOBAL'),'checked_at':n['checked_at'],
-                        'verification_rounds':n.get('verification_rounds',1)}
+                        'verification_rounds':n.get('verification_rounds',1),
+                        **{k:n[k] for k in ('speed_mbps','speed_status','speed_transfer_bytes','country_source') if k in n}}
     def current_nodes():
         now=datetime.now(timezone.utc);result=[]
         for key,n in list(local.items()):
@@ -112,8 +113,6 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
         remaining=max(0,select-len(daily['reserved']))
         selected=[n for n in all_nodes if ident(n['uri']) not in daily['reserved'] and n.get('latencylab_verified') is not True][:min(20,remaining)]
         if selected:
-            selected=measure_selected(selected,deadline=run.deadline)
-            remember(selected)
             # Reserve before POST; uncertainty must never cause duplicate daily spending.
             daily['reserved'].extend(ident(n['uri']) for n in selected)
             checkpoint()
@@ -161,12 +160,29 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
         progress['cursor']=rows[-1][0];progress['processed']+=len(rows);windows+=1
         checkpoint()
         published=publish_current() or published
-        if lab_batch(all_nodes):published=publish_current() or published
         print(f'Queue progress: {progress["processed"]}/{total}; {len(local)} fresh tunnel nodes',flush=True)
         if max_windows and windows>=max_windows:break
         if not next_window(run.store,progress['cursor'],1):break
-    while time.monotonic()<run.deadline and lab_batch(current_nodes()):
-        published=publish_current() or published
+    # Never spend quota on early windows. Freeze the global shortlist only once
+    # the saved pool has been visited, then measure speed without reranking it.
+    complete = not next_window(run.store,progress['cursor'],1) and progress['processed'] >= total
+    if complete and select:
+        shortlist = rank(current_nodes(), min(select,200))
+        print(f'Local pool complete: global top {len(shortlist)} selected for LatencyLab',flush=True)
+        daily = progress.get('daily',{})
+        reserved = daily.get('reserved',[]) if daily.get('date') == datetime.now(timezone.utc).date().isoformat() else []
+        shortlist = [n for n in shortlist if ident(n['uri']) not in reserved and n.get('latencylab_verified') is not True][:max(0,select-len(reserved))]
+        try:
+            shortlist = measure_selected(shortlist,deadline=run.deadline) if shortlist else []
+            remember(shortlist)
+            checkpoint()
+            published=publish_current() or published
+            while time.monotonic()<run.deadline and lab_batch(shortlist):
+                published=publish_current() or published
+        except TimeoutError:
+            print('Final-stage budget reached; progress preserved',flush=True)
+    elif select:
+        print('LatencyLab deferred: local pool incomplete; quota not spent on an intermediate top',flush=True)
     checkpoint()
     print(f'Queue saved: {progress["processed"]}/{total}; next run resumes at cursor',flush=True)
     if not published:raise LabError('Queue saved; no fresh tunnel nodes available for publication')

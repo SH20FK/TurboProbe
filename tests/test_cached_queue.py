@@ -98,7 +98,7 @@ class RollingQueueTests(unittest.TestCase):
             q.run_queue(self.run,progress,self.path,select=1,window=2)
         self.assertEqual(progress['processed'],2)
         self.assertEqual(progress['cursor'],self.ids[1])
-        self.assertEqual(lab.call_count,1);self.assertGreaterEqual(push.call_count,1)
+        self.assertEqual(lab.call_count,0);self.assertGreaterEqual(push.call_count,1)
         self.run.local_deadline=float('inf')
         progress=q.load_progress(self.path)
         def second(uris,**kw):seen.extend(uris);return verified(uris)
@@ -109,7 +109,7 @@ class RollingQueueTests(unittest.TestCase):
         self.assertEqual(progress['processed'],4)
         self.assertEqual(progress['cursor'],self.ids[3])
         self.assertEqual(set(seen),{f'trojan://p{i}@example.com:443' for i in range(1,5)})
-        self.assertEqual(lab.call_count,0)
+        self.assertEqual(lab.call_count,1)
 
     def test_zero_lab_passes_keep_old_subscription_but_continue_all_keys(self):
         progress=q.load_progress(self.path)
@@ -133,3 +133,32 @@ class RollingQueueTests(unittest.TestCase):
     def test_corrupt_checkpoint_is_not_silently_reset(self):
         self.path.write_text(json.dumps({'version':1,'cursor':'invalid','processed':20,'cycle':1,'best':[]}))
         with self.assertRaises(ValueError):q.load_progress(self.path)
+
+
+    def test_lab_waits_for_all_windows_and_uses_late_faster_winners(self):
+        progress=q.load_progress(self.path)
+        phases=[]
+        def engine(uris,**kw):
+            phases.append('verify')
+            latency=100 if phases.count('verify')==1 else 5
+            return [{**n,'ping_ms':latency} for n in verified(uris)]
+        def speed(nodes,**kw):
+            phases.append('speed')
+            self.assertEqual(phases.count('verify'),2)
+            self.assertTrue(all(n['ping_ms']==5 for n in nodes))
+            return nodes
+        def lab(nodes,*args,**kw):
+            phases.append('lab')
+            self.assertEqual(phases[:3],['verify','verify','speed'])
+            self.assertTrue(all(n['ping_ms']==5 for n in nodes))
+            return []
+        with patch.object(q,'verify',side_effect=engine), patch.object(q,'measure_selected',side_effect=speed), patch.object(q,'check_candidates',side_effect=lab) as check, patch.object(q,'load',return_value='unused'), patch.object(q,'push_snapshot'):
+            q.run_queue(self.run,progress,self.path,select=2,window=2)
+        self.assertEqual(check.call_count,1)
+
+    def test_bounded_incomplete_pool_never_measures_speed_or_spends_lab_quota(self):
+        progress=q.load_progress(self.path)
+        with patch.object(q,'verify',side_effect=verified), patch.object(q,'measure_selected') as speed, patch.object(q,'check_candidates') as lab, patch.object(q,'push_snapshot'):
+            q.run_queue(self.run,progress,self.path,select=200,window=2,max_windows=1)
+        speed.assert_not_called();lab.assert_not_called()
+        self.assertEqual(progress['processed'],2)
