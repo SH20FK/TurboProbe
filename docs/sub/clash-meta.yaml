@@ -5,151 +5,56 @@ mode: rule
 log-level: info
 proxies:
   - name: "TurboProbe 🌐"
-    type: hysteria2
-    server: "142.11.207.17"
-    port: 443
-    password: "kztyblVC7ZlEKR3ZO5HW"
-    udp: true
-    sni: "www.bing.com"
-    skip-cert-verify: true
-  - name: "TurboProbe 🌐 (2)"
-    type: hysteria2
-    server: "6b9f9b99-tmm5c0-tsdg75-tlhh.los.hyhuawei.com"
-    port: 443
-    password: "bdf3e15e-c64c-11ea-82ef-f23c9164ca5d"
-    udp: true
-    sni: "6b9f9b99-tmm5c0-tsdg75-tlhh.los.hyhuawei.com"
-    skip-cert-verify: true
-  - name: "TurboProbe 🌐 (3)"
-    type: hysteria2
-    server: "f452bbe9-tmm5c0-tpda83-1lkbs.los.hyhuawei.com"
-    port: 443
-    password: "5a4c13ae-6673-11ee-a149-f23c9164ca5d"
-    udp: true
-    sni: "f452bbe9-tmm5c0-tpda83-1lkbs.los.hyhuawei.com"
-    skip-cert-verify: true
-  - name: "TurboProbe 🌐 (4)"
-    type: hysteria2
-    server: "155.248.209.237"
-    port: 33333
-    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
-    udp: true
-    sni: "hy2.123266.xyz"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (5)"
-    type: ss
-    server: "49.51.39.148"
-    port: 443
-    cipher: "chacha20-ietf-poly1305"
-    password: "LCvps-199-168-136-193-bak8443"
-    udp: true
-  - name: "TurboProbe 🌐 (6)"
-    type: hysteria2
-    server: "155.248.209.237"
-    port: 33333
-    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
-    udp: true
-    sni: "hy2.123266.xyz"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (7)"
-    type: ss
-    server: "95.215.201.18"
-    port: 19999
-    cipher: "aes-256-gcm"
-    password: "ZRpgaBeGxtENIXgvhpkZBKz9GnWRS2dYcx9O+a2iwN4="
-    udp: true
-  - name: "TurboProbe 🌐 (8)"
-    type: hysteria2
-    server: "ca3ddbd3-tmm5c0-tw2fdz-1s824.los.hyhuawei.com"
-    port: 443
-    password: "6d4abac0-86e6-11ef-83cc-f23c913c8d2b"
-    udp: true
-    sni: "ca3ddbd3-tmm5c0-tw2fdz-1s824.los.hyhuawei.com"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (9)"
     type: ss
     server: "156.146.38.169"
     port: 443
     cipher: "aes-128-gcm"
     password: "shadowsocks"
     udp: true
-  - name: "TurboProbe 🌐 (10)"
-    type: ss
-    server: "173.244.56.6"
-    port: 443
-    cipher: "aes-128-gcm"
-    password: "shadowsocks"
-    udp: true
-  - name: "TurboProbe 🌐 (11)"
-    type: hysteria2
-    server: "hy2.123266.xyz"
-    port: 33333
-    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
-    udp: true
-    sni: "hy2.123266.xyz"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (12)"
-    type: hysteria2
-    server: "hy2.123266.xyz"
-    port: 33333
-    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
-    udp: true
-    sni: "hy2.123266.xyz"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (13)"
-    type: ss
-    server: "173.244.56.9"
-    port: 443
-    cipher: "aes-128-gcm"
-    password: "shadowsocks"
-    udp: true
-  - name: "TurboProbe 🌐 (14)"
-    type: ss
-    server: "149.22.95.183"
-    port: 443
-    cipher: "aes-128-gcm"
-    password: "shadowsocks"
-    udp: true
-  - name: "TurboProbe 🌐 (15)"
-    type: hysteria2
-    server: "hy2.123266.xyz"
-    port: 33333
-    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
-    udp: true
-    sni: "hy2.123266.xyz"
-    skip-cert-verify: true
-  - name: "TurboProbe 🌐 (16)"
-    type: hysteria2
-    server: "hy2.123266.xyz"
-    port: 33333
-    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
-    udp: true
-    sni: "hy2.123266.xyz"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (17)"
+  - name: "TurboProbe 🌐 (2)"
     type: ss
     server: "156.146.38.170"
     port: 443
     cipher: "aes-128-gcm"
     password: "shadowsocks"
     udp: true
-  - name: "TurboProbe 🌐 (18)"
+  - name: "TurboProbe 🌐 (3)"
     type: hysteria2
-    server: "b8c1a181-tmm5c0-twuk0i-1hzyr.los.hyhuawei.com"
-    port: 443
-    password: "3be8cba8-b721-11ec-8b04-f23c91cfbbc9"
+    server: "155.248.209.237"
+    port: 33333
+    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
     udp: true
-    sni: "b8c1a181-tmm5c0-twuk0i-1hzyr.los.hyhuawei.com"
-    skip-cert-verify: true
-  - name: "TurboProbe 🌐 (19)"
-    type: hysteria2
-    server: "45.32.10.7"
+    sni: "hy2.123266.xyz"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (4)"
+    type: ss
+    server: "37.19.198.244"
     port: 443
-    password: "96ab5cd282733fd4c312a61f972f330a"
+    cipher: "aes-128-gcm"
+    password: "shadowsocks"
     udp: true
-    sni: "vp3.yysyy.online"
-    skip-cert-verify: true
-  - name: "TurboProbe 🌐 (20)"
+  - name: "TurboProbe 🌐 (5)"
+    type: ss
+    server: "156.146.38.167"
+    port: 443
+    cipher: "aes-128-gcm"
+    password: "shadowsocks"
+    udp: true
+  - name: "TurboProbe 🌐 (6)"
+    type: ss
+    server: "37.19.198.160"
+    port: 443
+    cipher: "aes-128-gcm"
+    password: "shadowsocks"
+    udp: true
+  - name: "TurboProbe 🌐 (7)"
+    type: ss
+    server: "173.244.56.9"
+    port: 443
+    cipher: "aes-128-gcm"
+    password: "shadowsocks"
+    udp: true
+  - name: "TurboProbe 🌐 (8)"
     type: hysteria2
     server: "88.216.195.188"
     port: 443
@@ -157,7 +62,211 @@ proxies:
     udp: true
     sni: "promo3.goonars.com"
     skip-cert-verify: false
+  - name: "TurboProbe 🌐 (9)"
+    type: ss
+    server: "95.215.201.18"
+    port: 19999
+    cipher: "aes-256-gcm"
+    password: "ZRpgaBeGxtENIXgvhpkZBKz9GnWRS2dYcx9O+a2iwN4="
+    udp: true
+  - name: "TurboProbe 🌐 (10)"
+    type: ss
+    server: "193.151.163.18"
+    port: 19999
+    cipher: "aes-256-gcm"
+    password: "ZRpgaBeGxtENIXgvhpkZBKz9GnWRS2dYcx9O+a2iwN4="
+    udp: true
+  - name: "TurboProbe 🌐 (11)"
+    type: hysteria2
+    server: "155.248.209.237"
+    port: 33333
+    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
+    udp: true
+    sni: "hy2.123266.xyz"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (12)"
+    type: ss
+    server: "37.19.198.236"
+    port: 443
+    cipher: "aes-128-gcm"
+    password: "shadowsocks"
+    udp: true
+  - name: "TurboProbe 🌐 (13)"
+    type: ss
+    server: "173.244.56.6"
+    port: 443
+    cipher: "aes-128-gcm"
+    password: "shadowsocks"
+    udp: true
+  - name: "TurboProbe 🌐 (14)"
+    type: hysteria2
+    server: "0b28dbb8-tmm5c0-tn3jhp-1qthu.los.hyhuawei.com"
+    port: 443
+    password: "8fa4bea0-8703-11ef-83cc-f23c913c8d2b"
+    udp: true
+    sni: "0b28dbb8-tmm5c0-tn3jhp-1qthu.los.hyhuawei.com"
+    skip-cert-verify: true
+  - name: "TurboProbe 🌐 (15)"
+    type: hysteria2
+    server: "f452bbe9-tmm5c0-tpda83-1lkbs.los.hyhuawei.com"
+    port: 443
+    password: "5a4c13ae-6673-11ee-a149-f23c9164ca5d"
+    udp: true
+    sni: "f452bbe9-tmm5c0-tpda83-1lkbs.los.hyhuawei.com"
+    skip-cert-verify: true
+  - name: "TurboProbe 🌐 (16)"
+    type: ss
+    server: "45.86.51.18"
+    port: 19999
+    cipher: "aes-256-gcm"
+    password: "ZRpgaBeGxtENIXgvhpkZBKz9GnWRS2dYcx9O+a2iwN4="
+    udp: true
+  - name: "TurboProbe 🌐 (17)"
+    type: hysteria2
+    server: "hy2.123266.xyz"
+    port: 33333
+    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
+    udp: true
+    sni: "hy2.123266.xyz"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (18)"
+    type: hysteria2
+    server: "hy2.123266.xyz"
+    port: 33333
+    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
+    udp: true
+    sni: "hy2.123266.xyz"
+    skip-cert-verify: true
+  - name: "TurboProbe 🌐 (19)"
+    type: hysteria2
+    server: "hy2.123266.xyz"
+    port: 33333
+    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
+    udp: true
+    sni: "hy2.123266.xyz"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (20)"
+    type: hysteria2
+    server: "hy2.123266.xyz"
+    port: 33333
+    password: "bce6c821-200d-421f-bf3d-7159e5246ea0"
+    udp: true
+    sni: "hy2.123266.xyz"
+    skip-cert-verify: false
   - name: "TurboProbe 🌐 (21)"
+    type: ss
+    server: "193.151.160.18"
+    port: 19999
+    cipher: "aes-256-gcm"
+    password: "ZRpgaBeGxtENIXgvhpkZBKz9GnWRS2dYcx9O+a2iwN4="
+    udp: true
+  - name: "TurboProbe 🌐 (22)"
+    type: hysteria2
+    server: "promo3.goonars.com"
+    port: 443
+    password: "63e1b9462d708b56d5d5a0267cffecdc"
+    udp: true
+    sni: "promo3.goonars.com"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (23)"
+    type: ss
+    server: "193.151.160.9"
+    port: 19999
+    cipher: "aes-256-gcm"
+    password: "ZRpgaBeGxtENIXgvhpkZBKz9GnWRS2dYcx9O+a2iwN4="
+    udp: true
+  - name: "TurboProbe 🌐 (24)"
+    type: ss
+    server: "198.98.53.130"
+    port: 443
+    cipher: "chacha20-ietf-poly1305"
+    password: "eDfN7SODQceIOmIAbtJJtK"
+    udp: true
+  - name: "TurboProbe 🌐 (25)"
+    type: ss
+    server: "37.19.198.243"
+    port: 443
+    cipher: "aes-128-gcm"
+    password: "shadowsocks"
+    udp: true
+  - name: "TurboProbe 🌐 (26)"
+    type: ss
+    server: "185.230.230.18"
+    port: 19999
+    cipher: "aes-256-gcm"
+    password: "ZRpgaBeGxtENIXgvhpkZBKz9GnWRS2dYcx9O+a2iwN4="
+    udp: true
+  - name: "TurboProbe 🌐 (27)"
+    type: ss
+    server: "64.177.90.30"
+    port: 8388
+    cipher: "aes-256-gcm"
+    password: "BWyPPTusFKhGgzKh"
+    udp: true
+  - name: "TurboProbe 🌐 (28)"
+    type: ss
+    server: "172.111.38.72"
+    port: 19999
+    cipher: "aes-256-gcm"
+    password: "ZRpgaBeGxtENIXgvhpkZBKz9GnWRS2dYcx9O+a2iwN4="
+    udp: true
+  - name: "TurboProbe 🌐 (29)"
+    type: hysteria2
+    server: "807fc395-tmm5c0-u5ip77-duku.los.hyhuawei.com"
+    port: 443
+    password: "8e0f8ef2-5fe3-11ec-a8bf-f23c91cfbbc9"
+    udp: true
+    sni: "807fc395-tmm5c0-u5ip77-duku.los.hyhuawei.com"
+    skip-cert-verify: true
+  - name: "TurboProbe 🌐 (30)"
+    type: hysteria2
+    server: "fbe34f09-tmm5c0-trpvht-1ey07.los.hyhuawei.com"
+    port: 443
+    password: "203d1d64-3313-11ed-bb74-f23c9164ca5d"
+    udp: true
+    sni: "fbe34f09-tmm5c0-trpvht-1ey07.los.hyhuawei.com"
+    skip-cert-verify: true
+  - name: "TurboProbe 🌐 (31)"
+    type: hysteria2
+    server: "ca3ddbd3-tmm5c0-tw2fdz-1s824.los.hyhuawei.com"
+    port: 443
+    password: "6d4abac0-86e6-11ef-83cc-f23c913c8d2b"
+    udp: true
+    sni: "ca3ddbd3-tmm5c0-tw2fdz-1s824.los.hyhuawei.com"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (32)"
+    type: hysteria2
+    server: "6b9f9b99-tmm5c0-tsdg75-tlhh.los.hyhuawei.com"
+    port: 443
+    password: "bdf3e15e-c64c-11ea-82ef-f23c9164ca5d"
+    udp: true
+    sni: "6b9f9b99-tmm5c0-tsdg75-tlhh.los.hyhuawei.com"
+    skip-cert-verify: true
+  - name: "TurboProbe 🌐 (33)"
+    type: hysteria2
+    server: "vp3.yysyy.online"
+    port: 443
+    password: "96ab5cd282733fd4c312a61f972f330a"
+    udp: true
+    sni: "vp3.yysyy.online"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (34)"
+    type: hysteria2
+    server: "vp3.yysyy.online"
+    port: 443
+    password: "96ab5cd282733fd4c312a61f972f330a"
+    udp: true
+    sni: "vp3.yysyy.online"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (35)"
+    type: hysteria2
+    server: "vp3.yysyy.online"
+    port: 443
+    password: "96ab5cd282733fd4c312a61f972f330a"
+    udp: true
+    sni: "vp3.yysyy.online"
+    skip-cert-verify: true
+  - name: "TurboProbe 🌐 (36)"
     type: trojan
     server: "66.163.112.13"
     port: 443
@@ -165,87 +274,23 @@ proxies:
     udp: true
     sni: "blog.unlockyourfuturefindyourperfectcareer.com"
     network: tcp
-  - name: "TurboProbe 🌐 (22)"
+  - name: "TurboProbe 🌐 (37)"
     type: hysteria2
-    server: "45.32.10.7"
+    server: "130.49.161.70"
     port: 443
-    password: "96ab5cd282733fd4c312a61f972f330a"
+    password: "p7Q76LzlnS4hIzr1W3staBOnUe_WwSkR"
     udp: true
-    sni: "vp3.yysyy.online"
+    sni: "hy2.aspidnet.xyz"
     skip-cert-verify: false
-  - name: "TurboProbe 🌐 (23)"
+  - name: "TurboProbe 🌐 (38)"
     type: hysteria2
-    server: "vp3.yysyy.online"
+    server: "130.49.161.70"
     port: 443
-    password: "96ab5cd282733fd4c312a61f972f330a"
+    password: "p7Q76LzlnS4hIzr1W3staBOnUe_WwSkR"
     udp: true
-    sni: "vp3.yysyy.online"
-    skip-cert-verify: true
-  - name: "TurboProbe 🌐 (24)"
-    type: trojan
-    server: "66.163.114.166"
-    port: 443
-    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
-    udp: true
-    sni: "blog.findconnectwithemployersandbuildprofessionalnetwork.com"
-    network: tcp
-  - name: "TurboProbe 🌐 (25)"
-    type: vless
-    server: "84.32.129.184"
-    port: 443
-    uuid: "fb37d713-0ed3-4146-b085-a5c879a9aafa"
-    udp: true
-    tls: true
-    servername: "subscribe.goonars.com"
-    client-fingerprint: "firefox"
-    network: tcp
-    flow: xtls-rprx-vision
-    reality-opts:
-      public-key: "ZZihyRejv8lHTwTnNCGF0IB6U9kS-L34L3v0ch6k_30"
-      short-id: "4f339f5f"
-  - name: "TurboProbe 🌐 (26)"
-    type: vless
-    server: "84.32.129.184"
-    port: 443
-    uuid: "fb37d713-0ed3-4146-b085-a5c879a9aafa"
-    udp: true
-    tls: true
-    servername: "subscribe.goonars.com"
-    client-fingerprint: "safari"
-    network: tcp
-    flow: xtls-rprx-vision
-    reality-opts:
-      public-key: "ZZihyRejv8lHTwTnNCGF0IB6U9kS-L34L3v0ch6k_30"
-      short-id: "4f339f5f"
-  - name: "TurboProbe 🌐 (27)"
-    type: vless
-    server: "84.32.129.184"
-    port: 443
-    uuid: "fb37d713-0ed3-4146-b085-a5c879a9aafa"
-    udp: true
-    tls: true
-    servername: "subscribe.goonars.com"
-    client-fingerprint: "ios"
-    network: tcp
-    flow: xtls-rprx-vision
-    reality-opts:
-      public-key: "ZZihyRejv8lHTwTnNCGF0IB6U9kS-L34L3v0ch6k_30"
-      short-id: "4f339f5f"
-  - name: "TurboProbe 🌐 (28)"
-    type: vless
-    server: "84.32.129.184"
-    port: 443
-    uuid: "fb37d713-0ed3-4146-b085-a5c879a9aafa"
-    udp: true
-    tls: true
-    servername: "subscribe.goonars.com"
-    client-fingerprint: "chrome"
-    network: tcp
-    flow: xtls-rprx-vision
-    reality-opts:
-      public-key: "ZZihyRejv8lHTwTnNCGF0IB6U9kS-L34L3v0ch6k_30"
-      short-id: "4f339f5f"
-  - name: "TurboProbe 🌐 (29)"
+    sni: "hy2.aspidnet.xyz"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (39)"
     type: trojan
     server: "66.163.112.121"
     port: 443
@@ -253,148 +298,108 @@ proxies:
     udp: true
     sni: "www.unlockyourfuturefindyourperfectcareer.com"
     network: tcp
-  - name: "TurboProbe 🇺🇸 US"
-    type: vless
-    server: "195.211.98.43"
+  - name: "TurboProbe 🇸🇪 SE"
+    type: trojan
+    server: "216.152.156.42"
     port: 443
-    uuid: "1b4b11d5-4c2d-4533-9a55-636757cdee94"
+    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
+    udp: true
+    sni: "blog.healthcarejobshubenhancemedicalprofessionalskillstoday.com"
+    network: tcp
+  - name: "TurboProbe 🌐 (40)"
+    type: hysteria2
+    server: "45.32.10.7"
+    port: 443
+    password: "96ab5cd282733fd4c312a61f972f330a"
+    udp: true
+    sni: "vp3.yysyy.online"
+    skip-cert-verify: true
+  - name: "TurboProbe 🇰🇿 KZ"
+    type: vless
+    server: "172.67.199.126"
+    port: 2053
+    uuid: "e3149c82-00f6-4227-b2c0-b78f1dd81279"
     udp: true
     tls: true
-    servername: "www.cloudflare.com"
-    client-fingerprint: "random"
-    network: tcp
-    flow: xtls-rprx-vision
-    reality-opts:
-      public-key: "xPnpkXu5qfwIArlHKvJsqKJnGdGbJK1tT2GzWMyLohA"
-      short-id: "9c56fddf237e8eaf"
-  - name: "TurboProbe 🌐 (30)"
-    type: trojan
-    server: "216.106.186.46"
-    port: 443
-    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
+    servername: "fast.145779.xyz"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/ws-tesla"
+      headers:
+        Host: "fast.145779.xyz"
+  - name: "TurboProbe 🇰🇿 KZ (2)"
+    type: vless
+    server: "172.67.199.126"
+    port: 2053
+    uuid: "e3149c82-00f6-4227-b2c0-b78f1dd81279"
     udp: true
-    sni: "cdn.findlocaljobnetworkandbuildcommunityconnections.com"
-    network: tcp
-  - name: "TurboProbe 🌐 (31)"
-    type: hysteria2
-    server: "promo.betust.net"
-    port: 443
-    password: "d4ca9415f0eac7897472e1e5b86d2e96"
-    udp: true
-    sni: "promo.betust.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (32)"
-    type: hysteria2
-    server: "promo.betust.net"
-    port: 443
-    password: "d4ca9415f0eac7897472e1e5b86d2e96"
-    udp: true
-    sni: "promo.betust.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (33)"
-    type: hysteria2
-    server: "promo.betust.net"
-    port: 443
-    password: "d4ca9415f0eac7897472e1e5b86d2e96"
-    udp: true
-    sni: "promo.betust.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (34)"
-    type: hysteria2
-    server: "50.7.38.243"
-    port: 443
-    password: "d4ca9415f0eac7897472e1e5b86d2e96"
-    udp: true
-    sni: "promo.betust.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (35)"
-    type: hysteria2
-    server: "50.7.38.243"
-    port: 443
-    password: "d4ca9415f0eac7897472e1e5b86d2e96"
-    udp: true
-    sni: "promo.betust.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (36)"
-    type: hysteria2
-    server: "promo.betust.net"
-    port: 443
-    password: "d4ca9415f0eac7897472e1e5b86d2e96"
-    udp: true
-    sni: "promo.betust.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (37)"
-    type: hysteria2
-    server: "50.7.38.243"
-    port: 443
-    password: "d4ca9415f0eac7897472e1e5b86d2e96"
-    udp: true
-    sni: "promo.betust.net"
-    skip-cert-verify: true
-  - name: "TurboProbe 🌐 (38)"
-    type: trojan
-    server: "66.163.114.114"
-    port: 443
-    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
-    udp: true
-    sni: "learn.findconnectwithemployersandbuildprofessionalnetwork.com"
-    network: tcp
-  - name: "TurboProbe 🌐 (39)"
-    type: trojan
-    server: "216.106.186.46"
-    port: 443
-    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
-    udp: true
-    sni: "cdn.findlocaljobnetworkandbuildcommunityconnections.com"
-    network: tcp
-  - name: "TurboProbe 🌐 (42)"
-    type: hysteria2
-    server: "130.49.161.70"
-    port: 443
-    password: "p7Q76LzlnS4hIzr1W3staBOnUe_WwSkR"
-    udp: true
-    sni: "hy2.aspidnet.xyz"
-    skip-cert-verify: false
+    tls: true
+    servername: "fast.145779.xyz"
+    client-fingerprint: "safari"
+    network: ws
+    ws-opts:
+      path: "/ws-tesla"
+      headers:
+        Host: "fast.145779.xyz"
   - name: "TurboProbe 🌐 (44)"
     type: hysteria2
-    server: "130.49.161.70"
+    server: "b8c1a181-tmm5c0-twuk0i-1hzyr.los.hyhuawei.com"
     port: 443
-    password: "p7Q76LzlnS4hIzr1W3staBOnUe_WwSkR"
+    password: "3be8cba8-b721-11ec-8b04-f23c91cfbbc9"
     udp: true
-    sni: "hy2.aspidnet.xyz"
-    skip-cert-verify: false
+    sni: "b8c1a181-tmm5c0-twuk0i-1hzyr.los.hyhuawei.com"
+    skip-cert-verify: true
   - name: "TurboProbe 🌐 (45)"
     type: trojan
-    server: "66.163.114.132"
+    server: "169.197.140.218"
     port: 443
     password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
     udp: true
-    sni: "courses.findconnectwithemployersandbuildprofessionalnetwork.com"
+    sni: "learn.discoverfreshgraduatejobsstartyourprofessionaljourney.com"
     network: tcp
-  - name: "TurboProbe 🌐 (46)"
-    type: hysteria2
-    server: "208.69.78.217"
-    port: 21154
-    password: "capadm96216165:nXUv9sPkKFsDMmhZ7jbE28sw"
+  - name: "TurboProbe 🇰🇿 KZ (3)"
+    type: vless
+    server: "172.67.199.126"
+    port: 2053
+    uuid: "e3149c82-00f6-4227-b2c0-b78f1dd81279"
     udp: true
-    sni: "vpn.local"
-    skip-cert-verify: true
-  - name: "TurboProbe 🌐 (47)"
-    type: hysteria2
-    server: "vp3.yysyy.online"
-    port: 443
-    password: "96ab5cd282733fd4c312a61f972f330a"
+    tls: true
+    servername: "fast.145779.xyz"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/ws-tesla"
+      headers:
+        Host: "fast.145779.xyz"
+  - name: "TurboProbe 🇰🇿 KZ (4)"
+    type: vless
+    server: "104.21.58.37"
+    port: 2053
+    uuid: "e3149c82-00f6-4227-b2c0-b78f1dd81279"
     udp: true
-    sni: "vp3.yysyy.online"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (48)"
-    type: hysteria2
-    server: "vp3.yysyy.online"
-    port: 443
-    password: "96ab5cd282733fd4c312a61f972f330a"
+    tls: true
+    servername: "fast.145779.xyz"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/ws-tesla"
+      headers:
+        Host: "fast.145779.xyz"
+  - name: "TurboProbe 🇰🇿 KZ (5)"
+    type: vless
+    server: "172.67.199.126"
+    port: 2053
+    uuid: "c83f15bf-1817-4ec8-a19f-6393d226434c"
     udp: true
-    sni: "vp3.yysyy.online"
-    skip-cert-verify: false
+    tls: true
+    servername: "fast.145779.xyz"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/ws-tesla"
+      headers:
+        Host: "fast.145779.xyz"
   - name: "TurboProbe 🌐 (49)"
     type: hysteria2
     server: "13.143.188.142"
@@ -405,11 +410,27 @@ proxies:
     skip-cert-verify: false
   - name: "TurboProbe 🌐 (50)"
     type: hysteria2
-    server: "pl3.nexfile.net"
+    server: "13.143.188.143"
     port: 4444
     password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
     udp: true
-    sni: "pl3.nexfile.net"
+    sni: "bl1.nexfile.net"
+    skip-cert-verify: true
+  - name: "TurboProbe 🇺🇸 US"
+    type: trojan
+    server: "167.88.61.198"
+    port: 443
+    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
+    udp: true
+    sni: "cdn.browseseniorrolesandenhanceyourcareertoday.com"
+    network: tcp
+  - name: "TurboProbe 🇷🇺 RU"
+    type: hysteria2
+    server: "95.143.196.97"
+    port: 443
+    password: "769f34f0-1500-488f-b414-03bc90666502"
+    udp: true
+    sni: "se.mimowhat.online"
     skip-cert-verify: false
   - name: "TurboProbe 🌐 (51)"
     type: hysteria2
@@ -421,100 +442,29 @@ proxies:
     skip-cert-verify: false
   - name: "TurboProbe 🌐 (52)"
     type: hysteria2
-    server: "13.143.188.143"
+    server: "13.143.189.71"
     port: 4444
     password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
     udp: true
-    sni: "bl1.nexfile.net"
-    skip-cert-verify: true
+    sni: "pl3.nexfile.net"
+    skip-cert-verify: false
   - name: "TurboProbe 🌐 (53)"
     type: hysteria2
-    server: "13.143.189.149"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
+    server: "104.165.205.42"
+    port: 8443
+    password: "54d2f622-fd71-4f5f-8813-832b68f4ca3b"
     udp: true
-    sni: "pl2.nexfile.net"
+    sni: "speedtestmark.com"
     skip-cert-verify: false
   - name: "TurboProbe 🌐 (54)"
     type: hysteria2
-    server: "13.143.188.142"
+    server: "144.31.109.158"
     port: 4444
     password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
     udp: true
-    sni: "bl1.nexfile.net"
+    sni: "fl3.nexfile.net"
     skip-cert-verify: false
   - name: "TurboProbe 🌐 (55)"
-    type: hysteria2
-    server: "13.143.189.147"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "pl2.nexfile.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (56)"
-    type: hysteria2
-    server: "13.143.189.149"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "pl2.nexfile.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (57)"
-    type: hysteria2
-    server: "13.143.189.149"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "pl2.nexfile.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (58)"
-    type: hysteria2
-    server: "13.143.189.106"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "pl2.nexfile.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🇷🇺 RU"
-    type: hysteria2
-    server: "95.143.196.97"
-    port: 443
-    password: "769f34f0-1500-488f-b414-03bc90666502"
-    udp: true
-    sni: "se.mimowhat.online"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (59)"
-    type: ss
-    server: "193.29.139.234"
-    port: 8080
-    cipher: "chacha20-ietf-poly1305"
-    password: "4a2rfixophdjffa8KVA4Aa"
-    udp: true
-  - name: "TurboProbe 🌐 (60)"
-    type: hysteria2
-    server: "104.165.205.42"
-    port: 8443
-    password: "54d2f622-fd71-4f5f-8813-832b68f4ca3b"
-    udp: true
-    sni: "speedtestmark.com"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (61)"
-    type: hysteria2
-    server: "13.143.189.147"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "pl2.nexfile.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (62)"
-    type: hysteria2
-    server: "104.165.205.42"
-    port: 8443
-    password: "54d2f622-fd71-4f5f-8813-832b68f4ca3b"
-    udp: true
-    sni: "speedtestmark.com"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (63)"
     type: hysteria2
     server: "179.253.82.33"
     port: 4444
@@ -522,35 +472,97 @@ proxies:
     udp: true
     sni: "fl3.nexfile.net"
     skip-cert-verify: false
-  - name: "TurboProbe 🌐 (64)"
-    type: vless
-    server: "107.172.214.195"
+  - name: "TurboProbe 🌐 (56)"
+    type: trojan
+    server: "216.152.155.54"
     port: 443
-    uuid: "2af77824-f83d-4f50-9dd0-560bb6e7cd45"
+    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
+    udp: true
+    sni: "learn.nextjobopportunityandclaimyouridealrole.com"
+    network: tcp
+  - name: "TurboProbe 🌐 (57)"
+    type: hysteria2
+    server: "104.165.205.42"
+    port: 8443
+    password: "54d2f622-fd71-4f5f-8813-832b68f4ca3b"
+    udp: true
+    sni: "speedtestmark.com"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (58)"
+    type: hysteria2
+    server: "50.7.38.243"
+    port: 443
+    password: "d4ca9415f0eac7897472e1e5b86d2e96"
+    udp: true
+    sni: "promo.betust.net"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (59)"
+    type: hysteria2
+    server: "50.7.38.243"
+    port: 443
+    password: "d4ca9415f0eac7897472e1e5b86d2e96"
+    udp: true
+    sni: "promo.betust.net"
+    skip-cert-verify: true
+  - name: "TurboProbe 🌐 (60)"
+    type: hysteria2
+    server: "45.32.10.7"
+    port: 443
+    password: "96ab5cd282733fd4c312a61f972f330a"
+    udp: true
+    sni: "vp3.yysyy.online"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (61)"
+    type: hysteria2
+    server: "50.7.38.243"
+    port: 443
+    password: "d4ca9415f0eac7897472e1e5b86d2e96"
+    udp: true
+    sni: "promo.betust.net"
+    skip-cert-verify: false
+  - name: "TurboProbe 🇯🇵 JP"
+    type: vless
+    server: "74.113.233.192"
+    port: 443
+    uuid: "db80088c-32a1-4cb8-a907-0f3cb7844152"
     udp: true
     tls: true
-    servername: "academy.nvidia.com"
-    client-fingerprint: "firefox"
+    servername: "jp1.japancase.site"
+    client-fingerprint: "chrome"
     network: tcp
     flow: xtls-rprx-vision
     reality-opts:
-      public-key: "jK8yu9AMtNQ4J_uKE1inAzJr6V5J4GNK3sAN6nZBbUo"
-  - name: "TurboProbe 🌐 (65)"
-    type: hysteria2
-    server: "45.91.237.78"
+      public-key: "vR15JQvAL78o2FzRCftXVm1LTz-xdU31wBB2ohHFD0g"
+      short-id: "47b225059e19aa39"
+  - name: "TurboProbe 🌐 (62)"
+    type: trojan
+    server: "216.152.155.23"
     port: 443
-    password: "f4b80b26-b6d4-49a6-a460-f50efb7a457c"
+    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
     udp: true
-    sni: "node.aweom.su"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (66)"
-    type: hysteria2
-    server: "starlink-ft.251313.xyz"
+    sni: "courses.nextjobopportunityandclaimyouridealrole.com"
+    network: tcp
+  - name: "TurboProbe 🌐 (63)"
+    type: ss
+    server: "49.51.39.148"
     port: 443
-    password: "https://xship.best"
+    cipher: "chacha20-ietf-poly1305"
+    password: "LCvps-199-168-136-193-bak8443"
     udp: true
-    sni: "xship.top"
-    skip-cert-verify: true
+  - name: "TurboProbe 🇯🇵 JP (2)"
+    type: vless
+    server: "74.113.233.192"
+    port: 443
+    uuid: "db80088c-32a1-4cb8-a907-0f3cb7844152"
+    udp: true
+    tls: true
+    servername: "jp1.japancase.site"
+    client-fingerprint: "safari"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "vR15JQvAL78o2FzRCftXVm1LTz-xdU31wBB2ohHFD0g"
+      short-id: "47b225059e19aa39"
   - name: "TurboProbe 🇷🇺 RU (2)"
     type: hysteria2
     server: "151.243.169.164"
@@ -560,6 +572,20 @@ proxies:
     sni: "derfderf.ru"
     skip-cert-verify: false
   - name: "TurboProbe 🇷🇺 RU (3)"
+    type: vless
+    server: "178.214.109.1"
+    port: 443
+    uuid: "40a86b1b-239d-455e-b53f-4c270788ba6e"
+    udp: true
+    tls: true
+    servername: "promo-digital.wb.ru"
+    client-fingerprint: "edge"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "3p6W4rMBh1HCwbjq4lcbWO0KjkqTshJU5lkTix5nwTc"
+      short-id: "1cfa55abe4d2dc7a"
+  - name: "TurboProbe 🇷🇺 RU (4)"
     type: hysteria2
     server: "151.243.169.164"
     port: 12824
@@ -567,7 +593,169 @@ proxies:
     udp: true
     sni: "derfderf.ru"
     skip-cert-verify: false
-  - name: "TurboProbe 🌐 (67)"
+  - name: "TurboProbe 🇯🇵 JP (3)"
+    type: vless
+    server: "74.113.233.192"
+    port: 443
+    uuid: "db80088c-32a1-4cb8-a907-0f3cb7844152"
+    udp: true
+    tls: true
+    servername: "jp1.japancase.site"
+    client-fingerprint: "ios"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "vR15JQvAL78o2FzRCftXVm1LTz-xdU31wBB2ohHFD0g"
+      short-id: "47b225059e19aa39"
+  - name: "TurboProbe 🇷🇺 RU (5)"
+    type: vless
+    server: "178.214.109.1"
+    port: 443
+    uuid: "40a86b1b-239d-455e-b53f-4c270788ba6e"
+    udp: true
+    tls: true
+    servername: "promo-digital.wb.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "3p6W4rMBh1HCwbjq4lcbWO0KjkqTshJU5lkTix5nwTc"
+      short-id: "1cfa55abe4d2dc7a"
+  - name: "TurboProbe 🌐 (64)"
+    type: trojan
+    server: "216.152.155.176"
+    port: 443
+    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
+    udp: true
+    sni: "blog.nextjobopportunityandclaimyouridealrole.com"
+    network: tcp
+  - name: "TurboProbe 🇷🇺 RU (6)"
+    type: vless
+    server: "178.214.109.1"
+    port: 443
+    uuid: "40a86b1b-239d-455e-b53f-4c270788ba6e"
+    udp: true
+    tls: true
+    servername: "promo-digital.wb.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "3p6W4rMBh1HCwbjq4lcbWO0KjkqTshJU5lkTix5nwTc"
+      short-id: "1cfa55abe4d2dc7a"
+  - name: "TurboProbe 🌐 (65)"
+    type: hysteria2
+    server: "13.143.189.106"
+    port: 4444
+    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
+    udp: true
+    sni: "pl2.nexfile.net"
+    skip-cert-verify: false
+  - name: "TurboProbe 🇷🇺 RU (7)"
+    type: vless
+    server: "138.124.125.193"
+    port: 10444
+    uuid: "e57ce64d-5a1a-4a90-96df-9e1bd3ad26e4"
+    udp: true
+    tls: true
+    servername: "ads.x5.ru"
+    client-fingerprint: "random"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "0oTkcqwLTUNLnSOP-VUWErmy6usAIg-biBE6ioZO-Vo"
+      short-id: "8debcf36f1cc69ff"
+  - name: "TurboProbe 🇷🇺 RU (8)"
+    type: vless
+    server: "213.108.21.173"
+    port: 443
+    uuid: "c1fdf1e6-6370-4bad-a866-f80f27f5e785"
+    udp: true
+    tls: true
+    servername: "nl1.kids-games.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "oSbyJBoI2JTEva2ks51kmUCA7z-iFUcoGYCk-ciEaDU"
+  - name: "TurboProbe 🇷🇺 RU (9)"
+    type: vless
+    server: "213.108.21.173"
+    port: 443
+    uuid: "c1fdf1e6-6370-4bad-a866-f80f27f5e785"
+    udp: true
+    tls: true
+    servername: "nl1.kids-games.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "oSbyJBoI2JTEva2ks51kmUCA7z-iFUcoGYCk-ciEaDU"
+  - name: "TurboProbe 🇷🇺 RU (10)"
+    type: vless
+    server: "213.108.21.173"
+    port: 443
+    uuid: "c1fdf1e6-6370-4bad-a866-f80f27f5e785"
+    udp: true
+    tls: true
+    servername: "nl1.kids-games.ru"
+    client-fingerprint: "safari"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "oSbyJBoI2JTEva2ks51kmUCA7z-iFUcoGYCk-ciEaDU"
+  - name: "TurboProbe 🇷🇺 RU (11)"
+    type: hysteria2
+    server: "derfderf.ru"
+    port: 12824
+    password: "d62s7ghfehm742us"
+    udp: true
+    sni: "derfderf.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe 🇷🇺 RU (12)"
+    type: vless
+    server: "138.124.125.193"
+    port: 10444
+    uuid: "e57ce64d-5a1a-4a90-96df-9e1bd3ad26e4"
+    udp: true
+    tls: true
+    servername: "ads.x5.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "0oTkcqwLTUNLnSOP-VUWErmy6usAIg-biBE6ioZO-Vo"
+      short-id: "8debcf36f1cc69ff"
+  - name: "TurboProbe 🇷🇺 RU (13)"
+    type: vless
+    server: "213.108.21.173"
+    port: 443
+    uuid: "c1fdf1e6-6370-4bad-a866-f80f27f5e785"
+    udp: true
+    tls: true
+    servername: "nl1.kids-games.ru"
+    client-fingerprint: "ios"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "oSbyJBoI2JTEva2ks51kmUCA7z-iFUcoGYCk-ciEaDU"
+  - name: "TurboProbe 🇷🇺 RU (14)"
+    type: hysteria2
+    server: "derfderf.ru"
+    port: 12824
+    password: "d62s7ghfehm742us"
+    udp: true
+    sni: "derfderf.ru"
+    skip-cert-verify: true
+  - name: "TurboProbe 🇷🇺 RU (15)"
+    type: hysteria2
+    server: "derfderf.ru"
+    port: 12824
+    password: "d62s7ghfehm742us"
+    udp: true
+    sni: "derfderf.ru"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (66)"
     type: hysteria2
     server: "45.91.237.78"
     port: 443
@@ -575,35 +763,53 @@ proxies:
     udp: true
     sni: "node.aweom.su"
     skip-cert-verify: false
-  - name: "TurboProbe 🇷🇺 RU (4)"
-    type: vless
-    server: "138.124.125.193"
-    port: 10444
-    uuid: "e57ce64d-5a1a-4a90-96df-9e1bd3ad26e4"
+  - name: "TurboProbe 🌐 (67)"
+    type: hysteria2
+    server: "promo.betust.net"
+    port: 443
+    password: "d4ca9415f0eac7897472e1e5b86d2e96"
     udp: true
-    tls: true
-    servername: "ads.x5.ru"
-    client-fingerprint: "safari"
-    network: tcp
-    flow: xtls-rprx-vision
-    reality-opts:
-      public-key: "0oTkcqwLTUNLnSOP-VUWErmy6usAIg-biBE6ioZO-Vo"
-      short-id: "8debcf36f1cc69ff"
-  - name: "TurboProbe 🇷🇺 RU (5)"
-    type: vless
-    server: "138.124.125.193"
-    port: 10444
-    uuid: "e57ce64d-5a1a-4a90-96df-9e1bd3ad26e4"
-    udp: true
-    tls: true
-    servername: "ads.x5.ru"
-    client-fingerprint: "chrome"
-    network: tcp
-    flow: xtls-rprx-vision
-    reality-opts:
-      public-key: "0oTkcqwLTUNLnSOP-VUWErmy6usAIg-biBE6ioZO-Vo"
-      short-id: "8debcf36f1cc69ff"
+    sni: "promo.betust.net"
+    skip-cert-verify: false
   - name: "TurboProbe 🌐 (68)"
+    type: hysteria2
+    server: "promo.betust.net"
+    port: 443
+    password: "d4ca9415f0eac7897472e1e5b86d2e96"
+    udp: true
+    sni: "promo.betust.net"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (69)"
+    type: hysteria2
+    server: "promo.betust.net"
+    port: 443
+    password: "d4ca9415f0eac7897472e1e5b86d2e96"
+    udp: true
+    sni: "promo.betust.net"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (70)"
+    type: hysteria2
+    server: "promo.betust.net"
+    port: 443
+    password: "d4ca9415f0eac7897472e1e5b86d2e96"
+    udp: true
+    sni: "promo.betust.net"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (71)"
+    type: vless
+    server: "5.178.109.174"
+    port: 14430
+    uuid: "80de563a-cac8-40ea-8cb0-4cb082dd92f9"
+    udp: true
+    tls: false
+    servername: "5.178.109.174"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/vless"
+      headers:
+        Host: "5.178.109.174"
+  - name: "TurboProbe 🌐 (72)"
     type: hysteria2
     server: "13.143.189.96"
     port: 4444
@@ -611,15 +817,63 @@ proxies:
     udp: true
     sni: "pl3.nexfile.net"
     skip-cert-verify: false
-  - name: "TurboProbe 🌐 (69)"
-    type: hysteria2
-    server: "steel7.hadsvpn.com"
+  - name: "TurboProbe 🇯🇵 JP (4)"
+    type: vless
+    server: "193.233.252.43"
     port: 443
-    password: "23c82941-70f4-4381-90db-bd28e9a902e9"
+    uuid: "db80088c-32a1-4cb8-a907-0f3cb7844152"
     udp: true
-    sni: "steel7.hadsvpn.com"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (70)"
+    tls: true
+    servername: "se1.japancase.site"
+    client-fingerprint: "ios"
+    network: raw
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "zEntiD6D81wY__YHPvIw78e09CBIgYkyQ5meIo7c_hg"
+      short-id: "41ae8e266bc3346f"
+  - name: "TurboProbe 🇫🇮 FI"
+    type: vless
+    server: "45.144.234.157"
+    port: 14430
+    uuid: "59b0d30e-9b29-4fda-a35c-b2901ec32db7"
+    udp: true
+    tls: false
+    servername: "45.144.234.157"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/vless"
+      headers:
+        Host: "45.144.234.157"
+  - name: "TurboProbe 🇯🇵 JP (5)"
+    type: vless
+    server: "193.233.252.43"
+    port: 443
+    uuid: "db80088c-32a1-4cb8-a907-0f3cb7844152"
+    udp: true
+    tls: true
+    servername: "se1.japancase.site"
+    client-fingerprint: "firefox"
+    network: raw
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "zEntiD6D81wY__YHPvIw78e09CBIgYkyQ5meIo7c_hg"
+      short-id: "41ae8e266bc3346f"
+  - name: "TurboProbe 🇯🇵 JP (6)"
+    type: vless
+    server: "193.233.252.43"
+    port: 443
+    uuid: "db80088c-32a1-4cb8-a907-0f3cb7844152"
+    udp: true
+    tls: true
+    servername: "se1.japancase.site"
+    client-fingerprint: "safari"
+    network: raw
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "zEntiD6D81wY__YHPvIw78e09CBIgYkyQ5meIo7c_hg"
+      short-id: "41ae8e266bc3346f"
+  - name: "TurboProbe 🌐 (73)"
     type: hysteria2
     server: "13.143.188.142"
     port: 4444
@@ -627,47 +881,7 @@ proxies:
     udp: true
     sni: "bl1.nexfile.net"
     skip-cert-verify: false
-  - name: "TurboProbe 🌐 (71)"
-    type: hysteria2
-    server: "13.143.188.143"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "bl1.nexfile.net"
-    skip-cert-verify: true
-  - name: "TurboProbe 🇷🇺 RU (6)"
-    type: hysteria2
-    server: "derfderf.ru"
-    port: 12824
-    password: "d62s7ghfehm742us"
-    udp: true
-    sni: "derfderf.ru"
-    skip-cert-verify: true
-  - name: "TurboProbe 🌐 (72)"
-    type: hysteria2
-    server: "13.143.189.80"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "pl3.nexfile.net"
-    skip-cert-verify: true
-  - name: "TurboProbe 🇷🇺 RU (7)"
-    type: hysteria2
-    server: "derfderf.ru"
-    port: 12824
-    password: "d62s7ghfehm742us"
-    udp: true
-    sni: "derfderf.ru"
-    skip-cert-verify: false
-  - name: "TurboProbe 🇷🇺 RU (8)"
-    type: hysteria2
-    server: "derfderf.ru"
-    port: 12824
-    password: "d62s7ghfehm742us"
-    udp: true
-    sni: "derfderf.ru"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (73)"
+  - name: "TurboProbe 🌐 (74)"
     type: hysteria2
     server: "13.143.189.142"
     port: 4444
@@ -675,51 +889,83 @@ proxies:
     udp: true
     sni: "pl3.nexfile.net"
     skip-cert-verify: false
-  - name: "TurboProbe 🌐 (74)"
-    type: hysteria2
-    server: "13.143.189.96"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "pl3.nexfile.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🇩🇪 DE"
-    type: hysteria2
-    server: "84.252.100.138"
-    port: 2443
-    password: "zWqQKhzHQOeuIcQleiAC2Ld8j0eZSjZXEAgTKwGaP9c"
-    udp: true
-    sni: "de.vip-get.ru"
-    skip-cert-verify: false
   - name: "TurboProbe 🌐 (75)"
     type: hysteria2
-    server: "179.253.82.47"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
+    server: "152.32.254.68"
+    port: 5010
+    password: "eBTe6Ax2pUts8oMEWoYVDfnSlHfkLffQ"
     udp: true
-    sni: "fl3.nexfile.net"
+    sni: "nas.aizhzo.com"
     skip-cert-verify: false
   - name: "TurboProbe 🌐 (76)"
     type: hysteria2
-    server: "13.143.189.71"
+    server: "13.143.188.142"
     port: 4444
     password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
     udp: true
-    sni: "pl3.nexfile.net"
+    sni: "bl1.nexfile.net"
     skip-cert-verify: false
-  - name: "TurboProbe 🌐 (77)"
-    type: hysteria2
-    server: "13.143.189.106"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "pl2.nexfile.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🇷🇺 RU (9)"
+  - name: "TurboProbe 🇯🇵 JP (7)"
     type: vless
-    server: "178.172.227.228"
+    server: "193.233.252.43"
+    port: 443
+    uuid: "db80088c-32a1-4cb8-a907-0f3cb7844152"
+    udp: true
+    tls: true
+    servername: "se1.japancase.site"
+    client-fingerprint: "chrome"
+    network: raw
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "zEntiD6D81wY__YHPvIw78e09CBIgYkyQ5meIo7c_hg"
+      short-id: "41ae8e266bc3346f"
+  - name: "TurboProbe 🌐 (77)"
+    type: trojan
+    server: "167.88.61.20"
+    port: 443
+    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
+    udp: true
+    sni: "api.browseseniorrolesandenhanceyourcareertoday.com"
+    network: tcp
+  - name: "TurboProbe 🌐 (78)"
+    type: vless
+    server: "138.124.86.230"
+    port: 48115
+    uuid: "b2fe1fa4-6a79-4938-a3f4-63b54ae7f16b"
+    udp: true
+    tls: true
+    servername: "138-124-86-230.sslip.io"
+    client-fingerprint: "firefox"
+    network: grpc
+    grpc-opts:
+      grpc-service-name: "138-124-86-230-sslip-io"
+  - name: "TurboProbe 🇰🇷 KR"
+    type: vless
+    server: "152.69.226.63"
+    port: 25555
+    uuid: "27c5483f-17f4-48ae-9a04-def53d88440d"
+    udp: true
+    tls: false
+    servername: "152.69.226.63"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "152.69.226.63"
+  - name: "TurboProbe 🇸🇬 SG"
+    type: hysteria2
+    server: "18.141.210.28"
+    port: 10000
+    password: "eRlY6dXnQ4QUzVOQi6YDfZWq"
+    udp: true
+    sni: "sg-transit-3.nebulacloud.win"
+    skip-cert-verify: true
+  - name: "TurboProbe 🇷🇺 RU (16)"
+    type: vless
+    server: "138.124.125.193"
     port: 10444
-    uuid: "b6e5dc56-836f-48c1-9163-b0b0b43b647d"
+    uuid: "e57ce64d-5a1a-4a90-96df-9e1bd3ad26e4"
     udp: true
     tls: true
     servername: "ads.x5.ru"
@@ -729,67 +975,7 @@ proxies:
     reality-opts:
       public-key: "0oTkcqwLTUNLnSOP-VUWErmy6usAIg-biBE6ioZO-Vo"
       short-id: "8debcf36f1cc69ff"
-  - name: "TurboProbe 🌐 (78)"
-    type: hysteria2
-    server: "13.143.189.105"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "pl2.nexfile.net"
-    skip-cert-verify: false
   - name: "TurboProbe 🌐 (79)"
-    type: hysteria2
-    server: "13.143.189.106"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "pl2.nexfile.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🇷🇺 RU (10)"
-    type: vless
-    server: "82.118.16.149"
-    port: 443
-    uuid: "408c51e8-9246-483d-ba73-34ab4e202eb9"
-    udp: true
-    tls: true
-    servername: "metrika.yandex.ru"
-    client-fingerprint: "firefox"
-    network: tcp
-    flow: xtls-rprx-vision
-    reality-opts:
-      public-key: "HbK-TTnL1Dog-wKCowjLrKsx5ECIt2uxBsdGfeWG6kQ"
-      short-id: "7bbf811a"
-  - name: "TurboProbe 🌐 (80)"
-    type: hysteria2
-    server: "steel7.hadsvpn.com"
-    port: 443
-    password: "23c82941-70f4-4381-90db-bd28e9a902e9"
-    udp: true
-    sni: "steel7.hadsvpn.com"
-    skip-cert-verify: false
-  - name: "TurboProbe 🌐 (81)"
-    type: hysteria2
-    server: "13.143.189.143"
-    port: 4444
-    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
-    udp: true
-    sni: "pl3.nexfile.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🇷🇺 RU (11)"
-    type: vless
-    server: "213.176.92.168"
-    port: 10444
-    uuid: "ba52cc43-700d-4040-9444-29214c98e6e0"
-    udp: true
-    tls: true
-    servername: "video.yandex.ru"
-    client-fingerprint: "chrome"
-    network: tcp
-    flow: xtls-rprx-vision
-    reality-opts:
-      public-key: "0oTkcqwLTUNLnSOP-VUWErmy6usAIg-biBE6ioZO-Vo"
-      short-id: "8debcf36f1cc69ff"
-  - name: "TurboProbe 🌐 (82)"
     type: hysteria2
     server: "144.31.109.240"
     port: 4444
@@ -797,105 +983,322 @@ proxies:
     udp: true
     sni: "fl3.nexfile.net"
     skip-cert-verify: false
-  - name: "TurboProbe 🌐 (83)"
+  - name: "TurboProbe 🌐 (80)"
     type: hysteria2
-    server: "152.32.254.68"
-    port: 5010
-    password: "eBTe6Ax2pUts8oMEWoYVDfnSlHfkLffQ"
+    server: "13.143.189.147"
+    port: 4444
+    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
     udp: true
-    sni: "nas.aizhzo.com"
+    sni: "pl2.nexfile.net"
     skip-cert-verify: false
-  - name: "TurboProbe 🌐 (84)"
-    type: hysteria2
-    server: "0b28dbb8-tmm5c0-tn3jhp-1qthu.los.hyhuawei.com"
+  - name: "TurboProbe 🇷🇺 RU (17)"
+    type: vless
+    server: "193.23.218.107"
     port: 443
-    password: "8fa4bea0-8703-11ef-83cc-f23c913c8d2b"
+    uuid: "6f433cf6-4221-48b2-ad29-01121952ef8a"
     udp: true
-    sni: "0b28dbb8-tmm5c0-tn3jhp-1qthu.los.hyhuawei.com"
-    skip-cert-verify: true
-  - name: "TurboProbe 🌐 (85)"
+    tls: true
+    servername: "yandex.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "cBTZdCBwrYTTarw6B_lu2TN1M6_Lku68FfWCQT9svhc"
+      short-id: "cb620aa2f04bce33"
+  - name: "TurboProbe 🌐 (81)"
     type: hysteria2
-    server: "13.143.189.142"
+    server: "13.143.189.80"
     port: 4444
     password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
     udp: true
     sni: "pl3.nexfile.net"
-    skip-cert-verify: false
-  - name: "TurboProbe 🇷🇺 RU (12)"
+    skip-cert-verify: true
+  - name: "TurboProbe 🇷🇺 RU (18)"
     type: vless
-    server: "95.128.71.79"
-    port: 10444
-    uuid: "8cef7621-c6f0-486e-b51d-59c30c5b0b25"
+    server: "193.23.218.107"
+    port: 443
+    uuid: "6f433cf6-4221-48b2-ad29-01121952ef8a"
     udp: true
     tls: true
-    servername: "ads.x5.ru"
-    client-fingerprint: "firefox"
+    servername: "yandex.ru"
+    client-fingerprint: "chrome"
     network: tcp
     flow: xtls-rprx-vision
     reality-opts:
-      public-key: "0oTkcqwLTUNLnSOP-VUWErmy6usAIg-biBE6ioZO-Vo"
-      short-id: "8debcf36f1cc69ff"
-  - name: "TurboProbe 🇫🇷 FR"
-    type: trojan
-    server: "188.114.96.3"
-    port: 2053
-    password: "gHQP0D7D15"
+      public-key: "cBTZdCBwrYTTarw6B_lu2TN1M6_Lku68FfWCQT9svhc"
+      short-id: "cb620aa2f04bce33"
+  - name: "TurboProbe 🌐 (82)"
+    type: hysteria2
+    server: "13.143.189.149"
+    port: 4444
+    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
     udp: true
-    sni: "marvdasht.phonecomparisonblog.org"
-    network: ws
-    ws-opts:
-      path: "/"
-      headers:
-        Host: "marvdasht.phonecomparisonblog.org"
+    sni: "pl2.nexfile.net"
+    skip-cert-verify: false
+  - name: "TurboProbe 🇷🇺 RU (19)"
+    type: vless
+    server: "136.234.9.92"
+    port: 443
+    uuid: "e267bd26-3816-002e-990f-8d6ec83bd25b"
+    udp: true
+    tls: true
+    servername: "git.medrocket.ru"
+    client-fingerprint: "firefox"
+    network: xhttp
+    reality-opts:
+      public-key: "YHPoUNxsml4z6pYt-7djOb1lqnBjxCk4-2mk84pveyc"
+      short-id: "3b5b38669a1a51c0"
+  - name: "TurboProbe 🌐 (83)"
+    type: hysteria2
+    server: "steel7.hadsvpn.com"
+    port: 443
+    password: "23c82941-70f4-4381-90db-bd28e9a902e9"
+    udp: true
+    sni: "steel7.hadsvpn.com"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (84)"
+    type: hysteria2
+    server: "13.143.189.106"
+    port: 4444
+    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
+    udp: true
+    sni: "pl2.nexfile.net"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (85)"
+    type: hysteria2
+    server: "13.143.189.147"
+    port: 4444
+    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
+    udp: true
+    sni: "pl2.nexfile.net"
+    skip-cert-verify: false
   - name: "TurboProbe 🌐 (86)"
     type: hysteria2
-    server: "152.32.254.68"
-    port: 5010
-    password: "eBTe6Ax2pUts8oMEWoYVDfnSlHfkLffQ"
+    server: "13.143.189.106"
+    port: 4444
+    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
     udp: true
-    sni: "nas.aizhzo.com"
+    sni: "pl2.nexfile.net"
     skip-cert-verify: false
+  - name: "TurboProbe 🇷🇺 RU (20)"
+    type: vless
+    server: "136.234.9.92"
+    port: 443
+    uuid: "e267bd26-3816-002e-990f-8d6ec83bd25b"
+    udp: true
+    tls: true
+    servername: "git.medrocket.ru"
+    client-fingerprint: "chrome"
+    network: xhttp
+    reality-opts:
+      public-key: "YHPoUNxsml4z6pYt-7djOb1lqnBjxCk4-2mk84pveyc"
+      short-id: "3b5b38669a1a51c0"
   - name: "TurboProbe 🌐 (87)"
     type: hysteria2
-    server: "144.31.109.158"
+    server: "13.143.189.105"
+    port: 4444
+    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
+    udp: true
+    sni: "pl2.nexfile.net"
+    skip-cert-verify: false
+  - name: "TurboProbe 🌐 (88)"
+    type: hysteria2
+    server: "45.91.237.78"
+    port: 443
+    password: "f4b80b26-b6d4-49a6-a460-f50efb7a457c"
+    udp: true
+    sni: "node.aweom.su"
+    skip-cert-verify: false
+  - name: "TurboProbe 🇷🇺 RU (21)"
+    type: vless
+    server: "193.23.218.107"
+    port: 443
+    uuid: "6f433cf6-4221-48b2-ad29-01121952ef8a"
+    udp: true
+    tls: true
+    servername: "yandex.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "cBTZdCBwrYTTarw6B_lu2TN1M6_Lku68FfWCQT9svhc"
+      short-id: "cb620aa2f04bce33"
+  - name: "TurboProbe 🇷🇺 RU (22)"
+    type: vless
+    server: "193.23.218.107"
+    port: 443
+    uuid: "6f433cf6-4221-48b2-ad29-01121952ef8a"
+    udp: true
+    tls: true
+    servername: "yandex.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "cBTZdCBwrYTTarw6B_lu2TN1M6_Lku68FfWCQT9svhc"
+      short-id: "cb620aa2f04bce33"
+  - name: "TurboProbe 🌐 (89)"
+    type: hysteria2
+    server: "208.69.78.217"
+    port: 21154
+    password: "capadm96216165:nXUv9sPkKFsDMmhZ7jbE28sw"
+    udp: true
+    sni: "vpn.local"
+    skip-cert-verify: true
+  - name: "TurboProbe 🌐 (90)"
+    type: hysteria2
+    server: "179.253.82.47"
     port: 4444
     password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
     udp: true
     sni: "fl3.nexfile.net"
     skip-cert-verify: false
-  - name: "TurboProbe 🇫🇷 FR (2)"
-    type: trojan
-    server: "104.16.186.130"
-    port: 2053
-    password: "gHQP0D7D15"
+  - name: "TurboProbe 🇷🇺 RU (23)"
+    type: vless
+    server: "213.165.39.134"
+    port: 443
+    uuid: "6a251a93-8eee-43b5-92ed-ecadedcfd0a8"
     udp: true
-    sni: "marvdasht.phonecomparisonblog.org"
-    network: ws
-    ws-opts:
-      path: "/"
-      headers:
-        Host: "marvdasht.phonecomparisonblog.org"
-  - name: "TurboProbe 🇫🇷 FR (3)"
-    type: trojan
-    server: "104.18.0.1"
-    port: 2053
-    password: "gHQP0D7D15"
-    udp: true
-    sni: "marvdasht.phonecomparisonblog.org"
-    network: ws
-    ws-opts:
-      path: "/"
-      headers:
-        Host: "marvdasht.phonecomparisonblog.org"
-  - name: "TurboProbe 🇳🇱 NL"
+    tls: true
+    servername: "platform-api.max.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "Gtz3xOdQdWSocdx4NNie6s-bsa9VDiG6thqanJ4h31s"
+      short-id: "6f3332a09b0ab6d1"
+  - name: "TurboProbe 🌐 (91)"
     type: hysteria2
-    server: "84.252.100.138"
-    port: 5443
-    password: "kKd2watTl7WACOoIAjkzt4MW6ak6I3c1Un8c4-oNMtU"
+    server: "13.143.189.149"
+    port: 4444
+    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
     udp: true
-    sni: "nl.vip-get.ru"
+    sni: "pl2.nexfile.net"
     skip-cert-verify: false
-  - name: "TurboProbe 🇷🇺 RU (13)"
+  - name: "TurboProbe 🇷🇺 RU (24)"
+    type: vless
+    server: "213.165.39.134"
+    port: 443
+    uuid: "6a251a93-8eee-43b5-92ed-ecadedcfd0a8"
+    udp: true
+    tls: true
+    servername: "platform-api.max.ru"
+    client-fingerprint: "chrome"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "Gtz3xOdQdWSocdx4NNie6s-bsa9VDiG6thqanJ4h31s"
+      short-id: "6f3332a09b0ab6d1"
+  - name: "TurboProbe 🌐 (92)"
+    type: hysteria2
+    server: "13.143.189.147"
+    port: 4444
+    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
+    udp: true
+    sni: "pl2.nexfile.net"
+    skip-cert-verify: false
+  - name: "TurboProbe 🇸🇬 SG (2)"
+    type: hysteria2
+    server: "18.141.210.28"
+    port: 10000
+    password: "eRlY6dXnQ4QUzVOQi6YDfZWq"
+    udp: true
+    sni: "sg-transit-3.nebulacloud.win"
+    skip-cert-verify: true
+  - name: "TurboProbe 🇸🇬 SG (3)"
+    type: vless
+    server: "104.21.89.41"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🌐 (93)"
+    type: hysteria2
+    server: "steel7.hadsvpn.com"
+    port: 443
+    password: "23c82941-70f4-4381-90db-bd28e9a902e9"
+    udp: true
+    sni: "steel7.hadsvpn.com"
+    skip-cert-verify: false
+  - name: "TurboProbe 🇸🇬 SG (4)"
+    type: vless
+    server: "104.24.0.184"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "ios"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇷🇺 RU (25)"
+    type: vless
+    server: "104.171.134.135"
+    port: 8443
+    uuid: "f9f70641-667b-46f2-a37e-e3858acbcd9b"
+    udp: true
+    tls: true
+    servername: "360.yandex.ru"
+    client-fingerprint: "firefox"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "AMOBkNsSbIM8YBI6uosUBioGJSOp8eliEpW7vTZ4Mks"
+      short-id: "8fd699a1c79e360d"
+  - name: "TurboProbe 🇸🇬 SG (5)"
+    type: vless
+    server: "104.21.70.228"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "firefox"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🌐 (94)"
+    type: hysteria2
+    server: "13.143.189.149"
+    port: 4444
+    password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
+    udp: true
+    sni: "pl2.nexfile.net"
+    skip-cert-verify: false
+  - name: "TurboProbe 🇨🇦 CA"
+    type: ss
+    server: "51.79.85.185"
+    port: 8118
+    cipher: "aes-256-gcm"
+    password: "cdBIDV42DCwnfIN"
+    udp: true
+  - name: "TurboProbe 🇸🇬 SG (6)"
+    type: vless
+    server: "104.16.156.227"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "safari"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇷🇺 RU (26)"
     type: vless
     server: "213.176.92.168"
     port: 10444
@@ -909,52 +1312,795 @@ proxies:
     reality-opts:
       public-key: "0oTkcqwLTUNLnSOP-VUWErmy6usAIg-biBE6ioZO-Vo"
       short-id: "8debcf36f1cc69ff"
-  - name: "TurboProbe 🇨🇦 CA"
-    type: trojan
-    server: "216.152.147.79"
-    port: 443
-    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
-    udp: true
-    sni: "blog.connectingpeoplewithgreatjobs.com"
-    network: tcp
-  - name: "TurboProbe 🇷🇺 RU (14)"
+  - name: "TurboProbe 🇰🇿 KZ (6)"
     type: vless
-    server: "193.163.203.170"
-    port: 443
-    uuid: "11aabba0-5fd1-4f15-8068-74c1a466cefc"
+    server: "104.21.58.37"
+    port: 2053
+    uuid: "e3149c82-00f6-4227-b2c0-b78f1dd81279"
     udp: true
     tls: true
-    servername: "yandex.ru"
+    servername: "fast.145779.xyz"
+    client-fingerprint: "safari"
+    network: ws
+    ws-opts:
+      path: "/ws-tesla"
+      headers:
+        Host: "fast.145779.xyz"
+  - name: "TurboProbe 🇸🇬 SG (7)"
+    type: vless
+    server: "104.16.111.193"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "safari"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇰🇿 KZ (7)"
+    type: vless
+    server: "104.21.58.37"
+    port: 2053
+    uuid: "e3149c82-00f6-4227-b2c0-b78f1dd81279"
+    udp: true
+    tls: true
+    servername: "fast.145779.xyz"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/ws-tesla"
+      headers:
+        Host: "fast.145779.xyz"
+  - name: "TurboProbe 🇵🇱 PL"
+    type: vless
+    server: "77.233.222.33"
+    port: 993
+    uuid: "981c7ccc-2b17-473c-8358-7fd1d6eec1b4"
+    udp: true
+    tls: true
+    servername: "msk6.gacvpn.site"
+    client-fingerprint: "ios"
+    network: ws
+    ws-opts:
+      path: "/static/js/vendor.32acab26.js"
+      headers:
+        Host: "msk6.gacvpn.site"
+  - name: "TurboProbe 🌐 (95)"
+    type: vless
+    server: "178.172.227.124"
+    port: 14430
+    uuid: "1af36694-b548-4b18-89a0-bc076eab4ed7"
+    udp: true
+    tls: false
+    servername: "178.172.227.124"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/vless"
+      headers:
+        Host: "178.172.227.124"
+  - name: "TurboProbe 🌐 (96)"
+    type: vless
+    server: "193.151.108.255"
+    port: 443
+    uuid: "02e7f01e-c9cf-4f96-816d-3b7cb97b289b"
+    udp: true
+    tls: true
+    servername: "schweic.worldfly.io"
+    client-fingerprint: "safari"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "dyFChktSfbZT29JZ3hetyOa4k53U6g6opd9suKsG4hw"
+      short-id: "740732f996dc1213"
+  - name: "TurboProbe 🇸🇬 SG (8)"
+    type: vless
+    server: "104.19.178.244"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "android"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🌐 (97)"
+    type: vless
+    server: "193.151.108.255"
+    port: 443
+    uuid: "02e7f01e-c9cf-4f96-816d-3b7cb97b289b"
+    udp: true
+    tls: true
+    servername: "schweic.worldfly.io"
+    client-fingerprint: "ios"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "dyFChktSfbZT29JZ3hetyOa4k53U6g6opd9suKsG4hw"
+      short-id: "740732f996dc1213"
+  - name: "TurboProbe 🌐 (98)"
+    type: vless
+    server: "193.151.108.255"
+    port: 443
+    uuid: "02e7f01e-c9cf-4f96-816d-3b7cb97b289b"
+    udp: true
+    tls: true
+    servername: "schweic.worldfly.io"
     client-fingerprint: "chrome"
     network: tcp
     flow: xtls-rprx-vision
     reality-opts:
-      public-key: "GCCZ1ZZjB_nj7yxqFi22bIIWWr_G6rnWUzDcssN_40o"
-      short-id: "b28db60d77c50b4f"
-  - name: "TurboProbe 🇨🇦 CA (2)"
-    type: trojan
-    server: "216.152.147.74"
-    port: 443
-    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
+      public-key: "dyFChktSfbZT29JZ3hetyOa4k53U6g6opd9suKsG4hw"
+      short-id: "740732f996dc1213"
+  - name: "TurboProbe 🇺🇸 US (2)"
+    type: vless
+    server: "194.87.118.232"
+    port: 993
+    uuid: "981c7ccc-2b17-473c-8358-7fd1d6eec1b4"
     udp: true
-    sni: "api.connectingpeoplewithgreatjobs.com"
-    network: tcp
-  - name: "TurboProbe 🇨🇦 CA (3)"
-    type: trojan
-    server: "216.152.147.152"
+    tls: true
+    servername: "us2-ws.gacvpn.site"
+    client-fingerprint: "firefox"
+    network: ws
+    ws-opts:
+      path: "/static/js/vendor.2e12e7f4.js"
+      headers:
+        Host: "us2-ws.gacvpn.site"
+  - name: "TurboProbe 🇯🇵 JP (8)"
+    type: vless
+    server: "95.57.50.87"
     port: 443
-    password: "0ab6c98dae3b48e8b9c4a776b6c9c19a"
+    uuid: "db80088c-32a1-4cb8-a907-0f3cb7844152"
     udp: true
-    sni: "learn.connectingpeoplewithgreatjobs.com"
+    tls: true
+    servername: "kz1.japancase.site"
+    client-fingerprint: "safari"
     network: tcp
-  - name: "TurboProbe 🌐 (88)"
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "eV6ewGF7oTHf2pTQHKYvwJt-vU8hUC-1CjiUl20HtXE"
+      short-id: "4000cdda6278d236"
+  - name: "TurboProbe 🌐 (99)"
+    type: vless
+    server: "193.151.108.255"
+    port: 443
+    uuid: "02e7f01e-c9cf-4f96-816d-3b7cb97b289b"
+    udp: true
+    tls: true
+    servername: "schweic.worldfly.io"
+    client-fingerprint: "firefox"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "dyFChktSfbZT29JZ3hetyOa4k53U6g6opd9suKsG4hw"
+      short-id: "740732f996dc1213"
+  - name: "TurboProbe 🇵🇱 PL (2)"
+    type: vless
+    server: "77.233.222.33"
+    port: 993
+    uuid: "981c7ccc-2b17-473c-8358-7fd1d6eec1b4"
+    udp: true
+    tls: true
+    servername: "msk6.gacvpn.site"
+    client-fingerprint: "firefox"
+    network: ws
+    ws-opts:
+      path: "/static/js/vendor.32acab26.js"
+      headers:
+        Host: "msk6.gacvpn.site"
+  - name: "TurboProbe 🌐 (100)"
+    type: ss
+    server: "51.222.200.165"
+    port: 5000
+    cipher: "aes-256-gcm"
+    password: "Y6R9pAtvxxzmGC"
+    udp: true
+  - name: "TurboProbe 🇯🇵 JP (9)"
+    type: vless
+    server: "95.57.50.87"
+    port: 443
+    uuid: "db80088c-32a1-4cb8-a907-0f3cb7844152"
+    udp: true
+    tls: true
+    servername: "kz1.japancase.site"
+    client-fingerprint: "firefox"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "eV6ewGF7oTHf2pTQHKYvwJt-vU8hUC-1CjiUl20HtXE"
+      short-id: "4000cdda6278d236"
+  - name: "TurboProbe 🇯🇵 JP (10)"
+    type: vless
+    server: "95.57.50.87"
+    port: 443
+    uuid: "db80088c-32a1-4cb8-a907-0f3cb7844152"
+    udp: true
+    tls: true
+    servername: "kz1.japancase.site"
+    client-fingerprint: "ios"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "eV6ewGF7oTHf2pTQHKYvwJt-vU8hUC-1CjiUl20HtXE"
+      short-id: "4000cdda6278d236"
+  - name: "TurboProbe 🇯🇵 JP (11)"
+    type: vless
+    server: "95.57.50.87"
+    port: 443
+    uuid: "db80088c-32a1-4cb8-a907-0f3cb7844152"
+    udp: true
+    tls: true
+    servername: "kz1.japancase.site"
+    client-fingerprint: "chrome"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "eV6ewGF7oTHf2pTQHKYvwJt-vU8hUC-1CjiUl20HtXE"
+      short-id: "4000cdda6278d236"
+  - name: "TurboProbe 🌐 (101)"
     type: hysteria2
-    server: "13.143.189.147"
+    server: "152.32.254.68"
+    port: 5010
+    password: "eBTe6Ax2pUts8oMEWoYVDfnSlHfkLffQ"
+    udp: true
+    sni: "nas.aizhzo.com"
+    skip-cert-verify: false
+  - name: "TurboProbe 🇺🇸 US (3)"
+    type: vless
+    server: "194.87.118.232"
+    port: 993
+    uuid: "981c7ccc-2b17-473c-8358-7fd1d6eec1b4"
+    udp: true
+    tls: true
+    servername: "us2-ws.gacvpn.site"
+    client-fingerprint: "edge"
+    network: ws
+    ws-opts:
+      path: "/static/js/vendor.2e12e7f4.js"
+      headers:
+        Host: "us2-ws.gacvpn.site"
+  - name: "TurboProbe 🇸🇬 SG (9)"
+    type: vless
+    server: "104.24.11.68"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇰🇿 KZ (8)"
+    type: vless
+    server: "104.21.58.37"
+    port: 2053
+    uuid: "c83f15bf-1817-4ec8-a19f-6393d226434c"
+    udp: true
+    tls: true
+    servername: "fast.145779.xyz"
+    client-fingerprint: "android"
+    network: ws
+    ws-opts:
+      path: "/ws-tesla"
+      headers:
+        Host: "fast.145779.xyz"
+  - name: "TurboProbe 🇱🇻 LV"
+    type: vless
+    server: "176.124.218.80"
+    port: 993
+    uuid: "981c7ccc-2b17-473c-8358-7fd1d6eec1b4"
+    udp: true
+    tls: true
+    servername: "lv.gacvpn.site"
+    client-fingerprint: "firefox"
+    network: ws
+    ws-opts:
+      path: "/static/js/vendor.448f02e7.js"
+      headers:
+        Host: "lv.gacvpn.site"
+  - name: "TurboProbe 🇸🇬 SG (10)"
+    type: vless
+    server: "104.16.111.193"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇸🇬 SG (11)"
+    type: vless
+    server: "104.19.178.244"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🌐 (102)"
+    type: hysteria2
+    server: "13.143.189.96"
     port: 4444
     password: "a35c508f-4d5d-4531-842e-6e9d43c762c0"
     udp: true
-    sni: "pl2.nexfile.net"
+    sni: "pl3.nexfile.net"
     skip-cert-verify: false
+  - name: "TurboProbe 🇸🇬 SG (12)"
+    type: vless
+    server: "188.114.97.6"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "firefox"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇸🇬 SG (13)"
+    type: vless
+    server: "104.21.89.41"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "safari"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇸🇬 SG (14)"
+    type: vless
+    server: "104.16.10.100"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "qq"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇸🇬 SG (15)"
+    type: vless
+    server: "104.21.60.109"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "qq"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇺🇸 US (4)"
+    type: vless
+    server: "151.101.131.6"
+    port: 443
+    uuid: "2e69b088-6ef3-417f-8247-125cf257fafd"
+    udp: true
+    tls: true
+    servername: "apps.apple.com"
+    client-fingerprint: "chrome"
+    network: xhttp
+  - name: "TurboProbe 🇺🇸 US (5)"
+    type: vless
+    server: "151.101.131.6"
+    port: 443
+    uuid: "2e69b088-6ef3-417f-8247-125cf257fafd"
+    udp: true
+    tls: true
+    servername: "apps.apple.com"
+    client-fingerprint: "qq"
+    network: xhttp
+  - name: "TurboProbe 🌐 (103)"
+    type: ss
+    server: "51.79.64.198"
+    port: 8119
+    cipher: "aes-256-gcm"
+    password: "cdBIDV42DCwnfIN"
+    udp: true
+  - name: "TurboProbe 🌐 (104)"
+    type: hysteria2
+    server: "starlink-ft.251313.xyz"
+    port: 443
+    password: "https://xship.best"
+    udp: true
+    sni: "xship.top"
+    skip-cert-verify: true
+  - name: "TurboProbe 🇸🇬 SG (16)"
+    type: vless
+    server: "104.18.26.90"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "android"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🌐 (105)"
+    type: ss
+    server: "51.222.136.236"
+    port: 8882
+    cipher: "aes-256-gcm"
+    password: "kDWvXYZoTBcGkC4"
+    udp: true
+  - name: "TurboProbe 🌐 (106)"
+    type: vless
+    server: "185.147.27.92"
+    port: 443
+    uuid: "1d690248-024b-4923-aab2-0abebe0688d3"
+    udp: true
+    tls: true
+    servername: "fotaku.xyz"
+    client-fingerprint: "firefox"
+    network: tcp
+    reality-opts:
+      public-key: "dMy6EEwckj-LDysvKx0HflY60Z3YiuGD7D7UeJjItDA"
+  - name: "TurboProbe 🌐 (107)"
+    type: ss
+    server: "51.222.155.113"
+    port: 5601
+    cipher: "aes-256-gcm"
+    password: "Y6R9pAtvxxzmGC"
+    udp: true
+  - name: "TurboProbe 🇸🇬 SG (17)"
+    type: vless
+    server: "104.17.117.137"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "firefox"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇸🇬 SG (18)"
+    type: vless
+    server: "104.21.60.109"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇯🇵 JP (12)"
+    type: vless
+    server: "104.16.10.22"
+    port: 443
+    uuid: "4e4f1f70-5e56-4a76-bb9d-db087f4690c4"
+    udp: true
+    tls: true
+    servername: "jp3.yohototo.top"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/tyxyws"
+      headers:
+        Host: "jp3.yohototo.top"
+  - name: "TurboProbe 🇸🇬 SG (19)"
+    type: vless
+    server: "104.19.32.166"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "qq"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇱🇻 LV (2)"
+    type: vless
+    server: "31.76.83.1"
+    port: 443
+    uuid: "caedb3a1-6395-40b9-a9a8-4b9694eb224a"
+    udp: true
+    tls: true
+    servername: "www.rimi.lv"
+    client-fingerprint: "chrome"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "0ucabP76F6UHGAAoi73bxlt6ugwqoRDoLAW5n39pezU"
+  - name: "TurboProbe 🇸🇬 SG (20)"
+    type: vless
+    server: "104.16.10.103"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇫🇮 FI (2)"
+    type: vless
+    server: "103.74.93.240"
+    port: 993
+    uuid: "981c7ccc-2b17-473c-8358-7fd1d6eec1b4"
+    udp: true
+    tls: true
+    servername: "msk2.gacvpn.site"
+    client-fingerprint: "edge"
+    network: ws
+    ws-opts:
+      path: "/static/js/vendor.549bd856.js"
+      headers:
+        Host: "msk2.gacvpn.site"
+  - name: "TurboProbe 🇰🇿 KZ (9)"
+    type: vless
+    server: "104.17.11.191"
+    port: 443
+    uuid: "fc7d2cfe-f5ef-40c8-a848-a0bdc11f6349"
+    udp: true
+    tls: true
+    servername: "vpn.cintaku.qzz.io"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/vlessws"
+      headers:
+        Host: "vpn.cintaku.qzz.io"
+  - name: "TurboProbe 🇰🇿 KZ (10)"
+    type: vless
+    server: "172.67.166.188"
+    port: 443
+    uuid: "fc7d2cfe-f5ef-40c8-a848-a0bdc11f6349"
+    udp: true
+    tls: true
+    servername: "vpn.cintaku.qzz.io"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/vlessws"
+      headers:
+        Host: "vpn.cintaku.qzz.io"
+  - name: "TurboProbe 🇸🇬 SG (21)"
+    type: vless
+    server: "104.16.10.104"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "safari"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇫🇮 FI (3)"
+    type: vless
+    server: "103.74.93.240"
+    port: 995
+    uuid: "981c7ccc-2b17-473c-8358-7fd1d6eec1b4"
+    udp: true
+    tls: true
+    servername: "msk2.gacvpn.site"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/static/js/app.5b8e2c41.js"
+      headers:
+        Host: "msk2.gacvpn.site"
+  - name: "TurboProbe 🇰🇿 KZ (11)"
+    type: vless
+    server: "188.114.98.0"
+    port: 443
+    uuid: "4e4f1f70-5e56-4a76-bb9d-db087f4690c4"
+    udp: true
+    tls: true
+    servername: "jp3.yohototo.top"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/tyxyws"
+      headers:
+        Host: "jp3.yohototo.top"
+  - name: "TurboProbe 🌐 (108)"
+    type: vless
+    server: "13.143.167.251"
+    port: 8443
+    uuid: "a4e5f910-23f4-470f-82a7-ed9d7be71dec"
+    udp: true
+    tls: true
+    servername: "teamdocs.su"
+    client-fingerprint: "ios"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "d6qmF8ibk_PxtDJPzSa7LKw9VUI_mZ59DrTvmW3RaFc"
+      short-id: "10983e6c816181c2"
+  - name: "TurboProbe 🇸🇬 SG (22)"
+    type: vless
+    server: "104.16.10.104"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🌐 (109)"
+    type: vless
+    server: "13.143.167.251"
+    port: 8443
+    uuid: "a4e5f910-23f4-470f-82a7-ed9d7be71dec"
+    udp: true
+    tls: true
+    servername: "teamdocs.su"
+    client-fingerprint: "firefox"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "d6qmF8ibk_PxtDJPzSa7LKw9VUI_mZ59DrTvmW3RaFc"
+      short-id: "10983e6c816181c2"
+  - name: "TurboProbe 🇰🇿 KZ (12)"
+    type: vless
+    server: "8.35.211.242"
+    port: 443
+    uuid: "fc7d2cfe-f5ef-40c8-a848-a0bdc11f6349"
+    udp: true
+    tls: true
+    servername: "vpn.cintaku.qzz.io"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/vlessws"
+      headers:
+        Host: "vpn.cintaku.qzz.io"
+  - name: "TurboProbe 🇰🇿 KZ (13)"
+    type: vless
+    server: "104.21.91.49"
+    port: 443
+    uuid: "fc7d2cfe-f5ef-40c8-a848-a0bdc11f6349"
+    udp: true
+    tls: true
+    servername: "vpn.cintaku.qzz.io"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/vlessws"
+      headers:
+        Host: "vpn.cintaku.qzz.io"
+  - name: "TurboProbe 🇳🇱 NL"
+    type: vless
+    server: "201.24.113.108"
+    port: 993
+    uuid: "981c7ccc-2b17-473c-8358-7fd1d6eec1b4"
+    udp: true
+    tls: true
+    servername: "fr2-ws.gacvpn.site"
+    client-fingerprint: "firefox"
+    network: ws
+    ws-opts:
+      path: "/static/js/vendor.61db254e.js"
+      headers:
+        Host: "fr2-ws.gacvpn.site"
+  - name: "TurboProbe 🇰🇿 KZ (14)"
+    type: vless
+    server: "8.35.211.242"
+    port: 443
+    uuid: "fc7d2cfe-f5ef-40c8-a848-a0bdc11f6349"
+    udp: true
+    tls: true
+    servername: "vpn.cintaku.qzz.io"
+    client-fingerprint: "ios"
+    network: ws
+    ws-opts:
+      path: "/vlessws"
+      headers:
+        Host: "vpn.cintaku.qzz.io"
+  - name: "TurboProbe 🇸🇬 SG (23)"
+    type: vless
+    server: "104.16.10.116"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🌐 (110)"
+    type: vless
+    server: "13.143.167.251"
+    port: 8443
+    uuid: "a4e5f910-23f4-470f-82a7-ed9d7be71dec"
+    udp: true
+    tls: true
+    servername: "teamdocs.su"
+    client-fingerprint: "safari"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "d6qmF8ibk_PxtDJPzSa7LKw9VUI_mZ59DrTvmW3RaFc"
+      short-id: "10983e6c816181c2"
+  - name: "TurboProbe 🇨🇦 CA (2)"
+    type: ss
+    server: "51.222.12.127"
+    port: 445
+    cipher: "aes-256-gcm"
+    password: "zDNVedRFPQexG9v"
+    udp: true
+  - name: "TurboProbe 🇸🇬 SG (24)"
+    type: vless
+    server: "104.24.0.184"
+    port: 443
+    uuid: "b8d8a5b0-867f-4491-b4e4-30edc04bb10e"
+    udp: true
+    tls: true
+    servername: "u.srilankangrill.online"
+    client-fingerprint: "chrome"
+    network: ws
+    ws-opts:
+      path: "/"
+      headers:
+        Host: "u.srilankangrill.online"
+  - name: "TurboProbe 🇱🇻 LV (3)"
+    type: vless
+    server: "31.76.83.1"
+    port: 443
+    uuid: "caedb3a1-6395-40b9-a9a8-4b9694eb224a"
+    udp: true
+    tls: true
+    servername: "www.rimi.lv"
+    client-fingerprint: "ios"
+    network: tcp
+    flow: xtls-rprx-vision
+    reality-opts:
+      public-key: "0ucabP76F6UHGAAoi73bxlt6ugwqoRDoLAW5n39pezU"
 
 proxy-groups:
   - name: "⚡ TURBOPROBE-FASTEST"
@@ -992,7 +2138,6 @@ proxy-groups:
       - "TurboProbe 🌐 (27)"
       - "TurboProbe 🌐 (28)"
       - "TurboProbe 🌐 (29)"
-      - "TurboProbe 🇺🇸 US"
       - "TurboProbe 🌐 (30)"
       - "TurboProbe 🌐 (31)"
       - "TurboProbe 🌐 (32)"
@@ -1003,14 +2148,19 @@ proxy-groups:
       - "TurboProbe 🌐 (37)"
       - "TurboProbe 🌐 (38)"
       - "TurboProbe 🌐 (39)"
-      - "TurboProbe 🌐 (42)"
+      - "TurboProbe 🇸🇪 SE"
+      - "TurboProbe 🌐 (40)"
+      - "TurboProbe 🇰🇿 KZ"
+      - "TurboProbe 🇰🇿 KZ (2)"
       - "TurboProbe 🌐 (44)"
       - "TurboProbe 🌐 (45)"
-      - "TurboProbe 🌐 (46)"
-      - "TurboProbe 🌐 (47)"
-      - "TurboProbe 🌐 (48)"
+      - "TurboProbe 🇰🇿 KZ (3)"
+      - "TurboProbe 🇰🇿 KZ (4)"
+      - "TurboProbe 🇰🇿 KZ (5)"
       - "TurboProbe 🌐 (49)"
       - "TurboProbe 🌐 (50)"
+      - "TurboProbe 🇺🇸 US"
+      - "TurboProbe 🇷🇺 RU"
       - "TurboProbe 🌐 (51)"
       - "TurboProbe 🌐 (52)"
       - "TurboProbe 🌐 (53)"
@@ -1019,58 +2169,144 @@ proxy-groups:
       - "TurboProbe 🌐 (56)"
       - "TurboProbe 🌐 (57)"
       - "TurboProbe 🌐 (58)"
-      - "TurboProbe 🇷🇺 RU"
       - "TurboProbe 🌐 (59)"
       - "TurboProbe 🌐 (60)"
       - "TurboProbe 🌐 (61)"
+      - "TurboProbe 🇯🇵 JP"
       - "TurboProbe 🌐 (62)"
       - "TurboProbe 🌐 (63)"
-      - "TurboProbe 🌐 (64)"
-      - "TurboProbe 🌐 (65)"
-      - "TurboProbe 🌐 (66)"
+      - "TurboProbe 🇯🇵 JP (2)"
       - "TurboProbe 🇷🇺 RU (2)"
       - "TurboProbe 🇷🇺 RU (3)"
-      - "TurboProbe 🌐 (67)"
       - "TurboProbe 🇷🇺 RU (4)"
+      - "TurboProbe 🇯🇵 JP (3)"
       - "TurboProbe 🇷🇺 RU (5)"
+      - "TurboProbe 🌐 (64)"
+      - "TurboProbe 🇷🇺 RU (6)"
+      - "TurboProbe 🌐 (65)"
+      - "TurboProbe 🇷🇺 RU (7)"
+      - "TurboProbe 🇷🇺 RU (8)"
+      - "TurboProbe 🇷🇺 RU (9)"
+      - "TurboProbe 🇷🇺 RU (10)"
+      - "TurboProbe 🇷🇺 RU (11)"
+      - "TurboProbe 🇷🇺 RU (12)"
+      - "TurboProbe 🇷🇺 RU (13)"
+      - "TurboProbe 🇷🇺 RU (14)"
+      - "TurboProbe 🇷🇺 RU (15)"
+      - "TurboProbe 🌐 (66)"
+      - "TurboProbe 🌐 (67)"
       - "TurboProbe 🌐 (68)"
       - "TurboProbe 🌐 (69)"
       - "TurboProbe 🌐 (70)"
       - "TurboProbe 🌐 (71)"
-      - "TurboProbe 🇷🇺 RU (6)"
       - "TurboProbe 🌐 (72)"
-      - "TurboProbe 🇷🇺 RU (7)"
-      - "TurboProbe 🇷🇺 RU (8)"
+      - "TurboProbe 🇯🇵 JP (4)"
+      - "TurboProbe 🇫🇮 FI"
+      - "TurboProbe 🇯🇵 JP (5)"
+      - "TurboProbe 🇯🇵 JP (6)"
       - "TurboProbe 🌐 (73)"
       - "TurboProbe 🌐 (74)"
-      - "TurboProbe 🇩🇪 DE"
       - "TurboProbe 🌐 (75)"
       - "TurboProbe 🌐 (76)"
+      - "TurboProbe 🇯🇵 JP (7)"
       - "TurboProbe 🌐 (77)"
-      - "TurboProbe 🇷🇺 RU (9)"
       - "TurboProbe 🌐 (78)"
+      - "TurboProbe 🇰🇷 KR"
+      - "TurboProbe 🇸🇬 SG"
+      - "TurboProbe 🇷🇺 RU (16)"
       - "TurboProbe 🌐 (79)"
-      - "TurboProbe 🇷🇺 RU (10)"
       - "TurboProbe 🌐 (80)"
+      - "TurboProbe 🇷🇺 RU (17)"
       - "TurboProbe 🌐 (81)"
-      - "TurboProbe 🇷🇺 RU (11)"
+      - "TurboProbe 🇷🇺 RU (18)"
       - "TurboProbe 🌐 (82)"
+      - "TurboProbe 🇷🇺 RU (19)"
       - "TurboProbe 🌐 (83)"
       - "TurboProbe 🌐 (84)"
       - "TurboProbe 🌐 (85)"
-      - "TurboProbe 🇷🇺 RU (12)"
-      - "TurboProbe 🇫🇷 FR"
       - "TurboProbe 🌐 (86)"
+      - "TurboProbe 🇷🇺 RU (20)"
       - "TurboProbe 🌐 (87)"
-      - "TurboProbe 🇫🇷 FR (2)"
-      - "TurboProbe 🇫🇷 FR (3)"
-      - "TurboProbe 🇳🇱 NL"
-      - "TurboProbe 🇷🇺 RU (13)"
-      - "TurboProbe 🇨🇦 CA"
-      - "TurboProbe 🇷🇺 RU (14)"
-      - "TurboProbe 🇨🇦 CA (2)"
-      - "TurboProbe 🇨🇦 CA (3)"
       - "TurboProbe 🌐 (88)"
+      - "TurboProbe 🇷🇺 RU (21)"
+      - "TurboProbe 🇷🇺 RU (22)"
+      - "TurboProbe 🌐 (89)"
+      - "TurboProbe 🌐 (90)"
+      - "TurboProbe 🇷🇺 RU (23)"
+      - "TurboProbe 🌐 (91)"
+      - "TurboProbe 🇷🇺 RU (24)"
+      - "TurboProbe 🌐 (92)"
+      - "TurboProbe 🇸🇬 SG (2)"
+      - "TurboProbe 🇸🇬 SG (3)"
+      - "TurboProbe 🌐 (93)"
+      - "TurboProbe 🇸🇬 SG (4)"
+      - "TurboProbe 🇷🇺 RU (25)"
+      - "TurboProbe 🇸🇬 SG (5)"
+      - "TurboProbe 🌐 (94)"
+      - "TurboProbe 🇨🇦 CA"
+      - "TurboProbe 🇸🇬 SG (6)"
+      - "TurboProbe 🇷🇺 RU (26)"
+      - "TurboProbe 🇰🇿 KZ (6)"
+      - "TurboProbe 🇸🇬 SG (7)"
+      - "TurboProbe 🇰🇿 KZ (7)"
+      - "TurboProbe 🇵🇱 PL"
+      - "TurboProbe 🌐 (95)"
+      - "TurboProbe 🌐 (96)"
+      - "TurboProbe 🇸🇬 SG (8)"
+      - "TurboProbe 🌐 (97)"
+      - "TurboProbe 🌐 (98)"
+      - "TurboProbe 🇺🇸 US (2)"
+      - "TurboProbe 🇯🇵 JP (8)"
+      - "TurboProbe 🌐 (99)"
+      - "TurboProbe 🇵🇱 PL (2)"
+      - "TurboProbe 🌐 (100)"
+      - "TurboProbe 🇯🇵 JP (9)"
+      - "TurboProbe 🇯🇵 JP (10)"
+      - "TurboProbe 🇯🇵 JP (11)"
+      - "TurboProbe 🌐 (101)"
+      - "TurboProbe 🇺🇸 US (3)"
+      - "TurboProbe 🇸🇬 SG (9)"
+      - "TurboProbe 🇰🇿 KZ (8)"
+      - "TurboProbe 🇱🇻 LV"
+      - "TurboProbe 🇸🇬 SG (10)"
+      - "TurboProbe 🇸🇬 SG (11)"
+      - "TurboProbe 🌐 (102)"
+      - "TurboProbe 🇸🇬 SG (12)"
+      - "TurboProbe 🇸🇬 SG (13)"
+      - "TurboProbe 🇸🇬 SG (14)"
+      - "TurboProbe 🇸🇬 SG (15)"
+      - "TurboProbe 🇺🇸 US (4)"
+      - "TurboProbe 🇺🇸 US (5)"
+      - "TurboProbe 🌐 (103)"
+      - "TurboProbe 🌐 (104)"
+      - "TurboProbe 🇸🇬 SG (16)"
+      - "TurboProbe 🌐 (105)"
+      - "TurboProbe 🌐 (106)"
+      - "TurboProbe 🌐 (107)"
+      - "TurboProbe 🇸🇬 SG (17)"
+      - "TurboProbe 🇸🇬 SG (18)"
+      - "TurboProbe 🇯🇵 JP (12)"
+      - "TurboProbe 🇸🇬 SG (19)"
+      - "TurboProbe 🇱🇻 LV (2)"
+      - "TurboProbe 🇸🇬 SG (20)"
+      - "TurboProbe 🇫🇮 FI (2)"
+      - "TurboProbe 🇰🇿 KZ (9)"
+      - "TurboProbe 🇰🇿 KZ (10)"
+      - "TurboProbe 🇸🇬 SG (21)"
+      - "TurboProbe 🇫🇮 FI (3)"
+      - "TurboProbe 🇰🇿 KZ (11)"
+      - "TurboProbe 🌐 (108)"
+      - "TurboProbe 🇸🇬 SG (22)"
+      - "TurboProbe 🌐 (109)"
+      - "TurboProbe 🇰🇿 KZ (12)"
+      - "TurboProbe 🇰🇿 KZ (13)"
+      - "TurboProbe 🇳🇱 NL"
+      - "TurboProbe 🇰🇿 KZ (14)"
+      - "TurboProbe 🇸🇬 SG (23)"
+      - "TurboProbe 🌐 (110)"
+      - "TurboProbe 🇨🇦 CA (2)"
+      - "TurboProbe 🇸🇬 SG (24)"
+      - "TurboProbe 🇱🇻 LV (3)"
 
   - name: "🚀 MANUAL-SELECT"
     type: select
@@ -1104,7 +2340,6 @@ proxy-groups:
       - "TurboProbe 🌐 (27)"
       - "TurboProbe 🌐 (28)"
       - "TurboProbe 🌐 (29)"
-      - "TurboProbe 🇺🇸 US"
       - "TurboProbe 🌐 (30)"
       - "TurboProbe 🌐 (31)"
       - "TurboProbe 🌐 (32)"
@@ -1115,14 +2350,19 @@ proxy-groups:
       - "TurboProbe 🌐 (37)"
       - "TurboProbe 🌐 (38)"
       - "TurboProbe 🌐 (39)"
-      - "TurboProbe 🌐 (42)"
+      - "TurboProbe 🇸🇪 SE"
+      - "TurboProbe 🌐 (40)"
+      - "TurboProbe 🇰🇿 KZ"
+      - "TurboProbe 🇰🇿 KZ (2)"
       - "TurboProbe 🌐 (44)"
       - "TurboProbe 🌐 (45)"
-      - "TurboProbe 🌐 (46)"
-      - "TurboProbe 🌐 (47)"
-      - "TurboProbe 🌐 (48)"
+      - "TurboProbe 🇰🇿 KZ (3)"
+      - "TurboProbe 🇰🇿 KZ (4)"
+      - "TurboProbe 🇰🇿 KZ (5)"
       - "TurboProbe 🌐 (49)"
       - "TurboProbe 🌐 (50)"
+      - "TurboProbe 🇺🇸 US"
+      - "TurboProbe 🇷🇺 RU"
       - "TurboProbe 🌐 (51)"
       - "TurboProbe 🌐 (52)"
       - "TurboProbe 🌐 (53)"
@@ -1131,58 +2371,144 @@ proxy-groups:
       - "TurboProbe 🌐 (56)"
       - "TurboProbe 🌐 (57)"
       - "TurboProbe 🌐 (58)"
-      - "TurboProbe 🇷🇺 RU"
       - "TurboProbe 🌐 (59)"
       - "TurboProbe 🌐 (60)"
       - "TurboProbe 🌐 (61)"
+      - "TurboProbe 🇯🇵 JP"
       - "TurboProbe 🌐 (62)"
       - "TurboProbe 🌐 (63)"
-      - "TurboProbe 🌐 (64)"
-      - "TurboProbe 🌐 (65)"
-      - "TurboProbe 🌐 (66)"
+      - "TurboProbe 🇯🇵 JP (2)"
       - "TurboProbe 🇷🇺 RU (2)"
       - "TurboProbe 🇷🇺 RU (3)"
-      - "TurboProbe 🌐 (67)"
       - "TurboProbe 🇷🇺 RU (4)"
+      - "TurboProbe 🇯🇵 JP (3)"
       - "TurboProbe 🇷🇺 RU (5)"
+      - "TurboProbe 🌐 (64)"
+      - "TurboProbe 🇷🇺 RU (6)"
+      - "TurboProbe 🌐 (65)"
+      - "TurboProbe 🇷🇺 RU (7)"
+      - "TurboProbe 🇷🇺 RU (8)"
+      - "TurboProbe 🇷🇺 RU (9)"
+      - "TurboProbe 🇷🇺 RU (10)"
+      - "TurboProbe 🇷🇺 RU (11)"
+      - "TurboProbe 🇷🇺 RU (12)"
+      - "TurboProbe 🇷🇺 RU (13)"
+      - "TurboProbe 🇷🇺 RU (14)"
+      - "TurboProbe 🇷🇺 RU (15)"
+      - "TurboProbe 🌐 (66)"
+      - "TurboProbe 🌐 (67)"
       - "TurboProbe 🌐 (68)"
       - "TurboProbe 🌐 (69)"
       - "TurboProbe 🌐 (70)"
       - "TurboProbe 🌐 (71)"
-      - "TurboProbe 🇷🇺 RU (6)"
       - "TurboProbe 🌐 (72)"
-      - "TurboProbe 🇷🇺 RU (7)"
-      - "TurboProbe 🇷🇺 RU (8)"
+      - "TurboProbe 🇯🇵 JP (4)"
+      - "TurboProbe 🇫🇮 FI"
+      - "TurboProbe 🇯🇵 JP (5)"
+      - "TurboProbe 🇯🇵 JP (6)"
       - "TurboProbe 🌐 (73)"
       - "TurboProbe 🌐 (74)"
-      - "TurboProbe 🇩🇪 DE"
       - "TurboProbe 🌐 (75)"
       - "TurboProbe 🌐 (76)"
+      - "TurboProbe 🇯🇵 JP (7)"
       - "TurboProbe 🌐 (77)"
-      - "TurboProbe 🇷🇺 RU (9)"
       - "TurboProbe 🌐 (78)"
+      - "TurboProbe 🇰🇷 KR"
+      - "TurboProbe 🇸🇬 SG"
+      - "TurboProbe 🇷🇺 RU (16)"
       - "TurboProbe 🌐 (79)"
-      - "TurboProbe 🇷🇺 RU (10)"
       - "TurboProbe 🌐 (80)"
+      - "TurboProbe 🇷🇺 RU (17)"
       - "TurboProbe 🌐 (81)"
-      - "TurboProbe 🇷🇺 RU (11)"
+      - "TurboProbe 🇷🇺 RU (18)"
       - "TurboProbe 🌐 (82)"
+      - "TurboProbe 🇷🇺 RU (19)"
       - "TurboProbe 🌐 (83)"
       - "TurboProbe 🌐 (84)"
       - "TurboProbe 🌐 (85)"
-      - "TurboProbe 🇷🇺 RU (12)"
-      - "TurboProbe 🇫🇷 FR"
       - "TurboProbe 🌐 (86)"
+      - "TurboProbe 🇷🇺 RU (20)"
       - "TurboProbe 🌐 (87)"
-      - "TurboProbe 🇫🇷 FR (2)"
-      - "TurboProbe 🇫🇷 FR (3)"
-      - "TurboProbe 🇳🇱 NL"
-      - "TurboProbe 🇷🇺 RU (13)"
-      - "TurboProbe 🇨🇦 CA"
-      - "TurboProbe 🇷🇺 RU (14)"
-      - "TurboProbe 🇨🇦 CA (2)"
-      - "TurboProbe 🇨🇦 CA (3)"
       - "TurboProbe 🌐 (88)"
+      - "TurboProbe 🇷🇺 RU (21)"
+      - "TurboProbe 🇷🇺 RU (22)"
+      - "TurboProbe 🌐 (89)"
+      - "TurboProbe 🌐 (90)"
+      - "TurboProbe 🇷🇺 RU (23)"
+      - "TurboProbe 🌐 (91)"
+      - "TurboProbe 🇷🇺 RU (24)"
+      - "TurboProbe 🌐 (92)"
+      - "TurboProbe 🇸🇬 SG (2)"
+      - "TurboProbe 🇸🇬 SG (3)"
+      - "TurboProbe 🌐 (93)"
+      - "TurboProbe 🇸🇬 SG (4)"
+      - "TurboProbe 🇷🇺 RU (25)"
+      - "TurboProbe 🇸🇬 SG (5)"
+      - "TurboProbe 🌐 (94)"
+      - "TurboProbe 🇨🇦 CA"
+      - "TurboProbe 🇸🇬 SG (6)"
+      - "TurboProbe 🇷🇺 RU (26)"
+      - "TurboProbe 🇰🇿 KZ (6)"
+      - "TurboProbe 🇸🇬 SG (7)"
+      - "TurboProbe 🇰🇿 KZ (7)"
+      - "TurboProbe 🇵🇱 PL"
+      - "TurboProbe 🌐 (95)"
+      - "TurboProbe 🌐 (96)"
+      - "TurboProbe 🇸🇬 SG (8)"
+      - "TurboProbe 🌐 (97)"
+      - "TurboProbe 🌐 (98)"
+      - "TurboProbe 🇺🇸 US (2)"
+      - "TurboProbe 🇯🇵 JP (8)"
+      - "TurboProbe 🌐 (99)"
+      - "TurboProbe 🇵🇱 PL (2)"
+      - "TurboProbe 🌐 (100)"
+      - "TurboProbe 🇯🇵 JP (9)"
+      - "TurboProbe 🇯🇵 JP (10)"
+      - "TurboProbe 🇯🇵 JP (11)"
+      - "TurboProbe 🌐 (101)"
+      - "TurboProbe 🇺🇸 US (3)"
+      - "TurboProbe 🇸🇬 SG (9)"
+      - "TurboProbe 🇰🇿 KZ (8)"
+      - "TurboProbe 🇱🇻 LV"
+      - "TurboProbe 🇸🇬 SG (10)"
+      - "TurboProbe 🇸🇬 SG (11)"
+      - "TurboProbe 🌐 (102)"
+      - "TurboProbe 🇸🇬 SG (12)"
+      - "TurboProbe 🇸🇬 SG (13)"
+      - "TurboProbe 🇸🇬 SG (14)"
+      - "TurboProbe 🇸🇬 SG (15)"
+      - "TurboProbe 🇺🇸 US (4)"
+      - "TurboProbe 🇺🇸 US (5)"
+      - "TurboProbe 🌐 (103)"
+      - "TurboProbe 🌐 (104)"
+      - "TurboProbe 🇸🇬 SG (16)"
+      - "TurboProbe 🌐 (105)"
+      - "TurboProbe 🌐 (106)"
+      - "TurboProbe 🌐 (107)"
+      - "TurboProbe 🇸🇬 SG (17)"
+      - "TurboProbe 🇸🇬 SG (18)"
+      - "TurboProbe 🇯🇵 JP (12)"
+      - "TurboProbe 🇸🇬 SG (19)"
+      - "TurboProbe 🇱🇻 LV (2)"
+      - "TurboProbe 🇸🇬 SG (20)"
+      - "TurboProbe 🇫🇮 FI (2)"
+      - "TurboProbe 🇰🇿 KZ (9)"
+      - "TurboProbe 🇰🇿 KZ (10)"
+      - "TurboProbe 🇸🇬 SG (21)"
+      - "TurboProbe 🇫🇮 FI (3)"
+      - "TurboProbe 🇰🇿 KZ (11)"
+      - "TurboProbe 🌐 (108)"
+      - "TurboProbe 🇸🇬 SG (22)"
+      - "TurboProbe 🌐 (109)"
+      - "TurboProbe 🇰🇿 KZ (12)"
+      - "TurboProbe 🇰🇿 KZ (13)"
+      - "TurboProbe 🇳🇱 NL"
+      - "TurboProbe 🇰🇿 KZ (14)"
+      - "TurboProbe 🇸🇬 SG (23)"
+      - "TurboProbe 🌐 (110)"
+      - "TurboProbe 🇨🇦 CA (2)"
+      - "TurboProbe 🇸🇬 SG (24)"
+      - "TurboProbe 🇱🇻 LV (3)"
 
 rules:
   - MATCH,DIRECT
