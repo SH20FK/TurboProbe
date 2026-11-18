@@ -46,7 +46,7 @@ class StateBranch:
 
     def push(self):
         for attempt in range(3):
-            result = self.git('-c','http.version=HTTP/1.1','push','origin','HEAD:'+BRANCH)
+            result = self.git('-c','http.version=HTTP/1.1','push','--force','origin','HEAD:'+BRANCH)
             if not result.returncode: return
             detail = (result.stderr+result.stdout).decode('utf-8','replace')
             for secret in self._redact: detail = detail.replace(secret,'[redacted]')
