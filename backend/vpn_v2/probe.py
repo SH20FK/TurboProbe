@@ -37,7 +37,7 @@ def verify(uris, batch_size=None, workers=None, *, deadline=float('inf'), checkp
     profile = concurrency()
     workers = workers if workers is not None else profile['probe_workers']
     batch_size = batch_size if batch_size is not None else profile['probe_batch']
-    if not 1 <= workers <= 8 or not 1 <= batch_size <= 32:
+    if not 1 <= workers <= 16 or not 1 <= batch_size <= 64:
         raise ValueError('probe worker/batch limits exceeded')
     usable = []
     count('preflight_in', len(uris))

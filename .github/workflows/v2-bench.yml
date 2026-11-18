@@ -16,9 +16,13 @@ on:
         type: string
         default: '8'
       batch:
-        description: 'Nodes per Xray process (1-32)'
+        description: 'Nodes per Xray process (1-64)'
         type: string
         default: '32'
+      prefilter:
+        description: 'TCP prefilter concurrency (32-1024)'
+        type: string
+        default: '128'
 
 permissions:
   contents: read
@@ -79,6 +83,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           TP_PROBE_WORKERS: ${{ inputs.workers }}
           TP_PROBE_BATCH: ${{ inputs.batch }}
+          TP_PREFILTER_CONCURRENCY: ${{ inputs.prefilter }}
         run: |
           python -u -m backend.vpn_v2.cached_queue \
             --select 0 \

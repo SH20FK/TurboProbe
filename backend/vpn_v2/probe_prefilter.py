@@ -1,5 +1,6 @@
 """Shared per-run DNS/endpoint checks; independent credentials still get tunnel tests."""
 import asyncio
+import os
 import time
 from collections import OrderedDict
 
@@ -31,7 +32,12 @@ from .crawler_http import public_addresses, DownloadError
 
 async def prefilter(uris, parse_endpoint, deadline, *, cache=None):
     cache = RUN_CACHE if cache is None else cache
-    dns_sem = asyncio.Semaphore(32)
+    try:
+        limit = int(os.environ.get('TP_PREFILTER_CONCURRENCY', '128') or 128)
+    except ValueError:
+        limit = 128
+    limit = min(1024, max(32, limit))
+    dns_sem = asyncio.Semaphore(max(32, limit // 4))
     dns, resolving, endpoints = {}, {}, {}
 
     async def resolve(host, port):
@@ -97,7 +103,7 @@ async def prefilter(uris, parse_endpoint, deadline, *, cache=None):
             checked += 1
             if checked % 1000 == 0:
                 print(f'Prefilter progress: {checked}/{len(endpoints)} unique endpoints',flush=True)
-    tasks = [asyncio.create_task(worker()) for _ in range(min(128,len(endpoints)))]
+    tasks = [asyncio.create_task(worker()) for _ in range(min(limit,len(endpoints)))]
     try:
         await asyncio.gather(*tasks)
     finally:
