@@ -57,7 +57,7 @@ def save_progress(run,progress,private,persist=True):
             run.branch.save_progress(progress)
 
 
-def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=False,publish=True,persist_state=True):
+def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=False,publish=True,persist_state=True,sweep_seconds=0):
     engine=verify_stable if recheck else verify
     total=run.store.db.execute('SELECT count(*) FROM nodes').fetchone()[0]
     if not total: raise LabError('Saved cache is empty; no source crawl was started')
@@ -139,16 +139,36 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
             return True
         return False
     prior=fresh_best(progress['best'])
-    progress['best']=engine([n['uri'] for n in prior],deadline=run.local_deadline) if prior else []
+    # Re-verify every recently alive node first, in bounded chunks: the published
+    # subscription must stay fresh even when the unknown-pool sweep is incomplete.
+    alive_prior=[]
+    for key in list(local):
+        row=run.store.db.execute('SELECT uri FROM nodes WHERE id=?',(key,)).fetchone()
+        if row: alive_prior.append({'uri':row[0]})
+    print(f'Priority pass: rechecking {len(alive_prior)} recently verified nodes',flush=True)
+    rechecked=[]
+    checked=set()
+    for start in range(0,len(alive_prior),1000):
+        chunk=alive_prior[start:start+1000]
+        try:
+            rechecked.extend(engine([n['uri'] for n in chunk],deadline=run.local_deadline))
+            checked.update(ident(n['uri']) for n in chunk)
+        except TimeoutError:
+            print('Priority pass stopped by the run budget',flush=True);break
+    progress['best']=rechecked if alive_prior else prior
     still_good={ident(n['uri']) for n in progress['best']}
-    for old in prior:
+    for old in alive_prior:
         key=ident(old['uri'])
-        if key not in still_good:local.pop(key,None);lab.pop(key,None)
+        if key in checked and key not in still_good:local.pop(key,None);lab.pop(key,None)
     remember(progress['best'])
     published=False;windows=0
+    sweep_started=time.monotonic()
     print(f'Rolling queue: {total} stored keys; cycle {progress["cycle"]}; '
           f'{progress["processed"]} processed; LatencyLab daily ceiling={select}',flush=True)
     while time.monotonic()<run.local_deadline:
+        if sweep_seconds and time.monotonic()-sweep_started>=sweep_seconds:
+            print(f'Sweep budget reached ({sweep_seconds}s); cursor preserved for the next run',flush=True)
+            break
         rows=next_window(run.store,progress['cursor'],window)
         if not rows:
             if windows:break
@@ -207,8 +227,10 @@ def main():
     parser.add_argument('--recheck',action='store_true',help='require a second complete HTTPS pass with fresh cores')
     parser.add_argument('--no-publish',action='store_true',help='verify and report only; never push rolling results')
     parser.add_argument('--no-checkpoint',action='store_true',help='keep progress local; never write the state branch')
+    parser.add_argument('--sweep-seconds',type=int,default=0,help='stop the unknown-pool sweep after N seconds (0 = until the budget)')
     args=parser.parse_args()
     if not 0<=args.select<=200 or not 1<=args.window<=5000 or args.max_windows<0:parser.error('invalid select/window size')
+    if not 0<=args.sweep_seconds<=18000:parser.error('invalid sweep budget')
     if not 5401<=args.budget_seconds<=21600:parser.error('invalid time budget')
     names=('GITHUB_TOKEN',)+(('LATENCYLAB_API_KEY_1','LATENCYLAB_API_KEY_2') if args.select else ())
     for name in names:
@@ -224,7 +246,7 @@ def main():
         if not progress_path.exists():progress_path=run.branch.path/'probe-progress.json'
         progress=load_progress(progress_path)
         run_queue(run,progress,private/'probe-progress.json',args.select,args.window,args.max_windows,args.recheck,
-                  publish=not args.no_publish,persist_state=not args.no_checkpoint)
+                  publish=not args.no_publish,persist_state=not args.no_checkpoint,sweep_seconds=args.sweep_seconds)
     finally:
         METRICS.write(private/'metrics-last.json')
         print('METRICS: '+json.dumps(METRICS.snapshot(),ensure_ascii=False),flush=True)

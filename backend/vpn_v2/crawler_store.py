@@ -7,6 +7,8 @@ import ipaddress
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, unquote
 
+from .node_filter import is_junk_uri
+
 
 def public_url(url):
     try:
@@ -103,7 +105,8 @@ class Store:
             digest, count = row['content_hash'], len(uris)
             if digest is None: raise ValueError('missing parsed source cache')
         else:
-            unique = {hashlib.sha256(uri.split('#',1)[0].encode()).hexdigest():uri for uri in uris}
+            unique = {hashlib.sha256(uri.split('#',1)[0].encode()).hexdigest():uri for uri in uris
+                      if not is_junk_uri(uri)}
             count = len(unique)
             digest = hashlib.sha256('\n'.join(sorted(unique)).encode()).hexdigest()
             if digest != row['content_hash'] or published is not None:

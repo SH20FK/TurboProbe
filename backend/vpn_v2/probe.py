@@ -9,6 +9,7 @@ from pathlib import Path
 from .parallel import completed
 from .resources import concurrency
 from .metrics import stage, count
+from .node_filter import is_junk_uri
 
 LEGACY_DIR = Path(__file__).resolve().parents[1] / 'vpn'
 if str(LEGACY_DIR) not in sys.path:
@@ -41,6 +42,9 @@ def verify(uris, batch_size=None, workers=None, *, deadline=float('inf'), checkp
         raise ValueError('probe worker/batch limits exceeded')
     usable = []
     count('preflight_in', len(uris))
+    clean = [uri for uri in uris if not is_junk_uri(uri)]
+    count('junk_skipped', len(uris) - len(clean))
+    uris = clean
     with stage('preflight'):
         for uri in uris:
             if time.monotonic() >= deadline: raise TimeoutError('verification deadline')
