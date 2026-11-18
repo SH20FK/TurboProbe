@@ -3,7 +3,6 @@ import ipaddress
 import json
 import re
 import time
-from .probe import service_prober  # also initializes the legacy verification import path
 from verification import read_response, valid_response
 from requests import RequestException
 

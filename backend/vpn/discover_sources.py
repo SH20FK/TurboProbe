@@ -601,6 +601,8 @@ def discover_all_github_repositories(scanned_repos_cache: dict) -> tuple:
     return all_repo_candidates, repo_state
 
 SOURCE_QUALITY_PATH = os.path.join(TOOLS_DIR, "source_quality_index.json")
+SOURCE_QUALITY_TTL_SECONDS = 14 * 24 * 60 * 60
+MAX_DEAD_URLS = 20000
 
 def load_source_quality_index() -> dict:
     if os.path.isfile(SOURCE_QUALITY_PATH):
@@ -614,6 +616,12 @@ def load_source_quality_index() -> dict:
 def update_source_quality_index(source_stats: dict):
     q_index = load_source_quality_index()
     now_ts = time.time()
+    # Forget sources that have produced nothing for two weeks: they only inflate the index.
+    q_index = {
+        url: record for url, record in q_index.items()
+        if not isinstance(record, dict) or record.get("total_yield", 0) > 0
+        or now_ts - float(record.get("last_scanned", 0) or 0) <= SOURCE_QUALITY_TTL_SECONDS
+    }
     for url, yield_count in source_stats.items():
         prev = q_index.get(url, {"score": 50.0, "total_yield": 0, "runs": 0})
         runs = prev.get("runs", 0) + 1
@@ -670,7 +678,6 @@ def discover_from_telegram() -> tuple:
     with ThreadPoolExecutor(max_workers=100) as pool:
         future_map = {pool.submit(scrape_telegram_channel_deep, ch): ch for ch in TELEGRAM_CHANNELS}
         for fut in as_completed(future_map):
-            ch = future_map[fut]
             try:
                 keys, sub_links = fut.result()
                 if keys:
@@ -1080,6 +1087,8 @@ def main():
 
     # 3. Save updated database & metadata
     metadata["scanned_repos"] = scanned_repos_cache
+    if len(active_dead_urls) > MAX_DEAD_URLS:
+        active_dead_urls = dict(sorted(active_dead_urls.items(), key=lambda item: item[1], reverse=True)[:MAX_DEAD_URLS])
     metadata["dead_urls"] = active_dead_urls
     existing["_metadata"] = metadata
 

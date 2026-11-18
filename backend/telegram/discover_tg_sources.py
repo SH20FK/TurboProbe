@@ -13,7 +13,7 @@ import sys
 import time
 import urllib.parse
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Tuple
 import aiohttp
 
 if sys.platform == "win32":

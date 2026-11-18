@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, Mock, patch
 from backend.vpn_v2.parallel import completed, host_downloads
 from backend.vpn_v2.crawler import ParsedCache
 from backend.vpn_v2.crawler_store import Store
-from backend.vpn_v2.probe_prefilter import prefilter, ProbeCache, RUN_CACHE
+from backend.vpn_v2.probe_prefilter import prefilter, RUN_CACHE
 from backend.vpn_v2 import resources, probe
 
 

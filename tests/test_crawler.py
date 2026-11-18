@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 from backend.vpn_v2.crawler_store import Store, public_url, source_id
 from backend.vpn_v2.crawler_state import encode, restore
 from backend.vpn_v2.crawler_state import StateBranch
-from backend.vpn_v2.crawler_http import Http, DownloadError, public_addresses
+from backend.vpn_v2.crawler_http import Http, DownloadError
 from backend.vpn_v2 import crawler
 from backend.vpn_v2 import __main__ as cli
 from backend.vpn_v2.latencylab import LabClient, LabError

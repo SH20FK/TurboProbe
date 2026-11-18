@@ -60,6 +60,9 @@ NODE_HISTORY_PATH = os.path.join(TOOLS_DIR, "node_history.json")
 DEAD_NODES_PATH = os.path.join(TOOLS_DIR, "dead_nodes.json")
 SOURCE_QUALITY_PATH = os.path.join(TOOLS_DIR, "source_quality_index.json")
 NODE_HISTORY_TTL_SECONDS = 30 * 24 * 60 * 60
+NODE_HISTORY_NEVER_ALIVE_TTL_SECONDS = 14 * 24 * 60 * 60
+NODE_HISTORY_ALIVE_TTL_SECONDS = 90 * 24 * 60 * 60
+DEAD_NODE_TTL_SECONDS = 30 * 24 * 60 * 60
 
 # Size of each paginated "sub/chunks/chunk-XXX.txt" file (ordered by ascending ping)
 CHUNK_SIZE = 500
@@ -79,28 +82,39 @@ def load_node_history() -> dict:
             return {}
     return {}
 
-def save_node_history(history_map: dict):
-    """Saves node check history after expiring stale deep-check records and capping active entries."""
+def _iso_age_seconds(value, now: datetime):
+    """Returns how many seconds ago an ISO timestamp was recorded, or None when unparseable."""
+    if not isinstance(value, str):
+        return None
     try:
-        now = datetime.now(timezone.utc)
-        retained_history = {}
-        for key, record in history_map.items():
-            if not isinstance(record, dict):
-                continue
-            checked_at = record.get("deep_checked_at")
-            if isinstance(checked_at, str):
-                try:
-                    checked_dt = datetime.fromisoformat(checked_at.replace("Z", "+00:00"))
-                    if checked_dt.tzinfo is None:
-                        checked_dt = checked_dt.replace(tzinfo=timezone.utc)
-                    if (now - checked_dt.astimezone(timezone.utc)).total_seconds() > NODE_HISTORY_TTL_SECONDS:
-                        continue
-                except Exception:
-                    pass
-            retained_history[key] = record
-        history_map = retained_history
+        seen = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if seen.tzinfo is None:
+            seen = seen.replace(tzinfo=timezone.utc)
+        return (now - seen.astimezone(timezone.utc)).total_seconds()
     except Exception:
-        pass
+        return None
+
+
+def save_node_history(history_map: dict):
+    """Saves node check history after expiring stale and never-alive records."""
+    now = datetime.now(timezone.utc)
+    retained_history = {}
+    for key, record in history_map.items():
+        if not isinstance(record, dict):
+            continue
+        deep_age = _iso_age_seconds(record.get("deep_checked_at"), now)
+        if deep_age is not None and deep_age > NODE_HISTORY_TTL_SECONDS:
+            continue
+        if record.get("success_checks", 0) > 0:
+            alive_age = _iso_age_seconds(record.get("last_seen_alive"), now)
+            if alive_age is not None and alive_age > NODE_HISTORY_ALIVE_TTL_SECONDS:
+                continue
+        else:
+            first_age = _iso_age_seconds(record.get("first_seen"), now)
+            if first_age is not None and first_age > NODE_HISTORY_NEVER_ALIVE_TTL_SECONDS:
+                continue
+        retained_history[key] = record
+    history_map = retained_history
     if len(history_map) > 50000:
         items = sorted(history_map.items(), key=lambda x: x[1].get("total_checks", 0), reverse=True)[:50000]
         history_map = dict(items)
@@ -121,7 +135,17 @@ def load_dead_nodes() -> dict:
     return {}
 
 def save_dead_nodes(dead_map: dict):
-    """Saves dead nodes with fail counters."""
+    """Saves dead nodes with fail counters, forgetting entries older than the TTL."""
+    now = datetime.now(timezone.utc)
+    retained_dead = {}
+    for key, record in dead_map.items():
+        if not isinstance(record, dict):
+            continue
+        age = _iso_age_seconds(record.get("last_seen"), now)
+        if age is not None and age > DEAD_NODE_TTL_SECONDS:
+            continue
+        retained_dead[key] = record
+    dead_map = retained_dead
     if len(dead_map) > 10000:
         items = sorted(dead_map.items(), key=lambda x: x[1].get("fail_count", 0), reverse=True)[:10000]
         dead_map = dict(items)
@@ -338,7 +362,6 @@ def fetch_url(url: str, timeout: int = 8) -> str:
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     }
-    last_exc = None
     for attempt in range(3):
         try:
             req = urllib.request.Request(url, headers=headers)
@@ -348,8 +371,7 @@ def fetch_url(url: str, timeout: int = 8) -> str:
                     return content_bytes.decode("utf-8")
                 except UnicodeDecodeError:
                     return content_bytes.decode("latin-1", errors="ignore")
-        except Exception as e:
-            last_exc = e
+        except Exception:
             if attempt < 2:
                 time.sleep(1.5 ** attempt)
     return ""
@@ -1613,7 +1635,6 @@ def main():
     top20_pool = alive_nodes[:20]
     top50_pool = alive_nodes[:50]
     clean_ip_pool = [u for u in reality_nodes if not any(b in u.lower() for b in ["tor", "anon", "free-vpn", "public"])][:1500]
-    youtube_discord_pool = (hy2_nodes + reality_nodes[:2000])
 
     # 6. File Writer
     def write_sub(filename: str, nodes: list):
@@ -1742,8 +1763,6 @@ def main():
         cc = detect_country_code(u)
         proto = u.split("://")[0].lower() if "://" in u else "vless"
         p_ms = ping_by_uri[u]
-        is_ai_country = (cc in ai_countries or cc == "GLOBAL")
-        
         all_preview_nodes.append({
             "uri": u,
             "ping_ms": p_ms,

@@ -12,7 +12,6 @@ import shutil
 import platform
 import tempfile
 import subprocess
-import signal
 import urllib.parse
 import urllib.request
 import socket
@@ -32,7 +31,6 @@ from node_labels import format_uri
 try:
     from aggregator import (
         detect_country_code,
-        GLOBAL_COUNTRY_KEYWORDS,
         get_node_key,
         load_fresh_ru_verified_keys,
         load_node_history,
@@ -74,13 +72,12 @@ except Exception:
     pass
 
 try:
-    import requests
+    import requests  # noqa: F401  (imported for the availability check / auto-install below)
     import urllib3
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 except ImportError:
     print("⚠️ Installing requests[socks]...", flush=True)
     subprocess.check_call([sys.executable, "-m", "pip", "install", "requests[socks]", "urllib3"])
-    import requests
     import urllib3
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -1578,7 +1575,7 @@ def _escape_yaml_val(val: str) -> str:
 
 def generate_clash_meta_yaml(nodes: list) -> str:
     """Generates standard Clash Meta YAML with auto url-test and select groups."""
-    import re, base64
+    import base64
     proxies = []
     proxy_names = []
     seen = set()

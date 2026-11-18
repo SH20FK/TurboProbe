@@ -81,7 +81,7 @@ class Http:
                         self.delays[p.hostname] = max(0,self.delays.get(p.hostname,0)*.5)
                         if status not in (200,304): raise DownloadError('http_'+str(status),status in (404,410))
                         return status,meta,bytes(body).decode('utf-8','replace')
-                    except (OSError,http.client.HTTPException) as exc:
+                    except (OSError,http.client.HTTPException):
                         if attempt == 2: raise DownloadError('network_error') from None
                         self.delays[p.hostname] = 2**attempt
                 else:

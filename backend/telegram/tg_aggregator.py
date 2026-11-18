@@ -7,7 +7,6 @@ TurboProbe TGProxy - Telegram proxy aggregator and verifier.
 
 import asyncio
 import base64
-import hashlib
 import json
 import os
 import re
@@ -18,7 +17,7 @@ import time
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 import aiohttp
 
 if sys.platform == "win32":
