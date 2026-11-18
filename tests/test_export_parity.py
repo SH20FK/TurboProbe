@@ -23,7 +23,7 @@ def snapshot():
          'verified': True, 'verification_policy': 'tunnel-https-v1', 'country': 'DE',
          'latencylab_verified': True, 'latencylab_checked_at': now.isoformat(),
          'expires_at': (now + timedelta(hours=24)).isoformat()},
-        {'uri': 'ss://YWVzOnB3@example.org:8388', 'ping_ms': 80,
+        {'uri': 'ss://YWVzLTI1Ni1nY206cGFzcw==@example.org:8388', 'ping_ms': 80,
          'verified': True, 'verification_policy': 'tunnel-https-v1', 'country': 'NL',
          'latencylab_verified': True, 'latencylab_checked_at': now.isoformat(),
          'expires_at': (now + timedelta(hours=24)).isoformat()},

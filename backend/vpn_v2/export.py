@@ -8,6 +8,7 @@ from collections import Counter
 
 from .probe import service_prober
 from .snapshot import is_fresh
+from . import normalize
 
 
 def render(snapshot, existing=()):
@@ -37,12 +38,15 @@ def render(snapshot, existing=()):
         expires = datetime.fromisoformat(node['expires_at'])
         if checked > now or expires <= now or (expires - checked).total_seconds() > 86400:
             raise ValueError('Node confirmation expired or invalid')
-    nodes = [{**n,'uri':service_prober.format_verified_remark(n['uri'],n.get('country','GLOBAL'),'',0)}
-             for n in sorted(nodes,key=lambda n:n['ping_ms'])]
+    nodes = normalize.publishable(nodes, per_endpoint=3)
+    if not nodes:
+        raise ValueError('no publishable nodes after canonicalisation')
+    sorted_by_ping = sorted(nodes, key=lambda n: n.get('ping_ms') or 1e9)
+    nodes = [{**n,'uri':service_prober.format_verified_remark(n['uri'],n.get('country','GLOBAL'),'',0)} for n in nodes]
     def lines(items): return '\n'.join(n['uri'] for n in items)
     def js(data): return json.dumps(data, ensure_ascii=False, indent=2)
     payload = {**snapshot, 'mode': 'published', 'schema_version': 2,
-               'verification_policy': 'tunnel-https-v1', 'total_nodes': len(nodes), 'nodes': nodes}
+               'verification_policy': 'tunnel-https-v1', 'total_nodes': len(nodes), 'nodes': sorted_by_ping}
     files = {'nodes.json': js(payload), 'preview.json': js(payload), 'all.txt': lines(nodes),
              'top50.txt': lines(nodes[:50]), 'top20.txt': lines(nodes[:20]),
              'base64.txt': base64.b64encode(lines(nodes).encode()).decode()}
@@ -82,13 +86,13 @@ def render(snapshot, existing=()):
         part = nodes[offset:offset+500]
         name = f'chunks/chunk-{offset//500+1:03d}.txt'
         files[name] = lines(part)
-        chunks.append({'file':name,'count':len(part),'ping_min_ms':part[0]['ping_ms'],'ping_max_ms':part[-1]['ping_ms']})
+        chunks.append({'file':name,'count':len(part),'ping_min_ms':min(n['ping_ms'] for n in part),'ping_max_ms':max(n['ping_ms'] for n in part)})
     files['chunks/index.json'] = js({'chunk_size':500,'total_nodes':len(nodes),'chunks':chunks})
     yaml = service_prober.generate_clash_meta_yaml(nodes)
     for name in ('clash.yaml', 'clash-meta.yaml', 'clash.meta.yaml'): files[name] = yaml
     files['stats.json'] = js({'updated_at': snapshot['updated_at'], 'total_nodes': len(nodes),
                              'alive_verified_nodes': len(nodes), 'latencylab_verified_nodes': len(lab),
-                             'best_ping_ms': nodes[0]['ping_ms'] if nodes else None,
+                             'best_ping_ms': sorted_by_ping[0]['ping_ms'] if sorted_by_ping else None,
                              'avg_ping_ms': sum(n['ping_ms'] for n in nodes) / len(nodes) if nodes else None,
                              'countries': dict(Counter(n.get('country', 'GLOBAL') for n in nodes))})
     return files
