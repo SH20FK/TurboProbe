@@ -1,6 +1,8 @@
 name: VPN v2 rolling publish
 
 on:
+  schedule:
+    - cron: '20 */4 * * *'
   workflow_dispatch:
     inputs:
       sweep_minutes:
@@ -70,14 +72,16 @@ jobs:
       - name: Refresh alive nodes and sweep the unknown pool
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          SWEEP_MINUTES: ${{ inputs.sweep_minutes || '45' }}
+          LAB_LIMIT: ${{ inputs.lab_limit || '200' }}
           LATENCYLAB_API_KEY_1: ${{ inputs.lab_limit != '0' && secrets.LATENCYLAB_API_KEY_1 || '' }}
           LATENCYLAB_API_KEY_2: ${{ inputs.lab_limit != '0' && secrets.LATENCYLAB_API_KEY_2 || '' }}
         run: |
           python -u -m backend.vpn_v2.cached_queue \
-            --select "${{ inputs.lab_limit }}" \
-            --sweep-seconds "$(( ${{ inputs.sweep_minutes }} * 60 ))" \
+            --select "$LAB_LIMIT" \
+            --sweep-seconds "$(( SWEEP_MINUTES * 60 ))" \
             --budget-seconds 19800 \
-            --publish-interval 600
+            --publish-interval 1800
 
       - name: Upload metrics
         if: always()

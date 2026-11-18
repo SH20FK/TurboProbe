@@ -1,8 +1,8 @@
 name: VPN Subscription Auto-Aggregator
 
+# Scheduled publishing now runs in "VPN v2 rolling publish". This workflow is
+# kept for manual rollback: dispatch it with mode=fast to restore the v1 output.
 on:
-  schedule:
-    - cron: '0 */4 * * *'
   workflow_dispatch:
     inputs:
       mode:

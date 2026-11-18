@@ -2,8 +2,8 @@
 
 ## Структура проекта
 
-- `backend/vpn_v2/` — ежедневный crawler, SQLite-реестр, проверка узлов, LatencyLab и публикация из Kaggle; [инструкция запуска](backend/vpn_v2/README.md).
-- `backend/vpn/` — парсеры и адаптеры Xray/Mihomo, а также прежний конвейер для отката.
+- `backend/vpn_v2/` — основной конвейер: состояние в ветке `crawler-state`, приоритетная проверка живых узлов, sweep неизвестного пула и публикация; [инструкция запуска](backend/vpn_v2/README.md).
+- `backend/vpn/` — парсеры и адаптеры Xray/Mihomo, а также прежний конвейер, оставленный для ручного отката.
 - `backend/telegram/` — сбор, проверка и экспорт Telegram-прокси.
 - `backend/worker/` — Cloudflare Worker для динамических подписок.
 - `turboprobe-web/` — исходники сайта; `npm ci` и `npm run build` собирают его в `docs/`.
@@ -11,6 +11,21 @@
 - `.github/workflows/` — расписание обновлений и проверки; `tests/` — автоматические тесты.
 
 Команды запускаются из корня репозитория: `python backend/vpn/aggregator.py --fast`, `python backend/vpn/service_prober.py --help` и `python -m unittest discover -s tests`. Для Worker: `node --test tests/test_ru_worker.mjs`. Проверка узлов требует установленных Xray и, для некоторых протоколов, Mihomo.
+
+## Как обновляются подписки
+
+Каждые 4 часа workflow **VPN v2 rolling publish**:
+
+1. восстанавливает состояние из ветки `crawler-state`;
+2. перепроверяет все свежие живые узлы (приоритетный проход);
+3. до 45 минут проверяет новые и неизвестные ключи, сохраняя курсор;
+4. публикует результат в `sub/` и `docs/sub/` не чаще раза в 30 минут.
+
+Узлы без подтверждённой страны (`GLOBAL`/`UN`) не публикуются. Замеры и профиль
+производительности — в [docs/BENCHMARK.md](docs/BENCHMARK.md).
+
+Откат: Actions → **VPN Subscription Auto-Aggregator** → Run workflow (`mode=fast`) —
+он перезапишет `sub/` выводом прежнего конвейера.
 
 Агрегатор и генератор бесплатных VPN-подписок (VLESS Reality, VMess, Trojan, Shadowsocks, Hysteria 2) и Telegram-прокси (MTProto Fake-TLS, SOCKS5).
 
