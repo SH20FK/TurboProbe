@@ -21,14 +21,24 @@ def cpu_count():
     return max(1, count)
 
 
+def _env_int(name, default, low, high):
+    try:
+        value = int(os.environ.get(name, '') or default)
+    except ValueError:
+        return default
+    return min(high, max(low, value))
+
+
 def concurrency():
     cpus = cpu_count()
     health = runtime_sample()
     maximum, used = health.get('memory_max'), health.get('memory_current', 0)
     available = max(0, maximum-used) if isinstance(maximum,int) and isinstance(used,int) else 4*1024**3
     workers = min(8, max(2, cpus*2), max(1, available//(512*1024**2)))
+    workers = _env_int('TP_PROBE_WORKERS', workers, 1, 8)
+    batch = _env_int('TP_PROBE_BATCH', 32 if available >= 1024**3 else 8, 1, 32)
     return {'cpus': cpus, 'downloads': min(64, max(24, cpus*16)),
-            'probe_workers': workers, 'probe_batch': 32 if available >= 1024**3 else 8}
+            'probe_workers': workers, 'probe_batch': batch}
 
 
 def runtime_sample():

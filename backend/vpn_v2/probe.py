@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from .parallel import completed
 from .resources import concurrency
+from .metrics import stage, count
 
 LEGACY_DIR = Path(__file__).resolve().parents[1] / 'vpn'
 if str(LEGACY_DIR) not in sys.path:
@@ -39,23 +40,28 @@ def verify(uris, batch_size=None, workers=None, *, deadline=float('inf'), checkp
     if not 1 <= workers <= 8 or not 1 <= batch_size <= 32:
         raise ValueError('probe worker/batch limits exceeded')
     usable = []
-    for uri in uris:
-        if time.monotonic() >= deadline: raise TimeoutError('verification deadline')
-        if uri.split('://')[0].lower() in ('hy2', 'hysteria2', 'tuic'):
-            usable.append(uri)
-            continue
-        outbound = service_prober.uri_to_xray_outbound(uri, 'preflight')
-        if not outbound:
-            continue
-        if outbound.get('protocol') == 'vless' and outbound.get('streamSettings', {}).get('security') not in ('tls', 'reality'):
-            continue
-        if service_prober.prepare_outbound_for_current_xray(outbound) is not None:
-            usable.append(uri)
+    count('preflight_in', len(uris))
+    with stage('preflight'):
+        for uri in uris:
+            if time.monotonic() >= deadline: raise TimeoutError('verification deadline')
+            if uri.split('://')[0].lower() in ('hy2', 'hysteria2', 'tuic'):
+                usable.append(uri)
+                continue
+            outbound = service_prober.uri_to_xray_outbound(uri, 'preflight')
+            if not outbound:
+                continue
+            if outbound.get('protocol') == 'vless' and outbound.get('streamSettings', {}).get('security') not in ('tls', 'reality'):
+                continue
+            if service_prober.prepare_outbound_for_current_xray(outbound) is not None:
+                usable.append(uri)
+    count('preflight_usable', len(usable))
     print(f'Config preflight: {len(usable)}/{len(uris)} usable; {len(uris)-len(usable)} unsupported', flush=True)
     uris = usable
     print(f'TCP prefilter: {len(uris)} candidates', flush=True)
     from .probe_prefilter import prefilter
-    reachable = asyncio.run(prefilter(uris,service_prober.parse_host_and_port,deadline))
+    with stage('prefilter'):
+        reachable = asyncio.run(prefilter(uris,service_prober.parse_host_and_port,deadline))
+    count('prefilter_reachable', len(reachable))
     print(f'TCP prefilter complete: {len(reachable)}/{len(uris)} retained (UDP bypasses TCP)', flush=True)
     slots = [(i, u, 0, 'GLOBAL', u.split('://')[0].lower()) for i,u in enumerate(reachable)]
     batches = (slots[i:i+batch_size] for i in range(0, len(slots), batch_size))
@@ -66,26 +72,31 @@ def verify(uris, batch_size=None, workers=None, *, deadline=float('inf'), checkp
     xray = service_prober.get_xray_binary_path()
     def batch_probe(batch):
         if time.monotonic() >= deadline: raise TimeoutError('verification deadline')
-        return service_prober.run_batch_probe(xray,batch,basic_only=True)
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        done = 0
-        for batch,future in completed(pool,batches,batch_probe,workers,deadline):
-            rows = future.result()
-            done += len(batch)
-            if checkpoint: checkpoint(batch,rows)
-            for node in rows:
-                if node.get('verified') is True and node.get('verification_policy') == 'tunnel-https-v1':
-                    verified[node['uri'].split('#')[0]] = node
-            elapsed = time.monotonic()-started
-            print(f'Tunnel progress: {done}/{len(slots)} checked; {len(verified)} verified; '
-                  f'{elapsed:.0f}s; {done/max(elapsed,.001):.1f} keys/s', flush=True)
-            if time.monotonic() >= deadline:
-                raise TimeoutError('full candidate pool did not complete within budget')
+        with stage('tunnel_batch'):
+            return service_prober.run_batch_probe(xray,batch,basic_only=True)
+    with stage('tunnel'):
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            done = 0
+            for batch,future in completed(pool,batches,batch_probe,workers,deadline):
+                rows = future.result()
+                done += len(batch)
+                count('tunnel_checked', len(batch))
+                if checkpoint: checkpoint(batch,rows)
+                for node in rows:
+                    if node.get('verified') is True and node.get('verification_policy') == 'tunnel-https-v1':
+                        verified[node['uri'].split('#')[0]] = node
+                        count('tunnel_verified')
+                elapsed = time.monotonic()-started
+                print(f'Tunnel progress: {done}/{len(slots)} checked; {len(verified)} verified; '
+                      f'{elapsed:.0f}s; {done/max(elapsed,.001):.1f} keys/s', flush=True)
+                if time.monotonic() >= deadline:
+                    raise TimeoutError('full candidate pool did not complete within budget')
     return list(verified.values())
 
 
 def verify_stable(uris, **kwargs):
     """Require two complete strict passes, with a fresh core lifecycle per pass."""
+    count('stability_round')
     first = verify(uris, **kwargs)
     if not first:
         return []

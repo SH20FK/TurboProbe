@@ -1,0 +1,97 @@
+name: VPN v2 bench (no publish)
+
+on:
+  workflow_dispatch:
+    inputs:
+      window:
+        description: 'Keys per window'
+        type: string
+        default: '1000'
+      windows:
+        description: 'Windows to run (1 = single window)'
+        type: string
+        default: '1'
+      workers:
+        description: 'Xray workers (1-8)'
+        type: string
+        default: '8'
+      batch:
+        description: 'Nodes per Xray process (1-32)'
+        type: string
+        default: '32'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-bench
+  cancel-in-progress: false
+
+jobs:
+  bench:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Increase file descriptor limit
+        run: ulimit -n 65536 || true
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Cache Xray binary
+        id: cache-xray
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/xray
+          key: xray-linux-64-v26.3.27
+
+      - name: Cache Mihomo binary
+        id: cache-mihomo
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/mihomo
+          key: mihomo-linux-amd64-v1.19.30
+
+      - name: Install dependencies, Xray-core & Mihomo
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ ! -f /usr/local/bin/xray ]; then
+            curl -fL --retry 3 -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/download/v26.3.27/Xray-linux-64.zip
+            sudo unzip -o /tmp/xray.zip -d /usr/local/bin/
+            sudo chmod +x /usr/local/bin/xray
+          fi
+          /usr/local/bin/xray version
+          if [ ! -f /usr/local/bin/mihomo ]; then
+            curl -fL --retry 3 -s -o /tmp/mihomo.gz "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.30/mihomo-linux-amd64-v1.19.30.gz"
+            sudo sh -c "gunzip -c /tmp/mihomo.gz > /usr/local/bin/mihomo"
+            sudo chmod +x /usr/local/bin/mihomo
+            rm -f /tmp/mihomo.gz
+          fi
+          /usr/local/bin/mihomo -v || true
+
+      - name: Run bounded window without publishing or writing state
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TP_PROBE_WORKERS: ${{ inputs.workers }}
+          TP_PROBE_BATCH: ${{ inputs.batch }}
+        run: |
+          python -u -m backend.vpn_v2.cached_queue \
+            --select 0 \
+            --window "${{ inputs.window }}" \
+            --max-windows "${{ inputs.windows }}" \
+            --budget-seconds 19800 \
+            --no-publish \
+            --no-checkpoint
+
+      - name: Upload metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-bench-metrics
+          path: backend/vpn_v2/.local/metrics-last.json
+          if-no-files-found: warn

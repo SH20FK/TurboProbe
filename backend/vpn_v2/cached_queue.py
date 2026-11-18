@@ -12,6 +12,7 @@ from .github import push_snapshot
 from .latencylab import LabClient,LabError,check_candidates
 from .probe import verify,verify_stable,rank,measure_selected,service_prober
 from .secrets import load
+from .metrics import METRICS, stage, count
 
 
 def load_progress(path):
@@ -45,16 +46,18 @@ def next_window(store,cursor,size):
     return list(store.db.execute('SELECT id,uri FROM nodes WHERE id>? ORDER BY id LIMIT ?',(cursor,size)))
 
 
-def save_progress(run,progress,private):
+def save_progress(run,progress,private,persist=True):
     progress['updated_at']=datetime.now(timezone.utc).isoformat()
     # Only public config and measured node fields travel. No API responses/headers.
     fields=('uri','verified','verification_policy','ping_kind','ping_ms','country','checked_at','protocol')
     progress['best']=[{k:n[k] for k in fields if k in n} for n in fresh_best(progress['best'])]
     private.write_text(json.dumps(progress,ensure_ascii=False),encoding='utf-8')
-    run.branch.save_progress(progress)
+    if persist:
+        with stage('checkpoint'):
+            run.branch.save_progress(progress)
 
 
-def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=False):
+def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=False,publish=True,persist_state=True):
     engine=verify_stable if recheck else verify
     total=run.store.db.execute('SELECT count(*) FROM nodes').fetchone()[0]
     if not total: raise LabError('Saved cache is empty; no source crawl was started')
@@ -89,7 +92,7 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
         return sorted(result,key=lambda n:n['ping_ms'])
     def checkpoint():
         progress['local']=list(local.values());progress['lab']=list(lab.values())
-        save_progress(run,progress,private)
+        save_progress(run,progress,private,persist=persist_state)
     def publish_current():
         nodes=current_nodes()
         if not nodes:return False
@@ -99,7 +102,9 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
                 'crawler':{'scope':'checked_cache_subset','cached_pool_size':total,
                            'processed_in_cycle':progress['processed'],'cycle':progress['cycle']}}
         (private.parent/'rolling-result.json').write_text(json.dumps(report,ensure_ascii=False),encoding='utf-8')
-        push_snapshot(report,load('GITHUB_TOKEN'))
+        if publish:
+            with stage('publish'):
+                push_snapshot(report,load('GITHUB_TOKEN'))
         print(f'PUBLISHED: {len(nodes)} tunnel nodes; {report["selected_count"]} in LatencyLab group',flush=True)
         return True
     lab_paused=False
@@ -120,7 +125,8 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
             for i,client in enumerate(clients):client.attach_store(run.store,datetime.now(timezone.utc).isoformat(),i,run.checkpoint_jobs)
             summary={}
             try:
-                passed=check_candidates(selected,clients,allow_partial=True,summary=summary,deadline=run.deadline)
+                with stage('lab'):
+                    passed=check_candidates(selected,clients,allow_partial=True,summary=summary,deadline=run.deadline)
                 for n in passed:
                     key=ident(n['uri']);remember([n])
                     lab[key]={'id':key,**{k:n[k] for k in ('latencylab_verified','latencylab_checked_at','latencylab_operators','expires_at')}}
@@ -148,7 +154,11 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
             if windows:break
             progress.update(cursor='',processed=0,cycle=progress['cycle']+1)
             rows=next_window(run.store,'',window)
-        try:verified=engine([r[1] for r in rows],deadline=run.local_deadline)
+        try:
+            count('windows')
+            count('window_rows', len(rows))
+            with stage('window'):
+                verified=engine([r[1] for r in rows],deadline=run.local_deadline)
         except TimeoutError:
             print('Local budget reached; unfinished window will be retried next run',flush=True);break
         good={ident(n['uri']) for n in verified}
@@ -195,6 +205,8 @@ def main():
     parser.add_argument('--max-windows',type=int,default=0,help='0 continues until the local budget; 1 is a bounded pilot')
     parser.add_argument('--budget-seconds',type=int,default=21600)
     parser.add_argument('--recheck',action='store_true',help='require a second complete HTTPS pass with fresh cores')
+    parser.add_argument('--no-publish',action='store_true',help='verify and report only; never push rolling results')
+    parser.add_argument('--no-checkpoint',action='store_true',help='keep progress local; never write the state branch')
     args=parser.parse_args()
     if not 0<=args.select<=200 or not 1<=args.window<=5000 or args.max_windows<0:parser.error('invalid select/window size')
     if not 5401<=args.budget_seconds<=21600:parser.error('invalid time budget')
@@ -202,7 +214,8 @@ def main():
     for name in names:
         if not load(name):raise LabError(f'Missing secret: {name}')
     private=Path(__file__).resolve().parent/'.local'
-    run=CrawlRun(private/'rolling-state',load('GITHUB_TOKEN'),True,args.budget_seconds,persist_checkpoints=False)
+    with stage('state_restore'):
+        run=CrawlRun(private/'rolling-state',load('GITHUB_TOKEN'),True,args.budget_seconds,persist_checkpoints=False)
     if not args.select:
         run.local_deadline=run.deadline-300  # No Lab stage: retain five minutes for final checkpoint/publication.
     try:
@@ -210,8 +223,12 @@ def main():
         progress_path=run.branch.path/'probe-progress.json.gz'
         if not progress_path.exists():progress_path=run.branch.path/'probe-progress.json'
         progress=load_progress(progress_path)
-        run_queue(run,progress,private/'probe-progress.json',args.select,args.window,args.max_windows,args.recheck)
-    finally:run.close()
+        run_queue(run,progress,private/'probe-progress.json',args.select,args.window,args.max_windows,args.recheck,
+                  publish=not args.no_publish,persist_state=not args.no_checkpoint)
+    finally:
+        METRICS.write(private/'metrics-last.json')
+        print('METRICS: '+json.dumps(METRICS.snapshot(),ensure_ascii=False),flush=True)
+        run.close()
 
 
 if __name__=='__main__':
