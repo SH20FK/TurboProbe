@@ -1,0 +1,88 @@
+name: VPN v2 rolling publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      sweep_minutes:
+        description: 'Unknown-pool sweep budget per run (minutes)'
+        type: string
+        default: '45'
+      lab_limit:
+        description: 'LatencyLab daily ceiling (0 = tunnel checks only)'
+        type: choice
+        default: '200'
+        options: ['0', '200']
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: vpn-v2-state-writer
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Increase file descriptor limit
+        run: ulimit -n 65536 || true
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Cache Xray binary
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/xray
+          key: xray-linux-64-v26.3.27
+
+      - name: Cache Mihomo binary
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/mihomo
+          key: mihomo-linux-amd64-v1.19.30
+
+      - name: Install dependencies, Xray-core & Mihomo
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ ! -f /usr/local/bin/xray ]; then
+            curl -fL --retry 3 -s -o /tmp/xray.zip https://github.com/XTLS/Xray-core/releases/download/v26.3.27/Xray-linux-64.zip
+            sudo unzip -o /tmp/xray.zip -d /usr/local/bin/
+            sudo chmod +x /usr/local/bin/xray
+          fi
+          /usr/local/bin/xray version
+          if [ ! -f /usr/local/bin/mihomo ]; then
+            curl -fL --retry 3 -s -o /tmp/mihomo.gz "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.30/mihomo-linux-amd64-v1.19.30.gz"
+            sudo sh -c "gunzip -c /tmp/mihomo.gz > /usr/local/bin/mihomo"
+            sudo chmod +x /usr/local/bin/mihomo
+            rm -f /tmp/mihomo.gz
+          fi
+          /usr/local/bin/mihomo -v || true
+
+      - name: Refresh alive nodes and sweep the unknown pool
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LATENCYLAB_API_KEY_1: ${{ inputs.lab_limit != '0' && secrets.LATENCYLAB_API_KEY_1 || '' }}
+          LATENCYLAB_API_KEY_2: ${{ inputs.lab_limit != '0' && secrets.LATENCYLAB_API_KEY_2 || '' }}
+        run: |
+          python -u -m backend.vpn_v2.cached_queue \
+            --select "${{ inputs.lab_limit }}" \
+            --sweep-seconds "$(( ${{ inputs.sweep_minutes }} * 60 ))" \
+            --budget-seconds 19800 \
+            --publish-interval 600
+
+      - name: Upload metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-publish-metrics
+          path: backend/vpn_v2/.local/metrics-last.json
+          if-no-files-found: warn

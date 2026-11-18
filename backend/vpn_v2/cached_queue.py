@@ -57,7 +57,7 @@ def save_progress(run,progress,private,persist=True):
             run.branch.save_progress(progress)
 
 
-def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=False,publish=True,persist_state=True,sweep_seconds=0,skip_priority=False):
+def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=False,publish=True,persist_state=True,sweep_seconds=0,skip_priority=False,publish_interval=600):
     engine=verify_stable if recheck else verify
     total=run.store.db.execute('SELECT count(*) FROM nodes').fetchone()[0]
     if not total: raise LabError('Saved cache is empty; no source crawl was started')
@@ -107,6 +107,14 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
                 push_snapshot(report,load('GITHUB_TOKEN'))
         print(f'PUBLISHED: {len(nodes)} tunnel nodes; {report["selected_count"]} in LatencyLab group',flush=True)
         return True
+    published_at=[0.0]
+    def publish_throttled(force=False):
+        if not publish: return False
+        if not force and time.monotonic()-published_at[0] < publish_interval: return False
+        if publish_current():
+            published_at[0]=time.monotonic()
+            return True
+        return False
     lab_paused=False
     def lab_batch(all_nodes):
         nonlocal lab_paused
@@ -185,7 +193,7 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
         progress['best']=rank(current_nodes(),200)
         progress['new_cursor']=new_rows[-1][0]
         checkpoint()
-        published=publish_current() or published
+        published=publish_throttled() or published
     elif new_cursor:
         progress['new_cursor']=''
         checkpoint()
@@ -215,7 +223,7 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
         progress['best']=rank(all_nodes,200)
         progress['cursor']=rows[-1][0];progress['processed']+=len(rows);windows+=1
         checkpoint()
-        published=publish_current() or published
+        published=publish_throttled() or published
         print(f'Queue progress: {progress["processed"]}/{total}; {len(local)} fresh tunnel nodes',flush=True)
         if max_windows and windows>=max_windows:break
         if not next_window(run.store,progress['cursor'],1):break
@@ -255,9 +263,11 @@ def main():
     parser.add_argument('--no-checkpoint',action='store_true',help='keep progress local; never write the state branch')
     parser.add_argument('--sweep-seconds',type=int,default=0,help='stop the unknown-pool sweep after N seconds (0 = until the budget)')
     parser.add_argument('--skip-priority',action='store_true',help='benchmark-only: do not recheck the alive set first')
+    parser.add_argument('--publish-interval',type=int,default=600,help='minimum seconds between rolling publications')
     args=parser.parse_args()
     if not 0<=args.select<=200 or not 1<=args.window<=5000 or args.max_windows<0:parser.error('invalid select/window size')
     if not 0<=args.sweep_seconds<=18000:parser.error('invalid sweep budget')
+    if not 0<=args.publish_interval<=3600:parser.error('invalid publish interval')
     if not 5401<=args.budget_seconds<=21600:parser.error('invalid time budget')
     names=('GITHUB_TOKEN',)+(('LATENCYLAB_API_KEY_1','LATENCYLAB_API_KEY_2') if args.select else ())
     for name in names:
@@ -274,7 +284,7 @@ def main():
         progress=load_progress(progress_path)
         run_queue(run,progress,private/'probe-progress.json',args.select,args.window,args.max_windows,args.recheck,
                   publish=not args.no_publish,persist_state=not args.no_checkpoint,sweep_seconds=args.sweep_seconds,
-                  skip_priority=args.skip_priority)
+                  skip_priority=args.skip_priority,publish_interval=args.publish_interval)
     finally:
         METRICS.write(private/'metrics-last.json')
         print('METRICS: '+json.dumps(METRICS.snapshot(),ensure_ascii=False),flush=True)
