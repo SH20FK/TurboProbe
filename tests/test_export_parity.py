@@ -40,6 +40,16 @@ class ExportParityTests(unittest.TestCase):
         missing = REQUIRED - set(self.files)
         self.assertEqual(missing, set())
 
+    def test_global_country_is_never_published(self):
+        data = snapshot()
+        data['nodes'][0]['country'] = 'GLOBAL'
+        files = render(data)
+        self.assertEqual(files['all.txt'].count('\n'), 0)  # exactly one node left
+        self.assertNotIn('"DE"', files['countries/index.json'])
+        data['nodes'][1]['country'] = 'GLOBAL'
+        with self.assertRaises(ValueError):
+            render(data)
+
     def test_clash_aliases_are_identical(self):
         self.assertEqual(self.files['clash.yaml'], self.files['clash-meta.yaml'])
         self.assertEqual(self.files['clash.yaml'], self.files['clash.meta.yaml'])

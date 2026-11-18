@@ -1554,6 +1554,7 @@ def main():
     alive_tuples = [
         (sanitize_node_remark(n["uri"], n["ping_ms"]), n["ping_ms"], key, None)
         for key, n in checked_nodes.items()
+        if str(n.get("country", "")).strip().upper() not in ("", "GLOBAL", "UN")
     ]
     alive_tuples.sort(key=lambda item: item[1])
     deep_verified_alive = len(alive_tuples)

@@ -14,6 +14,11 @@ def render(snapshot, existing=()):
     if not is_fresh(snapshot):
         raise ValueError('snapshot is expired or invalid')
     nodes = snapshot['nodes']
+    # A key whose exit country could not be confirmed is almost always dead weight;
+    # never publish it and never let an empty result wipe the live subscription.
+    nodes = [n for n in nodes if str(n.get('country') or '').strip().upper() not in ('', 'GLOBAL', 'UN')]
+    if not nodes:
+        raise ValueError('no country-verified nodes to publish')
     mixed = snapshot.get('publication_profile') == 'tunnel-and-latencylab'
     if any((not mixed and n.get('latencylab_verified') is not True) or n.get('verified') is not True or
            n.get('verification_policy') != 'tunnel-https-v1' for n in nodes):
