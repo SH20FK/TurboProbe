@@ -107,7 +107,7 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
                 push_snapshot(report,load('GITHUB_TOKEN'))
         print(f'PUBLISHED: {len(nodes)} tunnel nodes; {report["selected_count"]} in LatencyLab group',flush=True)
         return True
-    published_at=[0.0]
+    published_at=[float('-inf')]
     def publish_throttled(force=False):
         if not publish: return False
         if not force and time.monotonic()-published_at[0] < publish_interval: return False
@@ -229,6 +229,7 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
         if not next_window(run.store,progress['cursor'],1):break
     # Never spend quota on early windows. Freeze the global shortlist only once
     # the saved pool has been visited, then measure speed without reranking it.
+    published=publish_current() or published
     complete = not next_window(run.store,progress['cursor'],1) and progress['processed'] >= total
     if complete and select:
         shortlist = rank(current_nodes(), min(select,200))
