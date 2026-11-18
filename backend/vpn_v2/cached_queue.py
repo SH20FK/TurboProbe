@@ -165,6 +165,30 @@ def run_queue(run,progress,private,select=200,window=1000,max_windows=0,recheck=
     remember(progress['best'])
     published=False;windows=0
     sweep_started=time.monotonic()
+    # New arrivals first: ids are hashes, so the plain cursor would reach a node
+    # discovered today only after a full cycle. Give them a bounded head start.
+    new_cursor=progress.get('new_cursor','')
+    new_cutoff=time.time()-3*86400
+    new_rows=list(run.store.db.execute('SELECT id,uri FROM nodes WHERE first_seen>? AND id>? ORDER BY id LIMIT 2000',
+                                       (new_cutoff,new_cursor)))
+    if new_rows and not skip_priority:
+        print(f'New-node pass: {len(new_rows)} keys discovered in the last 3 days',flush=True)
+        new_verified=[]
+        for start in range(0,len(new_rows),1000):
+            if time.monotonic()-sweep_started>=600: break
+            chunk=new_rows[start:start+1000]
+            try:
+                new_verified.extend(engine([r[1] for r in chunk],deadline=run.local_deadline))
+            except TimeoutError:
+                break
+        for n in new_verified: remember([n])
+        progress['best']=rank(current_nodes(),200)
+        progress['new_cursor']=new_rows[-1][0]
+        checkpoint()
+        published=publish_current() or published
+    elif new_cursor:
+        progress['new_cursor']=''
+        checkpoint()
     print(f'Rolling queue: {total} stored keys; cycle {progress["cycle"]}; '
           f'{progress["processed"]} processed; LatencyLab daily ceiling={select}',flush=True)
     while time.monotonic()<run.local_deadline:
