@@ -23,6 +23,10 @@ on:
         description: 'TCP prefilter concurrency (32-1024)'
         type: string
         default: '128'
+      priority:
+        description: 'Recheck the alive set first (1) or benchmark windows only (0)'
+        type: string
+        default: '1'
 
 permissions:
   contents: read
@@ -85,13 +89,16 @@ jobs:
           TP_PROBE_BATCH: ${{ inputs.batch }}
           TP_PREFILTER_CONCURRENCY: ${{ inputs.prefilter }}
         run: |
+          PRIORITY=""
+          if [ "${{ inputs.priority }}" = "0" ]; then PRIORITY="--skip-priority"; fi
           python -u -m backend.vpn_v2.cached_queue \
             --select 0 \
             --window "${{ inputs.window }}" \
             --max-windows "${{ inputs.windows }}" \
             --budget-seconds 19800 \
             --no-publish \
-            --no-checkpoint
+            --no-checkpoint \
+            $PRIORITY
 
       - name: Upload metrics
         if: always()
